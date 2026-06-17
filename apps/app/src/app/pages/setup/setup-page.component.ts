@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
+  IonButtons,
   IonContent,
   IonHeader,
   IonInput,
@@ -13,11 +15,25 @@ import {
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [FormsModule, IonButton, IonContent, IonHeader, IonInput, IonItem, IonTitle, IonToolbar],
+  imports: [
+    FormsModule,
+    RouterLink,
+    IonButton,
+    IonButtons,
+    IonContent,
+    IonHeader,
+    IonInput,
+    IonItem,
+    IonTitle,
+    IonToolbar
+  ],
   template: `
     <ion-header>
       <ion-toolbar>
         <ion-title>Chicle Engine Setup</ion-title>
+        <ion-buttons slot="end">
+          <ion-button routerLink="/docs">Docs</ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 

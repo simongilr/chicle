@@ -170,6 +170,25 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Cambiar puertos</h2>
+          <p class="section-lead">
+            Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a ejecutar
+            el comando. En Docker, los valores salen de <code>infra/docker/.env.example</code>.
+          </p>
+          <div class="steps">
+            @for (step of portSteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
           <h2>Errores comunes</h2>
           <ul class="notes">
             <li>
@@ -183,6 +202,10 @@ interface CommandStep {
             <li>
               Si la API no arranca por base de datos, abre Docker Desktop y levanta MariaDB con
               el comando de base de datos.
+            </li>
+            <li>
+              Si el error dice que el puerto está ocupado, cambia <code>APP_PORT</code>,
+              <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
             </li>
           </ul>
         </section>
@@ -204,13 +227,13 @@ export class DocsPageComponent {
     },
     {
       title: 'Correr la app web',
-      command: 'APP_PORT=8100 npm run dev:app',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Cambia APP_PORT si el puerto está ocupado.'
+      command: 'npm run dev:app',
+      note: 'Ejecuta este comando desde la raíz del proyecto. Abre la app en el puerto APP_PORT.'
     },
     {
       title: 'Correr solo desde apps/app',
-      command: 'APP_PORT=8100 npm run start',
-      note: 'Alternativa cuando ya estás dentro de la carpeta de la app. Cambia APP_PORT si hace falta.'
+      command: 'npm run start',
+      note: 'Alternativa cuando ya estás dentro de la carpeta de la app.'
     },
     {
       title: 'Abrir Docker Desktop',
@@ -235,12 +258,40 @@ export class DocsPageComponent {
     {
       title: 'Probar setup status',
       command: 'curl http://127.0.0.1:3000/api/setup/status',
-      note: 'Debe responder {"initialized":false} antes de crear el primer tenant.'
+      note: 'Cambia 3000 por API_PORT si modificaste el puerto de la API.'
     },
     {
       title: 'Validar que todo compila',
       command: 'npm run build',
       note: 'Ejecuta este comando desde la raíz del proyecto. Útil antes de hacer commit o después de cambios grandes.'
+    }
+  ];
+
+  readonly portSteps: CommandStep[] = [
+    {
+      title: 'Cambiar puerto de la app',
+      command: 'APP_PORT=8200 npm run dev:app',
+      note: 'Usa este formato cuando 8100 esté ocupado.'
+    },
+    {
+      title: 'Cambiar puerto de la app desde apps/app',
+      command: 'APP_PORT=8200 npm run start',
+      note: 'Útil si ya estás dentro de la carpeta apps/app.'
+    },
+    {
+      title: 'Cambiar puertos de Docker',
+      command: 'API_PORT=3100\nAPP_PORT=8200\nDB_PORT=3307',
+      note: 'Edita esos valores en infra/docker/.env.example.'
+    },
+    {
+      title: 'Aplicar puertos de Docker',
+      command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build api',
+      note: 'Recrea API y DB usando API_PORT y DB_PORT.'
+    },
+    {
+      title: 'Probar API en puerto alterno',
+      command: 'curl http://127.0.0.1:3100/api/setup/status',
+      note: 'Usa el mismo número que pusiste en API_PORT.'
     }
   ];
 }

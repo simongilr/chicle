@@ -149,7 +149,8 @@ interface CommandStep {
           <h2>Regla rápida</h2>
           <p class="section-lead">
             Si estás en la raíz del proyecto usa los comandos del monorepo. Si ya entraste a
-            <code>apps/app</code>, usa el comando propio de la app.
+            <code>apps/app</code>, usa el comando propio de la app. Los puertos se cambian en
+            <code>infra/docker/.env.example</code>.
           </p>
         </section>
 
@@ -203,13 +204,13 @@ export class DocsPageComponent {
     },
     {
       title: 'Correr la app web',
-      command: 'npm run dev:app',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Abre la app en http://localhost:8100.'
+      command: 'APP_PORT=8100 npm run dev:app',
+      note: 'Ejecuta este comando desde la raíz del proyecto. Cambia APP_PORT si el puerto está ocupado.'
     },
     {
       title: 'Correr solo desde apps/app',
-      command: 'npm run start',
-      note: 'Alternativa cuando ya estás dentro de la carpeta de la app.'
+      command: 'APP_PORT=8100 npm run start',
+      note: 'Alternativa cuando ya estás dentro de la carpeta de la app. Cambia APP_PORT si hace falta.'
     },
     {
       title: 'Abrir Docker Desktop',
@@ -219,12 +220,17 @@ export class DocsPageComponent {
     {
       title: 'Levantar la base de datos',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up db',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Requiere Docker Desktop abierto.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Publica el puerto definido en DB_PORT.'
     },
     {
       title: 'Correr la API',
       command: 'DB_HOST=127.0.0.1 DB_SYNCHRONIZE=true npm run dev:api',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Expone la API en http://localhost:3000/api.'
+      note: 'Para desarrollo local usa 127.0.0.1. En Docker, API_PORT y DB_SYNCHRONIZE salen del env.'
+    },
+    {
+      title: 'Correr API con Docker',
+      command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build api',
+      note: 'Levanta API y DB usando los puertos configurados en el env.'
     },
     {
       title: 'Probar setup status',

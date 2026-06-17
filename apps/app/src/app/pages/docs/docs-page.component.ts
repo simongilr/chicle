@@ -155,6 +155,15 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Cómo funciona el env</h2>
+          <p class="section-lead">
+            Siempre dejamos un valor por defecto para que el proyecto arranque sin configuración
+            extra. Si existe un valor en <code>infra/docker/.env.example</code> o en la terminal,
+            ese valor reemplaza el default.
+          </p>
+        </section>
+
+        <section>
           <h2>Arranque recomendado</h2>
           <div class="steps">
             @for (step of startupSteps; track step.title) {
@@ -173,7 +182,7 @@ interface CommandStep {
           <h2>Cambiar puertos</h2>
           <p class="section-lead">
             Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a ejecutar
-            el comando. En Docker, los valores salen de <code>infra/docker/.env.example</code>.
+            el comando. Ubicación: <code>infra/docker/.env.example</code>.
           </p>
           <div class="steps">
             @for (step of portSteps; track step.title) {
@@ -228,7 +237,7 @@ export class DocsPageComponent {
     {
       title: 'Correr la app web',
       command: 'npm run dev:app',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Abre la app en el puerto APP_PORT.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Usa APP_PORT o el default 8100.'
     },
     {
       title: 'Correr solo desde apps/app',
@@ -243,17 +252,17 @@ export class DocsPageComponent {
     {
       title: 'Levantar la base de datos',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up db',
-      note: 'Ejecuta este comando desde la raíz del proyecto. Publica el puerto definido en DB_PORT.'
+      note: 'Lee DB_PORT desde infra/docker/.env.example. Si no existe, usa el default 3306.'
     },
     {
       title: 'Correr la API',
       command: 'DB_HOST=127.0.0.1 DB_SYNCHRONIZE=true npm run dev:api',
-      note: 'Para desarrollo local usa 127.0.0.1. En Docker, API_PORT y DB_SYNCHRONIZE salen del env.'
+      note: 'Para desarrollo local usa 127.0.0.1. En Docker, API_PORT y DB_SYNCHRONIZE salen de infra/docker/.env.example.'
     },
     {
       title: 'Correr API con Docker',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build api',
-      note: 'Levanta API y DB usando los puertos configurados en el env.'
+      note: 'Levanta API y DB usando los valores de infra/docker/.env.example.'
     },
     {
       title: 'Probar setup status',
@@ -271,22 +280,22 @@ export class DocsPageComponent {
     {
       title: 'Cambiar puerto de la app',
       command: 'APP_PORT=8200 npm run dev:app',
-      note: 'Usa este formato cuando 8100 esté ocupado.'
+      note: 'Override temporal desde la terminal. El default sigue siendo 8100.'
     },
     {
       title: 'Cambiar puerto de la app desde apps/app',
       command: 'APP_PORT=8200 npm run start',
-      note: 'Útil si ya estás dentro de la carpeta apps/app.'
+      note: 'Override temporal desde la terminal si ya estás dentro de apps/app.'
     },
     {
       title: 'Cambiar puertos de Docker',
       command: 'API_PORT=3100\nAPP_PORT=8200\nDB_PORT=3307',
-      note: 'Edita esos valores en infra/docker/.env.example.'
+      note: 'Ubicación: infra/docker/.env.example. Si no existen, Compose usa los defaults.'
     },
     {
       title: 'Aplicar puertos de Docker',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build api',
-      note: 'Recrea API y DB usando API_PORT y DB_PORT.'
+      note: 'Recrea API y DB usando API_PORT y DB_PORT desde infra/docker/.env.example.'
     },
     {
       title: 'Probar API en puerto alterno',

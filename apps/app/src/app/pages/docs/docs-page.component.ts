@@ -212,14 +212,24 @@ export class DocsPageComponent {
       note: 'Alternativa cuando ya estás dentro de la carpeta de la app.'
     },
     {
+      title: 'Abrir Docker Desktop',
+      command: 'open -a Docker',
+      note: 'Hazlo antes de levantar servicios con Docker Compose.'
+    },
+    {
       title: 'Levantar la base de datos',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up db',
       note: 'Ejecuta este comando desde la raíz del proyecto. Requiere Docker Desktop abierto.'
     },
     {
       title: 'Correr la API',
-      command: 'npm run dev:api',
+      command: 'DB_HOST=127.0.0.1 DB_SYNCHRONIZE=true npm run dev:api',
       note: 'Ejecuta este comando desde la raíz del proyecto. Expone la API en http://localhost:3000/api.'
+    },
+    {
+      title: 'Probar setup status',
+      command: 'curl http://127.0.0.1:3000/api/setup/status',
+      note: 'Debe responder {"initialized":false} antes de crear el primer tenant.'
     },
     {
       title: 'Validar que todo compila',

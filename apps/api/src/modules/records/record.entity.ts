@@ -12,10 +12,10 @@ export class RecordEntity {
   @Column({ length: 120 })
   recordType!: string;
 
-  @Column({ length: 120, nullable: true })
+  @Column({ type: 'varchar', length: 120, nullable: true })
   formKey?: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   formVersion?: number | null;
 
   @Column({ length: 180 })

@@ -10,7 +10,6 @@ import {
 
 interface CommandStep {
   title: string;
-  cwd: string;
   command: string;
   note: string;
 }
@@ -149,9 +148,8 @@ interface CommandStep {
         <section>
           <h2>Regla rápida</h2>
           <p class="section-lead">
-            Los comandos del monorepo se ejecutan desde la raíz:
-            <code>/Users/user/.codex/worktrees/ba38/chicle-engine</code>.
-            Los comandos propios de la app se ejecutan desde <code>apps/app</code>.
+            Si estás en la raíz del proyecto usa los comandos del monorepo. Si ya entraste a
+            <code>apps/app</code>, usa el comando propio de la app.
           </p>
         </section>
 
@@ -162,7 +160,6 @@ interface CommandStep {
               <article class="step">
                 <h3>{{ step.title }}</h3>
                 <div class="meta">
-                  <span>Ubicación: <code>{{ step.cwd }}</code></span>
                   <span>{{ step.note }}</span>
                 </div>
                 <pre>{{ step.command }}</pre>
@@ -196,45 +193,38 @@ export class DocsPageComponent {
   readonly startupSteps: CommandStep[] = [
     {
       title: 'Usar la versión correcta de Node',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'nvm use',
       note: 'Lee .nvmrc y activa Node 22.'
     },
     {
       title: 'Instalar dependencias',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'npm install',
       note: 'Solo hace falta cuando cambia package.json o package-lock.json.'
     },
     {
       title: 'Correr la app web',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'npm run dev:app',
-      note: 'Abre la app en http://localhost:8100.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Abre la app en http://localhost:8100.'
     },
     {
       title: 'Correr solo desde apps/app',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine/apps/app',
       command: 'npm run start',
       note: 'Alternativa cuando ya estás dentro de la carpeta de la app.'
     },
     {
       title: 'Levantar la base de datos',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up db',
-      note: 'Requiere Docker Desktop abierto.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Requiere Docker Desktop abierto.'
     },
     {
       title: 'Correr la API',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'npm run dev:api',
-      note: 'Expone la API en http://localhost:3000/api.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Expone la API en http://localhost:3000/api.'
     },
     {
       title: 'Validar que todo compila',
-      cwd: '/Users/user/.codex/worktrees/ba38/chicle-engine',
       command: 'npm run build',
-      note: 'Útil antes de hacer commit o después de cambios grandes.'
+      note: 'Ejecuta este comando desde la raíz del proyecto. Útil antes de hacer commit o después de cambios grandes.'
     }
   ];
 }

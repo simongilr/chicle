@@ -1,0 +1,25 @@
+{
+  "name": "chicle-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plug and play application engine with NestJS API and Ionic Angular responsive app.",
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10.9.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace @chicle/api run start:dev",
+    "dev:app": "npm --workspace @chicle/app run start",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write \"apps/**/*.{ts,scss,html,json,md}\" \"packages/**/*.{ts,json,md}\" \"docs/**/*.md\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

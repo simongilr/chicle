@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-chicle_engine}
+      MYSQL_USER: ${DB_USER:-chicle}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-chicle_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - chicle_db:/var/lib/mysql
+
+  api:
+    build:
+      context: ../../
+      dockerfile: apps/api/Dockerfile
+    environment:
+      PORT: ${API_PORT:-3000}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-chicle_engine}
+      DB_USER: ${DB_USER:-chicle}
+      DB_PASSWORD: ${DB_PASSWORD:-chicle_secret}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
+      FILES_ROOT: /app/storage/files
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - chicle_files:/app/storage/files
+    depends_on:
+      - db
+
+volumes:
+  chicle_db:
+  chicle_files:

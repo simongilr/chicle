@@ -1,0 +1,12 @@
+node_modules/
+dist/
+www/
+.angular/
+.ionic/
+.env
+.env.*
+!.env.example
+coverage/
+tmp/
+.DS_Store
+*.log

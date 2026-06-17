@@ -1,0 +1,18 @@
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "primeicons/primeicons.css";
+
+:root {
+  --ch-color-primary: #1554a2;
+  --ch-color-surface: #ffffff;
+  --ch-color-background: #f4f7fb;
+  --ch-radius: 8px;
+  --ion-color-primary: #1554a2;
+}
+
+html,
+body {
+  background: var(--ch-color-background);
+}

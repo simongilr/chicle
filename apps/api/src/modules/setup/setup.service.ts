@@ -19,8 +19,15 @@ export class SetupService {
 
   async status() {
     const count = await this.tenants.count();
+    const initialized = count > 0;
+
     return {
-      initialized: count > 0
+      state: initialized ? 'ready' : 'not_created',
+      initialized,
+      canRunSetup: !initialized,
+      tenantCount: count,
+      requiredAction: initialized ? 'login' : 'run_setup',
+      seedProfile: 'blank'
     };
   }
 

@@ -164,6 +164,59 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Primer uso</h2>
+          <div class="steps">
+            @for (step of firstRunSteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
+          <h2>Estado del sistema</h2>
+          <p class="section-lead">
+            La app decide qué mostrar usando <code>/api/setup/status</code>. Si responde
+            <code>not_created</code>, el backend está vivo y falta crear el sistema. Si no responde,
+            el problema es conexión, API o base de datos.
+          </p>
+          <div class="steps">
+            @for (step of systemStateSteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
+          <h2>Semillas iniciales</h2>
+          <ul class="notes">
+            <li>
+              El primer usuario real es el admin creado desde setup. No usamos una contraseña
+              default quemada en el código.
+            </li>
+            <li>
+              La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y
+              roles/permisos base cuando implementemos Fase 2.
+            </li>
+            <li>
+              Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una
+              seed no debe romper el core.
+            </li>
+          </ul>
+        </section>
+
+        <section>
           <h2>Arranque recomendado</h2>
           <div class="steps">
             @for (step of startupSteps; track step.title) {
@@ -213,6 +266,10 @@ interface CommandStep {
               el comando de base de datos.
             </li>
             <li>
+              Si <code>/api/setup/status</code> responde <code>not_created</code>, no está caído:
+              toca ejecutar el setup inicial.
+            </li>
+            <li>
               Si el error dice que el puerto está ocupado, cambia <code>APP_PORT</code>,
               <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
             </li>
@@ -223,6 +280,45 @@ interface CommandStep {
   `
 })
 export class DocsPageComponent {
+  readonly firstRunSteps: CommandStep[] = [
+    {
+      title: 'Confirmar estado inicial',
+      command: 'curl http://127.0.0.1:3000/api/setup/status',
+      note: 'Debe responder state: "not_created" cuando el backend está vivo y el sistema aún no fue creado.'
+    },
+    {
+      title: 'Crear el primer tenant',
+      command:
+        'curl -X POST http://127.0.0.1:3000/api/setup \\\n  -H "Content-Type: application/json" \\\n  -d \'{"organization":"Mi Empresa","email":"admin@example.com","password":"CambiaEstaClave123","template":"blank"}\'',
+      note: 'Este será el primer admin. Luego reemplazaremos este curl por la pantalla setup conectada.'
+    },
+    {
+      title: 'Confirmar que ya quedó creado',
+      command: 'curl http://127.0.0.1:3000/api/setup/status',
+      note: 'Después del setup debe responder state: "ready" y requiredAction: "login".'
+    }
+  ];
+
+  readonly systemStateSteps: CommandStep[] = [
+    {
+      title: 'Sistema no creado',
+      command:
+        '{"state":"not_created","initialized":false,"canRunSetup":true,"requiredAction":"run_setup"}',
+      note: 'La API y la DB están arriba. La app debe mostrar setup inicial.'
+    },
+    {
+      title: 'Sistema listo',
+      command:
+        '{"state":"ready","initialized":true,"canRunSetup":false,"requiredAction":"login"}',
+      note: 'Ya existe al menos un tenant. La app debe enviar a login.'
+    },
+    {
+      title: 'Sistema no disponible',
+      command: 'fetch /api/setup/status falla, timeout, 500, DNS o conexión rechazada',
+      note: 'Esto no es setup pendiente. La app debe mostrar error de conexión o servicio.'
+    }
+  ];
+
   readonly startupSteps: CommandStep[] = [
     {
       title: 'Usar la versión correcta de Node',

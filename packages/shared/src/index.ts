@@ -33,3 +33,14 @@ export interface DynamicFieldDefinition {
   options?: Array<{ label: string; value: unknown }>;
   config?: Record<string, unknown>;
 }
+
+export type SetupState = 'not_created' | 'ready' | 'unavailable';
+
+export interface SetupStatus {
+  state: Exclude<SetupState, 'unavailable'>;
+  initialized: boolean;
+  canRunSetup: boolean;
+  tenantCount: number;
+  requiredAction: 'run_setup' | 'login';
+  seedProfile: 'blank';
+}

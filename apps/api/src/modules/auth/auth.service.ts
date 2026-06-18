@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfisysService } from '../confisys/confisys.service';
 import { Tenant } from '../tenants/tenant.entity';
 
 export type SecurityChannel = 'web' | 'mobile' | 'device';
@@ -39,53 +40,12 @@ export interface SecurityPolicy {
   methods: AuthMethodConfig[];
 }
 
-export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
-  level: 'standard',
-  requireMfa: false,
-  password: {
-    enabled: true,
-    minLength: 12,
-    hash: 'bcrypt'
-  },
-  session: {
-    webMode: 'refresh_cookie',
-    accessTokenTtlMinutes: 15,
-    refreshTokenTtlDays: 14
-  },
-  methods: [
-    {
-      type: 'password',
-      enabled: true,
-      label: 'Email y password',
-      channels: ['web', 'mobile'],
-      primary: true
-    },
-    {
-      type: 'passkey',
-      enabled: false,
-      label: 'Passkey',
-      channels: ['web', 'mobile']
-    },
-    {
-      type: 'oidc',
-      enabled: false,
-      label: 'OIDC / OAuth2',
-      channels: ['web', 'mobile']
-    },
-    {
-      type: 'device_code',
-      enabled: false,
-      label: 'Código de dispositivo',
-      channels: ['device', 'mobile']
-    }
-  ]
-};
-
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(Tenant)
-    private readonly tenants: Repository<Tenant>
+    private readonly tenants: Repository<Tenant>,
+    private readonly confisys: ConfisysService
   ) {}
 
   async publicConfig() {
@@ -104,24 +64,25 @@ export class AuthService {
 
   private readSecurityPolicy(settings?: Record<string, unknown> | null): SecurityPolicy {
     const security = settings?.security;
+    const defaultSecurity = this.confisys.getSecurityPolicy();
     if (!security || typeof security !== 'object') {
-      return DEFAULT_SECURITY_POLICY;
+      return defaultSecurity;
     }
 
     return {
-      ...DEFAULT_SECURITY_POLICY,
+      ...defaultSecurity,
       ...(security as Partial<SecurityPolicy>),
       password: {
-        ...DEFAULT_SECURITY_POLICY.password,
+        ...defaultSecurity.password,
         ...((security as Partial<SecurityPolicy>).password ?? {})
       },
       session: {
-        ...DEFAULT_SECURITY_POLICY.session,
+        ...defaultSecurity.session,
         ...((security as Partial<SecurityPolicy>).session ?? {})
       },
       methods: Array.isArray((security as Partial<SecurityPolicy>).methods)
         ? ((security as SecurityPolicy).methods)
-        : DEFAULT_SECURITY_POLICY.methods
+        : defaultSecurity.methods
     };
   }
 }

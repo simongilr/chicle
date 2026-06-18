@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { DEFAULT_SECURITY_POLICY } from '../auth/auth.service';
+import { ConfisysService } from '../confisys/confisys.service';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
 
@@ -19,7 +19,8 @@ export class SetupService {
     @InjectRepository(Tenant)
     private readonly tenants: Repository<Tenant>,
     @InjectRepository(User)
-    private readonly users: Repository<User>
+    private readonly users: Repository<User>,
+    private readonly confisys: ConfisysService
   ) {}
 
   async status() {
@@ -32,7 +33,7 @@ export class SetupService {
       canRunSetup: !initialized,
       tenantCount: count,
       requiredAction: initialized ? 'login' : 'run_setup',
-      seedProfile: 'blank'
+      seedProfile: this.confisys.get<string>('setup.seedProfile', 'blank')
     };
   }
 
@@ -47,8 +48,8 @@ export class SetupService {
       slug: this.slugify(request.organization),
       settings: {
         appName: request.organization,
-        template: request.template ?? 'blank',
-        security: DEFAULT_SECURITY_POLICY
+        template: request.template ?? this.confisys.get<string>('setup.seedProfile', 'blank'),
+        security: this.confisys.getSecurityPolicy()
       }
     });
 

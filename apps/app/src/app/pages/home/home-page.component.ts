@@ -11,6 +11,7 @@ import { IonButton, IonContent } from '@ionic/angular/standalone';
       <h1>Chicle Engine</h1>
       <p>Runtime ready. Menus will be loaded from the API.</p>
       <ion-button routerLink="/docs">Open documentation</ion-button>
+      <ion-button routerLink="/confisys">Confisys</ion-button>
     </ion-content>
   `
 })

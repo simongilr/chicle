@@ -164,6 +164,26 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Confisys</h2>
+          <p class="section-lead">
+            <code>confisys</code> es la tabla paramétrica del sistema. La API crea una semilla
+            mínima si faltan valores, carga todos los parámetros en memoria al iniciar y trabaja con
+            esa caché hasta el siguiente reinicio.
+          </p>
+          <div class="steps">
+            @for (step of confisysSteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
           <h2>Primer uso</h2>
           <div class="steps">
             @for (step of firstRunSteps; track step.title) {
@@ -349,7 +369,7 @@ export class DocsPageComponent {
     {
       title: 'Consultar política pública',
       command: 'curl http://127.0.0.1:3000/api/auth/config',
-      note: 'La pantalla login usa este endpoint para decidir qué métodos mostrar.'
+      note: 'La pantalla login usa este endpoint para decidir qué métodos mostrar. Sus defaults salen de confisys.'
     },
     {
       title: 'Canales soportados',
@@ -365,7 +385,7 @@ export class DocsPageComponent {
       title: 'Política default',
       command:
         'level: standard\npassword: enabled\nsession.webMode: refresh_cookie\npasskey: disabled\noidc/oauth2: disabled\ndevice_code: disabled',
-      note: 'El setup inicial guarda esta política base en settings.security.'
+      note: 'El setup inicial guarda esta política base en settings.security usando valores de confisys.'
     },
     {
       title: 'Regla de UI',
@@ -416,6 +436,11 @@ export class DocsPageComponent {
       note: 'Levanta API y DB usando los valores de infra/docker/.env.example.'
     },
     {
+      title: 'Administrar confisys',
+      command: 'Abre http://localhost:8100/confisys',
+      note: 'Los cambios quedan en DB y aplican cuando reinicies la API.'
+    },
+    {
       title: 'Probar setup status',
       command: 'curl http://127.0.0.1:3000/api/setup/status',
       note: 'Cambia 3000 por API_PORT si modificaste el puerto de la API.'
@@ -452,6 +477,35 @@ export class DocsPageComponent {
       title: 'Probar API en puerto alterno',
       command: 'curl http://127.0.0.1:3100/api/setup/status',
       note: 'Usa el mismo número que pusiste en API_PORT.'
+    }
+  ];
+
+  readonly confisysSteps: CommandStep[] = [
+    {
+      title: 'Consultar parámetros',
+      command: 'curl http://127.0.0.1:3000/api/confisys',
+      note: 'Lista todos los parámetros cargados desde la tabla confisys.'
+    },
+    {
+      title: 'Consultar parámetros públicos',
+      command: 'curl http://127.0.0.1:3000/api/confisys/public',
+      note: 'Devuelve solo los valores marcados como seguros para UI pública.'
+    },
+    {
+      title: 'Abrir pantalla web',
+      command: 'http://localhost:8100/confisys',
+      note: 'Desde ahí se editan los parámetros. Por ahora el cambio aplica al reiniciar API.'
+    },
+    {
+      title: 'Qué se queda en env',
+      command: 'DB_HOST\nDB_PORT\nDB_USER\nDB_PASSWORD\nDB_NAME\nPORT\nAPI_PORT\nAPP_PORT',
+      note: 'Son valores necesarios antes de que la API pueda leer la base de datos o antes de que Docker cree servicios.'
+    },
+    {
+      title: 'Qué vive en confisys',
+      command:
+        'setup.seedProfile\nsecurity.level\nsecurity.password.minLength\nsecurity.session.accessTokenTtlMinutes\nfiles.storage.driver\nfeatures.offlineSync.enabled',
+      note: 'Son parámetros de comportamiento que sí puede leer la API después de arrancar.'
     }
   ];
 }

@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { ActionsModule } from './modules/actions/actions.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ConfisysModule } from './modules/confisys/confisys.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { FilesModule } from './modules/files/files.module';
@@ -19,6 +20,7 @@ import { UsersModule } from './modules/users/users.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
+    ConfisysModule,
     SetupModule,
     AuthModule,
     TenantsModule,

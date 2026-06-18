@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { DEFAULT_SECURITY_POLICY } from '../auth/auth.service';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
 
@@ -46,7 +47,8 @@ export class SetupService {
       slug: this.slugify(request.organization),
       settings: {
         appName: request.organization,
-        template: request.template ?? 'blank'
+        template: request.template ?? 'blank',
+        security: DEFAULT_SECURITY_POLICY
       }
     });
 

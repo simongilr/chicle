@@ -51,6 +51,34 @@ Reviewed local references:
 
 ## Chicle Engine Target Design
 
+### Modular Security Policy
+
+Authentication is configured per tenant through a security policy stored in tenant settings.
+
+The policy controls:
+
+- Security level: `basic`, `standard`, `high`.
+- MFA requirement.
+- Password login availability and password hash strategy.
+- Web session strategy.
+- Enabled auth methods by channel:
+  - `web`
+  - `mobile`
+  - `device`
+- Optional provider keys for external providers.
+
+Supported method types are planned as:
+
+- `password`
+- `oauth2`
+- `oidc`
+- `saml`
+- `magic_link`
+- `device_code`
+- `passkey`
+
+Visual components must read the public auth config before rendering login actions. If a method is disabled for the current channel, the UI must not present it as an available action. Backend guards still remain authoritative.
+
 ### Authentication
 
 - First admin is created only through first-run setup.

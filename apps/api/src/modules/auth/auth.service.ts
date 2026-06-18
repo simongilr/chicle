@@ -1,52 +1,9 @@
-export type ChicleActionType =
-  | 'create_record'
-  | 'http_request'
-  | 'upload_files'
-  | 'show_modal'
-  | 'navigate'
-  | 'queue_offline'
-  | 'capability'
-  | 'get_gps';
-
-export interface ChicleAction {
-  type: ChicleActionType;
-  key?: string;
-  offline?: boolean;
-  payloadMap?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export interface DynamicFormDefinition {
-  key: string;
-  title: string;
-  version: number;
-  fields: DynamicFieldDefinition[];
-  actions?: ChicleAction[];
-}
-
-export interface DynamicFieldDefinition {
-  name: string;
-  type: string;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-  options?: Array<{ label: string; value: unknown }>;
-  config?: Record<string, unknown>;
-}
-
-export type SetupState = 'not_created' | 'ready' | 'unavailable';
-
-export interface SetupStatus {
-  state: Exclude<SetupState, 'unavailable'>;
-  initialized: boolean;
-  canRunSetup: boolean;
-  tenantCount: number;
-  requiredAction: 'run_setup' | 'login';
-  seedProfile: 'blank';
-}
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from '../tenants/tenant.entity';
 
 export type SecurityChannel = 'web' | 'mobile' | 'device';
-
 export type AuthMethodType =
   | 'password'
   | 'oauth2'
@@ -55,7 +12,6 @@ export type AuthMethodType =
   | 'magic_link'
   | 'device_code'
   | 'passkey';
-
 export type SecurityLevel = 'basic' | 'standard' | 'high';
 
 export interface AuthMethodConfig {
@@ -81,12 +37,6 @@ export interface SecurityPolicy {
     refreshTokenTtlDays: number;
   };
   methods: AuthMethodConfig[];
-}
-
-export interface PublicAuthConfig {
-  tenantSlug?: string;
-  setupRequired: boolean;
-  security: SecurityPolicy;
 }
 
 export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
@@ -130,3 +80,48 @@ export const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
     }
   ]
 };
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectRepository(Tenant)
+    private readonly tenants: Repository<Tenant>
+  ) {}
+
+  async publicConfig() {
+    const tenant = await this.tenants.findOne({
+      where: { active: true },
+      order: { name: 'ASC' }
+    });
+    const configuredSecurity = this.readSecurityPolicy(tenant?.settings);
+
+    return {
+      tenantSlug: tenant?.slug,
+      setupRequired: !tenant,
+      security: configuredSecurity
+    };
+  }
+
+  private readSecurityPolicy(settings?: Record<string, unknown> | null): SecurityPolicy {
+    const security = settings?.security;
+    if (!security || typeof security !== 'object') {
+      return DEFAULT_SECURITY_POLICY;
+    }
+
+    return {
+      ...DEFAULT_SECURITY_POLICY,
+      ...(security as Partial<SecurityPolicy>),
+      password: {
+        ...DEFAULT_SECURITY_POLICY.password,
+        ...((security as Partial<SecurityPolicy>).password ?? {})
+      },
+      session: {
+        ...DEFAULT_SECURITY_POLICY.session,
+        ...((security as Partial<SecurityPolicy>).session ?? {})
+      },
+      methods: Array.isArray((security as Partial<SecurityPolicy>).methods)
+        ? ((security as SecurityPolicy).methods)
+        : DEFAULT_SECURITY_POLICY.methods
+    };
+  }
+}

@@ -177,25 +177,49 @@ Decision:
 
 ## Initial Implementation Sequence
 
-1. Create roles and permissions entities.
-2. Add blank setup seed for base roles and permissions.
-3. Complete setup transaction:
+1. Create roles and permissions entities. Done.
+2. Add blank setup seed for base roles and permissions. Done.
+3. Complete setup transaction. Done:
    - tenant
    - owner user
    - settings
    - roles
    - permissions
    - owner role assignment
-4. Implement login with password verification.
-5. Implement JWT/session service using maintained libraries.
-6. Add guards:
+4. Implement login with password verification. Done.
+5. Implement JWT/session service using maintained libraries. Done for access tokens and server-side sessions.
+6. Add guards. Partially done:
    - auth guard
-   - tenant guard/context
+   - tenant/user/session context
    - permission guard
-7. Implement `/auth/me`.
-8. Add frontend auth service and route guards.
-9. Decide final web token storage strategy before production.
-10. Add HTTPS/reverse-proxy deployment path.
+7. Implement `/auth/me`. Done.
+8. Protect sensitive endpoints. Started with `confisys.read` and `confisys.update`.
+9. Add frontend auth service and route guards.
+10. Decide final web token storage strategy before production.
+11. Add HTTPS/reverse-proxy deployment path.
+
+## Current Backend Security State
+
+Implemented:
+
+- `permissions`, `roles`, `role_permissions`, `user_roles`.
+- `auth_sessions` with server-side active session validation.
+- Base permissions and roles for blank setup.
+- First setup creates owner role assignment in the same transaction.
+- Password login validates bcrypt hashes and returns generic 401 failures.
+- JWT access tokens include `sub`, `tenantId`, `sid`, `jti`, `iat`, `exp`.
+- `/auth/me` returns current user, tenant, roles and effective permissions.
+- `JwtAuthGuard`, `PermissionsGuard` and `@RequirePermissions(...)`.
+- Private `confisys` endpoints require authentication and permissions.
+
+Still pending:
+
+- Frontend session service, login submit and route guards.
+- Refresh token or cookie session strategy for production web.
+- Logout and session revocation endpoint.
+- Rate limiting and risk controls for login.
+- User and role administration screens/endpoints.
+- Broader endpoint protection as each module becomes real.
 
 ## Open Decisions
 

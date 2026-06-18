@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { AuthService, LoginRequest } from './auth.service';
+import { AuthContext } from './auth.types';
+import { CurrentAuth } from './decorators/current-auth.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -11,12 +14,8 @@ export class AuthController {
   }
 
   @Post('login')
-  login(@Body() body: { email: string; password: string }) {
-    return {
-      accessToken: 'pending-auth-token',
-      user: { email: body.email },
-      tenant: null
-    };
+  login(@Body() body: LoginRequest) {
+    return this.authService.login(body);
   }
 
   @Post('login-device')
@@ -28,11 +27,8 @@ export class AuthController {
   }
 
   @Get('me')
-  me() {
-    return {
-      user: null,
-      tenant: null,
-      permissions: []
-    };
+  @UseGuards(JwtAuthGuard)
+  me(@CurrentAuth() auth: AuthContext) {
+    return this.authService.me(auth);
   }
 }

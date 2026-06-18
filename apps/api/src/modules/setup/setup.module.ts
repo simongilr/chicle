@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfisysModule } from '../confisys/confisys.module';
+import { RbacModule } from '../rbac/rbac.module';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
 import { SetupController } from './setup.controller';
 import { SetupService } from './setup.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant, User]), ConfisysModule],
+  imports: [TypeOrmModule.forFeature([Tenant, User]), ConfisysModule, RbacModule],
   controllers: [SetupController],
   providers: [SetupService]
 })

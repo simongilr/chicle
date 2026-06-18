@@ -391,6 +391,22 @@ export class DocsPageComponent {
       title: 'Regla de UI',
       command: 'Si un método no está activo para el canal actual, el componente visual no debe mostrarlo.',
       note: 'Esto mejora la experiencia; los permisos reales siempre se validan en backend.'
+    },
+    {
+      title: 'Login real',
+      command:
+        'curl -X POST http://127.0.0.1:3000/api/auth/login \\\n  -H "Content-Type: application/json" \\\n  -d \'{"email":"admin@example.com","password":"CambiaEstaClave123","tenantSlug":"mi-empresa"}\'',
+      note: 'Devuelve accessToken Bearer, usuario, tenant, roles y permisos.'
+    },
+    {
+      title: 'Consultar sesión actual',
+      command: 'curl http://127.0.0.1:3000/api/auth/me -H "Authorization: Bearer TOKEN"',
+      note: 'Valida el token, la sesión activa, el usuario, el tenant y los permisos efectivos.'
+    },
+    {
+      title: 'Confisys protegido',
+      command: 'curl http://127.0.0.1:3000/api/confisys -H "Authorization: Bearer TOKEN"',
+      note: 'Requiere confisys.read. Para guardar cambios requiere confisys.update.'
     }
   ];
 

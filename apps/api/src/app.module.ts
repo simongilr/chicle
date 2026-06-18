@@ -10,6 +10,7 @@ import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module
 import { FilesModule } from './modules/files/files.module';
 import { MenusModule } from './modules/menus/menus.module';
 import { RecordsModule } from './modules/records/records.module';
+import { RbacModule } from './modules/rbac/rbac.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SetupModule } from './modules/setup/setup.module';
 import { SyncModule } from './modules/sync/sync.module';
@@ -21,6 +22,7 @@ import { UsersModule } from './modules/users/users.module';
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     ConfisysModule,
+    RbacModule,
     SetupModule,
     AuthModule,
     TenantsModule,

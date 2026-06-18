@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { ConfisysService } from '../confisys/confisys.service';
+import { RbacService } from '../rbac/rbac.service';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
 
@@ -20,7 +21,8 @@ export class SetupService {
     private readonly tenants: Repository<Tenant>,
     @InjectRepository(User)
     private readonly users: Repository<User>,
-    private readonly confisys: ConfisysService
+    private readonly confisys: ConfisysService,
+    private readonly rbac: RbacService
   ) {}
 
   async status() {
@@ -56,7 +58,7 @@ export class SetupService {
     const passwordHash = await hash(request.password, 12);
     const savedTenant = await this.tenants.manager.transaction(async (manager) => {
       const createdTenant = await manager.save(Tenant, tenant);
-      await manager.save(
+      const owner = await manager.save(
         User,
         this.users.create({
           tenantId: createdTenant.id,
@@ -65,6 +67,8 @@ export class SetupService {
           systemRole: 'owner'
         })
       );
+      await this.rbac.ensureTenantDefaults(createdTenant.id, manager);
+      await this.rbac.assignRoleToUser(createdTenant.id, owner.id, 'owner', manager);
 
       return createdTenant;
     });

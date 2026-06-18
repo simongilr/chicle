@@ -288,9 +288,14 @@ export class DocsPageComponent {
     },
     {
       title: 'Crear el primer tenant',
+      command: 'Abre http://localhost:8100/setup y completa organización, email admin, password y semilla blank.',
+      note: 'Este es el flujo principal web. Si cambiaste APP_PORT, usa ese puerto en la URL.'
+    },
+    {
+      title: 'Crear el primer tenant por API',
       command:
         'curl -X POST http://127.0.0.1:3000/api/setup \\\n  -H "Content-Type: application/json" \\\n  -d \'{"organization":"Mi Empresa","email":"admin@example.com","password":"CambiaEstaClave123","template":"blank"}\'',
-      note: 'Este será el primer admin. Luego reemplazaremos este curl por la pantalla setup conectada.'
+      note: 'Alternativa técnica para validar backend. La pantalla setup usa este mismo endpoint.'
     },
     {
       title: 'Confirmar que ya quedó creado',

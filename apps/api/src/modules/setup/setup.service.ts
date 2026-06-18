@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { Tenant } from '../tenants/tenant.entity';
+import { User } from '../users/user.entity';
 
 interface SetupRequest {
   organization: string;
@@ -14,7 +16,9 @@ interface SetupRequest {
 export class SetupService {
   constructor(
     @InjectRepository(Tenant)
-    private readonly tenants: Repository<Tenant>
+    private readonly tenants: Repository<Tenant>,
+    @InjectRepository(User)
+    private readonly users: Repository<User>
   ) {}
 
   async status() {
@@ -46,14 +50,29 @@ export class SetupService {
       }
     });
 
-    await this.tenants.save(tenant);
+    const passwordHash = await hash(request.password, 12);
+    const savedTenant = await this.tenants.manager.transaction(async (manager) => {
+      const createdTenant = await manager.save(Tenant, tenant);
+      await manager.save(
+        User,
+        this.users.create({
+          tenantId: createdTenant.id,
+          email: request.email.toLowerCase().trim(),
+          passwordHash,
+          systemRole: 'owner'
+        })
+      );
+
+      return createdTenant;
+    });
 
     return {
-      tenant,
+      tenant: savedTenant,
       admin: {
-        email: request.email
+        email: request.email.toLowerCase().trim(),
+        role: 'owner'
       },
-      next: 'auth implementation'
+      next: 'login'
     };
   }
 

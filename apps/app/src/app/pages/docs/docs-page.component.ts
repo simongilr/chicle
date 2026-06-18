@@ -207,7 +207,8 @@ interface CommandStep {
             </li>
             <li>
               La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y
-              roles/permisos base cuando implementemos Fase 2.
+              usuario admin inicial con rol <code>owner</code>. Roles y permisos finos se suman
+              en la siguiente iteración.
             </li>
             <li>
               Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una

@@ -50,3 +50,5 @@ Do not add core modules named after SmartSeal concepts such as seals, containers
 ## Development Next Step
 
 Continue from the scaffold, install dependencies, and make the API and app boot locally. Then implement setup, tenants and auth first.
+
+Before implementing auth, roles, permissions or transport security, read `docs/security-auth-review.md`.

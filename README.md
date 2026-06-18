@@ -38,3 +38,5 @@ start operating
 ```
 
 Read `docs/context-handoff.md` before continuing development in a new Codex conversation.
+
+Security and authentication decisions should be checked against `docs/security-auth-review.md` before implementation.

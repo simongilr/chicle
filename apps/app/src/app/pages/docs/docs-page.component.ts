@@ -218,6 +218,26 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Seguridad modular</h2>
+          <p class="section-lead">
+            La seguridad se configura por organización. La pantalla de login lee
+            <code>/api/auth/config</code> y muestra solo los métodos activos para web, móvil o
+            dispositivo. El backend sigue siendo la autoridad real para permisos y acceso.
+          </p>
+          <div class="steps">
+            @for (step of securitySteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
           <h2>Arranque recomendado</h2>
           <div class="steps">
             @for (step of startupSteps; track step.title) {
@@ -322,6 +342,35 @@ export class DocsPageComponent {
       title: 'Sistema no disponible',
       command: 'fetch /api/setup/status falla, timeout, 500, DNS o conexión rechazada',
       note: 'Esto no es setup pendiente. La app debe mostrar error de conexión o servicio.'
+    }
+  ];
+
+  readonly securitySteps: CommandStep[] = [
+    {
+      title: 'Consultar política pública',
+      command: 'curl http://127.0.0.1:3000/api/auth/config',
+      note: 'La pantalla login usa este endpoint para decidir qué métodos mostrar.'
+    },
+    {
+      title: 'Canales soportados',
+      command: 'web\nmobile\ndevice',
+      note: 'Cada método de autenticación declara en qué canales está disponible.'
+    },
+    {
+      title: 'Métodos preparados',
+      command: 'password\noauth2\noidc\nsaml\nmagic_link\ndevice_code\npasskey',
+      note: 'Se activan por organización desde la política de seguridad del tenant.'
+    },
+    {
+      title: 'Política default',
+      command:
+        'level: standard\npassword: enabled\nsession.webMode: refresh_cookie\npasskey: disabled\noidc/oauth2: disabled\ndevice_code: disabled',
+      note: 'El setup inicial guarda esta política base en settings.security.'
+    },
+    {
+      title: 'Regla de UI',
+      command: 'Si un método no está activo para el canal actual, el componente visual no debe mostrarlo.',
+      note: 'Esto mejora la experiencia; los permisos reales siempre se validan en backend.'
     }
   ];
 

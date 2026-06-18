@@ -1,8 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 type SecurityChannel = 'web' | 'mobile' | 'device';
 type AuthMethodType = 'password' | 'oauth2' | 'oidc' | 'saml' | 'magic_link' | 'device_code' | 'passkey';
@@ -197,6 +198,12 @@ interface PublicAuthConfig {
         color: #ffffff;
       }
 
+      .primary-button:disabled {
+        border-color: #c8d6e4;
+        background: #d7e1eb;
+        color: #758596;
+      }
+
       .method-button {
         width: 100%;
         border: 1px solid #c8d6e4;
@@ -318,7 +325,7 @@ interface PublicAuthConfig {
             </div>
 
             @if (passwordEnabledForChannel) {
-              <form class="form">
+              <form class="form" (ngSubmit)="login()">
                 <label>
                   Email
                   <input name="email" type="email" autocomplete="email" [(ngModel)]="email" />
@@ -327,7 +334,9 @@ interface PublicAuthConfig {
                   Password
                   <input name="password" type="password" autocomplete="current-password" [(ngModel)]="password" />
                 </label>
-                <button class="primary-button" type="button">Entrar con password</button>
+                <button class="primary-button" type="submit" [disabled]="submitting">
+                  {{ submitting ? 'Entrando...' : 'Entrar con password' }}
+                </button>
               </form>
             }
 
@@ -350,11 +359,14 @@ interface PublicAuthConfig {
 })
 export class LoginPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   config?: PublicAuthConfig;
   channel: SecurityChannel = 'web';
   email = '';
   password = '';
+  submitting = false;
   message = 'Cargando política de seguridad...';
 
   ngOnInit() {
@@ -385,6 +397,33 @@ export class LoginPageComponent implements OnInit {
         this.message = 'No se pudo cargar la política de seguridad. Revisa API_PORT y Docker.';
       }
     });
+  }
+
+  login() {
+    if (!this.email.trim() || !this.password) {
+      this.message = 'Ingresa email y password.';
+      return;
+    }
+
+    this.submitting = true;
+    this.message = 'Validando credenciales...';
+    this.auth
+      .login({
+        email: this.email,
+        password: this.password,
+        tenantSlug: this.config?.tenantSlug
+      })
+      .subscribe({
+        next: (response) => {
+          this.auth.completeLogin(response);
+          this.submitting = false;
+          void this.router.navigateByUrl('/home');
+        },
+        error: () => {
+          this.submitting = false;
+          this.message = 'No se pudo iniciar sesión. Revisa tus credenciales.';
+        }
+      });
   }
 
   methodDescription(method: AuthMethodConfig) {

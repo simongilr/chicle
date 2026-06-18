@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 type ConfisysValueType = 'string' | 'number' | 'boolean' | 'json';
 
@@ -231,6 +232,7 @@ interface ConfisysSaveResponse {
         <nav class="top-actions">
           <a class="link" routerLink="/docs">Documentación</a>
           <a class="link" routerLink="/home">Inicio</a>
+          <button type="button" (click)="logout()">Salir</button>
         </nav>
       </header>
 
@@ -306,7 +308,7 @@ interface ConfisysSaveResponse {
                 <button
                   class="primary"
                   type="button"
-                  [disabled]="!entry.editable || entry.saving"
+                  [disabled]="!canUpdate || !entry.editable || entry.saving"
                   (click)="save(entry)"
                 >
                   Guardar
@@ -324,6 +326,7 @@ interface ConfisysSaveResponse {
 })
 export class ConfisysPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
+  readonly auth = inject(AuthService);
 
   entries: ConfisysEntry[] = [];
   loading = true;
@@ -341,6 +344,10 @@ export class ConfisysPageComponent implements OnInit {
       const haystack = `${entry.key} ${entry.category} ${entry.description ?? ''}`.toLowerCase();
       return matchesCategory && (!search || haystack.includes(search));
     });
+  }
+
+  get canUpdate() {
+    return this.auth.state.hasPermission('confisys.update');
   }
 
   ngOnInit() {
@@ -365,6 +372,11 @@ export class ConfisysPageComponent implements OnInit {
   }
 
   save(entry: ConfisysEntry) {
+    if (!this.canUpdate) {
+      entry.error = 'No tienes permiso para guardar.';
+      return;
+    }
+
     entry.saving = true;
     entry.saved = false;
     entry.error = undefined;
@@ -401,6 +413,10 @@ export class ConfisysPageComponent implements OnInit {
           entry.error = 'No se pudo guardar.';
         }
       });
+  }
+
+  logout() {
+    this.auth.logout();
   }
 
   private toDraft(entry: ConfisysEntry) {

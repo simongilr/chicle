@@ -194,7 +194,7 @@ Decision:
    - permission guard
 7. Implement `/auth/me`. Done.
 8. Protect sensitive endpoints. Started with `confisys.read` and `confisys.update`.
-9. Add frontend auth service and route guards.
+9. Add frontend auth service and route guards. Done for MVP bearer session.
 10. Decide final web token storage strategy before production.
 11. Add HTTPS/reverse-proxy deployment path.
 
@@ -211,12 +211,14 @@ Implemented:
 - `/auth/me` returns current user, tenant, roles and effective permissions.
 - `JwtAuthGuard`, `PermissionsGuard` and `@RequirePermissions(...)`.
 - Private `confisys` endpoints require authentication and permissions.
+- Frontend login submits to `/auth/login`, stores the short-lived bearer token in `sessionStorage`, hydrates with `/auth/me`, and guards protected routes.
+- Frontend sends `Authorization: Bearer` automatically for API calls.
+- Frontend hides `confisys` navigation without `confisys.read` and disables saves without `confisys.update`.
+- Logout calls `/auth/logout`, clears session state and invalidates the server-side session.
 
 Still pending:
 
-- Frontend session service, login submit and route guards.
 - Refresh token or cookie session strategy for production web.
-- Logout and session revocation endpoint.
 - Rate limiting and risk controls for login.
 - User and role administration screens/endpoints.
 - Broader endpoint protection as each module becomes real.

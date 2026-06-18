@@ -183,6 +183,20 @@ export class AuthService {
     };
   }
 
+  async logout(auth: AuthContext) {
+    await this.sessions.update(
+      {
+        id: auth.sessionId,
+        userId: auth.user.id,
+        tenantId: auth.tenant.id,
+        tokenId: auth.tokenId
+      },
+      { active: false }
+    );
+
+    return { ok: true };
+  }
+
   private readSecurityPolicy(settings?: Record<string, unknown> | null): SecurityPolicy {
     const security = settings?.security;
     const defaultSecurity = this.confisys.getSecurityPolicy();

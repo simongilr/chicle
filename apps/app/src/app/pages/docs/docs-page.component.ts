@@ -407,6 +407,16 @@ export class DocsPageComponent {
       title: 'Confisys protegido',
       command: 'curl http://127.0.0.1:3000/api/confisys -H "Authorization: Bearer TOKEN"',
       note: 'Requiere confisys.read. Para guardar cambios requiere confisys.update.'
+    },
+    {
+      title: 'Logout',
+      command: 'curl -X POST http://127.0.0.1:3000/api/auth/logout -H "Authorization: Bearer TOKEN"',
+      note: 'Invalida la sesión server-side y la app limpia el token local.'
+    },
+    {
+      title: 'Estado frontend',
+      command: 'sessionStorage: chicle.accessToken y chicle.session',
+      note: 'El token es Bearer de MVP. En producción web cambiaremos a refresh cookie HttpOnly.'
     }
   ];
 

@@ -31,4 +31,10 @@ export class AuthController {
   me(@CurrentAuth() auth: AuthContext) {
     return this.authService.me(auth);
   }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  logout(@CurrentAuth() auth: AuthContext) {
+    return this.authService.logout(auth);
+  }
 }

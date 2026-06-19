@@ -1,13 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import {
-  IonBackButton,
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar
-} from '@ionic/angular/standalone';
+import { IonContent } from '@ionic/angular/standalone';
 
 interface CommandStep {
   title: string;
@@ -24,19 +17,70 @@ interface DocSection {
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [RouterLink, IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar],
+  imports: [RouterLink, IonContent],
   styles: [
     `
+      ion-content {
+        --background: #f5f7fb;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid #d9e2ec;
+        background: #ffffff;
+        padding: 14px 24px;
+      }
+
+      .brand-block {
+        display: grid;
+        gap: 2px;
+        min-width: 190px;
+      }
+
+      .brand {
+        color: #12324f;
+        font-size: 1rem;
+        font-weight: 850;
+      }
+
+      .context-label {
+        color: #64748b;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .top-actions a {
+        min-height: 38px;
+        border: 1px solid #c8d6e4;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #173b5f;
+        padding: 8px 12px;
+        text-decoration: none;
+        font: inherit;
+        font-weight: 800;
+      }
+
       .docs-shell {
         max-width: 1180px;
         margin: 0 auto;
-        padding: 20px 0 48px;
+        padding: 24px 24px 48px;
       }
 
       .intro {
         display: grid;
         gap: 10px;
-        margin-bottom: 18px;
+        margin-bottom: 20px;
         border-bottom: 1px solid #d8e3ed;
         padding-bottom: 20px;
       }
@@ -53,24 +97,6 @@ interface DocSection {
         margin: 0;
         color: #4d5c6c;
         line-height: 1.55;
-      }
-
-      .system-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 6px;
-      }
-
-      .system-links a {
-        border: 1px solid #cbd8e3;
-        border-radius: 6px;
-        background: #ffffff;
-        color: #173b5f;
-        padding: 8px 10px;
-        font-size: 0.9rem;
-        font-weight: 700;
-        text-decoration: none;
       }
 
       .docs-layout {
@@ -110,6 +136,11 @@ interface DocSection {
         padding: 9px 10px;
         text-align: left;
         cursor: pointer;
+      }
+
+      .docs-nav button[aria-current='true'] {
+        background: #e8f2ff;
+        box-shadow: inset 3px 0 0 #1554a2;
       }
 
       .docs-nav button:hover,
@@ -243,17 +274,37 @@ interface DocSection {
       }
 
       @media (max-width: 640px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 14px 16px;
+        }
+
+        .top-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          width: 100%;
+        }
+
+        .top-actions a {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 0;
+          text-align: center;
+        }
+
         .docs-shell {
-          padding-top: 12px;
+          padding: 18px 0 36px;
+        }
+
+        .intro,
+        .docs-content {
+          padding-inline: 16px;
         }
 
         .intro h1 {
           font-size: 1.55rem;
-        }
-
-        .system-links a {
-          flex: 1 1 130px;
-          text-align: center;
         }
       }
 
@@ -264,26 +315,65 @@ interface DocSection {
 
         .docs-nav {
           position: static;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          border-width: 1px 0;
+          border-radius: 0;
+          padding: 10px 16px;
+          scrollbar-width: thin;
         }
 
         .docs-nav-title {
-          grid-column: 1 / -1;
+          display: inline-flex;
+          align-items: center;
+          flex: 0 0 auto;
+          margin: 0;
+          padding-right: 4px;
+        }
+
+        .docs-nav button {
+          flex: 0 0 auto;
+          width: auto;
+          min-width: 128px;
+          border: 1px solid #cbd8e3;
+          background: #ffffff;
+          padding: 9px 10px;
+        }
+
+        .docs-nav button[aria-current='true'] {
+          border-color: #1554a2;
+          background: #1554a2;
+          color: #ffffff;
+          box-shadow: none;
+        }
+
+        .docs-nav button[aria-current='true'] span,
+        .docs-nav button[aria-current='true'] strong {
+          color: #ffffff;
+        }
+
+        .docs-nav span {
+          display: none;
         }
       }
     `
   ],
   template: `
-    <ion-header>
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/setup"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Documentación</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <ion-content>
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand">Chicle Engine</div>
+          <div class="context-label">Manual operativo</div>
+        </div>
+        <nav class="top-actions" aria-label="Navegación principal">
+          <a routerLink="/home">Inicio</a>
+          <a routerLink="/setup">Setup</a>
+          <a routerLink="/confisys">Configuración</a>
+          <a routerLink="/security">Seguridad</a>
+        </nav>
+      </header>
 
-    <ion-content class="ion-padding">
       <main class="docs-shell">
         <header class="intro">
           <h1>Primeros pasos de Chicle Engine</h1>
@@ -291,19 +381,17 @@ interface DocSection {
             Esta página guarda las instrucciones operativas del proyecto para que no dependamos
             de recordar comandos sueltos. La iremos enriqueciendo conforme avance el producto.
           </p>
-          <nav class="system-links" aria-label="Navegación del sistema">
-            <a routerLink="/home">Inicio</a>
-            <a routerLink="/setup">Setup</a>
-            <a routerLink="/confisys">Configuración</a>
-            <a routerLink="/security">Seguridad</a>
-          </nav>
         </header>
 
         <div class="docs-layout">
           <nav class="docs-nav" aria-label="Secciones del manual">
             <div class="docs-nav-title">Secciones</div>
             @for (section of sections; track section.id) {
-              <button type="button" (click)="scrollTo(section.id)">
+              <button
+                type="button"
+                [attr.aria-current]="activeSection === section.id ? 'true' : null"
+                (click)="scrollTo(section.id)"
+              >
                 <strong>{{ section.label }}</strong>
                 <span>{{ section.summary }}</span>
               </button>
@@ -546,8 +634,11 @@ export class DocsPageComponent {
   ];
 
   scrollTo(sectionId: string) {
+    this.activeSection = sectionId;
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  activeSection = 'reglas';
 
   readonly firstRunSteps: CommandStep[] = [
     {

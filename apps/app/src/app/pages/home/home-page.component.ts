@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth/auth.service';
+import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 interface HomeModule {
   title: string;
@@ -14,7 +15,7 @@ interface HomeModule {
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, IonContent],
+  imports: [RouterLink, IonContent, MainNavComponent],
   styles: [
     `
       ion-content {
@@ -289,23 +290,7 @@ interface HomeModule {
   ],
   template: `
     <ion-content>
-      <header class="topbar">
-        <div class="brand-block">
-          <div class="brand">Chicle Engine</div>
-          <div class="context-label">Panel principal</div>
-        </div>
-        <nav class="top-actions" aria-label="Navegación principal">
-          <a routerLink="/home" aria-current="page">Inicio</a>
-          <a routerLink="/docs">Manual</a>
-          @if (auth.state.hasPermission('confisys.read')) {
-            <a routerLink="/confisys">Configuración</a>
-          }
-          @if (auth.state.hasAllPermissions(['users.read', 'roles.read', 'permissions.read'])) {
-            <a routerLink="/security">Seguridad</a>
-          }
-          <button type="button" (click)="logout()">Salir</button>
-        </nav>
-      </header>
+      <app-main-nav contextLabel="Panel principal" />
 
       <main class="shell">
         @if (auth.state.session(); as session) {
@@ -417,9 +402,5 @@ export class HomePageComponent {
 
   roleList(roles: Array<{ key: string; name: string }>) {
     return roles.length ? roles.map((role) => role.name || role.key).join(', ') : 'Sin roles';
-  }
-
-  logout() {
-    this.auth.logout();
   }
 }

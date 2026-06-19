@@ -1,9 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 interface SecurityUser {
   id: string;
@@ -42,7 +42,7 @@ interface AuditEvent {
 @Component({
   selector: 'app-security-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, IonContent],
+  imports: [FormsModule, IonContent, MainNavComponent],
   styles: [
     `
       ion-content {
@@ -227,14 +227,7 @@ interface AuditEvent {
   ],
   template: `
     <ion-content class="ion-padding">
-      <header class="topbar">
-        <div class="brand">Chicle Engine</div>
-        <nav class="actions">
-          <a routerLink="/home">Inicio</a>
-          <a routerLink="/docs">Documentación</a>
-          <button type="button" (click)="logout()">Salir</button>
-        </nav>
-      </header>
+      <app-main-nav contextLabel="Seguridad" />
 
       <main class="shell">
         <section class="panel">
@@ -472,7 +465,4 @@ export class SecurityPageComponent implements OnInit {
     this.api.get<AuditEvent[]>('audit').subscribe({ next: (audit) => (this.audit = audit) });
   }
 
-  logout() {
-    this.auth.logout();
-  }
 }

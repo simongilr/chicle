@@ -52,14 +52,19 @@ The app is one Ionic Angular application. It uses Ionic for mobile/field experie
 ```txt
 apps/app/src/app/
   core/
+    navigation/
   engine/
   capabilities/
-  ui/
-    mobile/
-    desktop/
-    shared/
+  shared/
+    main-nav/
   pages/
 ```
+
+## Frontend Components
+
+Shared UI must live in reusable components instead of being copied into pages. The main navigation starts with `app-main-nav`, which reads menu options from the API when a session exists and falls back to local defaults while the database-driven menu is not available.
+
+Menus are tenant data. Default menu rows are seeded during first setup, then `/api/menus/current` returns only the options visible for the current user's permissions.
 
 ## Dynamic Runtime
 

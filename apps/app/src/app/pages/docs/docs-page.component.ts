@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
+import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 interface CommandStep {
   title: string;
@@ -19,7 +19,7 @@ interface DocSection {
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [RouterLink, IonContent],
+  imports: [IonContent, MainNavComponent],
   styles: [
     `
       ion-content {
@@ -410,18 +410,7 @@ interface DocSection {
   ],
   template: `
     <ion-content [scrollEvents]="true" (ionScroll)="syncActiveSection()">
-      <header class="topbar">
-        <div class="brand-block">
-          <div class="brand">Chicle Engine</div>
-          <div class="context-label">Manual operativo</div>
-        </div>
-        <nav class="top-actions" aria-label="Navegación principal">
-          <a routerLink="/home">Inicio</a>
-          <a routerLink="/setup">Setup</a>
-          <a routerLink="/confisys">Configuración</a>
-          <a routerLink="/security">Seguridad</a>
-        </nav>
-      </header>
+      <app-main-nav contextLabel="Manual operativo" />
 
       <main class="docs-shell">
         <header class="intro">

@@ -7,6 +7,8 @@ import { AuditEvent } from '../audit/audit-event.entity';
 import { AuthSession } from '../auth/auth-session.entity';
 import { ConfisysService } from '../confisys/confisys.service';
 import { DynamicForm } from '../dynamic-forms/dynamic-form.entity';
+import { MenuItem } from '../menus/menu-item.entity';
+import { MenusService } from '../menus/menus.service';
 import { RecordEntity } from '../records/record.entity';
 import { RolePermission } from '../rbac/role-permission.entity';
 import { Role } from '../rbac/role.entity';
@@ -35,6 +37,7 @@ export class SetupService {
     private readonly users: Repository<User>,
     private readonly confisys: ConfisysService,
     private readonly rbac: RbacService,
+    private readonly menus: MenusService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource
   ) {}
@@ -83,6 +86,7 @@ export class SetupService {
         })
       );
       await this.rbac.ensureTenantDefaults(createdTenant.id, manager);
+      await this.menus.ensureTenantDefaults(createdTenant.id, manager);
       await this.rbac.assignRoleToUser(createdTenant.id, owner.id, 'owner', manager);
 
       return createdTenant;
@@ -121,6 +125,7 @@ export class SetupService {
       await this.deleteAll(manager, AuthSession);
       await this.deleteAll(manager, RecordEntity);
       await this.deleteAll(manager, DynamicForm);
+      await this.deleteAll(manager, MenuItem);
       await this.deleteAll(manager, UserRole);
       await this.deleteAll(manager, RolePermission);
       await this.deleteAll(manager, Role);

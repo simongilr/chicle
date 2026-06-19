@@ -1,9 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 type ConfisysValueType = 'string' | 'number' | 'boolean' | 'json';
 
@@ -31,7 +31,7 @@ interface ConfisysSaveResponse {
 @Component({
   selector: 'app-confisys-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, IonContent],
+  imports: [FormsModule, IonContent, MainNavComponent],
   styles: [
     `
       ion-content {
@@ -227,14 +227,7 @@ interface ConfisysSaveResponse {
   ],
   template: `
     <ion-content class="ion-padding">
-      <header class="topbar">
-        <div class="brand">Chicle Engine</div>
-        <nav class="top-actions">
-          <a class="link" routerLink="/docs">Documentación</a>
-          <a class="link" routerLink="/home">Inicio</a>
-          <button type="button" (click)="logout()">Salir</button>
-        </nav>
-      </header>
+      <app-main-nav contextLabel="Configuración" />
 
       <main class="shell">
         <section class="intro">
@@ -413,10 +406,6 @@ export class ConfisysPageComponent implements OnInit {
           entry.error = 'No se pudo guardar.';
         }
       });
-  }
-
-  logout() {
-    this.auth.logout();
   }
 
   private toDraft(entry: ConfisysEntry) {

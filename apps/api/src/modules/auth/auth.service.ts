@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { compare } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { ConfisysService } from '../confisys/confisys.service';
 import { RbacService } from '../rbac/rbac.service';
@@ -54,8 +54,32 @@ export interface LoginRequest {
   tenantSlug?: string;
 }
 
+interface LoginAttempt {
+  count: number;
+  firstAttemptAt: number;
+  blockedUntil?: number;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  user: ReturnType<AuthService['publicUser']>;
+  tenant: ReturnType<AuthService['publicTenant']>;
+  roles: Array<{ key: string; name: string }>;
+  permissions: string[];
+}
+
+export interface AuthResult {
+  body: AuthResponse;
+  refreshToken: string;
+  refreshMaxAgeMs: number;
+}
+
 @Injectable()
 export class AuthService {
+  private readonly loginAttempts = new Map<string, LoginAttempt>();
+
   constructor(
     @InjectRepository(Tenant)
     private readonly tenants: Repository<Tenant>,
@@ -83,7 +107,8 @@ export class AuthService {
     };
   }
 
-  async login(request: LoginRequest) {
+  async login(request: LoginRequest, clientKey: string): Promise<AuthResult> {
+    this.assertLoginAllowed(clientKey);
     const tenant = await this.resolveLoginTenant(request.tenantSlug);
     const user = await this.users.findOne({
       where: {
@@ -94,39 +119,94 @@ export class AuthService {
     });
 
     if (!user || !(await compare(request.password, user.passwordHash))) {
+      this.registerFailedLogin(clientKey);
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    this.loginAttempts.delete(clientKey);
     const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
-    const ttlMinutes = this.readSecurityPolicy(tenant.settings).session.accessTokenTtlMinutes;
+    const security = this.readSecurityPolicy(tenant.settings);
+    const ttlMinutes = security.session.accessTokenTtlMinutes;
+    const refreshDays = security.session.refreshTokenTtlDays;
     const tokenId = randomUUID();
+    const refreshToken = this.generateRefreshToken();
     const session = await this.sessions.save(
       this.sessions.create({
         tenantId: tenant.id,
         userId: user.id,
         tokenId,
-        expiresAt: this.minutesFromNow(ttlMinutes)
+        expiresAt: this.minutesFromNow(ttlMinutes),
+        refreshTokenHash: await hash(refreshToken, 10),
+        refreshExpiresAt: this.daysFromNow(refreshDays)
       })
     );
-    const payload: AuthTokenPayload = {
-      sub: user.id,
-      tenantId: tenant.id,
-      sid: session.id,
-      jti: tokenId
-    };
-    const accessToken = await this.jwt.signAsync(payload, {
-      secret: this.jwtSecret(),
-      expiresIn: `${ttlMinutes}m`
-    });
+    const accessToken = await this.signAccessToken(user.id, tenant.id, session.id, tokenId, ttlMinutes);
 
     return {
-      accessToken,
-      tokenType: 'Bearer',
-      expiresIn: ttlMinutes * 60,
-      user: this.publicUser(user),
-      tenant: this.publicTenant(tenant),
-      roles: access.roles,
-      permissions: access.permissions
+      body: this.authResponse(accessToken, ttlMinutes, user, tenant, access),
+      refreshToken: this.encodeRefreshCookie(session.id, refreshToken),
+      refreshMaxAgeMs: refreshDays * 24 * 60 * 60 * 1000
+    };
+  }
+
+  async refresh(refreshCookie?: string): Promise<AuthResult> {
+    const parsed = this.decodeRefreshCookie(refreshCookie);
+    if (!parsed) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const session = await this.sessions.findOne({
+      where: {
+        id: parsed.sessionId,
+        active: true
+      }
+    });
+
+    if (
+      !session ||
+      !session.refreshTokenHash ||
+      !session.refreshExpiresAt ||
+      session.refreshExpiresAt.getTime() <= Date.now() ||
+      !(await compare(parsed.refreshToken, session.refreshTokenHash))
+    ) {
+      if (session) {
+        await this.sessions.update({ id: session.id }, { active: false });
+      }
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const [user, tenant] = await Promise.all([
+      this.users.findOne({ where: { id: session.userId, tenantId: session.tenantId, active: true } }),
+      this.tenants.findOne({ where: { id: session.tenantId, active: true } })
+    ]);
+    if (!user || !tenant) {
+      await this.sessions.update({ id: session.id }, { active: false });
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const security = this.readSecurityPolicy(tenant.settings);
+    const ttlMinutes = security.session.accessTokenTtlMinutes;
+    const refreshDays = security.session.refreshTokenTtlDays;
+    const tokenId = randomUUID();
+    const refreshToken = this.generateRefreshToken();
+
+    await this.sessions.update(
+      { id: session.id },
+      {
+        tokenId,
+        expiresAt: this.minutesFromNow(ttlMinutes),
+        refreshTokenHash: await hash(refreshToken, 10),
+        refreshExpiresAt: this.daysFromNow(refreshDays),
+        refreshedAt: new Date()
+      }
+    );
+
+    const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
+    const accessToken = await this.signAccessToken(user.id, tenant.id, session.id, tokenId, ttlMinutes);
+    return {
+      body: this.authResponse(accessToken, ttlMinutes, user, tenant, access),
+      refreshToken: this.encodeRefreshCookie(session.id, refreshToken),
+      refreshMaxAgeMs: refreshDays * 24 * 60 * 60 * 1000
     };
   }
 
@@ -191,7 +271,7 @@ export class AuthService {
         tenantId: auth.tenant.id,
         tokenId: auth.tokenId
       },
-      { active: false }
+      { active: false, refreshTokenHash: null, refreshExpiresAt: null }
     );
 
     return { ok: true };
@@ -245,6 +325,89 @@ export class AuthService {
 
   private minutesFromNow(minutes: number) {
     return new Date(Date.now() + minutes * 60 * 1000);
+  }
+
+  private daysFromNow(days: number) {
+    return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+
+  private async signAccessToken(
+    userId: string,
+    tenantId: string,
+    sessionId: string,
+    tokenId: string,
+    ttlMinutes: number
+  ) {
+    const payload: AuthTokenPayload = {
+      sub: userId,
+      tenantId,
+      sid: sessionId,
+      jti: tokenId
+    };
+    return this.jwt.signAsync(payload, {
+      secret: this.jwtSecret(),
+      expiresIn: `${ttlMinutes}m`
+    });
+  }
+
+  private authResponse(
+    accessToken: string,
+    ttlMinutes: number,
+    user: User,
+    tenant: Tenant,
+    access: { roles: Array<{ key: string; name: string }>; permissions: string[] }
+  ): AuthResponse {
+    return {
+      accessToken,
+      tokenType: 'Bearer',
+      expiresIn: ttlMinutes * 60,
+      user: this.publicUser(user),
+      tenant: this.publicTenant(tenant),
+      roles: access.roles,
+      permissions: access.permissions
+    };
+  }
+
+  private generateRefreshToken() {
+    return randomBytes(32).toString('base64url');
+  }
+
+  private encodeRefreshCookie(sessionId: string, refreshToken: string) {
+    return `${sessionId}.${refreshToken}`;
+  }
+
+  private decodeRefreshCookie(value?: string) {
+    const [sessionId, refreshToken] = value?.split('.') ?? [];
+    if (!sessionId || !refreshToken) {
+      return null;
+    }
+
+    return { sessionId, refreshToken };
+  }
+
+  private assertLoginAllowed(key: string) {
+    const attempt = this.loginAttempts.get(key);
+    if (attempt?.blockedUntil && attempt.blockedUntil > Date.now()) {
+      throw new HttpException('Too many login attempts', HttpStatus.TOO_MANY_REQUESTS);
+    }
+  }
+
+  private registerFailedLogin(key: string) {
+    const now = Date.now();
+    const windowMs = 10 * 60 * 1000;
+    const blockMs = 5 * 60 * 1000;
+    const current = this.loginAttempts.get(key);
+    const attempt =
+      current && current.firstAttemptAt + windowMs > now
+        ? current
+        : { count: 0, firstAttemptAt: now };
+
+    attempt.count += 1;
+    if (attempt.count >= 5) {
+      attempt.blockedUntil = now + blockMs;
+    }
+
+    this.loginAttempts.set(key, attempt);
   }
 
   private publicUser(user: User) {

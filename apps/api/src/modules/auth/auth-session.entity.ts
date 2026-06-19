@@ -21,6 +21,15 @@ export class AuthSession {
   @Column({ type: 'datetime' })
   expiresAt!: Date;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  refreshTokenHash?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  refreshExpiresAt?: Date | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  refreshedAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

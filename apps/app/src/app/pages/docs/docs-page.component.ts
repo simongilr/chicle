@@ -404,6 +404,11 @@ export class DocsPageComponent {
       note: 'Valida el token, la sesión activa, el usuario, el tenant y los permisos efectivos.'
     },
     {
+      title: 'Refrescar sesión web',
+      command: 'curl -X POST http://127.0.0.1:3000/api/auth/refresh -b "chicle_refresh=COOKIE"',
+      note: 'La app lo hace automáticamente con cookie HttpOnly. El backend rota el refresh token.'
+    },
+    {
       title: 'Confisys protegido',
       command: 'curl http://127.0.0.1:3000/api/confisys -H "Authorization: Bearer TOKEN"',
       note: 'Requiere confisys.read. Para guardar cambios requiere confisys.update.'
@@ -415,8 +420,13 @@ export class DocsPageComponent {
     },
     {
       title: 'Estado frontend',
-      command: 'sessionStorage: chicle.accessToken y chicle.session',
-      note: 'El token es Bearer de MVP. En producción web cambiaremos a refresh cookie HttpOnly.'
+      command: 'sessionStorage: chicle.accessToken y chicle.session\nCookie HttpOnly: chicle_refresh',
+      note: 'El access token es corto; la cookie refresh se guarda fuera del alcance de JavaScript.'
+    },
+    {
+      title: 'Rate limit de login',
+      command: '5 intentos fallidos en 10 minutos bloquean esa llave por 5 minutos',
+      note: 'Es memoria local de API. En producción multi-instancia se moverá a storage compartido.'
     }
   ];
 

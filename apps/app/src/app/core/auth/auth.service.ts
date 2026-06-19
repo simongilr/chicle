@@ -16,13 +16,27 @@ export class AuthService {
 
   hydrate() {
     if (!this.state.token()) {
-      return Promise.resolve(false);
+      return this.refresh();
     }
 
     return new Promise<boolean>((resolve) => {
       this.api.get<AuthSession>('auth/me').subscribe({
         next: (session) => {
           this.state.setSession(session);
+          resolve(true);
+        },
+        error: () => {
+          this.refresh().then(resolve);
+        }
+      });
+    });
+  }
+
+  refresh() {
+    return new Promise<boolean>((resolve) => {
+      this.api.post<LoginResponse>('auth/refresh', {}).subscribe({
+        next: (response) => {
+          this.state.setLogin(response);
           resolve(true);
         },
         error: () => {

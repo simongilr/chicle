@@ -8,15 +8,15 @@ export class ApiClientService {
   private readonly baseUrl = environment.apiUrl;
 
   get<T>(path: string) {
-    return this.http.get<T>(this.url(path));
+    return this.http.get<T>(this.url(path), { withCredentials: true });
   }
 
   post<T>(path: string, body: unknown) {
-    return this.http.post<T>(this.url(path), body);
+    return this.http.post<T>(this.url(path), body, { withCredentials: true });
   }
 
   put<T>(path: string, body: unknown) {
-    return this.http.put<T>(this.url(path), body);
+    return this.http.put<T>(this.url(path), body, { withCredentials: true });
   }
 
   private url(path: string): string {

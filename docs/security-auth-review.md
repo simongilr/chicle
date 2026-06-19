@@ -215,11 +215,14 @@ Implemented:
 - Frontend sends `Authorization: Bearer` automatically for API calls.
 - Frontend hides `confisys` navigation without `confisys.read` and disables saves without `confisys.update`.
 - Logout calls `/auth/logout`, clears session state and invalidates the server-side session.
+- `/auth/login` sets a refresh token in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/auth`.
+- `/auth/refresh` validates the refresh cookie, rotates the refresh token hash server-side, and issues a new access token.
+- Login has an in-memory rate limit: five failed attempts in ten minutes blocks the key for five minutes.
 
 Still pending:
 
-- Refresh token or cookie session strategy for production web.
 - Rate limiting and risk controls for login.
+- Persistent/distributed rate limiting for multi-instance deployments.
 - User and role administration screens/endpoints.
 - Broader endpoint protection as each module becomes real.
 

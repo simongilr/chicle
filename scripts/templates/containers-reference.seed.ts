@@ -5,9 +5,9 @@
  * operational app from database configuration. It must never be imported by the
  * core API or app runtime.
  */
-export const smartsealReferenceTemplate = {
-  key: 'smartseal-reference',
-  name: 'SmartSeal Reference',
+export const containersReferenceTemplate = {
+  key: 'containers-reference',
+  name: 'Containers Reference',
   coreDependency: false,
   forms: [],
   menus: [],

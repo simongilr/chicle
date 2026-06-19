@@ -1,6 +1,6 @@
 # Context Handoff For New Codex Conversation
 
-We are creating a new product called Chicle Engine. It must not be a SmartSeal fork. SmartSeal is only a reference template seed used to prove the engine can execute a complex operational app from database configuration.
+We are creating a new product called Chicle Engine. It must stay generic. Containers is only a reference template seed used to prove the engine can execute a complex operational app from database configuration.
 
 ## Closed Decisions
 
@@ -21,7 +21,7 @@ Chicle Engine is a plug and play application engine. A user should be able to ru
 
 ## Core Must Stay Generic
 
-Do not add core modules named after SmartSeal concepts such as seals, containers, RFID, BLE locks or BASC. Those concepts belong only in seeds/templates.
+Do not add core modules named after containers-domain concepts such as container seals, RFID, BLE locks, custody checkpoints or compliance programs. Those concepts belong only in seeds/templates.
 
 ## Core Concepts
 
@@ -45,7 +45,7 @@ Do not add core modules named after SmartSeal concepts such as seals, containers
 
 ## Template Rule
 
-`scripts/templates/smartseal-reference.seed.ts` may be very complete, but deleting it must leave Chicle Engine fully functional.
+`scripts/templates/containers-reference.seed.ts` may be very complete, but deleting it must leave Chicle Engine fully functional.
 
 ## Development Next Step
 

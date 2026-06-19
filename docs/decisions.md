@@ -20,7 +20,7 @@
 - No Redis as a required dependency.
 - No MinIO/S3 as a required dependency.
 - No microservices.
-- No SmartSeal domain code in core.
+- No product-specific domain code in core.
 - No arbitrary JavaScript execution from database configuration.
 
 ## Core Principle

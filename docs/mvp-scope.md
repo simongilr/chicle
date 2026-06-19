@@ -26,8 +26,8 @@
 - MinIO/S3 driver
 - Redis/queues/workers
 - External integrations marketplace
-- SmartSeal-specific modules
+- Containers-specific modules
 
 ## First Real Proof
 
-`scripts/templates/smartseal-reference.seed.ts` can validate that the engine can run a complex operational flow without domain code in core.
+`scripts/templates/containers-reference.seed.ts` can validate that the engine can run a complex operational flow without domain code in core.

@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Before implementing Chicle Engine authentication, authorization and tenant scope, we will compare the old SmartSeal admin approach against current security guidance and decide what to reuse, adapt or reject.
+Before implementing Chicle Engine authentication, authorization and tenant scope, we will compare the old containers admin approach against current security guidance and decide what to reuse, adapt or reject.
 
-This document is intentionally generic. SmartSeal remains a reference, not core product architecture.
+This document is intentionally generic. Containers remains a reference, not core product architecture.
 
 ## References
 
@@ -17,15 +17,15 @@ This document is intentionally generic. SmartSeal remains a reference, not core 
 - OWASP TLS Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html
 - NIST SP 800-63B: https://pages.nist.gov/800-63-4/sp800-63b.html
 
-## Old SmartSeal Admin Findings
+## Old Containers Admin Findings
 
-Reviewed local references:
+Reviewed local legacy references outside this repository:
 
-- `/Users/user/.codex/worktrees/ba38/Smart-Seal-Api-Admin/src/modules/auth`
-- `/Users/user/.codex/worktrees/ba38/Smart-Seal-Api-Admin/src/modules/usuarios`
-- `/Users/user/.codex/worktrees/ba38/Smart-Seal-Api-Admin/src/modules/roles`
-- `/Users/user/.codex/worktrees/ba38/Smart-Seal-Front-End/src/app/core/interceptors`
-- `/Users/user/.codex/worktrees/ba38/Smart-Seal-Front-End/src/app/features/auth`
+- Legacy API auth module.
+- Legacy API users module.
+- Legacy API roles module.
+- Legacy frontend interceptors.
+- Legacy frontend auth feature.
 
 ### Useful Ideas To Reuse
 
@@ -158,7 +158,7 @@ Core blank seed should create:
   - `files.read`
   - `audit.read`
 
-Business templates may add domain permissions, but core must not know SmartSeal concepts.
+Business templates may add domain permissions, but core must not know containers-specific concepts.
 
 ## Transport Security
 

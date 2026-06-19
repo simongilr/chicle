@@ -2,7 +2,7 @@
 
 Chicle Engine is a plug and play base for building operational applications from configuration, dynamic forms, declarative actions, records, events, files and offline sync.
 
-This repository starts clean. Business templates such as `smartseal-reference.seed.ts` are only reference seeds and must not leak domain rules into the core.
+This repository starts clean. Business templates such as `containers-reference.seed.ts` are only reference seeds and must not leak domain rules into the core.
 
 ## Stack
 

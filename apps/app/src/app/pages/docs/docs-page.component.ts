@@ -4,7 +4,9 @@ import { IonContent } from '@ionic/angular/standalone';
 
 interface CommandStep {
   title: string;
-  command: string;
+  command?: string;
+  ui?: string;
+  swagger?: string;
   note: string;
 }
 
@@ -246,6 +248,31 @@ interface DocSection {
         font-size: 0.92rem;
       }
 
+      .guide-blocks {
+        display: grid;
+        gap: 8px;
+      }
+
+      .guide-block {
+        display: grid;
+        gap: 6px;
+      }
+
+      .guide-label {
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .guide-text {
+        border-radius: 8px;
+        background: #f5f8fb;
+        color: #173b5f;
+        padding: 10px 12px;
+        line-height: 1.45;
+      }
+
       .doc-link {
         display: inline-flex;
         align-items: center;
@@ -382,7 +409,7 @@ interface DocSection {
     `
   ],
   template: `
-    <ion-content>
+    <ion-content [scrollEvents]="true" (ionScroll)="syncActiveSection()">
       <header class="topbar">
         <div class="brand-block">
           <div class="brand">Chicle Engine</div>
@@ -461,7 +488,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -483,7 +529,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -503,7 +568,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -524,7 +608,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -546,7 +649,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -568,7 +690,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -589,7 +730,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -610,7 +770,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -635,7 +814,26 @@ interface DocSection {
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
-                    <pre>{{ step.command }}</pre>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -721,27 +919,47 @@ export class DocsPageComponent {
     this.scrollTo(sectionId);
   }
 
+  syncActiveSection() {
+    const visibleSection = this.sections
+      .map((section) => ({
+        id: section.id,
+        top: Math.abs(document.getElementById(section.id)?.getBoundingClientRect().top ?? Number.MAX_SAFE_INTEGER)
+      }))
+      .sort((a, b) => a.top - b.top)[0];
+
+    if (visibleSection && visibleSection.id !== this.activeSection) {
+      this.activeSection = visibleSection.id;
+    }
+  }
+
   activeSection = 'reglas';
 
   readonly firstRunSteps: CommandStep[] = [
     {
       title: 'Confirmar estado inicial',
+      ui: 'Abre la app. Si el sistema no existe, la app debe llevarte automáticamente a /setup.',
+      swagger: 'Abre /api/docs y ejecuta GET /api/setup/status.',
       command: 'curl http://127.0.0.1:3000/api/setup/status',
       note: 'Debe responder state: "not_created" cuando el backend está vivo y el sistema aún no fue creado.'
     },
     {
       title: 'Crear el primer tenant',
-      command: 'Abre http://localhost:8100/setup y completa organización, email admin, password y semilla blank.',
+      ui: 'Abre /setup y completa organización, email admin, password y semilla blank.',
+      swagger: 'En /api/docs usa POST /api/setup con el ejemplo de body y cambia los datos.',
       note: 'Este es el flujo principal web. Si cambiaste APP_PORT, usa ese puerto en la URL.'
     },
     {
       title: 'Crear el primer tenant por API',
+      ui: 'Usa la pantalla /setup. Esta opción por API queda como validación técnica o soporte.',
+      swagger: 'En /api/docs abre Setup -> POST /api/setup -> Try it out.',
       command:
         'curl -X POST http://127.0.0.1:3000/api/setup \\\n  -H "Content-Type: application/json" \\\n  -d \'{"organization":"Mi Empresa","email":"admin@example.com","password":"CambiaEstaClave123","template":"blank"}\'',
       note: 'Alternativa técnica para validar backend. La pantalla setup usa este mismo endpoint.'
     },
     {
       title: 'Confirmar que ya quedó creado',
+      ui: 'Después de guardar setup, la app debe enviarte a login o mostrar que el sistema ya está listo.',
+      swagger: 'Ejecuta GET /api/setup/status y confirma state: "ready".',
       command: 'curl http://127.0.0.1:3000/api/setup/status',
       note: 'Después del setup debe responder state: "ready" y requiredAction: "login".'
     }
@@ -770,22 +988,27 @@ export class DocsPageComponent {
   readonly resetSteps: CommandStep[] = [
     {
       title: 'Habilitar solo en local',
+      ui: 'No hay botón gráfico para habilitar reset. Es intencional: debe activarse desde configuración local del entorno.',
       command: 'CHICLE_ALLOW_SYSTEM_RESET=true\nCHICLE_RESET_KEY=usa-una-llave-local-larga',
       note: 'Ubicación: infra/docker/.env.example. No actives esto en producción.'
     },
     {
       title: 'Recrear API con la llave',
+      ui: 'Desde Docker Desktop puedes confirmar que el contenedor API se recreó después de cambiar el env.',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up -d --build api',
       note: 'La API lee la bandera y la llave al iniciar.'
     },
     {
       title: 'Ejecutar reset',
+      ui: 'Por ahora no existe botón gráfico de reset para evitar accidentes. Cuando exista, debe pedir llave y frase exacta.',
+      swagger: 'En /api/docs usa POST /api/setup/reset, agrega header x-chicle-reset-key y confirma la frase exacta.',
       command:
         'curl -X POST http://127.0.0.1:3000/api/setup/reset \\\n  -H "Content-Type: application/json" \\\n  -H "x-chicle-reset-key: usa-una-llave-local-larga" \\\n  -d \'{"confirm":"RESET CHICLE ENGINE"}\'',
       note: 'Elimina tenant, usuarios, sesiones, roles de tenant, forms, records y auditoría. Conserva confisys y permisos globales.'
     },
     {
       title: 'Desactivar después',
+      ui: 'Vuelve a dejar la bandera apagada en el archivo env local y recrea la API.',
       command: 'CHICLE_ALLOW_SYSTEM_RESET=false',
       note: 'Vuelve a levantar la API para cerrar la herramienta de reset.'
     }
@@ -794,6 +1017,8 @@ export class DocsPageComponent {
   readonly securitySteps: CommandStep[] = [
     {
       title: 'Consultar política pública',
+      ui: 'Abre /login. La pantalla debe mostrar solo los métodos habilitados para el canal web.',
+      swagger: 'En /api/docs ejecuta GET /api/auth/config.',
       command: 'curl http://127.0.0.1:3000/api/auth/config',
       note: 'La pantalla login usa este endpoint para decidir qué métodos mostrar. Sus defaults salen de confisys.'
     },
@@ -815,48 +1040,64 @@ export class DocsPageComponent {
     },
     {
       title: 'Regla de UI',
+      ui: 'Si un método está desactivado, no debe aparecer como opción en login web ni móvil.',
       command: 'Si un método no está activo para el canal actual, el componente visual no debe mostrarlo.',
       note: 'Esto mejora la experiencia; los permisos reales siempre se validan en backend.'
     },
     {
       title: 'Login real',
+      ui: 'Abre /login, escribe tenant si aplica, email y password. Al entrar, la app guarda la sesión y envía a /home.',
+      swagger: 'En /api/docs ejecuta POST /api/auth/login y copia el accessToken para Authorize.',
       command:
         'curl -X POST http://127.0.0.1:3000/api/auth/login \\\n  -H "Content-Type: application/json" \\\n  -d \'{"email":"admin@example.com","password":"CambiaEstaClave123","tenantSlug":"mi-empresa"}\'',
       note: 'Devuelve accessToken Bearer, usuario, tenant, roles y permisos.'
     },
     {
       title: 'Consultar sesión actual',
+      ui: 'En /home puedes ver usuario, tenant, rol sistema, roles y resumen de permisos cargados.',
+      swagger: 'En /api/docs usa Authorize con Bearer TOKEN y ejecuta GET /api/auth/me.',
       command: 'curl http://127.0.0.1:3000/api/auth/me -H "Authorization: Bearer TOKEN"',
       note: 'Valida el token, la sesión activa, el usuario, el tenant y los permisos efectivos.'
     },
     {
       title: 'Refrescar sesión web',
+      ui: 'La app lo hace sola cuando hidrata sesión. El usuario no debe ejecutar nada manualmente.',
+      swagger: 'En /api/docs ejecuta POST /api/auth/refresh si el navegador conserva la cookie chicle_refresh.',
       command: 'curl -X POST http://127.0.0.1:3000/api/auth/refresh -b "chicle_refresh=COOKIE"',
       note: 'La app lo hace automáticamente con cookie HttpOnly. El backend rota el refresh token.'
     },
     {
       title: 'Confisys protegido',
+      ui: 'Abre /confisys desde Home o la barra superior. Solo aparece si tienes confisys.read.',
+      swagger: 'En /api/docs usa Authorize y ejecuta GET /api/confisys.',
       command: 'curl http://127.0.0.1:3000/api/confisys -H "Authorization: Bearer TOKEN"',
       note: 'Requiere confisys.read. Para guardar cambios requiere confisys.update.'
     },
     {
       title: 'Administrar seguridad',
-      command: 'Abre http://localhost:8100/security',
+      ui: 'Abre /security desde Home. Ahí gestionas usuarios, roles, permisos y auditoría.',
+      swagger: 'En /api/docs usa los grupos Security / Users y Security / RBAC.',
       note: 'Permite gestionar usuarios, roles, permisos y revisar auditoría del tenant.'
     },
     {
       title: 'Usuarios y roles por API',
+      ui: 'En /security usa el panel de usuarios para crear/editar y el panel de roles para revisar permisos.',
+      swagger: 'En /api/docs prueba GET /api/users, GET /api/roles y PUT /api/roles/{roleId}/permissions.',
       command:
         'curl http://127.0.0.1:3000/api/users -H "Authorization: Bearer TOKEN"\\ncurl http://127.0.0.1:3000/api/roles -H "Authorization: Bearer TOKEN"',
       note: 'Usuarios requiere users.read. Roles requiere roles.read. Cambios de permisos requieren roles.manage.'
     },
     {
       title: 'Auditoría',
+      ui: 'En /security revisa la sección de auditoría para ver cambios sensibles del tenant.',
+      swagger: 'En /api/docs ejecuta GET /api/audit con Bearer token autorizado.',
       command: 'curl http://127.0.0.1:3000/api/audit -H "Authorization: Bearer TOKEN"',
       note: 'Registra cambios sensibles de usuarios y roles.'
     },
     {
       title: 'Logout',
+      ui: 'Usa el botón Salir en Home, Seguridad o Configuración.',
+      swagger: 'En /api/docs ejecuta POST /api/auth/logout con Bearer token.',
       command: 'curl -X POST http://127.0.0.1:3000/api/auth/logout -H "Authorization: Bearer TOKEN"',
       note: 'Invalida la sesión server-side y la app limpia el token local.'
     },
@@ -918,11 +1159,13 @@ export class DocsPageComponent {
   readonly swaggerSteps: CommandStep[] = [
     {
       title: 'Abrir documentación interactiva',
+      ui: 'Desde el manual, sección Swagger / API Docs, toca Abrir Swagger.',
       command: 'http://localhost:3000/api/docs',
       note: 'La API debe estar corriendo. Si cambiaste API_PORT, usa ese puerto.'
     },
     {
       title: 'Probar flujo desde Swagger',
+      ui: 'Swagger abre una pantalla gráfica con grupos de endpoints. Usa Try it out para probar cada operación.',
       command: '1. GET /api/setup/status\n2. POST /api/setup si state es not_created\n3. POST /api/auth/login\n4. Copiar accessToken\n5. Authorize -> Bearer TOKEN',
       note: 'Después de Authorize puedes probar /users, /roles, /permissions, /audit y /confisys.'
     },
@@ -946,6 +1189,7 @@ export class DocsPageComponent {
   readonly startupSteps: CommandStep[] = [
     {
       title: 'Usar la versión correcta de Node',
+      ui: 'No aplica dentro de la app. Es un requisito para desarrolladores antes de iniciar servicios.',
       command: 'nvm use',
       note: 'Lee .nvmrc y activa Node 22.'
     },
@@ -956,6 +1200,7 @@ export class DocsPageComponent {
     },
     {
       title: 'Correr la app web',
+      ui: 'Después de arrancar, abre http://localhost:8100 en el navegador.',
       command: 'npm run dev:app',
       note: 'Ejecuta este comando desde la raíz del proyecto. Usa APP_PORT o el default 8100.'
     },
@@ -966,6 +1211,7 @@ export class DocsPageComponent {
     },
     {
       title: 'Abrir Docker Desktop',
+      ui: 'Abre Docker Desktop desde macOS y espera a que indique que el motor está corriendo.',
       command: 'open -a Docker',
       note: 'Hazlo antes de levantar servicios con Docker Compose.'
     },
@@ -986,11 +1232,13 @@ export class DocsPageComponent {
     },
     {
       title: 'Administrar confisys',
-      command: 'Abre http://localhost:8100/confisys',
+      ui: 'Abre /confisys desde Home o desde la barra superior si tienes permiso confisys.read.',
       note: 'Los cambios quedan en DB y aplican cuando reinicies la API.'
     },
     {
       title: 'Probar setup status',
+      ui: 'En la app, /setup aparece cuando el backend responde not_created. Si aparece login, el sistema ya está listo.',
+      swagger: 'En /api/docs ejecuta GET /api/setup/status.',
       command: 'curl http://127.0.0.1:3000/api/setup/status',
       note: 'Cambia 3000 por API_PORT si modificaste el puerto de la API.'
     },
@@ -1032,26 +1280,32 @@ export class DocsPageComponent {
   readonly confisysSteps: CommandStep[] = [
     {
       title: 'Consultar parámetros',
+      ui: 'Abre /confisys para ver los parámetros cargados, su categoría, origen, valor y estado editable.',
+      swagger: 'En /api/docs ejecuta GET /api/confisys con Bearer token.',
       command: 'curl http://127.0.0.1:3000/api/confisys',
       note: 'Lista todos los parámetros cargados desde la tabla confisys.'
     },
     {
       title: 'Consultar parámetros públicos',
+      ui: 'La app puede leer estos valores sin sesión cuando necesita configurar pantallas públicas.',
+      swagger: 'En /api/docs ejecuta GET /api/confisys/public.',
       command: 'curl http://127.0.0.1:3000/api/confisys/public',
       note: 'Devuelve solo los valores marcados como seguros para UI pública.'
     },
     {
       title: 'Abrir pantalla web',
-      command: 'http://localhost:8100/confisys',
+      ui: 'Desde Home toca Configuración o abre /confisys directamente.',
       note: 'Desde ahí se editan los parámetros. Por ahora el cambio aplica al reiniciar API.'
     },
     {
       title: 'Qué se queda en env',
+      ui: 'Estos valores no se editan desde la UI porque la API los necesita antes de poder leer la base de datos.',
       command: 'DB_HOST\nDB_PORT\nDB_USER\nDB_PASSWORD\nDB_NAME\nPORT\nAPI_PORT\nAPP_PORT',
       note: 'Son valores necesarios antes de que la API pueda leer la base de datos o antes de que Docker cree servicios.'
     },
     {
       title: 'Qué vive en confisys',
+      ui: 'Estos valores sí deben administrarse desde /confisys cuando exista el permiso correspondiente.',
       command:
         'setup.seedProfile\nsecurity.level\nsecurity.password.minLength\nsecurity.session.accessTokenTtlMinutes\nfiles.storage.driver\nfeatures.offlineSync.enabled',
       note: 'Son parámetros de comportamiento que sí puede leer la API después de arrancar.'

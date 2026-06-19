@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   IonBackButton,
   IonButtons,
@@ -14,28 +15,36 @@ interface CommandStep {
   note: string;
 }
 
+interface DocSection {
+  id: string;
+  label: string;
+  summary: string;
+}
+
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar],
+  imports: [RouterLink, IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar],
   styles: [
     `
       .docs-shell {
-        max-width: 980px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 24px 0 48px;
+        padding: 20px 0 48px;
       }
 
       .intro {
         display: grid;
-        gap: 8px;
-        margin-bottom: 28px;
+        gap: 10px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid #d8e3ed;
+        padding-bottom: 20px;
       }
 
       .intro h1 {
         margin: 0;
         color: #12324f;
-        font-size: 2rem;
+        font-size: 2.05rem;
         line-height: 1.15;
       }
 
@@ -46,14 +55,127 @@ interface CommandStep {
         line-height: 1.55;
       }
 
-      section {
-        margin-top: 28px;
+      .system-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 6px;
+      }
+
+      .system-links a {
+        border: 1px solid #cbd8e3;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #173b5f;
+        padding: 8px 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .docs-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .docs-nav {
+        position: sticky;
+        top: 16px;
+        display: grid;
+        gap: 8px;
+        border: 1px solid #d8e3ed;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 10px;
+      }
+
+      .docs-nav-title {
+        margin: 4px 6px 6px;
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .docs-nav button {
+        display: grid;
+        gap: 3px;
+        width: 100%;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #173b5f;
+        padding: 9px 10px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .docs-nav button:hover,
+      .docs-nav button:focus-visible {
+        outline: none;
+        background: #eef6ff;
+      }
+
+      .docs-nav strong {
+        font-size: 0.94rem;
+      }
+
+      .docs-nav span {
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+
+      .docs-content {
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .doc-section {
+        scroll-margin-top: 18px;
+        border: 1px solid #d8e3ed;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 18px;
+      }
+
+      .doc-section[data-tone='critical'] {
+        border-left: 4px solid #b42318;
+      }
+
+      .doc-section[data-tone='setup'] {
+        border-left: 4px solid #147d64;
+      }
+
+      .doc-section[data-tone='ops'] {
+        border-left: 4px solid #9a6700;
+      }
+
+      .doc-section[data-tone='security'] {
+        border-left: 4px solid #4f46e5;
+      }
+
+      section + section {
+        margin-top: 0;
       }
 
       h2 {
         margin: 0 0 12px;
         color: #173b5f;
         font-size: 1.25rem;
+      }
+
+      .section-header {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .section-header .section-lead {
+        max-width: 760px;
       }
 
       .steps {
@@ -68,6 +190,12 @@ interface CommandStep {
         border-radius: 8px;
         background: #ffffff;
         padding: 16px;
+      }
+
+      .step h3 {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
       }
 
       .step h3 {
@@ -122,6 +250,26 @@ interface CommandStep {
         .intro h1 {
           font-size: 1.55rem;
         }
+
+        .system-links a {
+          flex: 1 1 130px;
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .docs-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .docs-nav {
+          position: static;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .docs-nav-title {
+          grid-column: 1 / -1;
+        }
       }
     `
   ],
@@ -143,204 +291,264 @@ interface CommandStep {
             Esta página guarda las instrucciones operativas del proyecto para que no dependamos
             de recordar comandos sueltos. La iremos enriqueciendo conforme avance el producto.
           </p>
+          <nav class="system-links" aria-label="Navegación del sistema">
+            <a routerLink="/home">Inicio</a>
+            <a routerLink="/setup">Setup</a>
+            <a routerLink="/confisys">Configuración</a>
+            <a routerLink="/security">Seguridad</a>
+          </nav>
         </header>
 
-        <section>
-          <h2>Regla rápida</h2>
-          <p class="section-lead">
-            Si estás en la raíz del proyecto usa los comandos del monorepo. Si ya entraste a
-            <code>apps/app</code>, usa el comando propio de la app. Los puertos se cambian en
-            <code>infra/docker/.env.example</code>.
-          </p>
-        </section>
-
-        <section>
-          <h2>Cómo funciona el env</h2>
-          <p class="section-lead">
-            Siempre dejamos un valor por defecto para que el proyecto arranque sin configuración
-            extra. Si existe un valor en <code>infra/docker/.env.example</code> o en la terminal,
-            ese valor reemplaza el default.
-          </p>
-        </section>
-
-        <section>
-          <h2>Confisys</h2>
-          <p class="section-lead">
-            <code>confisys</code> es la tabla paramétrica del sistema. La API crea una semilla
-            mínima si faltan valores, carga todos los parámetros en memoria al iniciar y trabaja con
-            esa caché hasta el siguiente reinicio.
-          </p>
-          <div class="steps">
-            @for (step of confisysSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
+        <div class="docs-layout">
+          <nav class="docs-nav" aria-label="Secciones del manual">
+            <div class="docs-nav-title">Secciones</div>
+            @for (section of sections; track section.id) {
+              <button type="button" (click)="scrollTo(section.id)">
+                <strong>{{ section.label }}</strong>
+                <span>{{ section.summary }}</span>
+              </button>
             }
+          </nav>
+
+          <div class="docs-content">
+            <section id="reglas" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Reglas rápidas</h2>
+                <p class="section-lead">
+                  Si estás en la raíz del proyecto usa los comandos del monorepo. Si ya entraste a
+                  <code>apps/app</code>, usa el comando propio de la app. Los puertos se cambian en
+                  <code>infra/docker/.env.example</code>.
+                </p>
+              </div>
+              <p class="section-lead">
+                Siempre dejamos un valor por defecto para que el proyecto arranque sin configuración
+                extra. Si existe un valor en <code>infra/docker/.env.example</code> o en la terminal,
+                ese valor reemplaza el default.
+              </p>
+            </section>
+
+            <section id="primer-uso" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Primer uso</h2>
+                <p class="section-lead">
+                  Este es el camino recomendado para levantar la app, verificar el estado del sistema
+                  y crear el primer tenant desde la pantalla web.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of firstRunSteps; track step.title; let index = $index) {
+                  <article class="step">
+                    <h3><span>{{ index + 1 }}.</span>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="estado" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Estado del sistema</h2>
+                <p class="section-lead">
+                  La app decide qué mostrar usando <code>/api/setup/status</code>. Si responde
+                  <code>not_created</code>, el backend está vivo y falta crear el sistema. Si no responde,
+                  el problema es conexión, API o base de datos.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of systemStateSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="arranque" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Arranque recomendado</h2>
+                <p class="section-lead">
+                  Comandos base para desarrollo local, Docker, compilación y pruebas rápidas.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of startupSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="puertos" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Cambiar puertos</h2>
+                <p class="section-lead">
+                  Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a
+                  ejecutar el comando. Ubicación: <code>infra/docker/.env.example</code>.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of portSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="confisys" class="doc-section" data-tone="security">
+              <div class="section-header">
+                <h2>Confisys</h2>
+                <p class="section-lead">
+                  <code>confisys</code> es la tabla paramétrica del sistema. La API crea una semilla
+                  mínima si faltan valores, carga todos los parámetros en memoria al iniciar y trabaja
+                  con esa caché hasta el siguiente reinicio.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of confisysSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="seguridad" class="doc-section" data-tone="security">
+              <div class="section-header">
+                <h2>Seguridad modular</h2>
+                <p class="section-lead">
+                  La seguridad se configura por organización. La pantalla de login lee
+                  <code>/api/auth/config</code> y muestra solo los métodos activos para web, móvil o
+                  dispositivo. El backend sigue siendo la autoridad real para permisos y acceso.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of securitySteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="reset" class="doc-section" data-tone="critical">
+              <div class="section-header">
+                <h2>Reset local seguro</h2>
+                <p class="section-lead">
+                  Para repetir pruebas de creación del sistema existe un reset solo para desarrollo.
+                  Está desactivado por defecto, exige llave de entorno, frase exacta y queda bloqueado
+                  si <code>NODE_ENV=production</code>.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of resetSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="semillas" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Semillas iniciales</h2>
+              </div>
+              <ul class="notes">
+                <li>
+                  El primer usuario real es el admin creado desde setup. No usamos una contraseña
+                  default quemada en el código.
+                </li>
+                <li>
+                  La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y
+                  usuario admin inicial con rol <code>owner</code>. Roles y permisos finos se suman
+                  en la siguiente iteración.
+                </li>
+                <li>
+                  Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una
+                  seed no debe romper el core.
+                </li>
+              </ul>
+            </section>
+
+            <section id="errores" class="doc-section" data-tone="critical">
+              <div class="section-header">
+                <h2>Errores comunes</h2>
+              </div>
+              <ul class="notes">
+                <li>
+                  Si <code>ionic serve</code> dice que no es un proyecto Ionic, usa
+                  <code>npm run start</code> dentro de <code>apps/app</code>.
+                </li>
+                <li>
+                  Si <code>npm run dev:app</code> falla con “Missing script”, probablemente estás en
+                  <code>apps/app</code>. Ese comando se ejecuta desde la raíz del monorepo.
+                </li>
+                <li>
+                  Si la API no arranca por base de datos, abre Docker Desktop y levanta MariaDB con
+                  el comando de base de datos.
+                </li>
+                <li>
+                  Si <code>/api/setup/status</code> responde <code>not_created</code>, no está caído:
+                  toca ejecutar el setup inicial.
+                </li>
+                <li>
+                  Si el error dice que el puerto está ocupado, cambia <code>APP_PORT</code>,
+                  <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
+                </li>
+              </ul>
+            </section>
           </div>
-        </section>
-
-        <section>
-          <h2>Primer uso</h2>
-          <div class="steps">
-            @for (step of firstRunSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Estado del sistema</h2>
-          <p class="section-lead">
-            La app decide qué mostrar usando <code>/api/setup/status</code>. Si responde
-            <code>not_created</code>, el backend está vivo y falta crear el sistema. Si no responde,
-            el problema es conexión, API o base de datos.
-          </p>
-          <div class="steps">
-            @for (step of systemStateSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Reset local seguro</h2>
-          <p class="section-lead">
-            Para repetir pruebas de creación del sistema existe un reset solo para desarrollo.
-            Está desactivado por defecto, exige llave de entorno, frase exacta y queda bloqueado si
-            <code>NODE_ENV=production</code>.
-          </p>
-          <div class="steps">
-            @for (step of resetSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Semillas iniciales</h2>
-          <ul class="notes">
-            <li>
-              El primer usuario real es el admin creado desde setup. No usamos una contraseña
-              default quemada en el código.
-            </li>
-            <li>
-              La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y
-              usuario admin inicial con rol <code>owner</code>. Roles y permisos finos se suman
-              en la siguiente iteración.
-            </li>
-            <li>
-              Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una
-              seed no debe romper el core.
-            </li>
-          </ul>
-        </section>
-
-        <section>
-          <h2>Seguridad modular</h2>
-          <p class="section-lead">
-            La seguridad se configura por organización. La pantalla de login lee
-            <code>/api/auth/config</code> y muestra solo los métodos activos para web, móvil o
-            dispositivo. El backend sigue siendo la autoridad real para permisos y acceso.
-          </p>
-          <div class="steps">
-            @for (step of securitySteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Arranque recomendado</h2>
-          <div class="steps">
-            @for (step of startupSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Cambiar puertos</h2>
-          <p class="section-lead">
-            Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a ejecutar
-            el comando. Ubicación: <code>infra/docker/.env.example</code>.
-          </p>
-          <div class="steps">
-            @for (step of portSteps; track step.title) {
-              <article class="step">
-                <h3>{{ step.title }}</h3>
-                <div class="meta">
-                  <span>{{ step.note }}</span>
-                </div>
-                <pre>{{ step.command }}</pre>
-              </article>
-            }
-          </div>
-        </section>
-
-        <section>
-          <h2>Errores comunes</h2>
-          <ul class="notes">
-            <li>
-              Si <code>ionic serve</code> dice que no es un proyecto Ionic, usa
-              <code>npm run start</code> dentro de <code>apps/app</code>.
-            </li>
-            <li>
-              Si <code>npm run dev:app</code> falla con “Missing script”, probablemente estás en
-              <code>apps/app</code>. Ese comando se ejecuta desde la raíz del monorepo.
-            </li>
-            <li>
-              Si la API no arranca por base de datos, abre Docker Desktop y levanta MariaDB con
-              el comando de base de datos.
-            </li>
-            <li>
-              Si <code>/api/setup/status</code> responde <code>not_created</code>, no está caído:
-              toca ejecutar el setup inicial.
-            </li>
-            <li>
-              Si el error dice que el puerto está ocupado, cambia <code>APP_PORT</code>,
-              <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
-            </li>
-          </ul>
-        </section>
+        </div>
       </main>
     </ion-content>
   `
 })
 export class DocsPageComponent {
+  readonly sections: DocSection[] = [
+    { id: 'reglas', label: 'Reglas rápidas', summary: 'Dónde correr comandos y cómo funcionan los env.' },
+    { id: 'primer-uso', label: 'Primer uso', summary: 'Crear el sistema por primera vez.' },
+    { id: 'estado', label: 'Estado', summary: 'Diferenciar setup pendiente de caída real.' },
+    { id: 'arranque', label: 'Arranque', summary: 'Node, app, API, Docker y build.' },
+    { id: 'puertos', label: 'Puertos', summary: 'Cambios desde env y pruebas locales.' },
+    { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
+    { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
+    { id: 'reset', label: 'Reset local', summary: 'Repetir pruebas de creación sin abrir huecos.' },
+    { id: 'semillas', label: 'Semillas', summary: 'Datos iniciales y perfiles base.' },
+    { id: 'errores', label: 'Errores comunes', summary: 'Qué hacer cuando algo no arranca.' }
+  ];
+
+  scrollTo(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   readonly firstRunSteps: CommandStep[] = [
     {
       title: 'Confirmar estado inicial',

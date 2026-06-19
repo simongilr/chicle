@@ -907,6 +907,11 @@ export class DocsPageComponent {
       title: 'Pendiente para V1',
       command: 'OAuth2/OIDC real\nMFA\nPasskeys\nrate limit persistente\nCORS estricto\nJWT_SECRET obligatorio fuerte\nHTTPS/TLS en deploy',
       note: 'La base está lista para crecer modularmente, pero estos puntos todavía deben cerrarse antes de una V1 productiva.'
+    },
+    {
+      title: 'Swagger en producción',
+      command: 'CHICLE_SWAGGER_ENABLED=false',
+      note: 'Swagger queda apagado por defecto en production. Si se activa explícitamente, debe tener usuario y password por Basic Auth.'
     }
   ];
 
@@ -930,6 +935,11 @@ export class DocsPageComponent {
       title: 'Ejemplos incluidos',
       command: 'Setup\nAuth\nSecurity / Users\nSecurity / RBAC\nConfisys',
       note: 'Los endpoints principales tienen ejemplos de body, respuestas y permisos requeridos.'
+    },
+    {
+      title: 'Protección en producción',
+      command: 'CHICLE_SWAGGER_ENABLED=true\nCHICLE_SWAGGER_USER=admin-docs\nCHICLE_SWAGGER_PASSWORD=usa-una-clave-larga',
+      note: 'En production no arranca Swagger habilitado si faltan CHICLE_SWAGGER_USER o CHICLE_SWAGGER_PASSWORD.'
     }
   ];
 

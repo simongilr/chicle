@@ -1,9 +1,24 @@
 import 'reflect-metadata';
+import { timingSafeEqual } from 'node:crypto';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+
+interface BasicAuthRequest {
+  headers: {
+    authorization?: string;
+  };
+}
+
+interface BasicAuthResponse {
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => BasicAuthResponse;
+  send: (body: string) => void;
+}
+
+type NextHandler = () => void;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,6 +36,40 @@ async function bootstrap() {
       transform: true
     })
   );
+
+  setupSwagger(app, config);
+
+  await app.listen(config.get<number>('PORT', 3000));
+}
+
+void bootstrap();
+
+function setupSwagger(app: Awaited<ReturnType<typeof NestFactory.create>>, config: ConfigService) {
+  const nodeEnv = config.get<string>('NODE_ENV', 'development');
+  const explicitlyEnabled = config.get<string>('CHICLE_SWAGGER_ENABLED');
+  const enabled = explicitlyEnabled ? explicitlyEnabled === 'true' : nodeEnv !== 'production';
+
+  if (!enabled) {
+    return;
+  }
+
+  if (nodeEnv === 'production') {
+    assertProductionSwaggerAuth(config);
+  }
+
+  const basicUser = config.get<string>('CHICLE_SWAGGER_USER');
+  const basicPassword = config.get<string>('CHICLE_SWAGGER_PASSWORD');
+  if (basicUser && basicPassword) {
+    app.use(['/api/docs', '/api/docs-json'], (request: BasicAuthRequest, response: BasicAuthResponse, next: NextHandler) => {
+      if (isValidBasicAuth(request.headers.authorization, basicUser, basicPassword)) {
+        next();
+        return;
+      }
+
+      response.setHeader('WWW-Authenticate', 'Basic realm="Chicle Engine API Docs"');
+      response.status(401).send('Swagger authentication required');
+    });
+  }
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Chicle Engine API')
@@ -60,8 +109,34 @@ async function bootstrap() {
       operationsSorter: 'method'
     }
   });
-
-  await app.listen(config.get<number>('PORT', 3000));
 }
 
-void bootstrap();
+function assertProductionSwaggerAuth(config: ConfigService) {
+  if (!config.get<string>('CHICLE_SWAGGER_USER') || !config.get<string>('CHICLE_SWAGGER_PASSWORD')) {
+    throw new Error(
+      'CHICLE_SWAGGER_USER and CHICLE_SWAGGER_PASSWORD are required when Swagger is enabled in production'
+    );
+  }
+}
+
+function isValidBasicAuth(header: string | undefined, expectedUser: string, expectedPassword: string) {
+  if (!header?.startsWith('Basic ')) {
+    return false;
+  }
+
+  const decoded = Buffer.from(header.slice('Basic '.length), 'base64').toString('utf8');
+  const separator = decoded.indexOf(':');
+  if (separator < 0) {
+    return false;
+  }
+
+  const user = decoded.slice(0, separator);
+  const password = decoded.slice(separator + 1);
+  return safeEqual(user, expectedUser) && safeEqual(password, expectedPassword);
+}
+
+function safeEqual(value: string, expected: string) {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  return valueBuffer.length === expectedBuffer.length && timingSafeEqual(valueBuffer, expectedBuffer);
+}

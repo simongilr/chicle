@@ -106,6 +106,27 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     isPublic: true
   },
   {
+    key: 'security.loginRateLimit.maxAttempts',
+    value: 5,
+    valueType: 'number',
+    category: 'security',
+    description: 'Intentos fallidos permitidos antes de bloquear temporalmente el login.'
+  },
+  {
+    key: 'security.loginRateLimit.windowMinutes',
+    value: 10,
+    valueType: 'number',
+    category: 'security',
+    description: 'Ventana en minutos para contar intentos fallidos de login.'
+  },
+  {
+    key: 'security.loginRateLimit.blockMinutes',
+    value: 5,
+    valueType: 'number',
+    category: 'security',
+    description: 'Minutos de bloqueo temporal tras demasiados intentos fallidos.'
+  },
+  {
     key: 'security.methods.password.enabled',
     value: true,
     valueType: 'boolean',

@@ -1098,7 +1098,30 @@ export class DocsPageComponent {
     {
       title: 'Rate limit de login',
       command: '5 intentos fallidos en 10 minutos bloquean esa llave por 5 minutos',
-      note: 'Es memoria local de API. En producción multi-instancia se moverá a storage compartido.'
+      note: 'Se guarda en auth_login_attempts para persistir entre reinicios y funcionar como base multi-instancia.'
+    },
+    {
+      title: 'Sesiones propias',
+      ui: 'La UI administrativa puede usar esta información para mostrar sesiones activas y permitir revocarlas.',
+      swagger: 'En /api/docs usa GET /api/auth/sessions y DELETE /api/auth/sessions/{sessionId}.',
+      command:
+        'curl http://127.0.0.1:3000/api/auth/sessions -H "Authorization: Bearer TOKEN"\\ncurl -X DELETE http://127.0.0.1:3000/api/auth/sessions/SESSION_ID -H "Authorization: Bearer TOKEN"',
+      note: 'No se exponen hashes ni refresh tokens; solo metadatos de sesión.'
+    },
+    {
+      title: 'CORS y producción',
+      command: 'CHICLE_CORS_ORIGINS=https://app.tu-dominio.com',
+      note: 'En producción la API no arranca sin allowlist explícita y rechaza el comodín *.'
+    },
+    {
+      title: 'JWT secret fuerte',
+      command: 'JWT_SECRET=usa-una-cadena-larga-aleatoria-de-32-o-mas-caracteres',
+      note: 'En producción es obligatorio y debe tener al menos 32 caracteres.'
+    },
+    {
+      title: 'Módulos protegidos',
+      command: 'forms\nrecords\nfiles\nactions\ntenants\nmenus\nconfisys\nusers\nroles',
+      note: 'Los endpoints existentes ya pasan por auth, tenant context y permisos cuando corresponde.'
     }
   ];
 
@@ -1134,9 +1157,14 @@ export class DocsPageComponent {
       note: 'Los cambios sensibles quedan registrados para revisión administrativa.'
     },
     {
-      title: 'Pendiente para V1',
-      command: 'OAuth2/OIDC real\nMFA\nPasskeys\nrate limit persistente\nCORS estricto\nJWT_SECRET obligatorio fuerte\nHTTPS/TLS en deploy',
-      note: 'La base está lista para crecer modularmente, pero estos puntos todavía deben cerrarse antes de una V1 productiva.'
+      title: 'Capa 7: endurecimiento producción',
+      command: 'CORS allowlist\nJWT_SECRET fuerte\nheaders HTTP\nrate limit persistente\nSwagger protegido',
+      note: 'Estos controles ya están en la base. En production la API falla al arrancar si faltan valores críticos.'
+    },
+    {
+      title: 'Pendiente avanzado para V1',
+      command: 'OAuth2/OIDC real\nMFA\nPasskeys\nArgon2id\ncookie-only + CSRF\nHTTPS/TLS reverse proxy',
+      note: 'Estos puntos requieren proveedor, UX de enrolamiento o componente de despliegue dedicado.'
     },
     {
       title: 'Swagger en producción',

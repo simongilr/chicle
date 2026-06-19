@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotImplementedException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -150,10 +150,8 @@ export class AuthController {
     }
   })
   loginDevice(@Body() body: { deviceCode: string; password?: string }) {
-    return {
-      accessToken: 'pending-device-token',
-      device: { code: body.deviceCode }
-    };
+    void body;
+    throw new NotImplementedException('Device login is not implemented yet');
   }
 
   @Get('me')
@@ -176,6 +174,36 @@ export class AuthController {
   async logout(@CurrentAuth() auth: AuthContext, @Res({ passthrough: true }) response: CookieResponse) {
     const result = await this.authService.logout(auth);
     this.clearRefreshCookie(response);
+    return result;
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Listar sesiones propias',
+    description: 'Devuelve sesiones server-side del usuario actual sin exponer hashes ni tokens.'
+  })
+  sessions(@CurrentAuth() auth: AuthContext) {
+    return this.authService.listSessions(auth);
+  }
+
+  @Delete('sessions/:sessionId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Revocar una sesion propia',
+    description: 'Permite invalidar sesiones del mismo usuario y tenant.'
+  })
+  async revokeSession(
+    @CurrentAuth() auth: AuthContext,
+    @Param('sessionId') sessionId: string,
+    @Res({ passthrough: true }) response: CookieResponse
+  ) {
+    const result = await this.authService.revokeSession(auth, sessionId);
+    if (result.current) {
+      this.clearRefreshCookie(response);
+    }
     return result;
   }
 

@@ -24,9 +24,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
+  setupSecurityHeaders(app, config);
   app.enableCors({
-    origin: true,
-    credentials: true
+    origin: resolveCorsOrigin(config),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-chicle-reset-key']
   });
 
   app.setGlobalPrefix('api');
@@ -43,6 +46,46 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
+function setupSecurityHeaders(app: Awaited<ReturnType<typeof NestFactory.create>>, config: ConfigService) {
+  const server = app.getHttpAdapter().getInstance() as { disable?: (name: string) => void };
+  server.disable?.('x-powered-by');
+  const production = config.get<string>('NODE_ENV', 'development') === 'production';
+
+  app.use((_request: unknown, response: { setHeader: (name: string, value: string) => void }, next: NextHandler) => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Referrer-Policy', 'no-referrer');
+    response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (production) {
+      response.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
+}
+
+function resolveCorsOrigin(config: ConfigService) {
+  const nodeEnv = config.get<string>('NODE_ENV', 'development');
+  const raw = config.get<string>('CHICLE_CORS_ORIGINS');
+  if (!raw && nodeEnv === 'production') {
+    throw new Error('CHICLE_CORS_ORIGINS is required in production');
+  }
+
+  if (!raw) {
+    return true;
+  }
+
+  const origins = raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (nodeEnv === 'production' && origins.includes('*')) {
+    throw new Error('CHICLE_CORS_ORIGINS cannot be "*" in production');
+  }
+
+  return origins.includes('*') ? true : origins;
+}
 
 function setupSwagger(app: Awaited<ReturnType<typeof NestFactory.create>>, config: ConfigService) {
   const nodeEnv = config.get<string>('NODE_ENV', 'development');

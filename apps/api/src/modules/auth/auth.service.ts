@@ -1,5 +1,5 @@
-import { randomBytes, randomUUID } from 'node:crypto';
-import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +9,7 @@ import { ConfisysService } from '../confisys/confisys.service';
 import { RbacService } from '../rbac/rbac.service';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
+import { AuthLoginAttempt } from './auth-login-attempt.entity';
 import { AuthSession } from './auth-session.entity';
 import { AuthContext, AuthTokenPayload } from './auth.types';
 
@@ -54,12 +55,6 @@ export interface LoginRequest {
   tenantSlug?: string;
 }
 
-interface LoginAttempt {
-  count: number;
-  firstAttemptAt: number;
-  blockedUntil?: number;
-}
-
 export interface AuthResponse {
   accessToken: string;
   tokenType: 'Bearer';
@@ -78,8 +73,6 @@ export interface AuthResult {
 
 @Injectable()
 export class AuthService {
-  private readonly loginAttempts = new Map<string, LoginAttempt>();
-
   constructor(
     @InjectRepository(Tenant)
     private readonly tenants: Repository<Tenant>,
@@ -87,6 +80,8 @@ export class AuthService {
     private readonly users: Repository<User>,
     @InjectRepository(AuthSession)
     private readonly sessions: Repository<AuthSession>,
+    @InjectRepository(AuthLoginAttempt)
+    private readonly loginAttempts: Repository<AuthLoginAttempt>,
     private readonly confisys: ConfisysService,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
@@ -108,7 +103,7 @@ export class AuthService {
   }
 
   async login(request: LoginRequest, clientKey: string): Promise<AuthResult> {
-    this.assertLoginAllowed(clientKey);
+    await this.assertLoginAllowed(clientKey);
     const tenant = await this.resolveLoginTenant(request.tenantSlug);
     const user = await this.users.findOne({
       where: {
@@ -119,11 +114,11 @@ export class AuthService {
     });
 
     if (!user || !(await compare(request.password, user.passwordHash))) {
-      this.registerFailedLogin(clientKey);
+      await this.registerFailedLogin(clientKey);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    this.loginAttempts.delete(clientKey);
+    await this.loginAttempts.delete({ key: this.loginRateKey(clientKey) });
     const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
     const security = this.readSecurityPolicy(tenant.settings);
     const ttlMinutes = security.session.accessTokenTtlMinutes;
@@ -277,6 +272,40 @@ export class AuthService {
     return { ok: true };
   }
 
+  async listSessions(auth: AuthContext) {
+    const sessions = await this.sessions.find({
+      where: { tenantId: auth.tenant.id, userId: auth.user.id },
+      order: { updatedAt: 'DESC' }
+    });
+
+    return sessions.map((session) => ({
+      id: session.id,
+      active: session.active,
+      current: session.id === auth.sessionId,
+      expiresAt: session.expiresAt,
+      refreshExpiresAt: session.refreshExpiresAt,
+      refreshedAt: session.refreshedAt,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt
+    }));
+  }
+
+  async revokeSession(auth: AuthContext, sessionId: string) {
+    const session = await this.sessions.findOne({
+      where: { id: sessionId, tenantId: auth.tenant.id, userId: auth.user.id }
+    });
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    await this.sessions.update(
+      { id: session.id },
+      { active: false, refreshTokenHash: null, refreshExpiresAt: null }
+    );
+
+    return { ok: true, current: session.id === auth.sessionId };
+  }
+
   private readSecurityPolicy(settings?: Record<string, unknown> | null): SecurityPolicy {
     const security = settings?.security;
     const defaultSecurity = this.confisys.getSecurityPolicy();
@@ -318,6 +347,10 @@ export class AuthService {
     const secret = this.config.get<string>('JWT_SECRET');
     if (!secret && this.config.get<string>('NODE_ENV') === 'production') {
       throw new Error('JWT_SECRET is required in production');
+    }
+
+    if (this.config.get<string>('NODE_ENV') === 'production' && secret && secret.length < 32) {
+      throw new Error('JWT_SECRET must be at least 32 characters in production');
     }
 
     return secret ?? 'local-dev-only-change-me';
@@ -385,29 +418,35 @@ export class AuthService {
     return { sessionId, refreshToken };
   }
 
-  private assertLoginAllowed(key: string) {
-    const attempt = this.loginAttempts.get(key);
-    if (attempt?.blockedUntil && attempt.blockedUntil > Date.now()) {
+  private async assertLoginAllowed(rawKey: string) {
+    const attempt = await this.loginAttempts.findOne({ where: { key: this.loginRateKey(rawKey) } });
+    if (attempt?.blockedUntil && attempt.blockedUntil.getTime() > Date.now()) {
       throw new HttpException('Too many login attempts', HttpStatus.TOO_MANY_REQUESTS);
     }
   }
 
-  private registerFailedLogin(key: string) {
+  private async registerFailedLogin(rawKey: string) {
+    const key = this.loginRateKey(rawKey);
     const now = Date.now();
-    const windowMs = 10 * 60 * 1000;
-    const blockMs = 5 * 60 * 1000;
-    const current = this.loginAttempts.get(key);
+    const windowMs = this.confisys.get<number>('security.loginRateLimit.windowMinutes', 10) * 60 * 1000;
+    const blockMs = this.confisys.get<number>('security.loginRateLimit.blockMinutes', 5) * 60 * 1000;
+    const maxAttempts = this.confisys.get<number>('security.loginRateLimit.maxAttempts', 5);
+    const current = await this.loginAttempts.findOne({ where: { key } });
     const attempt =
-      current && current.firstAttemptAt + windowMs > now
+      current && current.firstAttemptAt.getTime() + windowMs > now
         ? current
-        : { count: 0, firstAttemptAt: now };
+        : this.loginAttempts.create({ key, count: 0, firstAttemptAt: new Date(now), blockedUntil: null });
 
     attempt.count += 1;
-    if (attempt.count >= 5) {
-      attempt.blockedUntil = now + blockMs;
+    if (attempt.count >= maxAttempts) {
+      attempt.blockedUntil = new Date(now + blockMs);
     }
 
-    this.loginAttempts.set(key, attempt);
+    await this.loginAttempts.save(attempt);
+  }
+
+  private loginRateKey(rawKey: string) {
+    return createHash('sha256').update(rawKey).digest('hex');
   }
 
   private publicUser(user: User) {

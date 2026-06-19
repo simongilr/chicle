@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { DataSource, EntityManager, EntityTarget, ObjectLiteral, Repository } from 'typeorm';
 import { AuditEvent } from '../audit/audit-event.entity';
+import { AuthLoginAttempt } from '../auth/auth-login-attempt.entity';
 import { AuthSession } from '../auth/auth-session.entity';
 import { ConfisysService } from '../confisys/confisys.service';
 import { DynamicForm } from '../dynamic-forms/dynamic-form.entity';
@@ -123,6 +124,7 @@ export class SetupService {
     await this.dataSource.transaction(async (manager) => {
       await this.deleteAll(manager, AuditEvent);
       await this.deleteAll(manager, AuthSession);
+      await this.deleteAll(manager, AuthLoginAttempt);
       await this.deleteAll(manager, RecordEntity);
       await this.deleteAll(manager, DynamicForm);
       await this.deleteAll(manager, MenuItem);

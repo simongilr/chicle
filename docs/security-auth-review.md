@@ -90,7 +90,7 @@ Visual components must read the public auth config before rendering login action
   - Avoid arbitrary composition rules as the main security control.
   - Add breached/weak password screening later.
 - Login response must not leak whether email or password failed.
-- Add rate limiting and account lock/risk delay before production.
+- Login rate limiting is required before production. Basic persistent rate limiting is implemented; broader account risk controls can be added later.
 
 ### Sessions And Tokens
 
@@ -110,7 +110,7 @@ For all clients:
 
 - Include `sub`, `tenantId`, `sid` or `jti`, `iat`, `exp`, and token version where needed.
 - Validate that the user, tenant and session are still active on protected requests.
-- Keep refresh token rotation and reuse detection on the roadmap.
+- Refresh token rotation is implemented. Reuse detection currently invalidates the session on mismatch; broader risk alerts can be added later.
 
 ### Authorization
 
@@ -188,12 +188,12 @@ Decision:
    - owner role assignment
 4. Implement login with password verification. Done.
 5. Implement JWT/session service using maintained libraries. Done for access tokens and server-side sessions.
-6. Add guards. Partially done:
+6. Add guards. Done for current protected modules:
    - auth guard
    - tenant/user/session context
    - permission guard
 7. Implement `/auth/me`. Done.
-8. Protect sensitive endpoints. Started with `confisys.read` and `confisys.update`.
+8. Protect sensitive endpoints. Done for current users, roles, confisys, menus, forms, records, files, actions and tenants endpoints.
 9. Add frontend auth service and route guards. Done for MVP bearer session.
 10. Decide final web token storage strategy before production.
 11. Add HTTPS/reverse-proxy deployment path.
@@ -217,20 +217,33 @@ Implemented:
 - Logout calls `/auth/logout`, clears session state and invalidates the server-side session.
 - `/auth/login` sets a refresh token in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/auth`.
 - `/auth/refresh` validates the refresh cookie, rotates the refresh token hash server-side, and issues a new access token.
-- Login has an in-memory rate limit: five failed attempts in ten minutes blocks the key for five minutes.
+- Login has persistent DB-backed rate limiting through `auth_login_attempts`; defaults are five failed attempts in ten minutes with a five-minute block.
+- `/auth/sessions` lists the current user's server-side sessions without exposing hashes or tokens.
+- `DELETE /auth/sessions/:sessionId` revokes one of the current user's sessions.
+- Device login no longer returns a fake token; `/auth/login-device` fails closed until a real provider exists.
 - User administration endpoints and `/security` screen are available for `users.read`, `users.create`, `users.update`, `roles.read`, `roles.manage` and `permissions.read`.
 - Role permission management is available for non-owner roles.
 - Sensitive user and role changes are written to `audit_events` and visible with `audit.read`.
 - Setup and user creation enforce `security.password.minLength`.
+- Current placeholder modules now require guards and permissions:
+  - `forms.read` / `forms.manage`
+  - `records.read` / `records.create`
+  - `files.read` / `files.upload`
+  - `records.create` for action execution
+  - authenticated context for current tenant
+- CORS is restricted by `CHICLE_CORS_ORIGINS`; production requires an explicit allowlist and rejects `*`.
+- Production startup requires `JWT_SECRET` and enforces at least 32 characters.
+- API responses set baseline security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS in production.
 - Development reset is available at `/api/setup/reset` only when `CHICLE_ALLOW_SYSTEM_RESET=true`, `CHICLE_RESET_KEY` matches, the confirmation phrase is exact, and `NODE_ENV` is not `production`.
 
 Still pending:
 
-- Rate limiting and risk controls for login.
-- Persistent/distributed rate limiting for multi-instance deployments.
-- Broader endpoint protection as each module becomes real.
 - MFA enrollment/challenge flows.
 - OAuth2/OIDC provider configuration and callbacks.
+- Argon2id password hashing or a migration path from bcrypt.
+- Final cookie-only web session strategy with CSRF token if we remove bearer access tokens from browser storage.
+- HTTPS/TLS termination component for Docker deploy.
+- Risk controls beyond rate limiting, such as impossible-travel checks, device trust and admin alerts.
 
 ## Open Decisions
 

@@ -6,6 +6,7 @@ import { ConfisysModule } from '../confisys/confisys.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
+import { AuthLoginAttempt } from './auth-login-attempt.entity';
 import { AuthSession } from './auth-session.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -17,7 +18,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
   imports: [
     ConfigModule,
     JwtModule.register({}),
-    TypeOrmModule.forFeature([Tenant, User, AuthSession]),
+    TypeOrmModule.forFeature([Tenant, User, AuthSession, AuthLoginAttempt]),
     ConfisysModule,
     RbacModule
   ],

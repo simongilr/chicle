@@ -106,6 +106,10 @@ interface DocSection {
         align-items: start;
       }
 
+      .section-picker {
+        display: none;
+      }
+
       .docs-nav {
         position: sticky;
         top: 16px;
@@ -242,6 +246,21 @@ interface DocSection {
         font-size: 0.92rem;
       }
 
+      .doc-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        min-height: 38px;
+        border: 1px solid #1554a2;
+        border-radius: 8px;
+        background: #1554a2;
+        color: #ffffff;
+        padding: 8px 12px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
       code,
       pre {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
@@ -313,29 +332,41 @@ interface DocSection {
           grid-template-columns: 1fr;
         }
 
+        .section-picker {
+          display: grid;
+          gap: 7px;
+          margin-bottom: 18px;
+          padding: 0 16px;
+        }
+
+        .section-picker label {
+          color: #64748b;
+          font-size: 0.78rem;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .section-picker select {
+          width: 100%;
+          min-height: 42px;
+          border: 1px solid #c8d6e4;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #173b5f;
+          padding: 8px 10px;
+          font: inherit;
+          font-weight: 800;
+        }
+
         .docs-nav {
-          position: static;
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          border-width: 1px 0;
-          border-radius: 0;
-          padding: 10px 16px;
-          scrollbar-width: thin;
+          display: none;
         }
 
         .docs-nav-title {
-          display: inline-flex;
-          align-items: center;
-          flex: 0 0 auto;
           margin: 0;
-          padding-right: 4px;
         }
 
         .docs-nav button {
-          flex: 0 0 auto;
-          width: auto;
-          min-width: 128px;
           border: 1px solid #cbd8e3;
           background: #ffffff;
           padding: 9px 10px;
@@ -346,15 +377,6 @@ interface DocSection {
           background: #1554a2;
           color: #ffffff;
           box-shadow: none;
-        }
-
-        .docs-nav button[aria-current='true'] span,
-        .docs-nav button[aria-current='true'] strong {
-          color: #ffffff;
-        }
-
-        .docs-nav span {
-          display: none;
         }
       }
     `
@@ -382,6 +404,15 @@ interface DocSection {
             de recordar comandos sueltos. La iremos enriqueciendo conforme avance el producto.
           </p>
         </header>
+
+        <div class="section-picker">
+          <label for="docs-section">Ir a sección</label>
+          <select id="docs-section" [value]="activeSection" (change)="changeSection($event)">
+            @for (section of sections; track section.id) {
+              <option [value]="section.id">{{ section.label }}</option>
+            }
+          </select>
+        </div>
 
         <div class="docs-layout">
           <nav class="docs-nav" aria-label="Secciones del manual">
@@ -543,6 +574,51 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="guia-seguridad" class="doc-section" data-tone="security">
+              <div class="section-header">
+                <h2>Guía de seguridad</h2>
+                <p class="section-lead">
+                  La seguridad de Chicle Engine se diseña por capas: autenticación, sesión, tenant,
+                  roles, permisos, auditoría y configuración por organización.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of securityGuideSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+            </section>
+
+            <section id="swagger" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Swagger / API Docs</h2>
+                <p class="section-lead">
+                  La API expone documentación interactiva con ejemplos para setup, auth, usuarios,
+                  roles, permisos, auditoría y confisys.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of swaggerSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <pre>{{ step.command }}</pre>
+                  </article>
+                }
+              </div>
+              <a class="doc-link" href="http://localhost:3000/api/docs" target="_blank" rel="noreferrer">
+                Abrir Swagger
+              </a>
+            </section>
+
             <section id="reset" class="doc-section" data-tone="critical">
               <div class="section-header">
                 <h2>Reset local seguro</h2>
@@ -628,6 +704,8 @@ export class DocsPageComponent {
     { id: 'puertos', label: 'Puertos', summary: 'Cambios desde env y pruebas locales.' },
     { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
+    { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
+    { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
     { id: 'reset', label: 'Reset local', summary: 'Repetir pruebas de creación sin abrir huecos.' },
     { id: 'semillas', label: 'Semillas', summary: 'Datos iniciales y perfiles base.' },
     { id: 'errores', label: 'Errores comunes', summary: 'Qué hacer cuando algo no arranca.' }
@@ -636,6 +714,11 @@ export class DocsPageComponent {
   scrollTo(sectionId: string) {
     this.activeSection = sectionId;
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  changeSection(event: Event) {
+    const sectionId = (event.target as HTMLSelectElement).value;
+    this.scrollTo(sectionId);
   }
 
   activeSection = 'reglas';
@@ -786,6 +869,67 @@ export class DocsPageComponent {
       title: 'Rate limit de login',
       command: '5 intentos fallidos en 10 minutos bloquean esa llave por 5 minutos',
       note: 'Es memoria local de API. En producción multi-instancia se moverá a storage compartido.'
+    }
+  ];
+
+  readonly securityGuideSteps: CommandStep[] = [
+    {
+      title: 'Capa 1: setup seguro',
+      command: 'not_created -> setup web -> tenant + owner -> ready',
+      note: 'El sistema no nace con usuarios quemados. El primer owner se crea desde setup y queda asociado al primer tenant.'
+    },
+    {
+      title: 'Capa 2: autenticación',
+      command: 'POST /api/auth/login\nPOST /api/auth/refresh\nGET /api/auth/me\nPOST /api/auth/logout',
+      note: 'El login entrega access token corto y refresh cookie HttpOnly. /auth/me valida sesión, usuario, tenant y permisos.'
+    },
+    {
+      title: 'Capa 3: tenant scope',
+      command: 'tenantId via JWT + sesión backend + usuario activo',
+      note: 'Las operaciones protegidas deben ejecutarse dentro del tenant actual. No se debe confiar en tenantId enviado por el cliente.'
+    },
+    {
+      title: 'Capa 4: roles y permisos',
+      command: 'owner\nadmin\noperator\nviewer\npermissions: users.read, roles.manage, confisys.update...',
+      note: 'La UI puede ocultar opciones, pero la decisión real siempre la toman JwtAuthGuard + PermissionsGuard en backend.'
+    },
+    {
+      title: 'Capa 5: configuración por organización',
+      command: 'settings.security + confisys defaults',
+      note: 'Cada tenant guarda su política de seguridad. Confisys define defaults y parámetros globales que la API carga al iniciar.'
+    },
+    {
+      title: 'Capa 6: auditoría',
+      command: 'audit_events: user.created, user.updated, user.roles.updated, role.permissions.updated',
+      note: 'Los cambios sensibles quedan registrados para revisión administrativa.'
+    },
+    {
+      title: 'Pendiente para V1',
+      command: 'OAuth2/OIDC real\nMFA\nPasskeys\nrate limit persistente\nCORS estricto\nJWT_SECRET obligatorio fuerte\nHTTPS/TLS en deploy',
+      note: 'La base está lista para crecer modularmente, pero estos puntos todavía deben cerrarse antes de una V1 productiva.'
+    }
+  ];
+
+  readonly swaggerSteps: CommandStep[] = [
+    {
+      title: 'Abrir documentación interactiva',
+      command: 'http://localhost:3000/api/docs',
+      note: 'La API debe estar corriendo. Si cambiaste API_PORT, usa ese puerto.'
+    },
+    {
+      title: 'Probar flujo desde Swagger',
+      command: '1. GET /api/setup/status\n2. POST /api/setup si state es not_created\n3. POST /api/auth/login\n4. Copiar accessToken\n5. Authorize -> Bearer TOKEN',
+      note: 'Después de Authorize puedes probar /users, /roles, /permissions, /audit y /confisys.'
+    },
+    {
+      title: 'Refresh cookie',
+      command: 'POST /api/auth/refresh',
+      note: 'Swagger muestra el endpoint, pero la cookie chicle_refresh es HttpOnly; el navegador la maneja si login se ejecuta desde la misma API.'
+    },
+    {
+      title: 'Ejemplos incluidos',
+      command: 'Setup\nAuth\nSecurity / Users\nSecurity / RBAC\nConfisys',
+      note: 'Los endpoints principales tienen ejemplos de body, respuestas y permisos requeridos.'
     }
   ];
 

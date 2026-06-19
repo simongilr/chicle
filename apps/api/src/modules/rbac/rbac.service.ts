@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Permission } from './permission.entity';
@@ -120,6 +120,90 @@ export class RbacService {
       roles: roleRows.map((role) => ({ key: role.key, name: role.name })),
       permissions: permissionRows.map((permission) => permission.key).sort()
     };
+  }
+
+  listPermissions() {
+    return this.permissions.find({ order: { category: 'ASC', key: 'ASC' } });
+  }
+
+  async listRoles(tenantId: string) {
+    const roles = await this.roles.find({ where: { tenantId }, order: { key: 'ASC' } });
+    const permissionRows = await this.rolePermissions
+      .createQueryBuilder('rolePermission')
+      .innerJoin(Permission, 'permission', 'permission.id = rolePermission.permissionId')
+      .innerJoin(Role, 'role', 'role.id = rolePermission.roleId')
+      .where('role.tenantId = :tenantId', { tenantId })
+      .select(['role.id AS roleId', 'permission.key AS permissionKey'])
+      .getRawMany<{ roleId: string; permissionKey: string }>();
+
+    const permissionMap = new Map<string, string[]>();
+    for (const row of permissionRows) {
+      permissionMap.set(row.roleId, [...(permissionMap.get(row.roleId) ?? []), row.permissionKey]);
+    }
+
+    return roles.map((role) => ({
+      ...role,
+      permissions: (permissionMap.get(role.id) ?? []).sort()
+    }));
+  }
+
+  async setRolePermissions(tenantId: string, roleId: string, permissionKeys: string[]) {
+    const role = await this.roles.findOne({ where: { id: roleId, tenantId } });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (role.key === 'owner') {
+      throw new BadRequestException('Owner role permissions are managed by the system');
+    }
+
+    const permissions = await this.permissions.find();
+    const permissionMap = new Map(permissions.map((permission) => [permission.key, permission]));
+    const selected = [...new Set(permissionKeys)]
+      .map((key) => permissionMap.get(key))
+      .filter((permission): permission is Permission => Boolean(permission));
+
+    await this.rolePermissions.delete({ roleId: role.id });
+    if (selected.length > 0) {
+      await this.rolePermissions.save(
+        selected.map((permission) =>
+          this.rolePermissions.create({ roleId: role.id, permissionId: permission.id })
+        )
+      );
+    }
+
+    return { ...role, permissions: selected.map((permission) => permission.key).sort() };
+  }
+
+  async getUserRoleKeys(tenantId: string, userId: string) {
+    const rows = await this.userRoles
+      .createQueryBuilder('userRole')
+      .innerJoin(Role, 'role', 'role.id = userRole.roleId')
+      .where('userRole.tenantId = :tenantId', { tenantId })
+      .andWhere('userRole.userId = :userId', { userId })
+      .select('role.key', 'key')
+      .getRawMany<{ key: string }>();
+
+    return rows.map((row) => row.key).sort();
+  }
+
+  async setUserRoles(tenantId: string, userId: string, roleKeys: string[]) {
+    const roles = await this.roles.find({ where: { tenantId } });
+    const roleMap = new Map(roles.map((role) => [role.key, role]));
+    const selected = [...new Set(roleKeys)]
+      .map((key) => roleMap.get(key))
+      .filter((role): role is Role => Boolean(role));
+
+    if (selected.length === 0) {
+      throw new BadRequestException('User must have at least one role');
+    }
+
+    await this.userRoles.delete({ tenantId, userId });
+    await this.userRoles.save(
+      selected.map((role) => this.userRoles.create({ tenantId, userId, roleId: role.id }))
+    );
+
+    return selected.map((role) => role.key).sort();
   }
 
   private async ensurePermissions(manager?: EntityManager) {

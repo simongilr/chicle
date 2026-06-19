@@ -218,13 +218,18 @@ Implemented:
 - `/auth/login` sets a refresh token in an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/auth`.
 - `/auth/refresh` validates the refresh cookie, rotates the refresh token hash server-side, and issues a new access token.
 - Login has an in-memory rate limit: five failed attempts in ten minutes blocks the key for five minutes.
+- User administration endpoints and `/security` screen are available for `users.read`, `users.create`, `users.update`, `roles.read`, `roles.manage` and `permissions.read`.
+- Role permission management is available for non-owner roles.
+- Sensitive user and role changes are written to `audit_events` and visible with `audit.read`.
+- Setup and user creation enforce `security.password.minLength`.
 
 Still pending:
 
 - Rate limiting and risk controls for login.
 - Persistent/distributed rate limiting for multi-instance deployments.
-- User and role administration screens/endpoints.
 - Broader endpoint protection as each module becomes real.
+- MFA enrollment/challenge flows.
+- OAuth2/OIDC provider configuration and callbacks.
 
 ## Open Decisions
 

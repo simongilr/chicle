@@ -414,6 +414,22 @@ export class DocsPageComponent {
       note: 'Requiere confisys.read. Para guardar cambios requiere confisys.update.'
     },
     {
+      title: 'Administrar seguridad',
+      command: 'Abre http://localhost:8100/security',
+      note: 'Permite gestionar usuarios, roles, permisos y revisar auditoría del tenant.'
+    },
+    {
+      title: 'Usuarios y roles por API',
+      command:
+        'curl http://127.0.0.1:3000/api/users -H "Authorization: Bearer TOKEN"\\ncurl http://127.0.0.1:3000/api/roles -H "Authorization: Bearer TOKEN"',
+      note: 'Usuarios requiere users.read. Roles requiere roles.read. Cambios de permisos requieren roles.manage.'
+    },
+    {
+      title: 'Auditoría',
+      command: 'curl http://127.0.0.1:3000/api/audit -H "Authorization: Bearer TOKEN"',
+      note: 'Registra cambios sensibles de usuarios y roles.'
+    },
+    {
       title: 'Logout',
       command: 'curl -X POST http://127.0.0.1:3000/api/auth/logout -H "Authorization: Bearer TOKEN"',
       note: 'Invalida la sesión server-side y la app limpia el token local.'

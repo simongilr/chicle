@@ -20,6 +20,9 @@ import { AuthService } from '../../core/auth/auth.service';
       @if (auth.state.hasPermission('confisys.read')) {
         <ion-button routerLink="/confisys">Confisys</ion-button>
       }
+      @if (auth.state.hasPermission('users.read') && auth.state.hasPermission('roles.read')) {
+        <ion-button routerLink="/security">Security</ion-button>
+      }
       <ion-button fill="outline" (click)="logout()">Salir</ion-button>
     </ion-content>
   `

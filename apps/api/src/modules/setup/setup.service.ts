@@ -44,6 +44,7 @@ export class SetupService {
     if (current > 0) {
       throw new BadRequestException('System already initialized');
     }
+    this.assertPasswordPolicy(request.password);
 
     const tenant = this.tenants.create({
       name: request.organization,
@@ -90,5 +91,12 @@ export class SetupService {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+  }
+
+  private assertPasswordPolicy(password: string) {
+    const minLength = this.confisys.get<number>('security.password.minLength', 12);
+    if (!password || password.length < minLength) {
+      throw new BadRequestException(`Password must be at least ${minLength} characters`);
+    }
   }
 }

@@ -19,6 +19,10 @@ export class ApiClientService {
     return this.http.put<T>(this.url(path), body, { withCredentials: true });
   }
 
+  patch<T>(path: string, body: unknown) {
+    return this.http.patch<T>(this.url(path), body, { withCredentials: true });
+  }
+
   private url(path: string): string {
     return `${this.baseUrl}/${path.replace(/^\/+/, '')}`;
   }

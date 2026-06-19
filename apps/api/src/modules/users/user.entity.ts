@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type UserSystemRole = 'owner' | 'admin' | 'member';
+export type UserSystemRole = 'owner' | 'admin' | 'operator' | 'viewer' | 'member';
 
 @Entity('users')
 @Index(['tenantId', 'email'], { unique: true })

@@ -8,12 +8,13 @@ import { importProvidersFrom } from '@angular/core';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/core/auth/auth.interceptor';
+import { chiclePageTransition } from './app/core/navigation/page-transition.animation';
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideHttpClient(withInterceptors([authInterceptor])),
     provideRouter(routes),
-    importProvidersFrom(IonicModule.forRoot()),
+    importProvidersFrom(IonicModule.forRoot({ navAnimation: chiclePageTransition })),
     providePrimeNG({
       theme: {
         preset: Aura

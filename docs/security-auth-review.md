@@ -222,6 +222,7 @@ Implemented:
 - Role permission management is available for non-owner roles.
 - Sensitive user and role changes are written to `audit_events` and visible with `audit.read`.
 - Setup and user creation enforce `security.password.minLength`.
+- Development reset is available at `/api/setup/reset` only when `CHICLE_ALLOW_SYSTEM_RESET=true`, `CHICLE_RESET_KEY` matches, the confirmation phrase is exact, and `NODE_ENV` is not `production`.
 
 Still pending:
 

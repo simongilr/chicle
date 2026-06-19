@@ -24,6 +24,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-chicle_secret}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
       JWT_SECRET: ${JWT_SECRET:-change_me}
+      CHICLE_ALLOW_SYSTEM_RESET: ${CHICLE_ALLOW_SYSTEM_RESET:-false}
+      CHICLE_RESET_KEY: ${CHICLE_RESET_KEY:-}
       FILES_ROOT: /app/storage/files
     ports:
       - "${API_PORT:-3000}:${API_PORT:-3000}"

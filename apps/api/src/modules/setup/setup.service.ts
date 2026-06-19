@@ -1,9 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
-import { Repository } from 'typeorm';
+import { DataSource, EntityManager, EntityTarget, ObjectLiteral, Repository } from 'typeorm';
+import { AuditEvent } from '../audit/audit-event.entity';
+import { AuthSession } from '../auth/auth-session.entity';
 import { ConfisysService } from '../confisys/confisys.service';
+import { DynamicForm } from '../dynamic-forms/dynamic-form.entity';
+import { RecordEntity } from '../records/record.entity';
+import { RolePermission } from '../rbac/role-permission.entity';
+import { Role } from '../rbac/role.entity';
 import { RbacService } from '../rbac/rbac.service';
+import { UserRole } from '../rbac/user-role.entity';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
 
@@ -14,6 +22,10 @@ interface SetupRequest {
   template?: string;
 }
 
+interface ResetRequest {
+  confirm: string;
+}
+
 @Injectable()
 export class SetupService {
   constructor(
@@ -22,7 +34,9 @@ export class SetupService {
     @InjectRepository(User)
     private readonly users: Repository<User>,
     private readonly confisys: ConfisysService,
-    private readonly rbac: RbacService
+    private readonly rbac: RbacService,
+    private readonly config: ConfigService,
+    private readonly dataSource: DataSource
   ) {}
 
   async status() {
@@ -84,6 +98,43 @@ export class SetupService {
     };
   }
 
+  async resetForDevelopment(request: ResetRequest, resetKey?: string) {
+    if (this.config.get<string>('NODE_ENV') === 'production') {
+      throw new ForbiddenException('System reset is disabled in production');
+    }
+
+    if (this.config.get<string>('CHICLE_ALLOW_SYSTEM_RESET', 'false') !== 'true') {
+      throw new ForbiddenException('System reset is disabled');
+    }
+
+    const expectedKey = this.config.get<string>('CHICLE_RESET_KEY');
+    if (!expectedKey || resetKey !== expectedKey) {
+      throw new ForbiddenException('Invalid reset key');
+    }
+
+    if (request.confirm !== 'RESET CHICLE ENGINE') {
+      throw new BadRequestException('Invalid confirmation phrase');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await this.deleteAll(manager, AuditEvent);
+      await this.deleteAll(manager, AuthSession);
+      await this.deleteAll(manager, RecordEntity);
+      await this.deleteAll(manager, DynamicForm);
+      await this.deleteAll(manager, UserRole);
+      await this.deleteAll(manager, RolePermission);
+      await this.deleteAll(manager, Role);
+      await this.deleteAll(manager, User);
+      await this.deleteAll(manager, Tenant);
+    });
+
+    return {
+      ok: true,
+      state: 'not_created',
+      preserved: ['confisys', 'permissions']
+    };
+  }
+
   private slugify(value: string) {
     return value
       .toLowerCase()
@@ -91,6 +142,10 @@ export class SetupService {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+  }
+
+  private deleteAll(manager: EntityManager, entity: EntityTarget<ObjectLiteral>) {
+    return manager.createQueryBuilder().delete().from(entity).execute();
   }
 
   private assertPasswordPolicy(password: string) {

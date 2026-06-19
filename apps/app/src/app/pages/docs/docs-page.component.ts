@@ -219,6 +219,26 @@ interface CommandStep {
         </section>
 
         <section>
+          <h2>Reset local seguro</h2>
+          <p class="section-lead">
+            Para repetir pruebas de creación del sistema existe un reset solo para desarrollo.
+            Está desactivado por defecto, exige llave de entorno, frase exacta y queda bloqueado si
+            <code>NODE_ENV=production</code>.
+          </p>
+          <div class="steps">
+            @for (step of resetSteps; track step.title) {
+              <article class="step">
+                <h3>{{ step.title }}</h3>
+                <div class="meta">
+                  <span>{{ step.note }}</span>
+                </div>
+                <pre>{{ step.command }}</pre>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section>
           <h2>Semillas iniciales</h2>
           <ul class="notes">
             <li>
@@ -362,6 +382,30 @@ export class DocsPageComponent {
       title: 'Sistema no disponible',
       command: 'fetch /api/setup/status falla, timeout, 500, DNS o conexión rechazada',
       note: 'Esto no es setup pendiente. La app debe mostrar error de conexión o servicio.'
+    }
+  ];
+
+  readonly resetSteps: CommandStep[] = [
+    {
+      title: 'Habilitar solo en local',
+      command: 'CHICLE_ALLOW_SYSTEM_RESET=true\nCHICLE_RESET_KEY=usa-una-llave-local-larga',
+      note: 'Ubicación: infra/docker/.env.example. No actives esto en producción.'
+    },
+    {
+      title: 'Recrear API con la llave',
+      command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up -d --build api',
+      note: 'La API lee la bandera y la llave al iniciar.'
+    },
+    {
+      title: 'Ejecutar reset',
+      command:
+        'curl -X POST http://127.0.0.1:3000/api/setup/reset \\\n  -H "Content-Type: application/json" \\\n  -H "x-chicle-reset-key: usa-una-llave-local-larga" \\\n  -d \'{"confirm":"RESET CHICLE ENGINE"}\'',
+      note: 'Elimina tenant, usuarios, sesiones, roles de tenant, forms, records y auditoría. Conserva confisys y permisos globales.'
+    },
+    {
+      title: 'Desactivar después',
+      command: 'CHICLE_ALLOW_SYSTEM_RESET=false',
+      note: 'Vuelve a levantar la API para cerrar la herramienta de reset.'
     }
   ];
 

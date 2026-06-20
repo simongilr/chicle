@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 
@@ -213,13 +213,18 @@ interface SetupResponse {
       }
 
       .primary-button,
-      .secondary-button {
+      .secondary-button,
+      .link-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         min-height: 42px;
         border-radius: 8px;
         padding: 0 16px;
         font: inherit;
         font-weight: 800;
         cursor: pointer;
+        text-decoration: none;
       }
 
       .primary-button {
@@ -228,10 +233,46 @@ interface SetupResponse {
         color: #ffffff;
       }
 
-      .secondary-button {
+      .secondary-button,
+      .link-button {
         border: 1px solid #c8d6e4;
         background: #ffffff;
         color: #173b5f;
+      }
+
+      .ready-panel {
+        display: grid;
+        gap: 14px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 18px 50px rgba(20, 50, 80, 0.08);
+        padding: 20px;
+      }
+
+      .ready-panel h2 {
+        margin: 0;
+        color: #173b5f;
+        font-size: 1.3rem;
+      }
+
+      .ready-panel.error {
+        border-color: #f1b4b4;
+      }
+
+      .ready-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .ready-list li {
+        border-radius: 8px;
+        background: #f4f7fb;
+        color: #254057;
+        padding: 10px 12px;
       }
 
       .primary-button:disabled {
@@ -260,17 +301,19 @@ interface SetupResponse {
   template: `
     <header class="topbar">
       <div class="brand">Chicle Engine Setup</div>
-      <a class="doc-link" routerLink="/docs">Docs</a>
+      <div class="actions">
+        <a class="doc-link" routerLink="/docs">Docs</a>
+        @if (state === 'ready' || state === 'created') {
+          <a class="doc-link" routerLink="/login">Login</a>
+        }
+      </div>
     </header>
     <ion-content class="ion-padding">
       <main class="setup-shell">
         <section class="intro">
-          <span class="eyebrow">Setup web</span>
-          <h1>Crear el primer espacio de trabajo</h1>
-          <p>
-            Este flujo solo aparece cuando la API responde que el sistema está vivo pero todavía
-            no fue creado. El primer admin nace aquí, no desde una contraseña default.
-          </p>
+          <span class="eyebrow">{{ heroEyebrow }}</span>
+          <h1>{{ heroTitle }}</h1>
+          <p>{{ heroDescription }}</p>
 
           <div class="state-panel">
             <div class="status">
@@ -281,77 +324,128 @@ interface SetupResponse {
           </div>
         </section>
 
-        <form class="setup-form" (ngSubmit)="createPlatform()">
-          <div class="form-header">
-            <h2>Datos iniciales</h2>
-            <p>Usaremos estos datos para crear el tenant base y preparar las semillas iniciales.</p>
-          </div>
+        @if (state === 'loading') {
+          <section class="ready-panel">
+            <h2>Revisando estado</h2>
+            <div class="message">Consultando si el sistema necesita setup o login.</div>
+          </section>
+        } @else if (state === 'unavailable') {
+          <section class="ready-panel error">
+            <h2>API no disponible</h2>
 
-          @if (message) {
-            <div class="message" [class.error]="messageType === 'error'" [class.success]="messageType === 'success'">
-              {{ message }}
+            @if (message) {
+              <div class="message error">
+                {{ message }}
+              </div>
+            }
+
+            <ul class="ready-list">
+              <li>Esto no significa que falte crear el sistema.</li>
+              <li>Primero revisa que la API, Docker y la base de datos estén arriba.</li>
+              <li>Si cambiaste puertos, confirma el API_PORT usado por el frontend.</li>
+            </ul>
+
+            <div class="actions">
+              <button class="primary-button" type="button" (click)="loadStatus()">Reintentar</button>
+              <a class="link-button" routerLink="/docs">Ver guía</a>
             </div>
-          }
+          </section>
+        } @else if (state === 'ready' || state === 'created') {
+          <section class="ready-panel">
+            <h2>Continuar con autenticación</h2>
 
-          <label>
-            Organización
-            <input
-              name="organization"
-              autocomplete="organization"
-              [(ngModel)]="organization"
-              [disabled]="!canEdit"
-              required
-            />
-          </label>
+            @if (message) {
+              <div class="message" [class.success]="messageType === 'success'">
+                {{ message }}
+              </div>
+            }
 
-          <label>
-            Email admin
-            <input
-              name="email"
-              type="email"
-              autocomplete="email"
-              [(ngModel)]="email"
-              [disabled]="!canEdit"
-              required
-            />
-          </label>
+            <ul class="ready-list">
+              <li>El setup inicial ya no se puede ejecutar desde esta pantalla.</li>
+              <li>Usa el email y password del admin creado en el primer setup.</li>
+              <li>Luego podrás administrar usuarios, roles, permisos y confisys desde el sistema.</li>
+            </ul>
 
-          <label>
-            Password admin
-            <input
-              name="password"
-              type="password"
-              autocomplete="new-password"
-              [(ngModel)]="password"
-              [disabled]="!canEdit"
-              required
-            />
-          </label>
+            <div class="actions">
+              <a class="primary-button" routerLink="/login">Ir a iniciar sesión</a>
+              <button class="secondary-button" type="button" (click)="loadStatus()">Revisar estado</button>
+              <a class="link-button" routerLink="/docs">Ver guía</a>
+            </div>
+          </section>
+        } @else {
+          <form class="setup-form" (ngSubmit)="createPlatform()">
+            <div class="form-header">
+              <h2>Datos iniciales</h2>
+              <p>Usaremos estos datos para crear el tenant base y preparar las semillas iniciales.</p>
+            </div>
 
-          <label>
-            Semilla inicial
-            <select
-              name="template"
-              [(ngModel)]="template"
-              [disabled]="!canEdit"
-            >
-              <option value="blank">Blank</option>
-            </select>
-          </label>
+            @if (message) {
+              <div class="message" [class.error]="messageType === 'error'" [class.success]="messageType === 'success'">
+                {{ message }}
+              </div>
+            }
 
-          <div class="actions">
-            <button class="primary-button" type="submit" [disabled]="!canSubmit">
-              {{ saving ? 'Creando...' : 'Crear sistema' }}
-            </button>
-            <button class="secondary-button" type="button" (click)="loadStatus()">Revisar estado</button>
-          </div>
-        </form>
+            <label>
+              Organización
+              <input
+                name="organization"
+                autocomplete="organization"
+                [(ngModel)]="organization"
+                [disabled]="!canEdit"
+                required
+              />
+            </label>
+
+            <label>
+              Email admin
+              <input
+                name="email"
+                type="email"
+                autocomplete="email"
+                [(ngModel)]="email"
+                [disabled]="!canEdit"
+                required
+              />
+            </label>
+
+            <label>
+              Password admin
+              <input
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                [(ngModel)]="password"
+                [disabled]="!canEdit"
+                required
+              />
+            </label>
+
+            <label>
+              Semilla inicial
+              <select
+                name="template"
+                [(ngModel)]="template"
+                [disabled]="!canEdit"
+              >
+                <option value="blank">Blank</option>
+              </select>
+            </label>
+
+            <div class="actions">
+              <button class="primary-button" type="submit" [disabled]="!canSubmit">
+                {{ saving ? 'Creando...' : 'Crear sistema' }}
+              </button>
+              <button class="secondary-button" type="button" (click)="loadStatus()">Revisar estado</button>
+            </div>
+          </form>
+        }
       </main>
     </ion-content>
   `
 })
 export class SetupPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
+  private readonly router = inject(Router);
 
   organization = '';
   email = '';
@@ -379,6 +473,45 @@ export class SetupPageComponent implements OnInit {
     );
   }
 
+  get heroEyebrow() {
+    const labels: Record<SetupState, string> = {
+      loading: 'Revisión inicial',
+      not_created: 'Setup web',
+      ready: 'Sistema listo',
+      unavailable: 'Conexión',
+      created: 'Sistema listo'
+    };
+
+    return labels[this.state];
+  }
+
+  get heroTitle() {
+    const titles: Record<SetupState, string> = {
+      loading: 'Revisando estado del sistema',
+      not_created: 'Crear el primer espacio de trabajo',
+      ready: 'El sistema ya está creado',
+      unavailable: 'No se pudo consultar el sistema',
+      created: 'El sistema ya está creado'
+    };
+
+    return titles[this.state];
+  }
+
+  get heroDescription() {
+    const descriptions: Record<SetupState, string> = {
+      loading: 'La app está consultando la API para decidir si debe mostrar setup o login.',
+      not_created:
+        'Este flujo solo aparece cuando la API responde que el sistema está vivo pero todavía no fue creado. El primer admin nace aquí, no desde una contraseña default.',
+      ready:
+        'Ya existe un tenant inicial. El siguiente paso es entrar con el admin que se creó durante el setup y continuar desde el home.',
+      unavailable:
+        'La app no pudo confirmar si el sistema existe. Esto es distinto a setup pendiente: primero hay que recuperar la conexión con la API.',
+      created: 'El tenant inicial quedó listo. Ahora corresponde iniciar sesión con el admin creado.'
+    };
+
+    return descriptions[this.state];
+  }
+
   get stateLabel() {
     const labels: Record<SetupState, string> = {
       loading: 'Revisando sistema',
@@ -397,7 +530,7 @@ export class SetupPageComponent implements OnInit {
       not_created: 'API y base de datos responden. Puedes crear el primer tenant.',
       ready: 'Ya existe al menos un tenant. El siguiente paso es iniciar sesión.',
       unavailable: 'No se pudo consultar la API. Revisa Docker, puerto de API o base de datos.',
-      created: 'El tenant inicial fue creado. El siguiente paso será activar auth real.'
+      created: 'El tenant inicial fue creado. El siguiente paso es iniciar sesión.'
     };
 
     return descriptions[this.state];
@@ -412,7 +545,7 @@ export class SetupPageComponent implements OnInit {
         this.message =
           status.state === 'not_created'
             ? 'El backend está vivo y espera el setup inicial.'
-            : 'El sistema ya fue creado. Usa login cuando auth esté activo.';
+            : 'El sistema ya fue creado. Inicia sesión con el admin inicial.';
         this.messageType = 'info';
       },
       error: () => {
@@ -443,6 +576,7 @@ export class SetupPageComponent implements OnInit {
           this.state = 'created';
           this.message = `Sistema creado para ${response.tenant.name}. Admin inicial: ${response.admin.email}.`;
           this.messageType = 'success';
+          void this.router.navigateByUrl('/login');
         },
         error: (error) => {
           this.saving = false;

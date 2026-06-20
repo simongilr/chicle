@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, loginGuard, permissionGuard } from './core/auth/auth.guard';
+import { setupRedirectGuard } from './core/setup/setup-redirect.guard';
 import { ConfisysPageComponent } from './pages/confisys/confisys-page.component';
 import { DocsPageComponent } from './pages/docs/docs-page.component';
 import { DynamicFormPageComponent } from './pages/dynamic-form-page/dynamic-form-page.component';
@@ -26,6 +27,6 @@ export const routes: Routes = [
   { path: 'login', component: LoginPageComponent, canActivate: [loginGuard] },
   { path: 'home', component: HomePageComponent, canActivate: [authGuard] },
   { path: 'forms/:formKey', component: DynamicFormPageComponent, canActivate: [authGuard] },
-  { path: '', pathMatch: 'full', redirectTo: 'setup' },
+  { path: '', pathMatch: 'full', canActivate: [setupRedirectGuard], component: SetupPageComponent },
   { path: '**', redirectTo: 'home' }
 ];

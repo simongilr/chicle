@@ -38,7 +38,7 @@ export const permissionGuard: CanActivateFn = (route) => {
   }
 
   const validate = () =>
-    auth.state.hasAllPermissions(permissions) || router.createUrlTree(['/home']);
+    auth.state.isOwnerOrAdmin || auth.state.hasAllPermissions(permissions) || router.createUrlTree(['/home']);
 
   if (auth.state.isAuthenticated && auth.state.validated()) {
     return validate();

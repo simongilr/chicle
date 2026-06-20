@@ -310,7 +310,7 @@ interface SchemaHistoryResponse {
 
       .designer-grid {
         display: grid;
-        grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
         gap: 16px;
         align-items: start;
       }
@@ -322,6 +322,13 @@ interface SchemaHistoryResponse {
       .history-list {
         display: grid;
         gap: 12px;
+        min-width: 0;
+      }
+
+      .form-grid,
+      .preview-box {
+        min-width: 0;
+        align-content: start;
       }
 
       .form-row {
@@ -342,12 +349,19 @@ interface SchemaHistoryResponse {
 
       .schema-column {
         display: grid;
-        grid-template-columns: minmax(120px, 1fr) 130px 86px 86px auto auto;
+        grid-template-columns: minmax(120px, 1fr) minmax(112px, 130px) minmax(72px, 86px) minmax(72px, 86px) auto auto;
         gap: 8px;
         align-items: center;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 10px;
+        min-width: 0;
+      }
+
+      .schema-column input,
+      .schema-column select {
+        width: 100%;
+        min-width: 0;
       }
 
       .schema-column .check {
@@ -423,6 +437,12 @@ interface SchemaHistoryResponse {
         background: #f4f7fb;
         color: #173b5f;
         font-weight: 850;
+      }
+
+      @media (max-width: 1120px) {
+        .designer-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 940px) {

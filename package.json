@@ -17,6 +17,10 @@
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "migration:create": "npm --workspace @chicle/api run migration:create",
+    "migration:generate": "npm --workspace @chicle/api run migration:generate",
+    "migration:run": "npm --workspace @chicle/api run migration:run",
+    "migration:revert": "npm --workspace @chicle/api run migration:revert",
     "format": "prettier --write \"apps/**/*.{ts,scss,html,json,md}\" \"packages/**/*.{ts,json,md}\" \"docs/**/*.md\""
   },
   "devDependencies": {

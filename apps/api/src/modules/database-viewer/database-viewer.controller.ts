@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { DatabaseViewerService } from './database-viewer.service';
+import { DatabaseViewerService, SchemaDesignRequest } from './database-viewer.service';
 
 @Controller('database')
 @ApiTags('Database')
@@ -16,7 +16,7 @@ export class DatabaseViewerController {
   @ApiOperation({
     summary: 'Listar tablas visibles para inspección',
     description:
-      'Visor web minimalista y solo lectura. Filtra por tenant cuando la entidad tiene tenantId y oculta tablas no seguras.'
+      'Visor web minimalista para owner/admin. Filtra por tenant cuando la entidad tiene tenantId y oculta tablas no seguras.'
   })
   tables(@CurrentAuth() auth: AuthContext) {
     return this.databaseViewer.listTables(auth);
@@ -64,5 +64,55 @@ export class DatabaseViewerController {
     @Body() body: { values?: Record<string, unknown> }
   ) {
     return this.databaseViewer.updateRow(auth, table, id, body.values ?? {});
+  }
+
+  @Post('schema/preview')
+  @ApiOperation({
+    summary: 'Previsualizar un cambio de esquema',
+    description:
+      'Genera SQL y migración TypeORM sin aplicar el cambio. Solo permite tablas custom_* y columnas controladas.'
+  })
+  @ApiBody({
+    schema: {
+      example: {
+        operation: 'create_table',
+        tableName: 'custom_clients',
+        columns: [
+          { name: 'name', type: 'string', length: 180, nullable: false },
+          { name: 'status', type: 'string', length: 40, nullable: false, defaultValue: 'active' }
+        ]
+      }
+    }
+  })
+  previewSchema(@CurrentAuth() auth: AuthContext, @Body() body: SchemaDesignRequest) {
+    return this.databaseViewer.previewSchemaChange(auth, body);
+  }
+
+  @Post('schema/apply')
+  @ApiOperation({
+    summary: 'Aplicar un cambio de esquema controlado',
+    description:
+      'Aplica DDL con QueryRunner, guarda historial en schema_changes y genera una migración TypeORM secuencial.'
+  })
+  @ApiBody({
+    schema: {
+      example: {
+        operation: 'add_column',
+        tableName: 'custom_clients',
+        column: { name: 'phone', type: 'string', length: 60, nullable: true }
+      }
+    }
+  })
+  applySchema(@CurrentAuth() auth: AuthContext, @Body() body: SchemaDesignRequest) {
+    return this.databaseViewer.applySchemaChange(auth, body);
+  }
+
+  @Get('schema/changes')
+  @ApiOperation({
+    summary: 'Listar historial del diseñador de DB',
+    description: 'Muestra los últimos cambios de esquema generados desde la pantalla visual.'
+  })
+  schemaChanges(@CurrentAuth() auth: AuthContext) {
+    return this.databaseViewer.schemaHistory(auth);
   }
 }

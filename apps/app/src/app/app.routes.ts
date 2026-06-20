@@ -22,7 +22,8 @@ export const routes: Routes = [
   {
     path: 'database',
     component: DatabasePageComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['database.read'] }
   },
   {
     path: 'security',

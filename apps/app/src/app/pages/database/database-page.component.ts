@@ -9,6 +9,10 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 type TableScope = 'tenant' | 'current_tenant' | 'global';
+type TableSource = 'entity' | 'schema';
+type PageMode = 'data' | 'designer' | 'history';
+type SchemaOperation = 'create_table' | 'add_column' | 'alter_column' | 'drop_column';
+type SchemaColumnType = 'string' | 'text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'uuid';
 
 interface DatabaseColumn {
   name: string;
@@ -22,7 +26,9 @@ interface DatabaseTable {
   name: string;
   entity: string;
   scope: TableScope;
+  source: TableSource;
   editable: boolean;
+  designable: boolean;
   columns: DatabaseColumn[];
 }
 
@@ -43,6 +49,53 @@ interface DatabaseUpdateResponse {
   row: Record<string, unknown>;
 }
 
+interface SchemaFieldDraft {
+  name: string;
+  type: SchemaColumnType;
+  length: number;
+  precision: number;
+  scale: number;
+  nullable: boolean;
+  defaultValue: string;
+}
+
+interface SchemaRequest {
+  operation: SchemaOperation;
+  tableName: string;
+  columns?: Partial<SchemaFieldDraft>[];
+  column?: Partial<SchemaFieldDraft>;
+  currentColumnName?: string;
+  confirmation?: string;
+}
+
+interface SchemaPreviewResponse {
+  operation: SchemaOperation;
+  tableName: string;
+  columnName?: string | null;
+  sql: string;
+  migrationName: string;
+  migrationSource: string;
+  warnings: string[];
+}
+
+interface SchemaChange {
+  id: string;
+  sequence: number;
+  operation: SchemaOperation;
+  tableName: string;
+  columnName?: string | null;
+  status: 'applied' | 'failed';
+  sql: string;
+  migrationName: string;
+  migrationPath?: string | null;
+  error?: string | null;
+  createdAt: string;
+}
+
+interface SchemaHistoryResponse {
+  changes: SchemaChange[];
+}
+
 @Component({
   selector: 'app-database-page',
   standalone: true,
@@ -61,13 +114,18 @@ interface DatabaseUpdateResponse {
         padding: 24px 0 54px;
       }
 
+      .panel,
       .intro,
-      .browser,
-      .detail {
+      .browser {
         border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #ffffff;
         box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+      }
+
+      .intro,
+      .panel {
+        padding: 18px;
       }
 
       .intro {
@@ -75,11 +133,11 @@ interface DatabaseUpdateResponse {
         align-items: flex-start;
         justify-content: space-between;
         gap: 16px;
-        padding: 18px;
       }
 
       h1,
       h2,
+      h3,
       p {
         margin: 0;
       }
@@ -92,7 +150,12 @@ interface DatabaseUpdateResponse {
 
       h2 {
         color: #173b5f;
-        font-size: 1rem;
+        font-size: 1.05rem;
+      }
+
+      h3 {
+        color: #173b5f;
+        font-size: 0.95rem;
       }
 
       p,
@@ -110,6 +173,22 @@ interface DatabaseUpdateResponse {
         font-size: 0.78rem;
         font-weight: 850;
         white-space: nowrap;
+      }
+
+      .mode-tabs,
+      .toolbar,
+      .modal-actions,
+      .designer-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .mode-tabs button.active {
+        border-color: #1554a2;
+        background: #1554a2;
+        color: #ffffff;
       }
 
       .browser {
@@ -147,10 +226,6 @@ interface DatabaseUpdateResponse {
         background: #eaf3fc;
       }
 
-      .table-button strong {
-        color: #102f4d;
-      }
-
       .workspace {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
@@ -160,15 +235,14 @@ interface DatabaseUpdateResponse {
       .toolbar {
         display: grid;
         grid-template-columns: minmax(180px, 1fr) auto auto;
-        gap: 10px;
-        align-items: center;
         border-bottom: 1px solid #d9e2ec;
         padding: 14px;
       }
 
       input,
       select,
-      button {
+      button,
+      textarea {
         min-height: 38px;
         border: 1px solid #b9c9d8;
         border-radius: 8px;
@@ -176,6 +250,11 @@ interface DatabaseUpdateResponse {
         color: #102f4d;
         padding: 8px 10px;
         font: inherit;
+      }
+
+      textarea {
+        min-height: 78px;
+        resize: vertical;
       }
 
       button {
@@ -188,6 +267,11 @@ interface DatabaseUpdateResponse {
         border-color: #1554a2;
         background: #1554a2;
         color: #ffffff;
+      }
+
+      button.danger {
+        border-color: #b42318;
+        color: #b42318;
       }
 
       button:disabled {
@@ -224,20 +308,80 @@ interface DatabaseUpdateResponse {
         margin-top: 12px;
       }
 
-      .detail {
+      .designer-grid {
         display: grid;
-        gap: 10px;
-        padding: 16px;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+        gap: 16px;
+        align-items: start;
       }
 
-      .editor {
+      .form-grid,
+      .editor,
+      .field-grid,
+      .preview-box,
+      .history-list {
         display: grid;
-        gap: 14px;
+        gap: 12px;
       }
 
-      .field-grid {
+      .form-row {
+        display: grid;
+        gap: 6px;
+      }
+
+      .form-row label,
+      .field-label {
+        color: #173b5f;
+        font-weight: 850;
+      }
+
+      .columns-list {
         display: grid;
         gap: 10px;
+      }
+
+      .schema-column {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) 130px 86px 86px auto auto;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .schema-column .check {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: #526577;
+        font-weight: 750;
+      }
+
+      .schema-column input[type='checkbox'] {
+        min-height: auto;
+      }
+
+      .notice {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #254057;
+        padding: 14px;
+      }
+
+      .notice.error {
+        border-color: #f1b4b4;
+        background: #fff6f6;
+        color: #8b2323;
+      }
+
+      .notice.success {
+        border-color: #a9ddb7;
+        background: #f4fbf6;
+        color: #17643a;
       }
 
       .field-row {
@@ -253,41 +397,11 @@ interface DatabaseUpdateResponse {
       .field-label {
         display: grid;
         gap: 4px;
-        color: #173b5f;
-        font-weight: 850;
       }
 
       .field-label small {
         color: #64748b;
         font-weight: 650;
-      }
-
-      textarea {
-        min-height: 78px;
-        resize: vertical;
-      }
-
-      .modal-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .notice {
-        display: grid;
-        gap: 10px;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #254057;
-        padding: 14px;
-      }
-
-      .notice.error {
-        border-color: #f1b4b4;
-        background: #fff6f6;
-        color: #8b2323;
       }
 
       pre {
@@ -311,8 +425,9 @@ interface DatabaseUpdateResponse {
         font-weight: 850;
       }
 
-      @media (max-width: 860px) {
-        .browser {
+      @media (max-width: 940px) {
+        .browser,
+        .designer-grid {
           grid-template-columns: 1fr;
         }
 
@@ -322,7 +437,8 @@ interface DatabaseUpdateResponse {
           border-bottom: 1px solid #d9e2ec;
         }
 
-        .toolbar {
+        .toolbar,
+        .schema-column {
           grid-template-columns: 1fr;
         }
       }
@@ -336,136 +452,321 @@ interface DatabaseUpdateResponse {
         <section class="intro">
           <div>
             <h1>Base de datos</h1>
-            <p>Visor web minimalista y solo lectura para owner/admin. Sin SQL libre ni edición.</p>
+            <p>Visor de datos y diseñador controlado para tablas custom. Sin SQL libre ni cambios sobre tablas core.</p>
           </div>
-          <span class="badge">Solo web</span>
+          <span class="badge">Owner/Admin</span>
         </section>
 
         @if (!auth.state.isOwnerOrAdmin) {
-          <section class="detail">
+          <section class="panel">
             <h2>Acceso restringido</h2>
-            <p>Este visor solo está disponible para usuarios owner o admin.</p>
+            <p>Este módulo solo está disponible para usuarios owner o admin.</p>
           </section>
         } @else {
-          <section class="browser">
-            <aside class="tables">
-              <h2>Tablas</h2>
-              @if (loadingTables) {
-                <p class="meta">Cargando tablas...</p>
-              } @else if (tablesError) {
-                <div class="notice error">
-                  <strong>No se pudieron cargar las tablas</strong>
-                  <span>{{ tablesError }}</span>
-                  <button type="button" (click)="loadTables()">Reintentar</button>
-                </div>
-              } @else if (!tables.length) {
-                <div class="notice">
-                  <strong>No hay tablas visibles</strong>
-                  <span>El backend respondió correctamente, pero no encontró tablas habilitadas para este visor.</span>
-                  <button type="button" (click)="loadTables()">Revisar otra vez</button>
-                </div>
-              }
-              @for (table of tables; track table.name) {
-                <button
-                  class="table-button"
-                  type="button"
-                  [class.active]="selectedTable?.name === table.name"
-                  (click)="selectTable(table)"
-                >
-                  <strong>{{ table.name }}</strong>
-                  <span class="meta">{{ table.scope }} · {{ table.columns.length }} columnas</span>
-                </button>
-              }
-            </aside>
+          <nav class="mode-tabs" aria-label="Modos de base de datos">
+            <button type="button" [class.active]="mode === 'data'" (click)="mode = 'data'">Datos</button>
+            <button type="button" [class.active]="mode === 'designer'" (click)="mode = 'designer'">Diseñador</button>
+            <button type="button" [class.active]="mode === 'history'" (click)="openHistory()">Historial</button>
+          </nav>
 
-            <section class="workspace">
-              <div class="toolbar">
-                <input
-                  type="search"
-                  [(ngModel)]="filter"
-                  placeholder="Filtrar filas cargadas"
-                  aria-label="Filtrar filas cargadas"
-                />
-                <select [(ngModel)]="pageSize" (ngModelChange)="loadRows(1)" aria-label="Tamaño de página">
-                  <option [ngValue]="10">10</option>
-                  <option [ngValue]="25">25</option>
-                  <option [ngValue]="50">50</option>
-                  <option [ngValue]="100">100</option>
-                </select>
-                <button type="button" (click)="loadRows(page)" [disabled]="!selectedTable || loadingRows">
-                  Refrescar
-                </button>
-              </div>
+          @if (mode === 'data') {
+            <section class="browser">
+              <aside class="tables">
+                <h2>Tablas</h2>
+                @if (loadingTables) {
+                  <p class="meta">Cargando tablas...</p>
+                } @else if (tablesError) {
+                  <div class="notice error">
+                    <strong>No se pudieron cargar las tablas</strong>
+                    <span>{{ tablesError }}</span>
+                    <button type="button" (click)="loadTables()">Reintentar</button>
+                  </div>
+                } @else if (!tables.length) {
+                  <div class="notice">
+                    <strong>No hay tablas visibles</strong>
+                    <span>El backend respondió correctamente, pero no encontró tablas habilitadas.</span>
+                  </div>
+                }
+                @for (table of tables; track table.name) {
+                  <button
+                    class="table-button"
+                    type="button"
+                    [class.active]="selectedTable?.name === table.name"
+                    (click)="selectTable(table)"
+                  >
+                    <strong>{{ table.name }}</strong>
+                    <span class="meta">
+                      {{ table.source === 'schema' ? 'custom' : table.scope }} · {{ table.columns.length }} columnas
+                    </span>
+                  </button>
+                }
+              </aside>
 
-              <div class="table-wrap">
-                @if (!selectedTable) {
-                  @if (tablesError) {
+              <section class="workspace">
+                <div class="toolbar">
+                  <input
+                    type="search"
+                    [(ngModel)]="filter"
+                    placeholder="Filtrar filas cargadas"
+                    aria-label="Filtrar filas cargadas"
+                  />
+                  <select [(ngModel)]="pageSize" (ngModelChange)="loadRows(1)" aria-label="Tamaño de página">
+                    <option [ngValue]="10">10</option>
+                    <option [ngValue]="25">25</option>
+                    <option [ngValue]="50">50</option>
+                    <option [ngValue]="100">100</option>
+                  </select>
+                  <button type="button" (click)="loadRows(page)" [disabled]="!selectedTable || loadingRows">
+                    Refrescar
+                  </button>
+                </div>
+
+                <div class="table-wrap">
+                  @if (!selectedTable) {
+                    <p class="empty">Selecciona una tabla para ver sus filas.</p>
+                  } @else if (loadingRows) {
+                    <p class="empty">Cargando filas...</p>
+                  } @else if (rowsError) {
                     <div class="notice error">
-                      <strong>El visor no recibió tablas desde la API</strong>
-                      <span>{{ tablesError }}</span>
+                      <strong>No se pudieron cargar las filas</strong>
+                      <span>{{ rowsError }}</span>
+                      <button type="button" (click)="loadRows(page)">Reintentar</button>
                     </div>
                   } @else {
-                    <p class="empty">Selecciona una tabla para ver sus filas.</p>
+                    <p-table [value]="filteredRows" [scrollable]="true" scrollHeight="430px">
+                      <ng-template pTemplate="header">
+                        <tr>
+                          <th style="width: 84px">Detalle</th>
+                          @for (column of selectedTable.columns; track column.name) {
+                            <th>{{ column.name }}</th>
+                          }
+                        </tr>
+                      </ng-template>
+                      <ng-template pTemplate="body" let-row>
+                        <tr>
+                          <td>
+                            <button class="row-button" type="button" (click)="openRow(row)">Ver</button>
+                          </td>
+                          @for (column of selectedTable.columns; track column.name) {
+                            <td>
+                              <span class="cell" [title]="formatCell(row[column.name])">
+                                {{ formatCell(row[column.name]) }}
+                              </span>
+                            </td>
+                          }
+                        </tr>
+                      </ng-template>
+                      <ng-template pTemplate="emptymessage">
+                        <tr>
+                          <td [attr.colspan]="selectedTable.columns.length + 1">No hay filas para mostrar.</td>
+                        </tr>
+                      </ng-template>
+                    </p-table>
+
+                    <div class="pager">
+                      <span class="meta">
+                        Página {{ page }} · {{ total }} filas{{ filter ? ' · filtro local activo' : '' }}
+                      </span>
+                      <button type="button" (click)="loadRows(page - 1)" [disabled]="page <= 1 || loadingRows">
+                        Anterior
+                      </button>
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="loadRows(page + 1)"
+                        [disabled]="page * pageSize >= total || loadingRows"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   }
-                } @else if (loadingRows) {
-                  <p class="empty">Cargando filas...</p>
-                } @else if (rowsError) {
-                  <div class="notice error">
-                    <strong>No se pudieron cargar las filas</strong>
-                    <span>{{ rowsError }}</span>
-                    <button type="button" (click)="loadRows(page)">Reintentar</button>
+                </div>
+              </section>
+            </section>
+          }
+
+          @if (mode === 'designer') {
+            <section class="panel designer-grid">
+              <div class="form-grid">
+                <div>
+                  <h2>Diseñador de tablas</h2>
+                  <p class="meta">
+                    Solo administra tablas <code>custom_*</code>. Cada operación genera SQL, historial y migración TypeORM.
+                  </p>
+                </div>
+
+                <div class="form-row">
+                  <label for="operation">Operación</label>
+                  <select id="operation" [(ngModel)]="schemaOperation" (ngModelChange)="resetPreview()">
+                    <option value="create_table">Crear tabla</option>
+                    <option value="add_column">Agregar campo</option>
+                    <option value="alter_column">Editar campo</option>
+                    <option value="drop_column">Eliminar campo</option>
+                  </select>
+                </div>
+
+                <div class="form-row">
+                  <label for="schema-table">Tabla</label>
+                  <input
+                    id="schema-table"
+                    [(ngModel)]="schemaTableName"
+                    placeholder="custom_clients"
+                    (ngModelChange)="resetPreview()"
+                  />
+                </div>
+
+                @if (schemaOperation === 'create_table') {
+                  <div class="columns-list">
+                    <h3>Campos iniciales</h3>
+                    @for (column of createColumns; track $index; let index = $index) {
+                      <div class="schema-column">
+                        <input [(ngModel)]="createColumns[index].name" placeholder="name" (ngModelChange)="resetPreview()" />
+                        <select [(ngModel)]="createColumns[index].type" (ngModelChange)="resetPreview()">
+                          @for (type of columnTypes; track type) {
+                            <option [value]="type">{{ type }}</option>
+                          }
+                        </select>
+                        <input
+                          type="number"
+                          [(ngModel)]="createColumns[index].length"
+                          [disabled]="createColumns[index].type !== 'string'"
+                          aria-label="Longitud"
+                        />
+                        <input [(ngModel)]="createColumns[index].defaultValue" placeholder="default" (ngModelChange)="resetPreview()" />
+                        <label class="check">
+                          <input type="checkbox" [(ngModel)]="createColumns[index].nullable" (ngModelChange)="resetPreview()" />
+                          nullable
+                        </label>
+                        <button type="button" (click)="removeCreateColumn(index)" [disabled]="createColumns.length <= 1">
+                          Quitar
+                        </button>
+                      </div>
+                    }
+                    <button type="button" (click)="addCreateColumn()">Agregar campo</button>
                   </div>
                 } @else {
-                  <p-table [value]="filteredRows" [scrollable]="true" scrollHeight="430px">
-                    <ng-template pTemplate="header">
-                      <tr>
-                        <th style="width: 84px">Detalle</th>
-                        @for (column of selectedTable.columns; track column.name) {
-                          <th>{{ column.name }}</th>
-                        }
-                      </tr>
-                    </ng-template>
-                    <ng-template pTemplate="body" let-row>
-                      <tr>
-                        <td>
-                          <button class="row-button" type="button" (click)="openRow(row)">Ver</button>
-                        </td>
-                        @for (column of selectedTable.columns; track column.name) {
-                          <td>
-                            <span class="cell" [title]="formatCell(row[column.name])">
-                              {{ formatCell(row[column.name]) }}
-                            </span>
-                          </td>
-                        }
-                      </tr>
-                    </ng-template>
-                    <ng-template pTemplate="emptymessage">
-                      <tr>
-                        <td [attr.colspan]="selectedTable.columns.length + 1">No hay filas para mostrar.</td>
-                      </tr>
-                    </ng-template>
-                  </p-table>
-
-                  <div class="pager">
-                    <span class="meta">
-                      Página {{ page }} · {{ total }} filas{{ filter ? ' · filtro local activo' : '' }}
-                    </span>
-                    <button type="button" (click)="loadRows(page - 1)" [disabled]="page <= 1 || loadingRows">
-                      Anterior
-                    </button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="loadRows(page + 1)"
-                      [disabled]="page * pageSize >= total || loadingRows"
-                    >
-                      Siguiente
-                    </button>
+                  <div class="form-row">
+                    <label for="current-column">Campo actual</label>
+                    <input
+                      id="current-column"
+                      [(ngModel)]="currentColumnName"
+                      placeholder="status"
+                      (ngModelChange)="syncDropConfirmation(); resetPreview()"
+                    />
                   </div>
+
+                  @if (schemaOperation !== 'drop_column') {
+                    <div class="schema-column">
+                      <input [(ngModel)]="singleColumn.name" placeholder="new_status" (ngModelChange)="resetPreview()" />
+                      <select [(ngModel)]="singleColumn.type" (ngModelChange)="resetPreview()">
+                        @for (type of columnTypes; track type) {
+                          <option [value]="type">{{ type }}</option>
+                        }
+                      </select>
+                      <input
+                        type="number"
+                        [(ngModel)]="singleColumn.length"
+                        [disabled]="singleColumn.type !== 'string'"
+                        aria-label="Longitud"
+                      />
+                      <input [(ngModel)]="singleColumn.defaultValue" placeholder="default" (ngModelChange)="resetPreview()" />
+                      <label class="check">
+                        <input type="checkbox" [(ngModel)]="singleColumn.nullable" (ngModelChange)="resetPreview()" />
+                        nullable
+                      </label>
+                    </div>
+                  } @else {
+                    <div class="form-row">
+                      <label for="confirmation">Confirmación</label>
+                      <input id="confirmation" [(ngModel)]="dropConfirmation" [placeholder]="dropPhrase" />
+                      <p class="meta">Escribe exactamente: <code>{{ dropPhrase }}</code></p>
+                    </div>
+                  }
+                }
+
+                @if (schemaError) {
+                  <div class="notice error">
+                    <strong>No se pudo preparar el cambio</strong>
+                    <span>{{ schemaError }}</span>
+                  </div>
+                }
+                @if (schemaSuccess) {
+                  <div class="notice success">
+                    <strong>Cambio aplicado</strong>
+                    <span>{{ schemaSuccess }}</span>
+                  </div>
+                }
+
+                <div class="designer-actions">
+                  <button type="button" (click)="previewSchema()" [disabled]="schemaLoading">Previsualizar</button>
+                  <button class="primary" type="button" (click)="applySchema()" [disabled]="schemaLoading || !schemaPreview">
+                    {{ schemaLoading ? 'Procesando...' : 'Aplicar cambio' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="preview-box">
+                <h2>Preview seguro</h2>
+                @if (!schemaPreview) {
+                  <div class="notice">
+                    <strong>Sin cambios aplicados todavía</strong>
+                    <span>Primero genera el preview para revisar el SQL y la migración TypeORM.</span>
+                  </div>
+                } @else {
+                  <div class="notice">
+                    <strong>{{ schemaPreview.migrationName }}</strong>
+                    @for (warning of schemaPreview.warnings; track warning) {
+                      <span>{{ warning }}</span>
+                    }
+                  </div>
+
+                  <h3>SQL</h3>
+                  <pre>{{ schemaPreview.sql }}</pre>
+
+                  <h3>Migración TypeORM</h3>
+                  <pre>{{ schemaPreview.migrationSource }}</pre>
                 }
               </div>
             </section>
-          </section>
+          }
+
+          @if (mode === 'history') {
+            <section class="panel history-list">
+              <div class="designer-actions">
+                <div>
+                  <h2>Historial de cambios</h2>
+                  <p class="meta">Últimos cambios generados desde el diseñador visual.</p>
+                </div>
+                <button type="button" (click)="loadHistory()">Refrescar</button>
+              </div>
+
+              @if (historyError) {
+                <div class="notice error">{{ historyError }}</div>
+              } @else if (!schemaChanges.length) {
+                <div class="notice">Todavía no hay cambios de esquema registrados.</div>
+              }
+
+              @for (change of schemaChanges; track change.id) {
+                <article class="notice" [class.error]="change.status === 'failed'">
+                  <strong>#{{ change.sequence }} · {{ change.operation }} · {{ change.tableName }}</strong>
+                  <span class="meta">
+                    {{ change.createdAt }} · {{ change.status }} · {{ change.migrationName }}
+                  </span>
+                  @if (change.migrationPath) {
+                    <span class="meta">Archivo: {{ change.migrationPath }}</span>
+                  }
+                  @if (change.error) {
+                    <span>{{ change.error }}</span>
+                  }
+                  <details>
+                    <summary>Ver SQL</summary>
+                    <pre>{{ change.sql }}</pre>
+                  </details>
+                </article>
+              }
+            </section>
+          }
+
           <p-dialog
             header="Detalle de fila"
             [(visible)]="detailVisible"
@@ -544,6 +845,9 @@ export class DatabasePageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
   readonly auth = inject(AuthService);
 
+  readonly columnTypes: SchemaColumnType[] = ['string', 'text', 'integer', 'decimal', 'boolean', 'date', 'datetime', 'json', 'uuid'];
+
+  mode: PageMode = 'data';
   tables: DatabaseTable[] = [];
   selectedTable?: DatabaseTable;
   rows: Record<string, unknown>[] = [];
@@ -561,6 +865,19 @@ export class DatabasePageComponent implements OnInit {
   total = 0;
   filter = '';
 
+  schemaOperation: SchemaOperation = 'create_table';
+  schemaTableName = 'custom_';
+  currentColumnName = '';
+  dropConfirmation = '';
+  schemaLoading = false;
+  schemaError = '';
+  schemaSuccess = '';
+  schemaPreview?: SchemaPreviewResponse;
+  schemaChanges: SchemaChange[] = [];
+  historyError = '';
+  createColumns: SchemaFieldDraft[] = [this.newField('name', false)];
+  singleColumn: SchemaFieldDraft = this.newField('', true);
+
   get filteredRows() {
     const search = this.filter.trim().toLowerCase();
     if (!search) {
@@ -574,6 +891,10 @@ export class DatabasePageComponent implements OnInit {
     return this.selectedTable?.columns.filter((column) => column.editable) ?? [];
   }
 
+  get dropPhrase() {
+    return `DROP ${this.schemaTableName}.${this.currentColumnName}`;
+  }
+
   ngOnInit() {
     if (this.auth.state.isOwnerOrAdmin) {
       this.loadTables();
@@ -584,6 +905,7 @@ export class DatabasePageComponent implements OnInit {
     this.selectedTable = table;
     this.selectedRow = undefined;
     this.filter = '';
+    this.schemaTableName = table.designable ? table.name : this.schemaTableName;
     this.loadRows(1);
   }
 
@@ -687,6 +1009,80 @@ export class DatabasePageComponent implements OnInit {
       });
   }
 
+  addCreateColumn() {
+    this.createColumns = [...this.createColumns, this.newField('', true)];
+    this.resetPreview();
+  }
+
+  removeCreateColumn(index: number) {
+    this.createColumns = this.createColumns.filter((_, itemIndex) => itemIndex !== index);
+    this.resetPreview();
+  }
+
+  syncDropConfirmation() {
+    if (!this.dropConfirmation || this.dropConfirmation.startsWith('DROP ')) {
+      this.dropConfirmation = this.dropPhrase;
+    }
+  }
+
+  previewSchema() {
+    this.schemaLoading = true;
+    this.schemaError = '';
+    this.schemaSuccess = '';
+    this.api.post<SchemaPreviewResponse>('database/schema/preview', this.schemaRequest()).subscribe({
+      next: (response) => {
+        this.schemaPreview = response;
+        this.schemaLoading = false;
+      },
+      error: (error) => {
+        this.schemaPreview = undefined;
+        this.schemaError = this.errorMessage(error);
+        this.schemaLoading = false;
+      }
+    });
+  }
+
+  applySchema() {
+    this.schemaLoading = true;
+    this.schemaError = '';
+    this.api.post<SchemaPreviewResponse>('database/schema/apply', this.schemaRequest()).subscribe({
+      next: (response) => {
+        this.schemaPreview = response;
+        this.schemaSuccess = `${response.migrationName} aplicado y registrado.`;
+        this.schemaLoading = false;
+        this.loadTables();
+        this.loadHistory();
+      },
+      error: (error) => {
+        this.schemaError = this.errorMessage(error);
+        this.schemaLoading = false;
+      }
+    });
+  }
+
+  openHistory() {
+    this.mode = 'history';
+    this.loadHistory();
+  }
+
+  loadHistory() {
+    this.historyError = '';
+    this.api.get<SchemaHistoryResponse>('database/schema/changes').subscribe({
+      next: (response) => {
+        this.schemaChanges = response.changes;
+      },
+      error: (error) => {
+        this.historyError = this.errorMessage(error);
+      }
+    });
+  }
+
+  resetPreview() {
+    this.schemaPreview = undefined;
+    this.schemaError = '';
+    this.schemaSuccess = '';
+  }
+
   formatCell(value: unknown) {
     if (value === null || value === undefined) {
       return '';
@@ -701,12 +1097,57 @@ export class DatabasePageComponent implements OnInit {
 
   isBooleanColumn(column: DatabaseColumn) {
     const type = column.type.toLowerCase();
-    return type === 'boolean' || type === 'bool';
+    return type === 'boolean' || type === 'bool' || type === 'tinyint(1)';
   }
 
   isLongColumn(column: DatabaseColumn) {
     const type = column.type.toLowerCase();
     return type.includes('json') || type.includes('text') || type.includes('simple-json');
+  }
+
+  private newField(name: string, nullable: boolean): SchemaFieldDraft {
+    return {
+      name,
+      type: 'string',
+      length: 180,
+      precision: 12,
+      scale: 2,
+      nullable,
+      defaultValue: ''
+    };
+  }
+
+  private schemaRequest(): SchemaRequest {
+    const request: SchemaRequest = {
+      operation: this.schemaOperation,
+      tableName: this.schemaTableName.trim()
+    };
+
+    if (this.schemaOperation === 'create_table') {
+      request.columns = this.createColumns.map((column) => this.fieldPayload(column));
+      return request;
+    }
+
+    request.currentColumnName = this.currentColumnName.trim();
+    if (this.schemaOperation === 'drop_column') {
+      request.confirmation = this.dropConfirmation;
+      return request;
+    }
+
+    request.column = this.fieldPayload(this.singleColumn);
+    return request;
+  }
+
+  private fieldPayload(field: SchemaFieldDraft): Partial<SchemaFieldDraft> {
+    return {
+      name: field.name.trim(),
+      type: field.type,
+      length: field.type === 'string' ? Number(field.length) : undefined,
+      precision: field.type === 'decimal' ? Number(field.precision) : undefined,
+      scale: field.type === 'decimal' ? Number(field.scale) : undefined,
+      nullable: field.nullable,
+      defaultValue: field.defaultValue === '' ? undefined : field.defaultValue
+    };
   }
 
   private toDraft(value: unknown, column: DatabaseColumn) {
@@ -743,13 +1184,13 @@ export class DatabasePageComponent implements OnInit {
     }
 
     if (error.status === 403) {
-      return 'La API rechazó el acceso. Este visor requiere usuario owner o admin.';
+      return 'La API rechazó el acceso. Este módulo requiere usuario owner o admin.';
     }
 
     if (error.status === 404) {
       return 'La API no tiene este endpoint todavía. Reinicia el backend para cargar el módulo nuevo /api/database.';
     }
 
-    return error.error?.message ?? 'La API devolvió un error inesperado al consultar el visor.';
+    return error.error?.message ?? 'La API devolvió un error inesperado.';
   }
 }

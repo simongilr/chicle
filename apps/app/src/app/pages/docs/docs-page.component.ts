@@ -663,6 +663,47 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="base-datos" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Base de datos y migraciones</h2>
+                <p class="section-lead">
+                  El visor DB permite revisar datos y el diseñador permite crear tablas
+                  <code>custom_*</code> con preview SQL, historial y migración TypeORM generada.
+                  Las tablas core del sistema no se modifican desde aquí.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of databaseSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Curl / terminal</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+
             <section id="seguridad" class="doc-section" data-tone="security">
               <div class="section-header">
                 <h2>Seguridad modular</h2>
@@ -890,6 +931,7 @@ export class DocsPageComponent {
     { id: 'arranque', label: 'Arranque', summary: 'Node, app, API, Docker y build.' },
     { id: 'puertos', label: 'Puertos', summary: 'Cambios desde env y pruebas locales.' },
     { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
+    { id: 'base-datos', label: 'Base de datos', summary: 'Visor, diseñador y migraciones.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
     { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
     { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
@@ -1326,6 +1368,60 @@ export class DocsPageComponent {
       command:
         'setup.seedProfile\nsecurity.level\nsecurity.password.minLength\nsecurity.session.accessTokenTtlMinutes\nfiles.storage.driver\nfeatures.offlineSync.enabled',
       note: 'Son parámetros de comportamiento que sí puede leer la API después de arrancar.'
+    }
+  ];
+
+  readonly databaseSteps: CommandStep[] = [
+    {
+      title: 'Abrir visor DB',
+      ui: 'Desde Home o la barra superior abre Base de datos. En Datos puedes seleccionar una tabla, ver filas y editar solo campos habilitados.',
+      swagger: 'En /api/docs usa GET /api/database/tables y GET /api/database/tables/{table}.',
+      command: 'curl http://127.0.0.1:3000/api/database/tables -H "Authorization: Bearer TOKEN"',
+      note: 'Disponible para owner/admin. Las tablas sensibles quedan ocultas o bloqueadas.'
+    },
+    {
+      title: 'Crear tabla custom',
+      ui: 'En Base de datos -> Diseñador elige Crear tabla, usa un nombre custom_* y agrega campos iniciales. Toca Previsualizar antes de aplicar.',
+      swagger: 'En /api/docs ejecuta POST /api/database/schema/preview y luego POST /api/database/schema/apply.',
+      command:
+        'curl -X POST http://127.0.0.1:3000/api/database/schema/preview \\\n  -H "Authorization: Bearer TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"operation":"create_table","tableName":"custom_clients","columns":[{"name":"name","type":"string","length":180,"nullable":false}]}\'',
+      note: 'El diseñador agrega id, tenantId, createdAt y updatedAt automáticamente.'
+    },
+    {
+      title: 'Agregar o editar campo',
+      ui: 'En Diseñador elige Agregar campo o Editar campo. Revisa el SQL y la migración antes de aplicar.',
+      swagger: 'Usa POST /api/database/schema/preview para revisar y POST /api/database/schema/apply para aplicar.',
+      command:
+        'operation: add_column\noperation: alter_column\nSolo tablas custom_* y columnas no protegidas.',
+      note: 'Agregar un campo NOT NULL exige default o nullable=true para evitar romper filas existentes.'
+    },
+    {
+      title: 'Eliminar campo',
+      ui: 'En Diseñador elige Eliminar campo y escribe la frase exacta de confirmación que muestra la pantalla.',
+      swagger: 'POST /api/database/schema/apply exige confirmation: "DROP custom_tabla.campo".',
+      command: '{"operation":"drop_column","tableName":"custom_clients","currentColumnName":"phone","confirmation":"DROP custom_clients.phone"}',
+      note: 'Borrar una columna elimina datos. Por eso requiere confirmación exacta.'
+    },
+    {
+      title: 'Cómo se respeta la secuencia',
+      ui: 'En la pestaña Historial verás el número de secuencia, SQL, estado y nombre de migración de cada cambio.',
+      command:
+        'schema_changes guarda:\nsequence\noperation\ntableName\nsql\nmigrationName\nmigrationSource\nstatus',
+      note: 'Nunca se edita una migración vieja. Cada cambio crea una nueva migración ordenada.'
+    },
+    {
+      title: 'Archivos de migración',
+      ui: 'Aunque el contenedor no pueda escribir archivos, la migración completa queda guardada en Historial.',
+      command:
+        'CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES=false\nCHICLE_SCHEMA_MIGRATIONS_DIR=src/database/migrations',
+      note: 'Activa WRITE_FILES=true solo en desarrollo local cuando la API tenga permiso de escribir en el repo.'
+    },
+    {
+      title: 'Comandos TypeORM',
+      ui: 'El uso normal del diseñador es gráfico. Estos comandos quedan para mantenimiento técnico.',
+      command:
+        'npm run migration:run\nnpm run migration:revert\nnpm run migration:create\nnpm run migration:generate',
+      note: 'Ejecuta desde la raíz del monorepo. La configuración vive en apps/api/src/database/data-source.ts.'
     }
   ];
 }

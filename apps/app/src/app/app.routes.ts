@@ -8,6 +8,7 @@ import { DynamicFormPageComponent } from './pages/dynamic-form-page/dynamic-form
 import { HomePageComponent } from './pages/home/home-page.component';
 import { LoginPageComponent } from './pages/login/login-page.component';
 import { SecurityPageComponent } from './pages/security/security-page.component';
+import { ServicesPageComponent } from './pages/services/services-page.component';
 import { SetupPageComponent } from './pages/setup/setup-page.component';
 
 export const routes: Routes = [
@@ -30,6 +31,12 @@ export const routes: Routes = [
     component: SecurityPageComponent,
     canActivate: [authGuard, permissionGuard],
     data: { permissions: ['users.read', 'roles.read', 'permissions.read'] }
+  },
+  {
+    path: 'services',
+    component: ServicesPageComponent,
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['services.read'] }
   },
   { path: 'login', component: LoginPageComponent, canActivate: [loginGuard] },
   { path: 'home', component: HomePageComponent, canActivate: [authGuard] },

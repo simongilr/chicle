@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ConfisysModule } from './modules/confisys/confisys.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
+import { DynamicServicesModule } from './modules/dynamic-services/dynamic-services.module';
 import { FilesModule } from './modules/files/files.module';
 import { MenusModule } from './modules/menus/menus.module';
 import { RecordsModule } from './modules/records/records.module';
@@ -32,6 +33,7 @@ import { UsersModule } from './modules/users/users.module';
     SettingsModule,
     MenusModule,
     DynamicFormsModule,
+    DynamicServicesModule,
     ActionsModule,
     RecordsModule,
     FilesModule,

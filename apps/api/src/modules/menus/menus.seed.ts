@@ -39,6 +39,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 35
   },
   {
+    key: 'services',
+    label: 'Servicios',
+    route: '/services',
+    icon: 'pi pi-bolt',
+    permissions: ['services.read'],
+    sortOrder: 38
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',

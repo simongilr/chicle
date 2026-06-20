@@ -394,6 +394,13 @@ export class HomePageComponent {
       status: 'DB'
     },
     {
+      title: 'Servicios dinámicos',
+      description: 'Diseñador de servicios configurables, versiones, pruebas en vivo e historial de ejecuciones.',
+      route: '/services',
+      permissions: ['services.read'],
+      status: 'Servicios'
+    },
+    {
       title: 'Seguridad',
       description: 'Usuarios, roles, permisos y auditoría del tenant actual.',
       route: '/security',

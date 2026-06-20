@@ -33,6 +33,16 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 35
   },
   {
+    key: 'services',
+    label: 'Servicios',
+    route: '/services',
+    icon: 'pi pi-bolt',
+    permissions: ['services.read'],
+    group: 'Administración',
+    placement: 'admin',
+    sortOrder: 38
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',

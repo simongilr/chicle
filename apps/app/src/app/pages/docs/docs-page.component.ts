@@ -745,6 +745,47 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="servicios-dinamicos" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Servicios dinámicos</h2>
+                <p class="section-lead">
+                  Los servicios son objetos configurables del tenant. Una plantilla de negocio puede
+                  instalarlos como semilla y la organización puede administrarlos desde la pantalla
+                  web sin escribir código core.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of dynamicServiceSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Arquitectura / ejemplo</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+
             <section id="seguridad" class="doc-section" data-tone="security">
               <div class="section-header">
                 <h2>Seguridad modular</h2>
@@ -974,6 +1015,7 @@ export class DocsPageComponent {
     { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
     { id: 'base-datos', label: 'Base de datos', summary: 'Visor, diseñador y migraciones.' },
     { id: 'modelo-saas', label: 'Modelo SaaS', summary: 'Tenants, usuarios, membresías y necesidades.' },
+    { id: 'servicios-dinamicos', label: 'Servicios', summary: 'Objetos ejecutables, pruebas y runs.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
     { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
     { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
@@ -1159,6 +1201,61 @@ export class DocsPageComponent {
       command:
         'tenants\n  users via tenant_memberships\n  roles / permissions / menus\n  confisys / settings\n  dynamic_forms / records\n  custom_* cuando haga falta estructura propia\n  future parties / party_roles para personas y organizaciones de negocio\n  future tenant_modules / app_templates para activar verticales',
       note: 'Este esquema nos deja atender multiples necesidades con una base sencilla, pero sin forzarla cuando llegue una industria mas compleja.'
+    }
+  ];
+
+  readonly dynamicServiceSteps: CommandStep[] = [
+    {
+      title: 'Concepto',
+      ui: 'Abre /services desde el menú. Crea el servicio, define una versión HTTP, publícala y pruébala desde la misma pantalla.',
+      command:
+        'dynamic_services: objeto del tenant.\ndynamic_service_versions: definición versionada ejecutable.\ndynamic_service_runs: historial de pruebas y ejecuciones.\nconfisys services.*: defaults y límites del motor.',
+      note: 'Un servicio dinámico no es código NestJS. Es configuración ejecutable guardada en DB y controlada por permisos.'
+    },
+    {
+      title: 'Flujo recomendado',
+      ui: 'En Servicios toca Nuevo, guarda key/nombre, crea versión, publica la versión y luego usa Prueba en vivo.',
+      swagger: 'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish y POST /test.',
+      command:
+        '1. Crear dynamic_service\n2. Crear dynamic_service_version draft\n3. Publicar versión\n4. Probar desde backend\n5. Guardar dynamic_service_run\n6. Más adelante: ejecutar por eventos/workflows',
+      note: 'La ejecución productiva siempre debe usar una versión publicada, nunca una definición suelta del navegador.'
+    },
+    {
+      title: 'Ejemplo de definición',
+      command:
+        '{\n  "method": "POST",\n  "url": "https://api.ejemplo.com/validar",\n  "headers": {\n    "Content-Type": "application/json",\n    "Authorization": "Bearer {{input.token}}"\n  },\n  "body": {\n    "serial": "{{input.serial}}",\n    "tenant": "{{tenant.slug}}"\n  },\n  "timeoutMs": 8000,\n  "retry": { "attempts": 0, "backoffMs": 0 },\n  "responseMap": {}\n}',
+      note: 'La V1 soporta http_request. Luego podremos agregar internal_action, conectores, webhooks o servicios nativos.'
+    },
+    {
+      title: 'Defaults y límites',
+      ui: 'Abre /confisys y busca la categoría services para ajustar defaults. La API los carga en memoria al iniciar.',
+      command:
+        'services.defaultTimeoutMs = 8000\nservices.maxTimeoutMs = 30000\nservices.maxResponseBytes = 262144\nservices.allowPrivateHosts = false',
+      note: 'Si el servicio no define timeout usa el default. Si excede el máximo, se limita al máximo permitido.'
+    },
+    {
+      title: 'Seguridad base',
+      command:
+        'La ejecución pasa por backend.\nEl front no llama APIs externas directo.\nSe bloquean localhost y redes privadas por defecto.\nHeaders sensibles se enmascaran en snapshots.\nNo se mantiene una transacción DB abierta durante la llamada externa.\nCada prueba queda registrada en dynamic_service_runs.',
+      note: 'Estas reglas reducen riesgo de SSRF, fuga de secretos, bloqueos de DB y ejecuciones sin trazabilidad.'
+    },
+    {
+      title: 'Permisos',
+      command:
+        'services.read: ver servicios e historial.\nservices.manage: crear servicios, versiones y publicar.\nservices.execute: probar o ejecutar servicios.',
+      note: 'Ejecuta Seguridad -> Sincronizar seguridad para instalar permisos y menú en tenants existentes.'
+    },
+    {
+      title: 'Relación con plantillas de negocio',
+      command:
+        'Template venta_tickets:\n  validar_pago\n  generar_qr_ticket\n  validar_checkin\n\nTemplate inmobiliaria:\n  validar_documento_cliente\n  enviar_contrato_firma\n  consultar_score_arrendatario',
+      note: 'Las plantillas pueden instalar servicios base; la organización puede adaptarlos desde la UI si tiene permiso.'
+    },
+    {
+      title: 'Relación con event-driven',
+      command:
+        'record.created\n  -> workflow selecciona servicio\n  -> dynamic_service_run queued/running\n  -> dynamic_service.executed o dynamic_service.failed\n  -> websocket notifica progreso\n  -> actions mapean respuesta al record',
+      note: 'Hoy ya tenemos prueba síncrona controlada. La siguiente evolución natural es cola interna, retries, eventos y websockets.'
     }
   ];
 

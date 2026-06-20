@@ -91,6 +91,8 @@ const READONLY_TABLES = new Set([
   'audit_events',
   'auth_login_attempts',
   'auth_sessions',
+  'dynamic_service_runs',
+  'dynamic_service_versions',
   'permissions',
   'role_permissions',
   'schema_changes',

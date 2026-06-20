@@ -164,6 +164,34 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     valueType: 'boolean',
     category: 'features',
     description: 'Bandera base para sincronización offline.'
+  },
+  {
+    key: 'services.defaultTimeoutMs',
+    value: 8000,
+    valueType: 'number',
+    category: 'services',
+    description: 'Timeout por defecto para servicios dinámicos cuando la definición no lo especifica.'
+  },
+  {
+    key: 'services.maxTimeoutMs',
+    value: 30000,
+    valueType: 'number',
+    category: 'services',
+    description: 'Timeout máximo permitido para servicios dinámicos.'
+  },
+  {
+    key: 'services.maxResponseBytes',
+    value: 262144,
+    valueType: 'number',
+    category: 'services',
+    description: 'Tamaño máximo de respuesta que se guarda en el historial de servicios dinámicos.'
+  },
+  {
+    key: 'services.allowPrivateHosts',
+    value: false,
+    valueType: 'boolean',
+    category: 'services',
+    description: 'Permite llamar localhost o redes privadas desde servicios dinámicos. Debe permanecer apagado salvo desarrollo controlado.'
   }
 ];
 

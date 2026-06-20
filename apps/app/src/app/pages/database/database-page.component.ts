@@ -1,5 +1,5 @@
 import { JsonPipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
 import { DialogModule } from 'primeng/dialog';
@@ -194,6 +194,7 @@ interface SchemaHistoryResponse {
       .browser {
         display: grid;
         grid-template-columns: 260px minmax(0, 1fr);
+        height: clamp(560px, calc(100vh - 230px), 760px);
         min-height: 560px;
         overflow: hidden;
       }
@@ -202,6 +203,7 @@ interface SchemaHistoryResponse {
         display: grid;
         align-content: start;
         gap: 8px;
+        overflow: auto;
         border-right: 1px solid #d9e2ec;
         background: #fbfcfe;
         padding: 14px;
@@ -230,6 +232,7 @@ interface SchemaHistoryResponse {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
         min-width: 0;
+        min-height: 0;
       }
 
       .toolbar {
@@ -281,6 +284,7 @@ interface SchemaHistoryResponse {
 
       .table-wrap {
         min-width: 0;
+        min-height: 0;
         overflow: auto;
         padding: 14px;
       }
@@ -451,10 +455,22 @@ interface SchemaHistoryResponse {
           grid-template-columns: 1fr;
         }
 
+        .browser {
+          height: auto;
+          min-height: 0;
+          overflow: visible;
+        }
+
         .tables {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          max-height: 320px;
+          overflow: auto;
           border-right: 0;
           border-bottom: 1px solid #d9e2ec;
+        }
+
+        .workspace {
+          min-height: 520px;
         }
 
         .toolbar,
@@ -522,7 +538,7 @@ interface SchemaHistoryResponse {
                 }
               </aside>
 
-              <section class="workspace">
+              <section class="workspace" #workspacePanel>
                 <div class="toolbar">
                   <input
                     type="search"
@@ -864,6 +880,7 @@ interface SchemaHistoryResponse {
 export class DatabasePageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
   readonly auth = inject(AuthService);
+  @ViewChild('workspacePanel') private workspacePanel?: ElementRef<HTMLElement>;
 
   readonly columnTypes: SchemaColumnType[] = ['string', 'text', 'integer', 'decimal', 'boolean', 'date', 'datetime', 'json', 'uuid'];
 
@@ -921,11 +938,14 @@ export class DatabasePageComponent implements OnInit {
     }
   }
 
-  selectTable(table: DatabaseTable) {
+  selectTable(table: DatabaseTable, focusWorkspace = true) {
     this.selectedTable = table;
     this.selectedRow = undefined;
     this.filter = '';
     this.schemaTableName = table.designable ? table.name : this.schemaTableName;
+    if (focusWorkspace) {
+      this.focusWorkspacePanel();
+    }
     this.loadRows(1);
   }
 
@@ -938,7 +958,7 @@ export class DatabasePageComponent implements OnInit {
         this.tables = response.tables;
         this.loadingTables = false;
         if (!this.selectedTable && this.tables.length) {
-          this.selectTable(this.tables[0]);
+          this.selectTable(this.tables[0], false);
         }
       },
       error: (error) => {
@@ -977,6 +997,16 @@ export class DatabasePageComponent implements OnInit {
           this.loadingRows = false;
         }
       });
+  }
+
+  private focusWorkspacePanel() {
+    window.setTimeout(() => {
+      this.workspacePanel?.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    });
   }
 
   openRow(row: Record<string, unknown>) {

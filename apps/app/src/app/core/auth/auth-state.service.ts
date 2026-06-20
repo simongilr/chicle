@@ -50,6 +50,19 @@ export class AuthStateService {
     return permissions.every((permission) => this.hasPermission(permission));
   }
 
+  hasRole(role: string) {
+    const session = this.session();
+    return session?.user.systemRole === role || (session?.roles.some((item) => item.key === role) ?? false);
+  }
+
+  hasAnyRole(roles: string[]) {
+    return roles.some((role) => this.hasRole(role));
+  }
+
+  get isOwnerOrAdmin() {
+    return this.hasAnyRole(['owner', 'admin']);
+  }
+
   private readToken() {
     return sessionStorage.getItem(TOKEN_KEY);
   }

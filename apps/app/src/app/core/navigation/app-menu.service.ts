@@ -21,6 +21,14 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 30
   },
   {
+    key: 'database',
+    label: 'Base de datos',
+    route: '/database',
+    icon: 'pi pi-database',
+    roles: ['owner', 'admin'],
+    sortOrder: 35
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',
@@ -42,7 +50,7 @@ export class AppMenuService {
       return PUBLIC_MENU;
     }
 
-    const source = this.dynamicItems() ?? FALLBACK_AUTH_MENU;
+    const source = this.mergeWithFallback(this.dynamicItems() ?? FALLBACK_AUTH_MENU);
     return source
       .filter((item) => this.hasAccess(item))
       .slice()
@@ -72,6 +80,23 @@ export class AppMenuService {
   }
 
   private hasAccess(item: AppMenuItem) {
-    return !item.permissions?.length || this.auth.state.hasAllPermissions(item.permissions);
+    if (item.key === 'database' && this.auth.state.isOwnerOrAdmin) {
+      return true;
+    }
+
+    const hasPermissions = !item.permissions?.length || this.auth.state.hasAllPermissions(item.permissions);
+    const hasRoles = !item.roles?.length || this.auth.state.hasAnyRole(item.roles);
+    return hasPermissions && hasRoles;
+  }
+
+  private mergeWithFallback(items: AppMenuItem[]) {
+    const byKey = new Map(items.map((item) => [item.key, item]));
+    for (const fallback of FALLBACK_AUTH_MENU) {
+      if (!byKey.has(fallback.key)) {
+        byKey.set(fallback.key, fallback);
+      }
+    }
+
+    return Array.from(byKey.values());
   }
 }

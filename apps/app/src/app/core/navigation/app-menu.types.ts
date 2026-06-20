@@ -4,5 +4,6 @@ export interface AppMenuItem {
   route: string;
   icon?: string | null;
   permissions?: string[];
+  roles?: string[];
   sortOrder?: number;
 }

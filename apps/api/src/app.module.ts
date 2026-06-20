@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { DatabaseViewerModule } from './modules/database-viewer/database-viewer.module';
 import { ActionsModule } from './modules/actions/actions.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -22,6 +23,7 @@ import { UsersModule } from './modules/users/users.module';
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     ConfisysModule,
+    DatabaseViewerModule,
     RbacModule,
     SetupModule,
     AuthModule,

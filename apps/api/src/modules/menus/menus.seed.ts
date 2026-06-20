@@ -31,6 +31,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 30
   },
   {
+    key: 'database',
+    label: 'Base de datos',
+    route: '/database',
+    icon: 'pi pi-database',
+    permissions: ['database.read'],
+    sortOrder: 35
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',

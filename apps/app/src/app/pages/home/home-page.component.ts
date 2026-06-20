@@ -9,6 +9,7 @@ interface HomeModule {
   description: string;
   route: string;
   permissions?: string[];
+  roles?: string[];
   status: string;
 }
 
@@ -386,6 +387,13 @@ export class HomePageComponent {
       status: 'Admin'
     },
     {
+      title: 'Base de datos',
+      description: 'Visor web solo lectura para inspeccionar tablas del tenant y configuración global.',
+      route: '/database',
+      roles: ['owner', 'admin'],
+      status: 'DB'
+    },
+    {
       title: 'Seguridad',
       description: 'Usuarios, roles, permisos y auditoría del tenant actual.',
       route: '/security',
@@ -397,7 +405,11 @@ export class HomePageComponent {
   constructor(readonly auth: AuthService) {}
 
   get visibleModules() {
-    return this.modules.filter((module) => !module.permissions || this.auth.state.hasAllPermissions(module.permissions));
+    return this.modules.filter((module) => {
+      const hasPermissions = !module.permissions || this.auth.state.hasAllPermissions(module.permissions);
+      const hasRoles = !module.roles || this.auth.state.hasAnyRole(module.roles);
+      return hasPermissions && hasRoles;
+    });
   }
 
   roleList(roles: Array<{ key: string; name: string }>) {

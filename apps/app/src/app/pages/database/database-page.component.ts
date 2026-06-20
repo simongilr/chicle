@@ -202,7 +202,7 @@ interface SchemaHistoryResponse {
       .tables {
         display: grid;
         align-content: start;
-        gap: 8px;
+        gap: 10px;
         overflow: auto;
         border-right: 1px solid #d9e2ec;
         background: #fbfcfe;
@@ -211,21 +211,44 @@ interface SchemaHistoryResponse {
 
       .table-button {
         display: grid;
-        gap: 4px;
+        gap: 6px;
+        align-content: center;
         width: 100%;
+        min-height: 64px;
         border: 1px solid transparent;
         border-radius: 8px;
         background: transparent;
         color: #173b5f;
-        padding: 10px;
+        padding: 11px 12px;
         text-align: left;
         font: inherit;
+        line-height: 1.25;
         cursor: pointer;
+      }
+
+      .table-button:focus {
+        outline: none;
+      }
+
+      .table-button:focus-visible {
+        outline: 2px solid #1554a2;
+        outline-offset: 2px;
       }
 
       .table-button.active {
         border-color: #b7cce2;
         background: #eaf3fc;
+      }
+
+      .table-button strong,
+      .table-button .meta {
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .table-button .meta {
+        line-height: 1.35;
       }
 
       .workspace {

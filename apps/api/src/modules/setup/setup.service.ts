@@ -16,6 +16,7 @@ import { Role } from '../rbac/role.entity';
 import { RbacService } from '../rbac/rbac.service';
 import { UserRole } from '../rbac/user-role.entity';
 import { Tenant } from '../tenants/tenant.entity';
+import { TenantMembership } from '../tenants/tenant-membership.entity';
 import { User } from '../users/user.entity';
 
 interface SetupRequest {
@@ -88,6 +89,16 @@ export class SetupService {
       );
       await this.rbac.ensureTenantDefaults(createdTenant.id, manager);
       await this.menus.ensureTenantDefaults(createdTenant.id, manager);
+      await manager.save(
+        TenantMembership,
+        manager.create(TenantMembership, {
+          tenantId: createdTenant.id,
+          userId: owner.id,
+          systemRole: 'owner',
+          active: true,
+          primaryMembership: true
+        })
+      );
       await this.rbac.assignRoleToUser(createdTenant.id, owner.id, 'owner', manager);
 
       return createdTenant;
@@ -131,6 +142,7 @@ export class SetupService {
       await this.deleteAll(manager, UserRole);
       await this.deleteAll(manager, RolePermission);
       await this.deleteAll(manager, Role);
+      await this.deleteAll(manager, TenantMembership);
       await this.deleteAll(manager, User);
       await this.deleteAll(manager, Tenant);
     });

@@ -94,6 +94,7 @@ const READONLY_TABLES = new Set([
   'permissions',
   'role_permissions',
   'schema_changes',
+  'tenant_memberships',
   'user_roles'
 ]);
 const READONLY_COLUMNS = new Set(['id', 'tenantId', 'createdAt', 'updatedAt', 'deletedAt', 'systemRole']);

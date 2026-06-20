@@ -1191,6 +1191,14 @@ export class DocsPageComponent {
       note: 'Las operaciones protegidas deben ejecutarse dentro del tenant actual. No se debe confiar en tenantId enviado por el cliente.'
     },
     {
+      title: 'Identidad y membresía',
+      command:
+        'users = identidad de login\n' +
+        'tenant_memberships = relación del usuario con un tenant\n' +
+        'systemRole y active viven por tenant',
+      note: 'users.tenantId queda como compatibilidad temporal, pero la autoridad de pertenencia empieza a ser tenant_memberships.'
+    },
+    {
       title: 'Capa 4: roles y permisos',
       command: 'owner\nadmin\noperator\nviewer\npermissions: users.read, roles.manage, confisys.update...',
       note: 'La UI puede ocultar opciones, pero la decisión real siempre la toman JwtAuthGuard + PermissionsGuard en backend.'

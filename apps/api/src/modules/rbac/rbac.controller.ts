@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -108,6 +108,9 @@ export class RbacController {
     schema: {
       example: {
         ok: true,
+        memberships: {
+          membershipsCreated: 1
+        },
         rbac: {
           permissionsCreated: 1,
           permissionsUpdated: 0,
@@ -124,9 +127,10 @@ export class RbacController {
   })
   async syncSecurity(@CurrentAuth() auth: AuthContext) {
     const result = await this.dataSource.transaction(async (manager) => {
+      const memberships = await this.syncTenantMemberships(auth.tenant.id, manager);
       const rbac = await this.rbac.syncTenantDefaults(auth.tenant.id, manager);
       const menus = await this.menus.syncTenantDefaults(auth.tenant.id, manager);
-      return { ok: true, rbac, menus };
+      return { ok: true, memberships, rbac, menus };
     });
 
     await this.audit.record({
@@ -138,6 +142,60 @@ export class RbacController {
     });
 
     return result;
+  }
+
+  private async syncTenantMemberships(tenantId: string, manager: EntityManager) {
+    const missingRows = await manager.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM users u
+        WHERE u.tenantId = ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM tenant_memberships tm
+            WHERE tm.tenantId = u.tenantId
+              AND tm.userId = u.id
+          )
+      `,
+      [tenantId]
+    );
+    const membershipsCreated = Number(missingRows[0]?.total ?? 0);
+
+    if (membershipsCreated > 0) {
+      await manager.query(
+        `
+          INSERT INTO tenant_memberships (
+            id,
+            tenantId,
+            userId,
+            systemRole,
+            active,
+            primaryMembership,
+            createdAt,
+            updatedAt
+          )
+          SELECT UUID(),
+                 tenantId,
+                 id,
+                 systemRole,
+                 active,
+                 1,
+                 createdAt,
+                 updatedAt
+          FROM users u
+          WHERE u.tenantId = ?
+            AND NOT EXISTS (
+              SELECT 1
+              FROM tenant_memberships tm
+              WHERE tm.tenantId = u.tenantId
+                AND tm.userId = u.id
+            )
+        `,
+        [tenantId]
+      );
+    }
+
+    return { membershipsCreated };
   }
 
   @Get('audit')

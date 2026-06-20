@@ -42,6 +42,9 @@ interface AuditEvent {
 
 interface SecuritySyncResponse {
   ok: true;
+  memberships: {
+    membershipsCreated: number;
+  };
   rbac: {
     permissionsCreated: number;
     permissionsUpdated: number;
@@ -514,6 +517,7 @@ export class SecurityPageComponent implements OnInit {
       next: (response) => {
         this.message = [
           'Seguridad sincronizada.',
+          `Memberships: +${response.memberships.membershipsCreated}.`,
           `Permisos: +${response.rbac.permissionsCreated}, actualizados ${response.rbac.permissionsUpdated}.`,
           `Roles: +${response.rbac.rolesCreated}, actualizados ${response.rbac.rolesUpdated}.`,
           `Asignaciones: +${response.rbac.rolePermissionsAdded}.`,

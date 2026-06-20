@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { ConfisysService } from '../confisys/confisys.service';
 import { RbacService } from '../rbac/rbac.service';
 import { Tenant } from '../tenants/tenant.entity';
+import { TenantMembership } from '../tenants/tenant-membership.entity';
 import { User } from '../users/user.entity';
 import { AuthLoginAttempt } from './auth-login-attempt.entity';
 import { AuthSession } from './auth-session.entity';
@@ -76,6 +77,8 @@ export class AuthService {
   constructor(
     @InjectRepository(Tenant)
     private readonly tenants: Repository<Tenant>,
+    @InjectRepository(TenantMembership)
+    private readonly memberships: Repository<TenantMembership>,
     @InjectRepository(User)
     private readonly users: Repository<User>,
     @InjectRepository(AuthSession)
@@ -118,6 +121,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const membership = await this.ensureMembership(tenant.id, user);
+    if (!membership.active) {
+      await this.registerFailedLogin(clientKey);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    user.systemRole = membership.systemRole;
+
     await this.loginAttempts.delete({ key: this.loginRateKey(clientKey) });
     const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
     const security = this.readSecurityPolicy(tenant.settings);
@@ -138,7 +148,7 @@ export class AuthService {
     const accessToken = await this.signAccessToken(user.id, tenant.id, session.id, tokenId, ttlMinutes);
 
     return {
-      body: this.authResponse(accessToken, ttlMinutes, user, tenant, access),
+      body: this.authResponse(accessToken, ttlMinutes, user, tenant, membership, access),
       refreshToken: this.encodeRefreshCookie(session.id, refreshToken),
       refreshMaxAgeMs: refreshDays * 24 * 60 * 60 * 1000
     };
@@ -178,6 +188,12 @@ export class AuthService {
       await this.sessions.update({ id: session.id }, { active: false });
       throw new UnauthorizedException('Invalid session');
     }
+    const membership = await this.ensureMembership(tenant.id, user);
+    if (!membership.active) {
+      await this.sessions.update({ id: session.id }, { active: false });
+      throw new UnauthorizedException('Invalid session');
+    }
+    user.systemRole = membership.systemRole;
 
     const security = this.readSecurityPolicy(tenant.settings);
     const ttlMinutes = security.session.accessTokenTtlMinutes;
@@ -199,7 +215,7 @@ export class AuthService {
     const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
     const accessToken = await this.signAccessToken(user.id, tenant.id, session.id, tokenId, ttlMinutes);
     return {
-      body: this.authResponse(accessToken, ttlMinutes, user, tenant, access),
+      body: this.authResponse(accessToken, ttlMinutes, user, tenant, membership, access),
       refreshToken: this.encodeRefreshCookie(session.id, refreshToken),
       refreshMaxAgeMs: refreshDays * 24 * 60 * 60 * 1000
     };
@@ -238,10 +254,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid session');
     }
 
+    const membership = await this.ensureMembership(tenant.id, user);
+    if (!membership.active) {
+      throw new UnauthorizedException('Invalid session');
+    }
+    user.systemRole = membership.systemRole;
+
     const access = await this.rbac.getEffectiveAccess(tenant.id, user.id);
     return {
       user,
       tenant,
+      membership,
       sessionId: session.id,
       tokenId: session.tokenId,
       roles: access.roles,
@@ -388,8 +411,10 @@ export class AuthService {
     ttlMinutes: number,
     user: User,
     tenant: Tenant,
+    membership: TenantMembership,
     access: { roles: Array<{ key: string; name: string }>; permissions: string[] }
   ): AuthResponse {
+    user.systemRole = membership.systemRole;
     return {
       accessToken,
       tokenType: 'Bearer',
@@ -447,6 +472,29 @@ export class AuthService {
 
   private loginRateKey(rawKey: string) {
     return createHash('sha256').update(rawKey).digest('hex');
+  }
+
+  private async ensureMembership(tenantId: string, user: User) {
+    let membership = await this.memberships.findOne({ where: { tenantId, userId: user.id } });
+    if (membership) {
+      return membership;
+    }
+
+    if (user.tenantId !== tenantId) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    membership = await this.memberships.save(
+      this.memberships.create({
+        tenantId,
+        userId: user.id,
+        systemRole: user.systemRole,
+        active: user.active,
+        primaryMembership: true
+      })
+    );
+
+    return membership;
   }
 
   private publicUser(user: User) {

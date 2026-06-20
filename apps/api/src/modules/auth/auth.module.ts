@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfisysModule } from '../confisys/confisys.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { Tenant } from '../tenants/tenant.entity';
+import { TenantMembership } from '../tenants/tenant-membership.entity';
 import { User } from '../users/user.entity';
 import { AuthLoginAttempt } from './auth-login-attempt.entity';
 import { AuthSession } from './auth-session.entity';
@@ -18,7 +19,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
   imports: [
     ConfigModule,
     JwtModule.register({}),
-    TypeOrmModule.forFeature([Tenant, User, AuthSession, AuthLoginAttempt]),
+    TypeOrmModule.forFeature([Tenant, TenantMembership, User, AuthSession, AuthLoginAttempt]),
     ConfisysModule,
     RbacModule
   ],

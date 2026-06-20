@@ -2,6 +2,7 @@ import { JsonPipe } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
+import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -14,12 +15,14 @@ interface DatabaseColumn {
   type: string;
   nullable: boolean;
   primary: boolean;
+  editable: boolean;
 }
 
 interface DatabaseTable {
   name: string;
   entity: string;
   scope: TableScope;
+  editable: boolean;
   columns: DatabaseColumn[];
 }
 
@@ -35,10 +38,15 @@ interface DatabaseRowsResponse {
   rows: Record<string, unknown>[];
 }
 
+interface DatabaseUpdateResponse {
+  table: DatabaseTable;
+  row: Record<string, unknown>;
+}
+
 @Component({
   selector: 'app-database-page',
   standalone: true,
-  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent, TableModule],
+  imports: [DialogModule, FormsModule, IonContent, JsonPipe, MainNavComponent, TableModule],
   styles: [
     `
       ion-content {
@@ -222,6 +230,50 @@ interface DatabaseRowsResponse {
         padding: 16px;
       }
 
+      .editor {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .field-label {
+        display: grid;
+        gap: 4px;
+        color: #173b5f;
+        font-weight: 850;
+      }
+
+      .field-label small {
+        color: #64748b;
+        font-weight: 650;
+      }
+
+      textarea {
+        min-height: 78px;
+        resize: vertical;
+      }
+
+      .modal-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
       .notice {
         display: grid;
         gap: 10px;
@@ -376,7 +428,7 @@ interface DatabaseRowsResponse {
                     <ng-template pTemplate="body" let-row>
                       <tr>
                         <td>
-                          <button class="row-button" type="button" (click)="selectedRow = row">Ver</button>
+                          <button class="row-button" type="button" (click)="openRow(row)">Ver</button>
                         </td>
                         @for (column of selectedTable.columns; track column.name) {
                           <td>
@@ -414,13 +466,75 @@ interface DatabaseRowsResponse {
               </div>
             </section>
           </section>
+          <p-dialog
+            header="Detalle de fila"
+            [(visible)]="detailVisible"
+            [modal]="true"
+            [draggable]="false"
+            [resizable]="false"
+            [style]="{ width: 'min(920px, 94vw)' }"
+          >
+            @if (selectedRow && selectedTable) {
+              <section class="editor">
+                <div class="notice" [class.error]="saveError">
+                  <strong>{{ selectedTable.name }}</strong>
+                  <span>
+                    {{ selectedTable.editable ? 'Edita los campos habilitados y guarda los cambios.' : 'Esta tabla es solo lectura en el visor.' }}
+                  </span>
+                  @if (saveError) {
+                    <span>{{ saveError }}</span>
+                  }
+                </div>
 
-          @if (selectedRow) {
-            <section class="detail">
-              <h2>Detalle de fila</h2>
-              <pre>{{ selectedRow | json }}</pre>
-            </section>
-          }
+                <div class="field-grid">
+                  @for (column of selectedTable.columns; track column.name) {
+                    <div class="field-row">
+                      <div class="field-label">
+                        <span>{{ column.name }}</span>
+                        <small>
+                          {{ column.type }}{{ column.primary ? ' · primary' : '' }}{{ column.nullable ? ' · nullable' : '' }}
+                        </small>
+                      </div>
+
+                      @if (column.editable) {
+                        @if (isBooleanColumn(column)) {
+                          <select [(ngModel)]="editDraft[column.name]">
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                          </select>
+                        } @else if (isLongColumn(column)) {
+                          <textarea [(ngModel)]="editDraft[column.name]"></textarea>
+                        } @else {
+                          <input [(ngModel)]="editDraft[column.name]" />
+                        }
+                      } @else {
+                        <span class="cell" [title]="formatCell(selectedRow[column.name])">
+                          {{ formatCell(selectedRow[column.name]) || ' ' }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <details>
+                  <summary>JSON completo</summary>
+                  <pre>{{ selectedRow | json }}</pre>
+                </details>
+
+                <div class="modal-actions">
+                  <button type="button" (click)="detailVisible = false">Cerrar</button>
+                  <button
+                    class="primary"
+                    type="button"
+                    [disabled]="!selectedTable.editable || savingRow || !editableColumns.length"
+                    (click)="saveRow()"
+                  >
+                    {{ savingRow ? 'Guardando...' : 'Guardar cambios' }}
+                  </button>
+                </div>
+              </section>
+            }
+          </p-dialog>
         }
       </main>
     </ion-content>
@@ -434,6 +548,10 @@ export class DatabasePageComponent implements OnInit {
   selectedTable?: DatabaseTable;
   rows: Record<string, unknown>[] = [];
   selectedRow?: Record<string, unknown>;
+  editDraft: Record<string, string> = {};
+  detailVisible = false;
+  savingRow = false;
+  saveError = '';
   loadingTables = true;
   loadingRows = false;
   tablesError = '';
@@ -450,6 +568,10 @@ export class DatabasePageComponent implements OnInit {
     }
 
     return this.rows.filter((row) => JSON.stringify(row).toLowerCase().includes(search));
+  }
+
+  get editableColumns() {
+    return this.selectedTable?.columns.filter((column) => column.editable) ?? [];
   }
 
   ngOnInit() {
@@ -515,6 +637,56 @@ export class DatabasePageComponent implements OnInit {
       });
   }
 
+  openRow(row: Record<string, unknown>) {
+    this.selectedRow = row;
+    this.editDraft = {};
+    this.saveError = '';
+
+    for (const column of this.editableColumns) {
+      this.editDraft[column.name] = this.toDraft(row[column.name], column);
+    }
+
+    this.detailVisible = true;
+  }
+
+  saveRow() {
+    if (!this.selectedTable || !this.selectedRow || !this.selectedRow['id']) {
+      this.saveError = 'No se puede guardar una fila sin id.';
+      return;
+    }
+
+    const values: Record<string, unknown> = {};
+    try {
+      for (const column of this.editableColumns) {
+        values[column.name] = this.fromDraft(this.editDraft[column.name], column);
+      }
+    } catch {
+      this.saveError = 'Hay un valor JSON inválido. Corrígelo antes de guardar.';
+      return;
+    }
+
+    this.savingRow = true;
+    this.saveError = '';
+    this.api
+      .patch<DatabaseUpdateResponse>(
+        `database/tables/${encodeURIComponent(this.selectedTable.name)}/${encodeURIComponent(String(this.selectedRow['id']))}`,
+        { values }
+      )
+      .subscribe({
+        next: (response) => {
+          this.selectedTable = response.table;
+          this.selectedRow = response.row;
+          this.rows = this.rows.map((row) => (row['id'] === response.row['id'] ? response.row : row));
+          this.openRow(response.row);
+          this.savingRow = false;
+        },
+        error: (error) => {
+          this.saveError = this.errorMessage(error);
+          this.savingRow = false;
+        }
+      });
+  }
+
   formatCell(value: unknown) {
     if (value === null || value === undefined) {
       return '';
@@ -525,6 +697,40 @@ export class DatabasePageComponent implements OnInit {
     }
 
     return String(value);
+  }
+
+  isBooleanColumn(column: DatabaseColumn) {
+    const type = column.type.toLowerCase();
+    return type === 'boolean' || type === 'bool';
+  }
+
+  isLongColumn(column: DatabaseColumn) {
+    const type = column.type.toLowerCase();
+    return type.includes('json') || type.includes('text') || type.includes('simple-json');
+  }
+
+  private toDraft(value: unknown, column: DatabaseColumn) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    if (this.isLongColumn(column) && typeof value === 'object') {
+      return JSON.stringify(value, null, 2);
+    }
+
+    return String(value);
+  }
+
+  private fromDraft(value: string, column: DatabaseColumn): unknown {
+    if (!value && column.nullable) {
+      return null;
+    }
+
+    if (this.isLongColumn(column) && column.type.toLowerCase().includes('json')) {
+      return JSON.parse(value || 'null');
+    }
+
+    return value;
   }
 
   private errorMessage(error: { status?: number; error?: { message?: string } }) {

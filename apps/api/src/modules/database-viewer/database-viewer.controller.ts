@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,5 +37,32 @@ export class DatabaseViewerController {
     @Query('pageSize') pageSize?: string
   ) {
     return this.databaseViewer.listRows(auth, table, Number(page), Number(pageSize));
+  }
+
+  @Patch('tables/:table/:id')
+  @ApiOperation({
+    summary: 'Editar una fila desde el visor DB',
+    description:
+      'Edición controlada para owner/admin. No permite SQL libre ni modificar IDs, tenantId, hashes, sesiones, auditoría o RBAC pivote.'
+  })
+  @ApiParam({ name: 'table', example: 'menus' })
+  @ApiParam({ name: 'id', example: 'row-id' })
+  @ApiBody({
+    schema: {
+      example: {
+        values: {
+          label: 'Manual operativo',
+          active: true
+        }
+      }
+    }
+  })
+  updateRow(
+    @CurrentAuth() auth: AuthContext,
+    @Param('table') table: string,
+    @Param('id') id: string,
+    @Body() body: { values?: Record<string, unknown> }
+  ) {
+    return this.databaseViewer.updateRow(auth, table, id, body.values ?? {});
   }
 }

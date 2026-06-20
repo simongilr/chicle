@@ -4,20 +4,22 @@ import { AuthService } from '../auth/auth.service';
 import { AppMenuItem } from './app-menu.types';
 
 const PUBLIC_MENU: AppMenuItem[] = [
-  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', sortOrder: 10 },
-  { key: 'setup', label: 'Setup', route: '/setup', icon: 'pi pi-wrench', sortOrder: 20 },
-  { key: 'login', label: 'Ingresar', route: '/login', icon: 'pi pi-sign-in', sortOrder: 30 }
+  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 10 },
+  { key: 'setup', label: 'Setup', route: '/setup', icon: 'pi pi-wrench', placement: 'primary', sortOrder: 20 },
+  { key: 'login', label: 'Ingresar', route: '/login', icon: 'pi pi-sign-in', placement: 'primary', sortOrder: 30 }
 ];
 
 const FALLBACK_AUTH_MENU: AppMenuItem[] = [
-  { key: 'home', label: 'Inicio', route: '/home', icon: 'pi pi-home', sortOrder: 10 },
-  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', sortOrder: 20 },
+  { key: 'home', label: 'Inicio', route: '/home', icon: 'pi pi-home', placement: 'primary', sortOrder: 10 },
+  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 20 },
   {
     key: 'confisys',
     label: 'Configuración',
     route: '/confisys',
     icon: 'pi pi-sliders-h',
     permissions: ['confisys.read'],
+    group: 'Administración',
+    placement: 'admin',
     sortOrder: 30
   },
   {
@@ -26,6 +28,8 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/database',
     icon: 'pi pi-database',
     roles: ['owner', 'admin'],
+    group: 'Administración',
+    placement: 'admin',
     sortOrder: 35
   },
   {
@@ -34,6 +38,8 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/security',
     icon: 'pi pi-shield',
     permissions: ['users.read', 'roles.read', 'permissions.read'],
+    group: 'Administración',
+    placement: 'admin',
     sortOrder: 40
   }
 ];

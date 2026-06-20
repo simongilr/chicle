@@ -1,7 +1,13 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, HostListener, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { AppMenuItem } from '../../core/navigation/app-menu.types';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
+
+interface NavGroup {
+  label: string;
+  items: AppMenuItem[];
+}
 
 @Component({
   selector: 'app-main-nav',
@@ -10,13 +16,23 @@ import { AppMenuService } from '../../core/navigation/app-menu.service';
   styles: [
     `
       .app-nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        border-bottom: 1px solid #d9e2ec;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 10px 28px rgba(20, 50, 80, 0.06);
+        backdrop-filter: blur(14px);
+      }
+
+      .nav-inner {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 18px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
+        gap: 16px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 12px 24px;
       }
 
       .brand-block {
@@ -28,25 +44,28 @@ import { AppMenuService } from '../../core/navigation/app-menu.service';
       .brand {
         color: #12324f;
         font-size: 1rem;
-        font-weight: 850;
+        font-weight: 900;
       }
 
       .context-label {
         color: #64748b;
         font-size: 0.82rem;
-        font-weight: 700;
+        font-weight: 750;
       }
 
-      .nav-actions {
+      .desktop-nav {
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
         justify-content: flex-end;
         gap: 8px;
+        min-width: 0;
       }
 
       .nav-link,
       .logout-button,
-      .menu-button {
+      .menu-button,
+      .dropdown-button,
+      .drawer-close {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -59,7 +78,8 @@ import { AppMenuService } from '../../core/navigation/app-menu.service';
         padding: 8px 12px;
         text-decoration: none;
         font: inherit;
-        font-weight: 800;
+        font-weight: 850;
+        line-height: 1;
         white-space: nowrap;
       }
 
@@ -70,110 +90,308 @@ import { AppMenuService } from '../../core/navigation/app-menu.service';
       }
 
       .logout-button,
-      .menu-button {
+      .menu-button,
+      .dropdown-button,
+      .drawer-close {
         cursor: pointer;
-      }
-
-      .menu-button {
-        display: none;
       }
 
       .nav-icon {
         font-size: 0.95rem;
       }
 
-      @media (max-width: 760px) {
-        .app-nav {
-          align-items: stretch;
-          flex-direction: column;
-          padding: 14px 16px;
+      .dropdown {
+        position: relative;
+      }
+
+      .dropdown-button.active {
+        border-color: #b7cce2;
+        background: #eaf3fc;
+      }
+
+      .dropdown-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        display: grid;
+        gap: 6px;
+        min-width: 230px;
+        max-width: min(320px, 90vw);
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 8px;
+        box-shadow: 0 18px 44px rgba(20, 50, 80, 0.14);
+      }
+
+      .dropdown-panel .nav-link {
+        justify-content: flex-start;
+        width: 100%;
+        border-color: transparent;
+      }
+
+      .dropdown-panel .nav-link:hover {
+        border-color: #d9e2ec;
+        background: #f5f8fb;
+      }
+
+      .menu-button {
+        display: none;
+        width: 42px;
+        min-width: 42px;
+        padding: 8px;
+      }
+
+      .menu-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+
+      .drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 70;
+        background: rgba(10, 25, 41, 0.34);
+      }
+
+      .drawer {
+        position: fixed;
+        inset: 0 0 0 auto;
+        z-index: 80;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        width: min(390px, 92vw);
+        border-left: 1px solid #d9e2ec;
+        background: #ffffff;
+        box-shadow: -20px 0 48px rgba(20, 50, 80, 0.18);
+      }
+
+      .drawer-header,
+      .drawer-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .drawer-content {
+        display: grid;
+        align-content: start;
+        gap: 16px;
+        overflow: auto;
+        padding: 0 16px 16px;
+      }
+
+      .drawer-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      .drawer-title {
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .drawer-link {
+        justify-content: flex-start;
+        width: 100%;
+        min-height: 44px;
+      }
+
+      .drawer-footer {
+        border-top: 1px solid #d9e2ec;
+      }
+
+      .drawer-footer .logout-button {
+        width: 100%;
+      }
+
+      @media (max-width: 980px) {
+        .nav-inner {
+          padding: 12px 16px;
         }
 
-        .nav-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
+        .desktop-nav {
+          display: none;
         }
 
         .menu-button {
           display: inline-flex;
-          width: 42px;
-          min-width: 42px;
-          padding: 8px;
         }
+      }
 
-        .menu-label {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          overflow: hidden;
-          clip: rect(0 0 0 0);
-        }
-
-        .nav-actions {
-          display: none;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          justify-content: stretch;
-          width: 100%;
-        }
-
-        .nav-actions.open {
-          display: grid;
-        }
-
-        .nav-link,
-        .logout-button {
-          width: 100%;
+      @media (max-width: 520px) {
+        .brand-block {
           min-width: 0;
-          text-align: center;
+        }
+
+        .context-label {
+          max-width: 220px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
     `
   ],
   template: `
     <header class="app-nav">
-      <div class="nav-header">
+      <div class="nav-inner">
         <div class="brand-block">
           <div class="brand">Chicle Engine</div>
           <div class="context-label">{{ contextLabel }}</div>
         </div>
 
+        <nav class="desktop-nav" aria-label="Navegación principal">
+          @for (item of primaryItems(); track item.key) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: item.route === '/home' || item.route === '/setup' }"
+              (click)="closeMenus()"
+            >
+              @if (item.icon) {
+                <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+              }
+              <span>{{ item.label }}</span>
+            </a>
+          }
+
+          @if (adminItems().length) {
+            <div class="dropdown">
+              <button
+                class="dropdown-button"
+                type="button"
+                [class.active]="activeDropdown() === 'admin'"
+                [attr.aria-expanded]="activeDropdown() === 'admin'"
+                (click)="toggleDropdown('admin')"
+              >
+                <i class="pi pi-shield" aria-hidden="true"></i>
+                <span>Administración</span>
+                <i class="pi pi-angle-down" aria-hidden="true"></i>
+              </button>
+              @if (activeDropdown() === 'admin') {
+                <div class="dropdown-panel">
+                  @for (item of adminItems(); track item.key) {
+                    <a
+                      class="nav-link"
+                      [routerLink]="item.route"
+                      routerLinkActive="active"
+                      (click)="closeMenus()"
+                    >
+                      @if (item.icon) {
+                        <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+                      }
+                      <span>{{ item.label }}</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @if (moreItems().length) {
+            <div class="dropdown">
+              <button
+                class="dropdown-button"
+                type="button"
+                [class.active]="activeDropdown() === 'more'"
+                [attr.aria-expanded]="activeDropdown() === 'more'"
+                (click)="toggleDropdown('more')"
+              >
+                <i class="pi pi-ellipsis-h" aria-hidden="true"></i>
+                <span>Más</span>
+              </button>
+              @if (activeDropdown() === 'more') {
+                <div class="dropdown-panel">
+                  @for (item of moreItems(); track item.key) {
+                    <a class="nav-link" [routerLink]="item.route" routerLinkActive="active" (click)="closeMenus()">
+                      @if (item.icon) {
+                        <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+                      }
+                      <span>{{ item.label }}</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @if (auth.state.isAuthenticated) {
+            <button class="logout-button" type="button" (click)="logout()">
+              <i class="pi pi-sign-out" aria-hidden="true"></i>
+              <span>Salir</span>
+            </button>
+          }
+        </nav>
+
         <button
           class="menu-button"
           type="button"
-          [attr.aria-expanded]="open"
-          aria-controls="main-navigation"
-          (click)="open = !open"
+          [attr.aria-expanded]="drawerOpen()"
+          aria-controls="main-navigation-drawer"
+          (click)="drawerOpen.set(true)"
         >
           <i class="pi pi-bars" aria-hidden="true"></i>
           <span class="menu-label">Menú</span>
         </button>
       </div>
+    </header>
 
-      <nav id="main-navigation" class="nav-actions" [class.open]="open" aria-label="Navegación principal">
-        @for (item of menu.items(); track item.key) {
-          <a
-            class="nav-link"
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: item.route === '/home' || item.route === '/setup' }"
-          >
-            @if (item.icon) {
-              <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
-            }
-            <span>{{ item.label }}</span>
-          </a>
-        }
+    @if (drawerOpen()) {
+      <div class="drawer-backdrop" (click)="closeMenus()" aria-hidden="true"></div>
+      <aside id="main-navigation-drawer" class="drawer" aria-label="Menú principal">
+        <div class="drawer-header">
+          <div class="brand-block">
+            <div class="brand">Chicle Engine</div>
+            <div class="context-label">{{ contextLabel }}</div>
+          </div>
+          <button class="drawer-close" type="button" (click)="closeMenus()">
+            <i class="pi pi-times" aria-hidden="true"></i>
+            <span class="menu-label">Cerrar</span>
+          </button>
+        </div>
+
+        <div class="drawer-content">
+          @for (group of drawerGroups(); track group.label) {
+            <section class="drawer-group">
+              <div class="drawer-title">{{ group.label }}</div>
+              @for (item of group.items; track item.key) {
+                <a
+                  class="nav-link drawer-link"
+                  [routerLink]="item.route"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: item.route === '/home' || item.route === '/setup' }"
+                  (click)="closeMenus()"
+                >
+                  @if (item.icon) {
+                    <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+                  }
+                  <span>{{ item.label }}</span>
+                </a>
+              }
+            </section>
+          }
+        </div>
 
         @if (auth.state.isAuthenticated) {
-          <button class="logout-button" type="button" (click)="logout()">
-            <i class="pi pi-sign-out" aria-hidden="true"></i>
-            <span>Salir</span>
-          </button>
+          <div class="drawer-footer">
+            <button class="logout-button" type="button" (click)="logout()">
+              <i class="pi pi-sign-out" aria-hidden="true"></i>
+              <span>Salir</span>
+            </button>
+          </div>
         }
-      </nav>
-    </header>
+      </aside>
+    }
   `
 })
 export class MainNavComponent implements OnInit {
@@ -181,18 +399,73 @@ export class MainNavComponent implements OnInit {
 
   readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
-  open = false;
+  readonly drawerOpen = signal(false);
+  readonly activeDropdown = signal<'admin' | 'more' | null>(null);
+
+  readonly primaryItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'primary'));
+  readonly adminItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'admin'));
+  readonly moreItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'more'));
+  readonly drawerGroups = computed<NavGroup[]>(() => {
+    const groups = new Map<string, AppMenuItem[]>();
+    for (const item of this.menu.items()) {
+      const label = this.drawerGroupFor(item);
+      groups.set(label, [...(groups.get(label) ?? []), item]);
+    }
+
+    return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
+  });
 
   ngOnInit() {
     this.menu.loadCurrent();
   }
 
+  @HostListener('document:keydown.escape')
+  closeMenus() {
+    this.drawerOpen.set(false);
+    this.activeDropdown.set(null);
+  }
+
+  toggleDropdown(dropdown: 'admin' | 'more') {
+    this.drawerOpen.set(false);
+    this.activeDropdown.set(this.activeDropdown() === dropdown ? null : dropdown);
+  }
+
   logout() {
+    this.closeMenus();
     this.menu.reset();
     this.auth.logout();
   }
 
   iconClass(icon: string | null | undefined) {
     return `nav-icon ${icon ?? ''}`.trim();
+  }
+
+  private placementFor(item: AppMenuItem): 'primary' | 'admin' | 'more' {
+    if (item.placement === 'primary' || item.placement === 'admin' || item.placement === 'more') {
+      return item.placement;
+    }
+
+    if (['home', 'docs', 'setup', 'login'].includes(item.key)) {
+      return 'primary';
+    }
+
+    if (['confisys', 'database', 'security', 'users', 'roles', 'permissions'].includes(item.key)) {
+      return 'admin';
+    }
+
+    return 'more';
+  }
+
+  private drawerGroupFor(item: AppMenuItem) {
+    const placement = this.placementFor(item);
+    if (placement === 'primary') {
+      return 'Principal';
+    }
+
+    if (placement === 'admin') {
+      return item.group || 'Administración';
+    }
+
+    return item.group || 'Más opciones';
   }
 }

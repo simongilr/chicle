@@ -6,4 +6,7 @@ export interface AppMenuItem {
   permissions?: string[];
   roles?: string[];
   sortOrder?: number;
+  group?: string | null;
+  placement?: 'primary' | 'admin' | 'more' | 'drawer' | 'bottom' | null;
+  priority?: number | null;
 }

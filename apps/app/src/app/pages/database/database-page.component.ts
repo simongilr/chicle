@@ -222,6 +222,22 @@ interface DatabaseRowsResponse {
         padding: 16px;
       }
 
+      .notice {
+        display: grid;
+        gap: 10px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #254057;
+        padding: 14px;
+      }
+
+      .notice.error {
+        border-color: #f1b4b4;
+        background: #fff6f6;
+        color: #8b2323;
+      }
+
       pre {
         max-height: 360px;
         overflow: auto;
@@ -284,6 +300,18 @@ interface DatabaseRowsResponse {
               <h2>Tablas</h2>
               @if (loadingTables) {
                 <p class="meta">Cargando tablas...</p>
+              } @else if (tablesError) {
+                <div class="notice error">
+                  <strong>No se pudieron cargar las tablas</strong>
+                  <span>{{ tablesError }}</span>
+                  <button type="button" (click)="loadTables()">Reintentar</button>
+                </div>
+              } @else if (!tables.length) {
+                <div class="notice">
+                  <strong>No hay tablas visibles</strong>
+                  <span>El backend respondió correctamente, pero no encontró tablas habilitadas para este visor.</span>
+                  <button type="button" (click)="loadTables()">Revisar otra vez</button>
+                </div>
               }
               @for (table of tables; track table.name) {
                 <button
@@ -319,9 +347,22 @@ interface DatabaseRowsResponse {
 
               <div class="table-wrap">
                 @if (!selectedTable) {
-                  <p class="empty">Selecciona una tabla para ver sus filas.</p>
+                  @if (tablesError) {
+                    <div class="notice error">
+                      <strong>El visor no recibió tablas desde la API</strong>
+                      <span>{{ tablesError }}</span>
+                    </div>
+                  } @else {
+                    <p class="empty">Selecciona una tabla para ver sus filas.</p>
+                  }
                 } @else if (loadingRows) {
                   <p class="empty">Cargando filas...</p>
+                } @else if (rowsError) {
+                  <div class="notice error">
+                    <strong>No se pudieron cargar las filas</strong>
+                    <span>{{ rowsError }}</span>
+                    <button type="button" (click)="loadRows(page)">Reintentar</button>
+                  </div>
                 } @else {
                   <p-table [value]="filteredRows" [scrollable]="true" scrollHeight="430px">
                     <ng-template pTemplate="header">
@@ -395,6 +436,8 @@ export class DatabasePageComponent implements OnInit {
   selectedRow?: Record<string, unknown>;
   loadingTables = true;
   loadingRows = false;
+  tablesError = '';
+  rowsError = '';
   page = 1;
   pageSize = 25;
   total = 0;
@@ -424,6 +467,8 @@ export class DatabasePageComponent implements OnInit {
 
   loadTables() {
     this.loadingTables = true;
+    this.tablesError = '';
+    this.rowsError = '';
     this.api.get<DatabaseTablesResponse>('database/tables').subscribe({
       next: (response) => {
         this.tables = response.tables;
@@ -432,8 +477,11 @@ export class DatabasePageComponent implements OnInit {
           this.selectTable(this.tables[0]);
         }
       },
-      error: () => {
+      error: (error) => {
         this.tables = [];
+        this.rows = [];
+        this.selectedTable = undefined;
+        this.tablesError = this.errorMessage(error);
         this.loadingTables = false;
       }
     });
@@ -445,6 +493,7 @@ export class DatabasePageComponent implements OnInit {
     }
 
     this.loadingRows = true;
+    this.rowsError = '';
     this.api
       .get<DatabaseRowsResponse>(`database/tables/${encodeURIComponent(this.selectedTable.name)}?page=${page}&pageSize=${this.pageSize}`)
       .subscribe({
@@ -457,9 +506,10 @@ export class DatabasePageComponent implements OnInit {
           this.selectedRow = undefined;
           this.loadingRows = false;
         },
-        error: () => {
+        error: (error) => {
           this.rows = [];
           this.total = 0;
+          this.rowsError = this.errorMessage(error);
           this.loadingRows = false;
         }
       });
@@ -475,5 +525,25 @@ export class DatabasePageComponent implements OnInit {
     }
 
     return String(value);
+  }
+
+  private errorMessage(error: { status?: number; error?: { message?: string } }) {
+    if (error.status === 0) {
+      return 'No hay conexión con la API. Revisa que el backend esté corriendo y que API_PORT coincida.';
+    }
+
+    if (error.status === 401) {
+      return 'Tu sesión no fue aceptada por la API. Cierra sesión e ingresa nuevamente.';
+    }
+
+    if (error.status === 403) {
+      return 'La API rechazó el acceso. Este visor requiere usuario owner o admin.';
+    }
+
+    if (error.status === 404) {
+      return 'La API no tiene este endpoint todavía. Reinicia el backend para cargar el módulo nuevo /api/database.';
+    }
+
+    return error.error?.message ?? 'La API devolvió un error inesperado al consultar el visor.';
   }
 }

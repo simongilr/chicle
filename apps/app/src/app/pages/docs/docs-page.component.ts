@@ -1111,6 +1111,13 @@ export class DocsPageComponent {
       note: 'Permite gestionar usuarios, roles, permisos y revisar auditoría del tenant.'
     },
     {
+      title: 'Sincronizar seguridad base',
+      ui: 'En /security toca Sincronizar seguridad cuando agreguemos permisos, roles o menús base nuevos al producto.',
+      swagger: 'En /api/docs ejecuta POST /api/security/sync con Bearer token autorizado.',
+      command: 'curl -X POST http://127.0.0.1:3000/api/security/sync -H "Authorization: Bearer TOKEN"',
+      note: 'No resetea la organización. Repara permisos, roles built-in y menús base del tenant actual.'
+    },
+    {
       title: 'Usuarios y roles por API',
       ui: 'En /security usa el panel de usuarios para crear/editar y el panel de roles para revisar permisos.',
       swagger: 'En /api/docs prueba GET /api/users, GET /api/roles y PUT /api/roles/{roleId}/permissions.',

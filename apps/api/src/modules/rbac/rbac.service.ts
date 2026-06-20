@@ -12,6 +12,14 @@ export interface EffectiveAccess {
   permissions: string[];
 }
 
+export interface RbacSyncResult {
+  permissionsCreated: number;
+  permissionsUpdated: number;
+  rolesCreated: number;
+  rolesUpdated: number;
+  rolePermissionsAdded: number;
+}
+
 @Injectable()
 export class RbacService {
   constructor(
@@ -26,7 +34,7 @@ export class RbacService {
   ) {}
 
   async ensureTenantDefaults(tenantId: string, manager?: EntityManager) {
-    const permissions = await this.ensurePermissions(manager);
+    const { map: permissions } = await this.ensurePermissions(manager);
     const roleMap = new Map<string, Role>();
 
     for (const roleSeed of BASE_ROLES) {
@@ -70,6 +78,77 @@ export class RbacService {
     }
 
     return roleMap;
+  }
+
+  async syncTenantDefaults(tenantId: string, manager?: EntityManager): Promise<RbacSyncResult> {
+    const permissionResult = await this.ensurePermissions(manager);
+    const permissions = permissionResult.map;
+    const result: RbacSyncResult = {
+      permissionsCreated: permissionResult.created,
+      permissionsUpdated: permissionResult.updated,
+      rolesCreated: 0,
+      rolesUpdated: 0,
+      rolePermissionsAdded: 0
+    };
+
+    for (const roleSeed of BASE_ROLES) {
+      let role = await this.repo(Role, manager).findOne({
+        where: { tenantId, key: roleSeed.key }
+      });
+
+      if (!role) {
+        role = await this.repo(Role, manager).save(
+          this.repo(Role, manager).create({
+            tenantId,
+            key: roleSeed.key,
+            name: roleSeed.name,
+            description: roleSeed.description,
+            builtIn: true
+          })
+        );
+        result.rolesCreated += 1;
+      } else {
+        const updates: Partial<Role> = {};
+        if (role.builtIn && role.name !== roleSeed.name) {
+          updates.name = roleSeed.name;
+        }
+        if (role.builtIn && role.description !== roleSeed.description) {
+          updates.description = roleSeed.description;
+        }
+        if (!role.builtIn) {
+          updates.builtIn = true;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await this.repo(Role, manager).update({ id: role.id }, updates);
+          role = { ...role, ...updates };
+          result.rolesUpdated += 1;
+        }
+      }
+
+      const keys = roleSeed.permissions === 'all' ? BASE_PERMISSIONS.map((item) => item.key) : roleSeed.permissions;
+      for (const key of keys) {
+        const permission = permissions.get(key);
+        if (!permission) {
+          continue;
+        }
+
+        const exists = await this.repo(RolePermission, manager).exist({
+          where: { roleId: role.id, permissionId: permission.id }
+        });
+        if (!exists) {
+          await this.repo(RolePermission, manager).save(
+            this.repo(RolePermission, manager).create({
+              roleId: role.id,
+              permissionId: permission.id
+            })
+          );
+          result.rolePermissionsAdded += 1;
+        }
+      }
+    }
+
+    return result;
   }
 
   async assignRoleToUser(tenantId: string, userId: string, roleKey: string, manager?: EntityManager) {
@@ -208,6 +287,8 @@ export class RbacService {
 
   private async ensurePermissions(manager?: EntityManager) {
     const map = new Map<string, Permission>();
+    let created = 0;
+    let updated = 0;
 
     for (const permissionSeed of BASE_PERMISSIONS) {
       let permission = await this.repo(Permission, manager).findOne({
@@ -218,12 +299,27 @@ export class RbacService {
         permission = await this.repo(Permission, manager).save(
           this.repo(Permission, manager).create(permissionSeed)
         );
+        created += 1;
+      } else {
+        const updates: Partial<Permission> = {};
+        if (permission.category !== permissionSeed.category) {
+          updates.category = permissionSeed.category;
+        }
+        if (permission.description !== permissionSeed.description) {
+          updates.description = permissionSeed.description;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await this.repo(Permission, manager).update({ id: permission.id }, updates);
+          permission = { ...permission, ...updates };
+          updated += 1;
+        }
       }
 
       map.set(permission.key, permission);
     }
 
-    return map;
+    return { map, created, updated };
   }
 
   private repo<T extends object>(entity: new () => T, manager?: EntityManager): Repository<T> {

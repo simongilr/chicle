@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { DataSource } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { MenusService } from '../menus/menus.service';
 import { RbacService } from './rbac.service';
 
 @Controller()
@@ -15,7 +17,9 @@ import { RbacService } from './rbac.service';
 export class RbacController {
   constructor(
     private readonly rbac: RbacService,
-    private readonly audit: AuditService
+    private readonly menus: MenusService,
+    private readonly audit: AuditService,
+    private readonly dataSource: DataSource
   ) {}
 
   @Get('permissions')
@@ -90,6 +94,50 @@ export class RbacController {
       metadata: { permissions: role.permissions }
     });
     return role;
+  }
+
+  @Post('security/sync')
+  @RequirePermissions('roles.manage')
+  @ApiOperation({
+    summary: 'Sincronizar seguridad base del tenant',
+    description:
+      'Repara permisos, roles built-in y menús base sin resetear la organización. Requiere roles.manage.'
+  })
+  @ApiResponse({
+    status: 201,
+    schema: {
+      example: {
+        ok: true,
+        rbac: {
+          permissionsCreated: 1,
+          permissionsUpdated: 0,
+          rolesCreated: 0,
+          rolesUpdated: 0,
+          rolePermissionsAdded: 2
+        },
+        menus: {
+          menusCreated: 0,
+          menusUpdated: 1
+        }
+      }
+    }
+  })
+  async syncSecurity(@CurrentAuth() auth: AuthContext) {
+    const result = await this.dataSource.transaction(async (manager) => {
+      const rbac = await this.rbac.syncTenantDefaults(auth.tenant.id, manager);
+      const menus = await this.menus.syncTenantDefaults(auth.tenant.id, manager);
+      return { ok: true, rbac, menus };
+    });
+
+    await this.audit.record({
+      auth,
+      action: 'security.synced',
+      resourceType: 'security',
+      resourceId: auth.tenant.id,
+      metadata: result
+    });
+
+    return result;
   }
 
   @Get('audit')

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AppMenuService } from '../../core/navigation/app-menu.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 interface SecurityUser {
@@ -37,6 +38,21 @@ interface AuditEvent {
   resourceId?: string | null;
   metadata?: Record<string, unknown> | null;
   createdAt: string;
+}
+
+interface SecuritySyncResponse {
+  ok: true;
+  rbac: {
+    permissionsCreated: number;
+    permissionsUpdated: number;
+    rolesCreated: number;
+    rolesUpdated: number;
+    rolePermissionsAdded: number;
+  };
+  menus: {
+    menusCreated: number;
+    menusUpdated: number;
+  };
 }
 
 @Component({
@@ -217,10 +233,25 @@ interface AuditEvent {
         padding: 10px 12px;
       }
 
+      .header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .header-row .actions {
+        justify-content: flex-end;
+      }
+
       @media (max-width: 860px) {
         .grid,
         .form-grid {
           grid-template-columns: 1fr;
+        }
+
+        .header-row {
+          display: grid;
         }
       }
     `
@@ -231,8 +262,17 @@ interface AuditEvent {
 
       <main class="shell">
         <section class="panel">
-          <h1>Seguridad</h1>
-          <p>Usuarios, roles, permisos y auditoría del tenant actual.</p>
+          <div class="header-row">
+            <div>
+              <h1>Seguridad</h1>
+              <p>Usuarios, roles, permisos y auditoría del tenant actual.</p>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button" (click)="syncSecurity()" [disabled]="!canManageRoles || syncing">
+                {{ syncing ? 'Sincronizando...' : 'Sincronizar seguridad' }}
+              </button>
+            </div>
+          </div>
           @if (message) {
             <div class="message">{{ message }}</div>
           }
@@ -346,6 +386,7 @@ interface AuditEvent {
 })
 export class SecurityPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
+  private readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
 
   users: SecurityUser[] = [];
@@ -353,6 +394,7 @@ export class SecurityPageComponent implements OnInit {
   permissions: SecurityPermission[] = [];
   audit: AuditEvent[] = [];
   message = '';
+  syncing = false;
   newUser = {
     email: '',
     name: '',
@@ -465,4 +507,29 @@ export class SecurityPageComponent implements OnInit {
     this.api.get<AuditEvent[]>('audit').subscribe({ next: (audit) => (this.audit = audit) });
   }
 
+  syncSecurity() {
+    this.syncing = true;
+    this.message = 'Sincronizando permisos, roles y menús base...';
+    this.api.post<SecuritySyncResponse>('security/sync', {}).subscribe({
+      next: (response) => {
+        this.message = [
+          'Seguridad sincronizada.',
+          `Permisos: +${response.rbac.permissionsCreated}, actualizados ${response.rbac.permissionsUpdated}.`,
+          `Roles: +${response.rbac.rolesCreated}, actualizados ${response.rbac.rolesUpdated}.`,
+          `Asignaciones: +${response.rbac.rolePermissionsAdded}.`,
+          `Menús: +${response.menus.menusCreated}, actualizados ${response.menus.menusUpdated}.`
+        ].join(' ');
+        this.syncing = false;
+        this.auth.hydrate().then(() => {
+          this.menu.reset();
+          this.menu.loadCurrent();
+          this.load();
+        });
+      },
+      error: () => {
+        this.message = 'No se pudo sincronizar seguridad.';
+        this.syncing = false;
+      }
+    });
+  }
 }

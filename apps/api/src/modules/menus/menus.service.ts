@@ -5,6 +5,11 @@ import { AuthContext } from '../auth/auth.types';
 import { MenuItem } from './menu-item.entity';
 import { BASE_MENU_ITEMS } from './menus.seed';
 
+export interface MenuSyncResult {
+  menusCreated: number;
+  menusUpdated: number;
+}
+
 @Injectable()
 export class MenusService {
   constructor(
@@ -34,6 +39,55 @@ export class MenusService {
         })
       );
     }
+  }
+
+  async syncTenantDefaults(tenantId: string, manager?: EntityManager): Promise<MenuSyncResult> {
+    const repository = manager ? manager.getRepository(MenuItem) : this.menus;
+    const result: MenuSyncResult = {
+      menusCreated: 0,
+      menusUpdated: 0
+    };
+
+    for (const item of BASE_MENU_ITEMS) {
+      const existing = await repository.findOne({ where: { tenantId, key: item.key } });
+      if (!existing) {
+        await repository.save(
+          repository.create({
+            tenantId,
+            key: item.key,
+            label: item.label,
+            route: item.route,
+            icon: item.icon,
+            permissions: item.permissions ?? [],
+            active: true,
+            sortOrder: item.sortOrder
+          })
+        );
+        result.menusCreated += 1;
+        continue;
+      }
+
+      const updates: Partial<MenuItem> = {};
+      if (existing.route !== item.route) {
+        updates.route = item.route;
+      }
+      if (existing.icon !== item.icon) {
+        updates.icon = item.icon;
+      }
+      if (JSON.stringify(existing.permissions ?? []) !== JSON.stringify(item.permissions ?? [])) {
+        updates.permissions = item.permissions ?? [];
+      }
+      if (existing.sortOrder !== item.sortOrder) {
+        updates.sortOrder = item.sortOrder;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await repository.update({ id: existing.id }, updates);
+        result.menusUpdated += 1;
+      }
+    }
+
+    return result;
   }
 
   async getCurrentMenu(auth: AuthContext) {

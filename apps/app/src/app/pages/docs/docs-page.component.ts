@@ -704,6 +704,47 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="modelo-saas" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Modelo SaaS multi-industria</h2>
+                <p class="section-lead">
+                  Chicle Engine separa identidad, tenant, membresía y datos de negocio para poder
+                  atender eventos, inmobiliaria, tickets, servicios, minijuegos y comercios sin
+                  convertir el core en un producto rígido.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of saasModelSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modelo / ejemplo</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+
             <section id="seguridad" class="doc-section" data-tone="security">
               <div class="section-header">
                 <h2>Seguridad modular</h2>
@@ -932,6 +973,7 @@ export class DocsPageComponent {
     { id: 'puertos', label: 'Puertos', summary: 'Cambios desde env y pruebas locales.' },
     { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
     { id: 'base-datos', label: 'Base de datos', summary: 'Visor, diseñador y migraciones.' },
+    { id: 'modelo-saas', label: 'Modelo SaaS', summary: 'Tenants, usuarios, membresías y necesidades.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
     { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
     { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
@@ -1042,6 +1084,81 @@ export class DocsPageComponent {
       ui: 'Vuelve a dejar la bandera apagada en el archivo env local y recrea la API.',
       command: 'CHICLE_ALLOW_SYSTEM_RESET=false',
       note: 'Vuelve a levantar la API para cerrar la herramienta de reset.'
+    }
+  ];
+
+  readonly saasModelSteps: CommandStep[] = [
+    {
+      title: 'Vocabulario base',
+      command:
+        'tenant: organizacion, cliente SaaS o espacio de trabajo.\nuser: identidad que inicia sesion.\ntenant_membership: relacion entre user y tenant, con rol de sistema y estado activo.\nrole/permission: permisos operativos dentro del tenant.\nparty: persona u organizacion de negocio, futura tabla para clientes, proveedores, invitados, jugadores o propietarios.\nparty_role: rol de negocio de una party dentro de un tenant.',
+      note: 'La regla central es separar identidad de login, pertenencia al tenant y datos propios del negocio.'
+    },
+    {
+      title: 'Por qué usamos membresías',
+      command:
+        'Un mismo user puede estar en varios tenants:\n\nsain@example.com\n  - Tenant Evento Meteoro: owner\n  - Tenant Inmobiliaria Norte: admin\n  - Tenant Tickets Centro: operator\n\nEl usuario es el mismo, pero sus permisos y contexto cambian por tenant_membership.',
+      note: 'Esto evita duplicar usuarios y nos permite soportar organizaciones, sucursales, clientes SaaS y equipos distintos.'
+    },
+    {
+      title: 'Qué tenemos implementado hoy',
+      command:
+        'users\ntenants\ntenant_memberships\nroles\npermissions\nrole_permissions\nmenus\nconfisys\ndynamic_forms\nrecords\nschema_changes\ncustom_*',
+      note: 'Con esto ya podemos manejar login, tenant actual, roles, permisos, menus, parametros, formularios, registros y tablas personalizadas.'
+    },
+    {
+      title: 'Qué queda preparado como siguiente capa',
+      command:
+        'parties\nparty_contacts\nparty_roles\ntenant_modules\napp_templates\ntenant_feature_flags\nworkflow_templates',
+      note: 'Estas tablas futuras nos permiten modelar clientes, personas, proveedores, invitados, jugadores y plantillas por industria sin contaminar el core.'
+    },
+    {
+      title: 'Eventos sociales',
+      command:
+        'tenant: empresa de eventos, planner o workspace del evento.\nusers/memberships: owner, admin, operador, staff.\nparties futuras: cliente, invitado, proveedor, venue, fotografo.\nforms/records: evento, RSVP, mesa, pago, evidencia, checklist.',
+      note: 'El tenant administra el espacio operativo. Las personas del evento viven como datos de negocio, no como usuarios de login salvo que deban entrar al sistema.'
+    },
+    {
+      title: 'Inmobiliaria',
+      command:
+        'tenant: agencia, broker o equipo inmobiliario.\nusers/memberships: owner, admin, agente, asistente.\nparties futuras: propietario, comprador, arrendatario, fiador, proveedor.\nforms/records: inmueble, visita, oferta, contrato, documento, seguimiento.',
+      note: 'Un propietario o comprador no tiene que ser usuario del sistema; puede ser party con contactos, documentos y roles de negocio.'
+    },
+    {
+      title: 'Venta de tickets',
+      command:
+        'tenant: promotor, organizador o marca que vende tickets.\nusers/memberships: owner, admin, taquilla, operador check-in.\nparties futuras: comprador, asistente, sponsor, punto de venta.\nforms/records: evento, ticket, orden, check-in, reembolso, acceso.',
+      note: 'El control de acceso y la venta viven como records y flujos del tenant, mientras el comprador puede ser una party o usuario segun el canal.'
+    },
+    {
+      title: 'Venta de servicios',
+      command:
+        'tenant: empresa de servicios, taller, consultora o equipo operativo.\nusers/memberships: owner, admin, tecnico, vendedor.\nparties futuras: cliente, tecnico externo, proveedor, aliado.\nforms/records: servicio, agenda, cotizacion, factura, visita, evidencia.',
+      note: 'El modelo permite operar agenda, evidencias, estados y clientes sin crear una tabla distinta para cada vertical.'
+    },
+    {
+      title: 'Minijuegos',
+      command:
+        'tenant: operador, comunidad, marca o campana.\nusers/memberships: owner, admin, moderador, soporte.\nparties futuras: jugador, sponsor, equipo, premio.\nforms/records: partida, score, torneo, premio, ranking, reclamo.',
+      note: 'El jugador puede vivir como party o usuario segun si necesita autenticarse dentro de la experiencia.'
+    },
+    {
+      title: 'Comercios',
+      command:
+        'tenant: comercio, marca, sede o grupo comercial.\nusers/memberships: owner, admin, vendedor, bodeguero.\nparties futuras: cliente, proveedor, vendedor externo.\nforms/records: producto, inventario, venta, pedido, devolucion, soporte.',
+      note: 'Si una empresa tiene varias sedes, podemos modelarlas como tenants separados o como unidades internas segun el nivel de aislamiento requerido.'
+    },
+    {
+      title: 'Regla de diseno del core',
+      command:
+        'No meter nombres de producto o industria en el core.\nNo crear tablas core como eventos_sociales_clientes o inmobiliaria_propietarios.\nUsar templates, modulos, dynamic_forms, records, custom_* y party_roles.\nCada vertical debe ser configuracion, semilla o modulo, no una rama dura del sistema.',
+      note: 'Esto mantiene Chicle Engine como plataforma adaptable y no como una app cerrada para un solo negocio.'
+    },
+    {
+      title: 'Mapa recomendado',
+      command:
+        'tenants\n  users via tenant_memberships\n  roles / permissions / menus\n  confisys / settings\n  dynamic_forms / records\n  custom_* cuando haga falta estructura propia\n  future parties / party_roles para personas y organizaciones de negocio\n  future tenant_modules / app_templates para activar verticales',
+      note: 'Este esquema nos deja atender multiples necesidades con una base sencilla, pero sin forzarla cuando llegue una industria mas compleja.'
     }
   ];
 

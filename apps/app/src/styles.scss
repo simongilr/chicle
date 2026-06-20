@@ -16,3 +16,10 @@ html,
 body {
   background: var(--ch-color-background);
 }
+
+.route-frame {
+  display: block;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  position: relative;
+}

@@ -18,7 +18,7 @@ export class MenuItem {
   @Column()
   route!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   icon?: string | null;
 
   @Column({ type: 'simple-json', nullable: true })

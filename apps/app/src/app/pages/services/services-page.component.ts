@@ -683,8 +683,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                         </select>
                         @if (tablesLoading) {
                           <span class="meta">Cargando catálogo de tablas...</span>
-                        } @else if (tableSelectOptions.length) {
-                          <span class="meta">{{ tableSelectOptions.length }} tablas disponibles.</span>
                         }
                       </div>
                     </div>

@@ -1056,10 +1056,19 @@ export class DatabasePageComponent implements OnInit {
     const values: Record<string, unknown> = {};
     try {
       for (const column of this.editableColumns) {
-        values[column.name] = this.fromDraft(this.editDraft[column.name], column);
+        const currentValue = this.editDraft[column.name] ?? '';
+        const originalValue = this.toDraft(this.selectedRow[column.name], column);
+        if (currentValue !== originalValue) {
+          values[column.name] = this.fromDraft(currentValue, column);
+        }
       }
     } catch {
       this.saveError = 'Hay un valor JSON inválido. Corrígelo antes de guardar.';
+      return;
+    }
+
+    if (!Object.keys(values).length) {
+      this.saveError = 'No hay cambios para guardar.';
       return;
     }
 
@@ -1173,7 +1182,7 @@ export class DatabasePageComponent implements OnInit {
 
   isBooleanColumn(column: DatabaseColumn) {
     const type = column.type.toLowerCase();
-    return type === 'boolean' || type === 'bool' || type === 'tinyint(1)';
+    return type === 'boolean' || type === 'bool' || type === 'tinyint(1)' || type.includes('boolean');
   }
 
   isLongColumn(column: DatabaseColumn) {

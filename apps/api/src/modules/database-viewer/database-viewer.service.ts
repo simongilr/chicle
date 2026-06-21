@@ -359,7 +359,7 @@ export class DatabaseViewerService {
       designable: false,
       columns: metadata.columns.map((column) => ({
         name: column.propertyName,
-        type: String(column.type),
+        type: this.columnTypeName(column),
         nullable: column.isNullable,
         primary: column.isPrimary,
         editable: this.isEntityColumnEditable(metadata, column)
@@ -904,7 +904,7 @@ export class ${pascal}${timestamp} implements MigrationInterface {
   }
 
   private coerceEntityValue(column: ColumnMetadata, value: unknown) {
-    return this.coerceValue(String(column.type), column.isNullable, column.propertyName, value);
+    return this.coerceValue(this.columnTypeName(column), column.isNullable, column.propertyName, value);
   }
 
   private coerceVisibleValue(column: VisibleColumn, value: unknown) {
@@ -952,5 +952,25 @@ export class ${pascal}${timestamp} implements MigrationInterface {
     }
 
     return value;
+  }
+
+  private columnTypeName(column: ColumnMetadata) {
+    if (column.type === Boolean) {
+      return 'boolean';
+    }
+
+    if (column.type === Number) {
+      return 'number';
+    }
+
+    if (column.type === Date) {
+      return 'datetime';
+    }
+
+    if (column.type === String) {
+      return 'string';
+    }
+
+    return String(column.type);
   }
 }

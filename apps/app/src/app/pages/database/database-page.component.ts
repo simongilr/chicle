@@ -36,6 +36,8 @@ interface DatabaseTablesResponse {
   tables: DatabaseTable[];
 }
 
+const DATABASE_TABLE_CACHE_KEY = 'chicle.databaseTables';
+
 interface DatabaseRowsResponse {
   table: DatabaseTable;
   page: number;
@@ -979,6 +981,7 @@ export class DatabasePageComponent implements OnInit {
     this.api.get<DatabaseTablesResponse>('database/tables').subscribe({
       next: (response) => {
         this.tables = response.tables;
+        sessionStorage.setItem(DATABASE_TABLE_CACHE_KEY, JSON.stringify(response.tables));
         this.loadingTables = false;
         if (!this.selectedTable && this.tables.length) {
           this.selectTable(this.tables[0], false);

@@ -103,6 +103,18 @@ interface DatabaseTablesResponse {
   tables: DatabaseTable[];
 }
 
+const DATABASE_TABLE_CACHE_KEY = 'chicle.databaseTables';
+const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
+  { name: 'records', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'dynamic_forms', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'dynamic_services', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'users', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'tenants', scope: 'current_tenant', source: 'entity', columns: [] },
+  { name: 'menus', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'roles', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'confisys', scope: 'global', source: 'entity', columns: [] }
+];
+
 @Component({
   selector: 'app-services-page',
   standalone: true,
@@ -830,7 +842,7 @@ export class ServicesPageComponent implements OnInit {
   readonly auth = inject(AuthService);
 
   services: DynamicServiceItem[] = [];
-  tableOptions: DatabaseTable[] = [];
+  tableOptions: DatabaseTable[] = [...FALLBACK_TABLE_OPTIONS];
   selected?: DynamicServiceItem;
   runs: DynamicServiceRun[] = [];
   lastRun?: DynamicServiceRun;
@@ -1032,6 +1044,7 @@ export class ServicesPageComponent implements OnInit {
   };
 
   ngOnInit() {
+    this.applyCachedTableCatalog();
     this.loadTables();
     if (this.canRead) {
       this.load();
@@ -1232,23 +1245,49 @@ export class ServicesPageComponent implements OnInit {
         this.applyTableCatalog(response.tables ?? [], 'base de datos');
       },
       error: (error) => {
-        this.tableOptions = [];
+        if (!this.tableOptions.length) {
+          this.tableOptions = [...FALLBACK_TABLE_OPTIONS];
+        }
         this.tablesLoading = false;
         this.tablesRequested = false;
-        this.tablesStatus = 'No se pudo cargar ningún catálogo.';
-        this.tablesError = `No se pudo cargar el catálogo de tablas desde Base de Datos. ${this.errorMessage(error)}`;
+        this.tablesStatus = 'Usando tablas base mientras no responde el catálogo.';
+        this.tablesError = `No se pudo cargar el catálogo vivo desde Base de Datos. ${this.errorMessage(error)}`;
+        this.ensurePrimaryTable();
+        this.syncGuideToDefinition();
       }
     });
   }
 
   private applyTableCatalog(tables: DatabaseTable[], source: string) {
-    this.tableOptions = this.sortTableOptions(tables);
+    const safeTables = tables.length ? tables : FALLBACK_TABLE_OPTIONS;
+    this.tableOptions = this.sortTableOptions(safeTables);
+    sessionStorage.setItem(DATABASE_TABLE_CACHE_KEY, JSON.stringify(this.tableOptions));
     this.tablesLoading = false;
     this.tablesStatus = this.tableOptions.length
       ? `${this.tableOptions.length} tablas cargadas desde ${source}.`
       : `El catálogo de ${source} respondió sin tablas visibles.`;
     this.ensurePrimaryTable();
     this.syncGuideToDefinition();
+  }
+
+  private applyCachedTableCatalog() {
+    const raw = sessionStorage.getItem(DATABASE_TABLE_CACHE_KEY);
+    if (!raw) {
+      this.tableOptions = this.sortTableOptions(FALLBACK_TABLE_OPTIONS);
+      this.ensurePrimaryTable();
+      return;
+    }
+
+    try {
+      const tables = JSON.parse(raw) as DatabaseTable[];
+      this.tableOptions = this.sortTableOptions(tables.length ? tables : FALLBACK_TABLE_OPTIONS);
+      this.tablesStatus = `${this.tableOptions.length} tablas cargadas desde cache local.`;
+      this.ensurePrimaryTable();
+    } catch {
+      sessionStorage.removeItem(DATABASE_TABLE_CACHE_KEY);
+      this.tableOptions = this.sortTableOptions(FALLBACK_TABLE_OPTIONS);
+      this.ensurePrimaryTable();
+    }
   }
 
   private sortTableOptions(tables: DatabaseTable[]) {
@@ -1277,7 +1316,7 @@ export class ServicesPageComponent implements OnInit {
   }
 
   columnSummary(table: DatabaseTable) {
-    return table.columns.map((column) => column.name).join(', ');
+    return table.columns.length ? table.columns.map((column) => column.name).join(', ') : 'Columnas pendientes de cargar.';
   }
 
   private parseJson<T>(value: string): T | null {

@@ -762,11 +762,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <strong>1. Servicio</strong>
                       <span>Guardado</span>
                     </div>
-                    <div class="status-step" [class.ready]="Boolean(selected.latestVersion)">
+                    <div class="status-step" [class.ready]="!!selected.latestVersion">
                       <strong>2. Versión</strong>
                       <span>{{ selected.latestVersion ? 'v' + selected.latestVersion.version : 'Pendiente' }}</span>
                     </div>
-                    <div class="status-step" [class.ready]="Boolean(selected.publishedVersion)">
+                    <div class="status-step" [class.ready]="!!selected.publishedVersion">
                       <strong>3. Publicación</strong>
                       <span>{{ selected.publishedVersion ? 'Lista para probar' : 'Publica una versión' }}</span>
                     </div>

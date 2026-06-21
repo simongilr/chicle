@@ -12,10 +12,20 @@ type ServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'fut
 type ServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
 type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 type ServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
+type ServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
+type ServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
 
 interface NoteOption {
   label: string;
   value: string;
+}
+
+interface ServiceFilter {
+  field: string;
+  operator: ServiceFilterOperator;
+  valueSource: ServiceFilterValueSource;
+  inputKey?: string;
+  value?: string;
 }
 
 interface DynamicServiceDefinition {
@@ -42,6 +52,7 @@ interface DynamicServiceDefinition {
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;
+    filters?: ServiceFilter[];
   };
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
@@ -656,7 +667,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     <div class="grid table-grid">
                       <div class="field">
                         <label for="query-mode">Modo de consulta</label>
-                        <select id="query-mode" [(ngModel)]="guide.queryMode" (ngModelChange)="syncGuideToDefinition()">
+                        <select id="query-mode" [(ngModel)]="guide.queryMode" (ngModelChange)="onQueryModeChange()">
                           <option value="single_table">Una tabla</option>
                           <option value="multi_table">Varias tablas relacionadas</option>
                           <option value="advanced_read_model">Vista/modelo de lectura futuro</option>
@@ -664,7 +675,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       </div>
                       <div class="field">
                         <label for="primary-table">Tabla principal</label>
-                        <select id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="syncGuideToDefinition()">
+                        <select id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="onPrimaryTableChange()">
                           <option value="">Selecciona una tabla</option>
                           <option *ngFor="let table of tableSelectOptions; trackBy: trackTableName" [value]="table.name">
                             {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
@@ -695,48 +706,113 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       </div>
                     }
 
-                    <div class="grid notes-grid">
-                      <div class="field">
-                        <label for="relation-notes">Cómo se relacionan</label>
-                        <select
-                          id="relation-notes"
-                          [(ngModel)]="guide.relationPreset"
-                          (ngModelChange)="onRelationPresetChange($event)"
-                        >
-                          @for (option of relationPresetOptions; track option.value) {
-                            <option [value]="option.value">{{ option.label }}</option>
+                    @if (guide.queryMode === 'single_table') {
+                      <div class="grid notes-grid">
+                        <div class="field">
+                          <label for="filter-field">Campo a buscar</label>
+                          <select id="filter-field" [(ngModel)]="guide.filterField" (ngModelChange)="syncGuideToDefinition()">
+                            <option value="">Selecciona un campo</option>
+                            @for (column of filterColumnOptions; track column.name) {
+                              <option [value]="column.name">{{ column.name }} · {{ column.type }}</option>
+                            }
+                            <option [value]="customNoteValue">Otro campo</option>
+                          </select>
+                          @if (guide.filterField === customNoteValue) {
+                            <input
+                              [(ngModel)]="guide.customFilterField"
+                              (ngModelChange)="syncGuideToDefinition()"
+                              placeholder="nombre_del_campo"
+                            />
                           }
-                          <option [value]="customNoteValue">Otro</option>
-                        </select>
-                        @if (guide.relationPreset === customNoteValue) {
-                          <input
-                            [(ngModel)]="guide.relationNotes"
-                            (ngModelChange)="syncGuideToDefinition()"
-                            placeholder="custom_clients.id = records.data.clientId"
-                          />
-                        }
-                      </div>
-                      <div class="field">
-                        <label for="filter-notes">Filtros esperados</label>
-                        <select
-                          id="filter-notes"
-                          [(ngModel)]="guide.filterPreset"
-                          (ngModelChange)="onFilterPresetChange($event)"
-                        >
-                          @for (option of filterPresetOptions; track option.value) {
-                            <option [value]="option.value">{{ option.label }}</option>
+                        </div>
+                        <div class="field">
+                          <label for="filter-operator">Cómo comparar</label>
+                          <select id="filter-operator" [(ngModel)]="guide.filterOperator" (ngModelChange)="syncGuideToDefinition()">
+                            <option value="equals">Igual a</option>
+                            <option value="contains">Contiene</option>
+                            <option value="starts_with">Empieza por</option>
+                            <option value="greater_than">Mayor que</option>
+                            <option value="greater_or_equal">Mayor o igual</option>
+                            <option value="less_than">Menor que</option>
+                            <option value="less_or_equal">Menor o igual</option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label for="filter-source">Valor a comparar</label>
+                          <select id="filter-source" [(ngModel)]="guide.filterValueSource" (ngModelChange)="syncGuideToDefinition()">
+                            <option value="input">Viene del formulario/API</option>
+                            <option value="literal">Valor fijo</option>
+                            <option value="tenant">Tenant actual</option>
+                            <option value="current_user">Usuario actual</option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          @if (guide.filterValueSource === 'literal') {
+                            <label for="filter-literal">Valor fijo</label>
+                            <input
+                              id="filter-literal"
+                              [(ngModel)]="guide.filterLiteral"
+                              (ngModelChange)="syncGuideToDefinition()"
+                              placeholder="activo"
+                            />
+                          } @else if (guide.filterValueSource === 'input') {
+                            <label for="filter-input-key">Nombre del input</label>
+                            <input
+                              id="filter-input-key"
+                              [(ngModel)]="guide.filterInputKey"
+                              (ngModelChange)="syncGuideToDefinition()"
+                              placeholder="name"
+                            />
+                          } @else {
+                            <label>Origen</label>
+                            <div class="notice">{{ guide.filterValueSource === 'tenant' ? 'Usa el tenant actual.' : 'Usa el usuario autenticado.' }}</div>
                           }
-                          <option [value]="customNoteValue">Otro</option>
-                        </select>
-                        @if (guide.filterPreset === customNoteValue) {
-                          <input
-                            [(ngModel)]="guide.filterNotes"
-                            (ngModelChange)="syncGuideToDefinition()"
-                            placeholder="tenant actual, estado activo, rango de fechas"
-                          />
-                        }
+                        </div>
                       </div>
-                    </div>
+                    } @else {
+                      <div class="grid notes-grid">
+                        <div class="field">
+                          <label for="relation-notes">Cómo se relacionan</label>
+                          <select
+                            id="relation-notes"
+                            [(ngModel)]="guide.relationPreset"
+                            (ngModelChange)="onRelationPresetChange($event)"
+                          >
+                            @for (option of relationPresetOptions; track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                            <option [value]="customNoteValue">Otro</option>
+                          </select>
+                          @if (guide.relationPreset === customNoteValue) {
+                            <input
+                              [(ngModel)]="guide.relationNotes"
+                              (ngModelChange)="syncGuideToDefinition()"
+                              placeholder="custom_clients.id = records.data.clientId"
+                            />
+                          }
+                        </div>
+                        <div class="field">
+                          <label for="filter-notes">Filtros esperados</label>
+                          <select
+                            id="filter-notes"
+                            [(ngModel)]="guide.filterPreset"
+                            (ngModelChange)="onFilterPresetChange($event)"
+                          >
+                            @for (option of filterPresetOptions; track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                            <option [value]="customNoteValue">Otro</option>
+                          </select>
+                          @if (guide.filterPreset === customNoteValue) {
+                            <input
+                              [(ngModel)]="guide.filterNotes"
+                              (ngModelChange)="syncGuideToDefinition()"
+                              placeholder="tenant actual, estado activo, rango de fechas"
+                            />
+                          }
+                        </div>
+                      </div>
+                    }
 
                     <div class="notice">
                       Las consultas internas complejas se describen como plan seguro. No usamos SQL libre desde la UI.
@@ -934,6 +1010,21 @@ export class ServicesPageComponent implements OnInit {
     { label: 'Búsqueda por texto', value: 'búsqueda por texto' },
     { label: 'Tenant + fechas', value: 'tenant actual, rango de fechas' }
   ];
+  readonly filterOperatorLabels: Record<ServiceFilterOperator, string> = {
+    equals: 'igual a',
+    contains: 'contiene',
+    starts_with: 'empieza por',
+    greater_than: 'mayor que',
+    greater_or_equal: 'mayor o igual que',
+    less_than: 'menor que',
+    less_or_equal: 'menor o igual que'
+  };
+  readonly filterSourceLabels: Record<ServiceFilterValueSource, string> = {
+    input: 'input',
+    literal: 'valor fijo',
+    tenant: 'tenant actual',
+    current_user: 'usuario actual'
+  };
 
   draft = {
     key: '',
@@ -950,6 +1041,12 @@ export class ServicesPageComponent implements OnInit {
     queryMode: 'single_table' as ServiceQueryMode,
     primaryTable: '',
     involvedTableList: [] as string[],
+    filterField: '',
+    customFilterField: '',
+    filterOperator: 'equals' as ServiceFilterOperator,
+    filterValueSource: 'input' as ServiceFilterValueSource,
+    filterInputKey: 'name',
+    filterLiteral: '',
     relationPreset: '',
     relationNotes: '',
     filterPreset: '',
@@ -978,7 +1075,8 @@ export class ServicesPageComponent implements OnInit {
         primaryTable: '',
         involvedTables: [],
         relationNotes: '',
-        filterNotes: ''
+        filterNotes: '',
+        filters: []
       },
       method: 'POST',
       url: 'https://api.example.com/validar',
@@ -1034,6 +1132,14 @@ export class ServicesPageComponent implements OnInit {
     return this.tableSelectOptions.find((table) => table.name === this.guide.primaryTable);
   }
 
+  get filterColumnOptions() {
+    return (this.selectedPrimaryTable?.columns ?? []).filter((column) => !/password|token|secret|hash/i.test(column.name));
+  }
+
+  get selectedFilterField() {
+    return this.guide.filterField === CUSTOM_NOTE_VALUE ? this.guide.customFilterField.trim() : this.guide.filterField;
+  }
+
   trackTableName(_index: number, table: DatabaseTable) {
     return table.name;
   }
@@ -1049,6 +1155,10 @@ export class ServicesPageComponent implements OnInit {
 
       if (this.guide.queryMode !== 'single_table' && this.guide.involvedTableList.length === 0) {
         warnings.push('Selecciona al menos una tabla involucrada para consultas de varias tablas.');
+      }
+
+      if (this.guide.queryMode === 'single_table' && !this.selectedFilterField) {
+        warnings.push('Selecciona el campo de la tabla que va a filtrar la consulta.');
       }
 
       const invalidTables = this.guide.involvedTableList.filter(
@@ -1390,20 +1500,45 @@ export class ServicesPageComponent implements OnInit {
   }
 
   private ensurePrimaryTable() {
-    if (
-      this.guide.primaryTable ||
-      (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') ||
-      !this.tableSelectOptions.length
-    ) {
+    if (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') {
+      return;
+    }
+
+    if (this.guide.primaryTable) {
+      this.ensureFilterField();
+      return;
+    }
+
+    if (!this.tableSelectOptions.length) {
       return;
     }
 
     const preferred = this.tableSelectOptions.find((table) => table.name === 'records') ?? this.tableSelectOptions[0];
     this.guide.primaryTable = preferred.name;
+    this.ensureFilterField();
   }
 
   columnSummary(table: DatabaseTable) {
     return table.columns.length ? table.columns.map((column) => column.name).join(', ') : 'Columnas pendientes de cargar.';
+  }
+
+  private ensureFilterField(force = false) {
+    if (this.guide.queryMode !== 'single_table' || !this.filterColumnOptions.length) {
+      return;
+    }
+
+    const currentIsValid = this.filterColumnOptions.some((column) => column.name === this.guide.filterField);
+    if (!force && currentIsValid) {
+      return;
+    }
+
+    const preferredNames = ['name', 'email', 'key', 'slug', 'id'];
+    const preferred =
+      preferredNames.map((name) => this.filterColumnOptions.find((column) => column.name === name)).find(Boolean) ??
+      this.filterColumnOptions[0];
+    this.guide.filterField = preferred.name;
+    this.guide.customFilterField = '';
+    this.guide.filterInputKey = preferred.name;
   }
 
   private parseJson<T>(value: string): T | null {
@@ -1433,12 +1568,14 @@ export class ServicesPageComponent implements OnInit {
         type: this.guide.effect
       }
     ];
+    const filter = this.simpleFilter();
     definition.dataTarget = {
       queryMode: this.guide.queryMode,
       primaryTable: this.guide.primaryTable.trim(),
       involvedTables: this.guide.involvedTableList,
-      relationNotes: this.guide.relationNotes.trim(),
-      filterNotes: this.guide.filterNotes.trim()
+      relationNotes: this.guide.queryMode === 'single_table' ? '' : this.guide.relationNotes.trim(),
+      filterNotes: this.guide.queryMode === 'single_table' ? this.simpleFilterSummary() : this.guide.filterNotes.trim(),
+      filters: filter ? [filter] : []
     };
 
     if (this.guide.intent === 'query' || this.guide.intent === 'get_one') {
@@ -1472,6 +1609,22 @@ export class ServicesPageComponent implements OnInit {
   onSourceChange() {
     this.ensureTableCatalog();
     this.ensurePrimaryTable();
+    this.ensureFilterField();
+    this.syncGuideToDefinition();
+  }
+
+  onQueryModeChange() {
+    if (this.guide.queryMode === 'single_table') {
+      this.guide.involvedTableList = [];
+      this.guide.relationPreset = '';
+      this.guide.relationNotes = '';
+    }
+
+    this.syncGuideToDefinition();
+  }
+
+  onPrimaryTableChange() {
+    this.ensureFilterField(true);
     this.syncGuideToDefinition();
   }
 
@@ -1510,6 +1663,7 @@ export class ServicesPageComponent implements OnInit {
     const definition = this.parseDefinitionOrDefault();
     const effect = definition.effects?.[0]?.type;
     const dataTarget = definition.dataTarget;
+    const filter = dataTarget?.filters?.[0];
     const relationNotes = dataTarget?.relationNotes ?? this.guide.relationNotes;
     const filterNotes = dataTarget?.filterNotes ?? this.guide.filterNotes;
     this.guide = {
@@ -1520,6 +1674,12 @@ export class ServicesPageComponent implements OnInit {
       queryMode: dataTarget?.queryMode ?? this.guide.queryMode,
       primaryTable: dataTarget?.primaryTable ?? this.guide.primaryTable,
       involvedTableList: dataTarget?.involvedTables ?? this.guide.involvedTableList,
+      filterField: filter?.field ?? this.guide.filterField,
+      customFilterField: '',
+      filterOperator: filter?.operator ?? this.guide.filterOperator,
+      filterValueSource: filter?.valueSource ?? this.guide.filterValueSource,
+      filterInputKey: filter?.inputKey ?? this.guide.filterInputKey,
+      filterLiteral: filter?.value ?? this.guide.filterLiteral,
       relationPreset: this.presetValueFor(relationNotes, this.relationPresetOptions),
       relationNotes,
       filterPreset: this.presetValueFor(filterNotes, this.filterPresetOptions),
@@ -1543,6 +1703,42 @@ export class ServicesPageComponent implements OnInit {
     return options.some((option) => option.value === value);
   }
 
+  private simpleFilter() {
+    const field = this.selectedFilterField;
+    if (this.guide.queryMode !== 'single_table' || !field) {
+      return null;
+    }
+
+    const filter: ServiceFilter = {
+      field,
+      operator: this.guide.filterOperator,
+      valueSource: this.guide.filterValueSource
+    };
+
+    if (this.guide.filterValueSource === 'input') {
+      filter.inputKey = this.guide.filterInputKey.trim() || field;
+    } else if (this.guide.filterValueSource === 'literal') {
+      filter.value = this.guide.filterLiteral.trim();
+    }
+
+    return filter;
+  }
+
+  private simpleFilterSummary() {
+    const filter = this.simpleFilter();
+    if (!filter) {
+      return '';
+    }
+
+    const value =
+      filter.valueSource === 'input'
+        ? `input.${filter.inputKey ?? filter.field}`
+        : filter.valueSource === 'literal'
+          ? `"${filter.value ?? ''}"`
+          : this.filterSourceLabels[filter.valueSource];
+    return `${filter.field} ${this.filterOperatorLabels[filter.operator]} ${value}`;
+  }
+
   private parseDefinitionOrDefault(): DynamicServiceDefinition {
     try {
       return JSON.parse(this.definitionText) as DynamicServiceDefinition;
@@ -1558,7 +1754,8 @@ export class ServicesPageComponent implements OnInit {
           primaryTable: this.guide.primaryTable,
           involvedTables: this.guide.involvedTableList,
           relationNotes: this.guide.relationNotes,
-          filterNotes: this.guide.filterNotes
+          filterNotes: this.guide.filterNotes,
+          filters: this.simpleFilter() ? [this.simpleFilter() as ServiceFilter] : []
         },
         method: 'POST',
         url: 'https://api.example.com/validar',
@@ -1583,7 +1780,8 @@ export class ServicesPageComponent implements OnInit {
       this.guide.queryMode !== 'single_table' && involved.length
         ? ` e involucra ${involved.join(', ')}`
         : '';
-    return ` en ${mode}; tabla principal ${table}${involvedText}`;
+    const filterText = this.guide.queryMode === 'single_table' && this.simpleFilterSummary() ? `; filtro ${this.simpleFilterSummary()}` : '';
+    return ` en ${mode}; tabla principal ${table}${involvedText}${filterText}`;
   }
 
   private errorMessage(error: unknown) {

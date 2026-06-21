@@ -47,6 +47,27 @@ interface RenderContext {
   input: Record<string, unknown>;
 }
 
+interface InformationSchemaTableRow {
+  tableName?: string;
+  table_name?: string;
+  TABLE_NAME?: string;
+}
+
+interface InformationSchemaColumnRow {
+  name?: string;
+  column_name?: string;
+  COLUMN_NAME?: string;
+  type?: string;
+  data_type?: string;
+  DATA_TYPE?: string;
+  nullable?: string;
+  is_nullable?: string;
+  IS_NULLABLE?: string;
+  columnKey?: string;
+  column_key?: string;
+  COLUMN_KEY?: string;
+}
+
 export interface ServiceCatalogColumn {
   name: string;
   type: string;
@@ -89,34 +110,41 @@ export class DynamicServicesService {
   ) {}
 
   async tableCatalog() {
-    const tables = new Map<string, ServiceCatalogTable>();
+    const rows = (await this.dataSource.query(
+      `
+        SELECT table_name AS tableName
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_type = 'BASE TABLE'
+        ORDER BY table_name
+      `
+    )) as InformationSchemaTableRow[];
 
-    for (const metadata of this.dataSource.entityMetadatas) {
-      const scope = this.catalogScope(metadata.tableName, metadata.columns.some((column) => column.propertyName === 'tenantId'));
-      if (!scope || SERVICE_CATALOG_BLOCKED_TABLES.has(metadata.tableName)) {
+    const tables: ServiceCatalogTable[] = [];
+    for (const row of rows) {
+      const tableName = row.tableName ?? row.table_name ?? row.TABLE_NAME;
+      if (!tableName || SERVICE_CATALOG_BLOCKED_TABLES.has(tableName)) {
         continue;
       }
 
-      tables.set(metadata.tableName, {
-        name: metadata.tableName,
+      const columns = await this.tableColumns(tableName);
+      const scope = this.catalogScope(
+        tableName,
+        columns.some((column) => column.name === 'tenantId' || column.name === 'tenant_id')
+      );
+      if (!scope) {
+        continue;
+      }
+
+      tables.push({
+        name: tableName,
         scope,
-        source: 'entity',
-        columns: metadata.columns
-          .filter((column) => !/password|token|secret|hash/i.test(column.propertyName))
-          .map((column) => ({
-            name: column.propertyName,
-            type: column.type instanceof Function ? column.type.name : String(column.type),
-            nullable: column.isNullable,
-            primary: column.isPrimary
-          }))
+        source: tableName.startsWith('custom_') ? 'schema' : 'entity',
+        columns: columns.filter((column) => !/password|token|secret|hash/i.test(column.name))
       });
     }
 
-    for (const table of await this.customTableCatalog()) {
-      tables.set(table.name, table);
-    }
-
-    return { tables: [...tables.values()].sort((a, b) => a.name.localeCompare(b.name)) };
+    return { tables };
   }
 
   async list(auth: AuthContext) {
@@ -376,47 +404,29 @@ export class DynamicServicesService {
     return null;
   }
 
-  private async customTableCatalog(): Promise<ServiceCatalogTable[]> {
-    const rows = await this.dataSource.query(
+  private async tableColumns(tableName: string): Promise<ServiceCatalogColumn[]> {
+    const columns = (await this.dataSource.query(
       `
-        SELECT table_name AS tableName
-        FROM information_schema.tables
+        SELECT column_name AS name,
+               data_type AS type,
+               is_nullable AS nullable,
+               column_key AS columnKey
+        FROM information_schema.columns
         WHERE table_schema = DATABASE()
-          AND table_name LIKE 'custom\\_%'
-        ORDER BY table_name
-      `
-    );
+          AND table_name = ?
+        ORDER BY ordinal_position
+      `,
+      [tableName]
+    )) as InformationSchemaColumnRow[];
 
-    const tables: ServiceCatalogTable[] = [];
-    for (const row of rows as Array<{ tableName: string }>) {
-      const columns = await this.dataSource.query(
-        `
-          SELECT column_name AS name,
-                 data_type AS type,
-                 is_nullable AS nullable,
-                 column_key AS columnKey
-          FROM information_schema.columns
-          WHERE table_schema = DATABASE()
-            AND table_name = ?
-          ORDER BY ordinal_position
-        `,
-        [row.tableName]
-      );
-
-      tables.push({
-        name: row.tableName,
-        scope: 'tenant',
-        source: 'schema',
-        columns: (columns as Array<{ name: string; type: string; nullable: string; columnKey: string }>).map((column) => ({
-          name: column.name,
-          type: column.type,
-          nullable: column.nullable === 'YES',
-          primary: column.columnKey === 'PRI'
-        }))
-      });
-    }
-
-    return tables;
+    return columns
+      .map((column) => ({
+        name: column.name ?? column.column_name ?? column.COLUMN_NAME ?? '',
+        type: column.type ?? column.data_type ?? column.DATA_TYPE ?? 'unknown',
+        nullable: (column.nullable ?? column.is_nullable ?? column.IS_NULLABLE) === 'YES',
+        primary: (column.columnKey ?? column.column_key ?? column.COLUMN_KEY) === 'PRI'
+      }))
+      .filter((column) => column.name);
   }
 
   private async requireVersion(auth: AuthContext, serviceId: string, versionId: string) {

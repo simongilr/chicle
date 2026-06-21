@@ -548,7 +548,7 @@ interface DatabaseTablesResponse {
                     </div>
                     <div class="field">
                       <label for="service-source">Dónde opera</label>
-                      <select id="service-source" [(ngModel)]="guide.source" (ngModelChange)="syncGuideToDefinition()">
+                      <select id="service-source" [(ngModel)]="guide.source" (ngModelChange)="onSourceChange()">
                         <option value="external_api">API externa</option>
                         <option value="internal_table">Tabla interna</option>
                         <option value="dynamic_record">Records</option>
@@ -608,6 +608,9 @@ interface DatabaseTablesResponse {
                           <option value="multi_table">Varias tablas relacionadas</option>
                           <option value="advanced_read_model">Vista/modelo de lectura futuro</option>
                         </select>
+                        @if (tablesLoading) {
+                          <span class="meta">Cargando catálogo de tablas...</span>
+                        }
                       </div>
                       <div class="field">
                         <label for="primary-table">Tabla principal</label>
@@ -833,6 +836,7 @@ export class ServicesPageComponent implements OnInit {
   saving = false;
   testing = false;
   runsLoading = false;
+  tablesLoading = false;
   error = '';
   tablesError = '';
   formError = '';
@@ -1212,14 +1216,17 @@ export class ServicesPageComponent implements OnInit {
   }
 
   loadTables() {
+    this.tablesLoading = true;
     this.tablesError = '';
     this.api.get<DatabaseTablesResponse>('dynamic-services/catalog/tables').subscribe({
       next: (response) => {
-        this.tableOptions = response.tables;
+        this.tableOptions = response.tables ?? [];
+        this.tablesLoading = false;
         this.syncGuideToDefinition();
       },
       error: () => {
         this.tableOptions = [];
+        this.tablesLoading = false;
         this.tablesError = 'No se pudo cargar el catálogo de tablas del diseñador de servicios.';
       }
     });
@@ -1290,6 +1297,13 @@ export class ServicesPageComponent implements OnInit {
     }
 
     this.definitionText = JSON.stringify(definition, null, 2);
+  }
+
+  onSourceChange() {
+    if ((this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') && !this.tableOptions.length) {
+      this.loadTables();
+    }
+    this.syncGuideToDefinition();
   }
 
   private loadGuideFromDefinition() {

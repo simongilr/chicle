@@ -13,6 +13,11 @@ type ServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolea
 type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 type ServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
 
+interface NoteOption {
+  label: string;
+  value: string;
+}
+
 interface DynamicServiceDefinition {
   intent?: ServiceIntent;
   source?: ServiceSource;
@@ -104,6 +109,7 @@ interface DatabaseTablesResponse {
 }
 
 const DATABASE_TABLE_CACHE_KEY = 'chicle.databaseTables';
+const CUSTOM_NOTE_VALUE = '__custom__';
 const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   { name: 'records', scope: 'tenant', source: 'entity', columns: [] },
   { name: 'dynamic_forms', scope: 'tenant', source: 'entity', columns: [] },
@@ -692,21 +698,43 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     <div class="grid notes-grid">
                       <div class="field">
                         <label for="relation-notes">Cómo se relacionan</label>
-                        <input
+                        <select
                           id="relation-notes"
-                          [(ngModel)]="guide.relationNotes"
-                          (ngModelChange)="syncGuideToDefinition()"
-                          placeholder="custom_clients.id = records.data.clientId"
-                        />
+                          [(ngModel)]="guide.relationPreset"
+                          (ngModelChange)="onRelationPresetChange($event)"
+                        >
+                          @for (option of relationPresetOptions; track option.value) {
+                            <option [value]="option.value">{{ option.label }}</option>
+                          }
+                          <option [value]="customNoteValue">Otro</option>
+                        </select>
+                        @if (guide.relationPreset === customNoteValue) {
+                          <input
+                            [(ngModel)]="guide.relationNotes"
+                            (ngModelChange)="syncGuideToDefinition()"
+                            placeholder="custom_clients.id = records.data.clientId"
+                          />
+                        }
                       </div>
                       <div class="field">
                         <label for="filter-notes">Filtros esperados</label>
-                        <input
+                        <select
                           id="filter-notes"
-                          [(ngModel)]="guide.filterNotes"
-                          (ngModelChange)="syncGuideToDefinition()"
-                          placeholder="tenant actual, estado activo, rango de fechas"
-                        />
+                          [(ngModel)]="guide.filterPreset"
+                          (ngModelChange)="onFilterPresetChange($event)"
+                        >
+                          @for (option of filterPresetOptions; track option.value) {
+                            <option [value]="option.value">{{ option.label }}</option>
+                          }
+                          <option [value]="customNoteValue">Otro</option>
+                        </select>
+                        @if (guide.filterPreset === customNoteValue) {
+                          <input
+                            [(ngModel)]="guide.filterNotes"
+                            (ngModelChange)="syncGuideToDefinition()"
+                            placeholder="tenant actual, estado activo, rango de fechas"
+                          />
+                        }
                       </div>
                     </div>
 
@@ -888,6 +916,24 @@ export class ServicesPageComponent implements OnInit {
   tablesStatus = 'Catálogo pendiente de cargar.';
   formError = '';
   message = '';
+  readonly customNoteValue = CUSTOM_NOTE_VALUE;
+  readonly relationPresetOptions: NoteOption[] = [
+    { label: 'Selecciona relación', value: '' },
+    { label: 'Tenant actual por tenantId', value: 'tenantId = tenant.id' },
+    { label: 'ID principal desde input', value: 'id = input.id' },
+    { label: 'Record a cliente custom', value: 'records.data.clientId = custom_clients.id' },
+    { label: 'Record a usuario', value: 'records.data.userId = users.id' },
+    { label: 'Usuario creador', value: 'createdByUserId = users.id' }
+  ];
+  readonly filterPresetOptions: NoteOption[] = [
+    { label: 'Selecciona filtros', value: '' },
+    { label: 'Tenant actual', value: 'tenant actual' },
+    { label: 'Solo activos', value: 'estado activo' },
+    { label: 'Tenant actual + activos', value: 'tenant actual, estado activo' },
+    { label: 'Rango de fechas', value: 'rango de fechas' },
+    { label: 'Búsqueda por texto', value: 'búsqueda por texto' },
+    { label: 'Tenant + fechas', value: 'tenant actual, rango de fechas' }
+  ];
 
   draft = {
     key: '',
@@ -904,7 +950,9 @@ export class ServicesPageComponent implements OnInit {
     queryMode: 'single_table' as ServiceQueryMode,
     primaryTable: '',
     involvedTableList: [] as string[],
+    relationPreset: '',
     relationNotes: '',
+    filterPreset: '',
     filterNotes: '',
     pageParam: 'page',
     pageSizeParam: 'pageSize',
@@ -1427,6 +1475,26 @@ export class ServicesPageComponent implements OnInit {
     this.syncGuideToDefinition();
   }
 
+  onRelationPresetChange(value: string) {
+    if (value !== CUSTOM_NOTE_VALUE) {
+      this.guide.relationNotes = value;
+    } else if (this.matchesPreset(this.guide.relationNotes, this.relationPresetOptions)) {
+      this.guide.relationNotes = '';
+    }
+
+    this.syncGuideToDefinition();
+  }
+
+  onFilterPresetChange(value: string) {
+    if (value !== CUSTOM_NOTE_VALUE) {
+      this.guide.filterNotes = value;
+    } else if (this.matchesPreset(this.guide.filterNotes, this.filterPresetOptions)) {
+      this.guide.filterNotes = '';
+    }
+
+    this.syncGuideToDefinition();
+  }
+
   ensureTableCatalog() {
     if (
       (this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') &&
@@ -1442,6 +1510,8 @@ export class ServicesPageComponent implements OnInit {
     const definition = this.parseDefinitionOrDefault();
     const effect = definition.effects?.[0]?.type;
     const dataTarget = definition.dataTarget;
+    const relationNotes = dataTarget?.relationNotes ?? this.guide.relationNotes;
+    const filterNotes = dataTarget?.filterNotes ?? this.guide.filterNotes;
     this.guide = {
       intent: definition.intent ?? this.guide.intent,
       source: definition.source ?? this.guide.source,
@@ -1450,13 +1520,27 @@ export class ServicesPageComponent implements OnInit {
       queryMode: dataTarget?.queryMode ?? this.guide.queryMode,
       primaryTable: dataTarget?.primaryTable ?? this.guide.primaryTable,
       involvedTableList: dataTarget?.involvedTables ?? this.guide.involvedTableList,
-      relationNotes: dataTarget?.relationNotes ?? this.guide.relationNotes,
-      filterNotes: dataTarget?.filterNotes ?? this.guide.filterNotes,
+      relationPreset: this.presetValueFor(relationNotes, this.relationPresetOptions),
+      relationNotes,
+      filterPreset: this.presetValueFor(filterNotes, this.filterPresetOptions),
+      filterNotes,
       pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
       pageSizeParam: definition.pagination?.pageSizeParam ?? this.guide.pageSizeParam,
       itemsPath: definition.pagination?.itemsPath ?? this.guide.itemsPath,
       totalPath: definition.pagination?.totalPath ?? this.guide.totalPath
     };
+  }
+
+  private presetValueFor(value: string, options: NoteOption[]) {
+    if (!value) {
+      return '';
+    }
+
+    return this.matchesPreset(value, options) ? value : CUSTOM_NOTE_VALUE;
+  }
+
+  private matchesPreset(value: string, options: NoteOption[]) {
+    return options.some((option) => option.value === value);
   }
 
   private parseDefinitionOrDefault(): DynamicServiceDefinition {

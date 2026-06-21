@@ -262,6 +262,13 @@ interface DatabaseTablesResponse {
         min-width: 0;
       }
 
+      .table-catalog-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
       label {
         color: #173b5f;
         font-weight: 850;
@@ -624,6 +631,12 @@ interface DatabaseTablesResponse {
                         } @else if (tableOptions.length) {
                           <span class="meta">{{ tableOptions.length }} tablas disponibles.</span>
                         }
+                        <div class="table-catalog-actions">
+                          <button type="button" (click)="loadTables()" [disabled]="tablesLoading">
+                            {{ tablesLoading ? 'Cargando...' : tableOptions.length ? 'Recargar tablas' : 'Cargar tablas' }}
+                          </button>
+                          <span class="meta">{{ tablesStatus }}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -842,6 +855,7 @@ export class ServicesPageComponent implements OnInit {
   tablesRequested = false;
   error = '';
   tablesError = '';
+  tablesStatus = 'Catálogo pendiente de cargar.';
   formError = '';
   message = '';
 
@@ -1223,19 +1237,42 @@ export class ServicesPageComponent implements OnInit {
     this.tablesRequested = true;
     this.tablesLoading = true;
     this.tablesError = '';
+    this.tablesStatus = 'Consultando catálogo del diseñador de servicios...';
     this.api.get<DatabaseTablesResponse>('dynamic-services/catalog/tables').subscribe({
       next: (response) => {
-        this.tableOptions = response.tables ?? [];
-        this.tablesLoading = false;
-        this.syncGuideToDefinition();
+        this.applyTableCatalog(response.tables ?? [], 'diseñador de servicios');
       },
       error: (error) => {
+        this.tablesStatus = 'El catálogo del diseñador no respondió. Probando catálogo del visor de DB...';
+        this.loadTablesFromDatabaseCatalog(error);
+      }
+    });
+  }
+
+  private loadTablesFromDatabaseCatalog(originalError: unknown) {
+    this.api.get<DatabaseTablesResponse>('database/tables').subscribe({
+      next: (response) => {
+        this.applyTableCatalog(response.tables ?? [], 'visor de base de datos');
+      },
+      error: (fallbackError) => {
         this.tableOptions = [];
         this.tablesLoading = false;
         this.tablesRequested = false;
-        this.tablesError = `No se pudo cargar el catálogo de tablas del diseñador de servicios. ${this.errorMessage(error)}`;
+        this.tablesStatus = 'No se pudo cargar ningún catálogo.';
+        this.tablesError =
+          `No se pudo cargar el catálogo de tablas. Servicios: ${this.errorMessage(originalError)} ` +
+          `Base de datos: ${this.errorMessage(fallbackError)}`;
       }
     });
+  }
+
+  private applyTableCatalog(tables: DatabaseTable[], source: string) {
+    this.tableOptions = tables;
+    this.tablesLoading = false;
+    this.tablesStatus = tables.length
+      ? `${tables.length} tablas cargadas desde ${source}.`
+      : `El catálogo de ${source} respondió sin tablas visibles.`;
+    this.syncGuideToDefinition();
   }
 
   columnSummary(table: DatabaseTable) {

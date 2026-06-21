@@ -147,6 +147,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         padding: 18px;
       }
 
+      .panel {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
       .intro {
         display: flex;
         align-items: flex-start;
@@ -247,23 +253,32 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
       .workspace {
         display: grid;
-        gap: 16px;
+        gap: 18px;
         align-content: start;
         min-width: 0;
         overflow: auto;
-        padding: 16px;
+        padding: 18px;
       }
 
       .grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 16px;
       }
 
       .guide-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px;
+        align-items: start;
+      }
+
+      .table-grid {
+        grid-template-columns: minmax(240px, 0.9fr) minmax(300px, 1.1fr);
+      }
+
+      .notes-grid {
+        grid-template-columns: repeat(2, minmax(260px, 1fr));
       }
 
       .field,
@@ -276,13 +291,17 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
       label {
         color: #173b5f;
+        font-size: 0.9rem;
         font-weight: 850;
+        line-height: 1.25;
       }
 
       input,
       select,
       textarea,
       button {
+        box-sizing: border-box;
+        width: 100%;
         min-height: 38px;
         border: 1px solid #b9c9d8;
         border-radius: 8px;
@@ -290,6 +309,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         color: #102f4d;
         padding: 8px 10px;
         font: inherit;
+      }
+
+      input[type='checkbox'] {
+        width: auto;
+        min-height: auto;
+        padding: 0;
       }
 
       textarea {
@@ -309,6 +334,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         color: #173b5f;
         font-weight: 850;
         cursor: pointer;
+      }
+
+      .actions button,
+      .list-header button,
+      .section-head > button,
+      .notice button {
+        width: auto;
       }
 
       button.primary {
@@ -371,7 +403,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       .status-flow {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
+        gap: 12px;
       }
 
       .status-step {
@@ -417,7 +449,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       @media (max-width: 940px) {
         .designer,
         .grid,
-        .guide-grid {
+        .guide-grid,
+        .table-grid,
+        .notes-grid,
+        .status-flow {
           grid-template-columns: 1fr;
         }
 
@@ -612,7 +647,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   }
 
                   @if (guide.source === 'internal_table' || guide.source === 'dynamic_record') {
-                    <div class="grid">
+                    <div class="grid table-grid">
                       <div class="field">
                         <label for="query-mode">Modo de consulta</label>
                         <select id="query-mode" [(ngModel)]="guide.queryMode" (ngModelChange)="syncGuideToDefinition()">
@@ -654,7 +689,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       </div>
                     }
 
-                    <div class="grid">
+                    <div class="grid notes-grid">
                       <div class="field">
                         <label for="relation-notes">Cómo se relacionan</label>
                         <input

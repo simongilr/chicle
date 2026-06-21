@@ -1228,7 +1228,8 @@ export class DocsPageComponent {
     },
     {
       title: 'Consultas internas y varias tablas',
-      ui: 'Cuando eliges Tabla interna o Records, el diseñador carga el catálogo de tablas visibles y usa selects para tabla principal e involucradas.',
+      ui: 'Cuando eliges Tabla interna o Records, el diseñador carga /api/dynamic-services/catalog/tables y usa selects para tabla principal e involucradas.',
+      swagger: 'En /api/docs usa Dynamic Services -> GET /api/dynamic-services/catalog/tables para ver el catálogo que alimenta los selects.',
       command:
         'Consulta simple:\n  dataTarget.queryMode: single_table\n  dataTarget.primaryTable: custom_clients\n\nConsulta compleja:\n  dataTarget.queryMode: multi_table\n  dataTarget.primaryTable: custom_orders\n  dataTarget.involvedTables: [custom_clients, records, users]\n  dataTarget.relationNotes: custom_orders.clientId = custom_clients.id\n  dataTarget.filterNotes: tenant actual, estado activo, rango de fechas',
       note: 'No usamos SQL libre desde la UI. Las consultas complejas se describen como plan seguro para que luego un runner controlado las ejecute.'

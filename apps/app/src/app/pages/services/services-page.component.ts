@@ -670,6 +670,14 @@ interface DatabaseTablesResponse {
                       <div class="notice error">{{ tablesError }}</div>
                     }
 
+                    @if (!tablesError && !tableOptions.length) {
+                      <div class="notice">
+                        <strong>Sin tablas cargadas</strong>
+                        <span>Recarga el catálogo para seleccionar tabla principal e involucradas.</span>
+                        <button type="button" (click)="loadTables()">Recargar tablas</button>
+                      </div>
+                    }
+
                     @if (selectedPrimaryTable) {
                       <div class="notice">
                         <strong>Columnas de {{ selectedPrimaryTable.name }}</strong>
@@ -1205,14 +1213,14 @@ export class ServicesPageComponent implements OnInit {
 
   loadTables() {
     this.tablesError = '';
-    this.api.get<DatabaseTablesResponse>('database/tables').subscribe({
+    this.api.get<DatabaseTablesResponse>('dynamic-services/catalog/tables').subscribe({
       next: (response) => {
         this.tableOptions = response.tables;
         this.syncGuideToDefinition();
       },
       error: () => {
         this.tableOptions = [];
-        this.tablesError = 'No se pudo cargar el catálogo de tablas para selección guiada.';
+        this.tablesError = 'No se pudo cargar el catálogo de tablas del diseñador de servicios.';
       }
     });
   }

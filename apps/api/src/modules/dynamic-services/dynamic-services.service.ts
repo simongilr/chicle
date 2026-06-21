@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
@@ -47,8 +47,32 @@ interface RenderContext {
   input: Record<string, unknown>;
 }
 
+export interface ServiceCatalogColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary: boolean;
+}
+
+export interface ServiceCatalogTable {
+  name: string;
+  scope: 'tenant' | 'current_tenant' | 'global';
+  source: 'entity' | 'schema';
+  columns: ServiceCatalogColumn[];
+}
+
 const HTTP_METHODS: DynamicServiceHttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const SECRET_HEADER_PATTERN = /authorization|api[-_]?key|token|secret|cookie/i;
+const SERVICE_CATALOG_GLOBAL_TABLES = new Set(['confisys', 'permissions']);
+const SERVICE_CATALOG_BLOCKED_TABLES = new Set([
+  'audit_events',
+  'auth_login_attempts',
+  'auth_sessions',
+  'migrations',
+  'role_permissions',
+  'schema_changes',
+  'user_roles'
+]);
 
 @Injectable()
 export class DynamicServicesService {
@@ -59,9 +83,41 @@ export class DynamicServicesService {
     private readonly versions: Repository<DynamicServiceVersion>,
     @InjectRepository(DynamicServiceRun)
     private readonly runs: Repository<DynamicServiceRun>,
+    private readonly dataSource: DataSource,
     private readonly confisys: ConfisysService,
     private readonly audit: AuditService
   ) {}
+
+  async tableCatalog() {
+    const tables = new Map<string, ServiceCatalogTable>();
+
+    for (const metadata of this.dataSource.entityMetadatas) {
+      const scope = this.catalogScope(metadata.tableName, metadata.columns.some((column) => column.propertyName === 'tenantId'));
+      if (!scope || SERVICE_CATALOG_BLOCKED_TABLES.has(metadata.tableName)) {
+        continue;
+      }
+
+      tables.set(metadata.tableName, {
+        name: metadata.tableName,
+        scope,
+        source: 'entity',
+        columns: metadata.columns
+          .filter((column) => !/password|token|secret|hash/i.test(column.propertyName))
+          .map((column) => ({
+            name: column.propertyName,
+            type: column.type instanceof Function ? column.type.name : String(column.type),
+            nullable: column.isNullable,
+            primary: column.isPrimary
+          }))
+      });
+    }
+
+    for (const table of await this.customTableCatalog()) {
+      tables.set(table.name, table);
+    }
+
+    return { tables: [...tables.values()].sort((a, b) => a.name.localeCompare(b.name)) };
+  }
 
   async list(auth: AuthContext) {
     const services = await this.services.find({
@@ -305,6 +361,62 @@ export class DynamicServicesService {
       throw new NotFoundException('Dynamic service not found');
     }
     return service;
+  }
+
+  private catalogScope(tableName: string, hasTenantId: boolean): ServiceCatalogTable['scope'] | null {
+    if (tableName === 'tenants') {
+      return 'current_tenant';
+    }
+    if (hasTenantId) {
+      return 'tenant';
+    }
+    if (SERVICE_CATALOG_GLOBAL_TABLES.has(tableName)) {
+      return 'global';
+    }
+    return null;
+  }
+
+  private async customTableCatalog(): Promise<ServiceCatalogTable[]> {
+    const rows = await this.dataSource.query(
+      `
+        SELECT table_name AS tableName
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name LIKE 'custom\\_%'
+        ORDER BY table_name
+      `
+    );
+
+    const tables: ServiceCatalogTable[] = [];
+    for (const row of rows as Array<{ tableName: string }>) {
+      const columns = await this.dataSource.query(
+        `
+          SELECT column_name AS name,
+                 data_type AS type,
+                 is_nullable AS nullable,
+                 column_key AS columnKey
+          FROM information_schema.columns
+          WHERE table_schema = DATABASE()
+            AND table_name = ?
+          ORDER BY ordinal_position
+        `,
+        [row.tableName]
+      );
+
+      tables.push({
+        name: row.tableName,
+        scope: 'tenant',
+        source: 'schema',
+        columns: (columns as Array<{ name: string; type: string; nullable: string; columnKey: string }>).map((column) => ({
+          name: column.name,
+          type: column.type,
+          nullable: column.nullable === 'YES',
+          primary: column.columnKey === 'PRI'
+        }))
+      });
+    }
+
+    return tables;
   }
 
   private async requireVersion(auth: AuthContext, serviceId: string, versionId: string) {

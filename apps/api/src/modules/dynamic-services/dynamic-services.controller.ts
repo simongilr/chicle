@@ -29,6 +29,17 @@ export class DynamicServicesController {
     return this.dynamicServices.list(auth);
   }
 
+  @Get('catalog/tables')
+  @RequirePermissions('services.read')
+  @ApiOperation({
+    summary: 'Catálogo de tablas para diseñar servicios',
+    description:
+      'Devuelve nombres y columnas visibles para usar selects en el diseñador. No devuelve filas ni permite SQL libre.'
+  })
+  tableCatalog() {
+    return this.dynamicServices.tableCatalog();
+  }
+
   @Post()
   @RequirePermissions('services.manage')
   @ApiOperation({

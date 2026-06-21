@@ -1081,6 +1081,8 @@ export class ServicesPageComponent implements OnInit {
     );
     this.loadGuideFromDefinition();
     this.ensureTableCatalog();
+    this.ensurePrimaryTable();
+    this.syncGuideToDefinition();
     this.formError = '';
     this.message = '';
     this.loadRuns();
@@ -1343,6 +1345,7 @@ export class ServicesPageComponent implements OnInit {
 
   onSourceChange() {
     this.ensureTableCatalog();
+    this.ensurePrimaryTable();
     this.syncGuideToDefinition();
   }
 

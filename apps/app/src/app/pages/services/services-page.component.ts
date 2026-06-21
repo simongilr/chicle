@@ -1,4 +1,4 @@
-import { JsonPipe } from '@angular/common';
+import { JsonPipe, NgFor } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
@@ -118,7 +118,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 @Component({
   selector: 'app-services-page',
   standalone: true,
-  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent],
+  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent, NgFor],
   styles: [
     `
       ion-content {
@@ -625,16 +625,14 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                         <label for="primary-table">Tabla principal</label>
                         <select id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="syncGuideToDefinition()">
                           <option value="">Selecciona una tabla</option>
-                          @for (table of tableOptions; track table.name) {
-                            <option [value]="table.name">
-                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                            </option>
-                          }
+                          <option *ngFor="let table of tableSelectOptions; trackBy: trackTableName" [value]="table.name">
+                            {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                          </option>
                         </select>
                         @if (tablesLoading) {
                           <span class="meta">Cargando catálogo de tablas...</span>
-                        } @else if (tableOptions.length) {
-                          <span class="meta">{{ tableOptions.length }} tablas disponibles.</span>
+                        } @else if (tableSelectOptions.length) {
+                          <span class="meta">{{ tableSelectOptions.length }} tablas disponibles.</span>
                         }
                       </div>
                     </div>
@@ -648,11 +646,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           [(ngModel)]="guide.involvedTableList"
                           (ngModelChange)="syncGuideToDefinition()"
                         >
-                          @for (table of tableOptions; track table.name) {
-                            <option [value]="table.name">
-                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                            </option>
-                          }
+                          <option *ngFor="let table of tableSelectOptions; trackBy: trackTableName" [value]="table.name">
+                            {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                          </option>
                         </select>
                         <span class="meta">Usa Cmd/Ctrl para seleccionar varias tablas.</span>
                       </div>
@@ -947,8 +943,16 @@ export class ServicesPageComponent implements OnInit {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.read']);
   }
 
+  get tableSelectOptions() {
+    return this.tableOptions.length ? this.tableOptions : FALLBACK_TABLE_OPTIONS;
+  }
+
   get selectedPrimaryTable() {
-    return this.tableOptions.find((table) => table.name === this.guide.primaryTable);
+    return this.tableSelectOptions.find((table) => table.name === this.guide.primaryTable);
+  }
+
+  trackTableName(_index: number, table: DatabaseTable) {
+    return table.name;
   }
 
   get guideWarnings() {
@@ -956,7 +960,7 @@ export class ServicesPageComponent implements OnInit {
     if (this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') {
       if (!this.guide.primaryTable) {
         warnings.push('Selecciona la tabla principal donde opera el servicio.');
-      } else if (this.tableOptions.length && !this.selectedPrimaryTable) {
+      } else if (this.tableSelectOptions.length && !this.selectedPrimaryTable) {
         warnings.push(`La tabla principal "${this.guide.primaryTable}" no existe en el catálogo visible.`);
       }
 
@@ -965,7 +969,7 @@ export class ServicesPageComponent implements OnInit {
       }
 
       const invalidTables = this.guide.involvedTableList.filter(
-        (tableName) => !this.tableOptions.some((table) => table.name === tableName)
+        (tableName) => !this.tableSelectOptions.some((table) => table.name === tableName)
       );
       if (invalidTables.length) {
         warnings.push(`Estas tablas involucradas no existen en el catálogo visible: ${invalidTables.join(', ')}.`);
@@ -1306,12 +1310,12 @@ export class ServicesPageComponent implements OnInit {
     if (
       this.guide.primaryTable ||
       (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') ||
-      !this.tableOptions.length
+      !this.tableSelectOptions.length
     ) {
       return;
     }
 
-    const preferred = this.tableOptions.find((table) => table.name === 'records') ?? this.tableOptions[0];
+    const preferred = this.tableSelectOptions.find((table) => table.name === 'records') ?? this.tableSelectOptions[0];
     this.guide.primaryTable = preferred.name;
   }
 

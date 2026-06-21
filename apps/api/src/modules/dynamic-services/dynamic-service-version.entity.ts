@@ -2,8 +2,28 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Update
 
 export type DynamicServiceVersionStatus = 'draft' | 'published' | 'archived';
 export type DynamicServiceHttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type DynamicServiceIntent = 'query' | 'get_one' | 'create' | 'update' | 'delete' | 'validate' | 'sync' | 'notify' | 'custom';
+export type DynamicServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'future_connector';
+export type DynamicServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
+export type DynamicServiceEffectType = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 
 export interface DynamicServiceDefinition {
+  intent?: DynamicServiceIntent;
+  source?: DynamicServiceSource;
+  resultKind?: DynamicServiceResultKind;
+  pagination?: {
+    enabled: boolean;
+    mode?: 'page' | 'offset' | 'cursor';
+    pageParam?: string;
+    pageSizeParam?: string;
+    itemsPath?: string;
+    totalPath?: string;
+  };
+  effects?: Array<{
+    type: DynamicServiceEffectType;
+    target?: string;
+    map?: Record<string, string>;
+  }>;
   method: DynamicServiceHttpMethod;
   url: string;
   headers?: Record<string, string>;

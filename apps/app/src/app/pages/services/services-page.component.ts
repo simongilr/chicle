@@ -7,8 +7,28 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 type DynamicServiceStatus = 'draft' | 'published' | 'archived';
+type ServiceIntent = 'query' | 'get_one' | 'create' | 'update' | 'delete' | 'validate' | 'sync' | 'notify' | 'custom';
+type ServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'future_connector';
+type ServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
+type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 
 interface DynamicServiceDefinition {
+  intent?: ServiceIntent;
+  source?: ServiceSource;
+  resultKind?: ServiceResultKind;
+  pagination?: {
+    enabled: boolean;
+    mode?: 'page' | 'offset' | 'cursor';
+    pageParam?: string;
+    pageSizeParam?: string;
+    itemsPath?: string;
+    totalPath?: string;
+  };
+  effects?: Array<{
+    type: ServiceEffect;
+    target?: string;
+    map?: Record<string, string>;
+  }>;
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   headers?: Record<string, string>;
@@ -200,6 +220,12 @@ interface DynamicServiceRun {
         gap: 12px;
       }
 
+      .guide-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
       .field,
       .block,
       .result {
@@ -214,6 +240,7 @@ interface DynamicServiceRun {
       }
 
       input,
+      select,
       textarea,
       button {
         min-height: 38px;
@@ -277,6 +304,21 @@ interface DynamicServiceRun {
         color: #17643a;
       }
 
+      .summary-box {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #b7cce2;
+        border-left: 4px solid #1554a2;
+        border-radius: 8px;
+        background: #f7fbff;
+        color: #173b5f;
+        padding: 14px;
+      }
+
+      .summary-box strong {
+        color: #12324f;
+      }
+
       .run-list {
         display: grid;
         gap: 10px;
@@ -330,7 +372,8 @@ interface DynamicServiceRun {
 
       @media (max-width: 940px) {
         .designer,
-        .grid {
+        .grid,
+        .guide-grid {
           grid-template-columns: 1fr;
         }
 
@@ -444,6 +487,92 @@ interface DynamicServiceRun {
               </section>
 
               @if (selected) {
+                <section class="panel">
+                  <div class="section-head">
+                    <div>
+                      <h2>Qué hace este servicio</h2>
+                      <p class="meta">
+                        Define primero la intención. El JSON técnico se actualiza con esta guía para
+                        que luego workflows, acciones y eventos sepan cómo usarlo.
+                      </p>
+                    </div>
+                    <button type="button" (click)="syncGuideToDefinition()">Actualizar JSON</button>
+                  </div>
+
+                  <div class="guide-grid">
+                    <div class="field">
+                      <label for="service-intent">Intención</label>
+                      <select id="service-intent" [(ngModel)]="guide.intent" (ngModelChange)="syncGuideToDefinition()">
+                        <option value="query">Consultar lista</option>
+                        <option value="get_one">Consultar uno</option>
+                        <option value="create">Crear</option>
+                        <option value="update">Editar</option>
+                        <option value="delete">Borrar</option>
+                        <option value="validate">Validar</option>
+                        <option value="sync">Sincronizar</option>
+                        <option value="notify">Notificar</option>
+                        <option value="custom">Personalizado</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="service-source">Dónde opera</label>
+                      <select id="service-source" [(ngModel)]="guide.source" (ngModelChange)="syncGuideToDefinition()">
+                        <option value="external_api">API externa</option>
+                        <option value="internal_table">Tabla interna</option>
+                        <option value="dynamic_record">Records</option>
+                        <option value="future_connector">Conector futuro</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="service-result">Qué devuelve</label>
+                      <select id="service-result" [(ngModel)]="guide.resultKind" (ngModelChange)="syncGuideToDefinition()">
+                        <option value="none">Nada</option>
+                        <option value="single">Un registro</option>
+                        <option value="list">Lista</option>
+                        <option value="paginated_list">Lista paginada</option>
+                        <option value="boolean">Sí / no</option>
+                        <option value="file">Archivo</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="service-effect">Qué hace con la respuesta</label>
+                      <select id="service-effect" [(ngModel)]="guide.effect" (ngModelChange)="syncGuideToDefinition()">
+                        <option value="none">Solo guardar historial</option>
+                        <option value="show_response">Mostrar respuesta</option>
+                        <option value="update_record">Actualizar record</option>
+                        <option value="update_custom_table">Actualizar tabla custom</option>
+                        <option value="emit_event">Emitir evento</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  @if (guide.resultKind === 'paginated_list') {
+                    <div class="grid">
+                      <div class="field">
+                        <label for="page-param">Parámetro página</label>
+                        <input id="page-param" [(ngModel)]="guide.pageParam" (ngModelChange)="syncGuideToDefinition()" />
+                      </div>
+                      <div class="field">
+                        <label for="page-size-param">Parámetro tamaño</label>
+                        <input id="page-size-param" [(ngModel)]="guide.pageSizeParam" (ngModelChange)="syncGuideToDefinition()" />
+                      </div>
+                      <div class="field">
+                        <label for="items-path">Ruta items</label>
+                        <input id="items-path" [(ngModel)]="guide.itemsPath" (ngModelChange)="syncGuideToDefinition()" />
+                      </div>
+                      <div class="field">
+                        <label for="total-path">Ruta total</label>
+                        <input id="total-path" [(ngModel)]="guide.totalPath" (ngModelChange)="syncGuideToDefinition()" />
+                      </div>
+                    </div>
+                  }
+
+                  <div class="summary-box">
+                    <strong>Resumen</strong>
+                    <span>{{ serviceSummary }}</span>
+                  </div>
+                </section>
+
                 <section class="panel">
                   <div class="section-head">
                     <div>
@@ -586,8 +715,30 @@ export class ServicesPageComponent implements OnInit {
     active: true
   };
 
+  guide = {
+    intent: 'validate' as ServiceIntent,
+    source: 'external_api' as ServiceSource,
+    resultKind: 'boolean' as ServiceResultKind,
+    effect: 'show_response' as ServiceEffect,
+    pageParam: 'page',
+    pageSizeParam: 'pageSize',
+    itemsPath: 'response.body.items',
+    totalPath: 'response.body.total'
+  };
+
   definitionText = JSON.stringify(
     {
+      intent: 'validate',
+      source: 'external_api',
+      resultKind: 'boolean',
+      pagination: {
+        enabled: false
+      },
+      effects: [
+        {
+          type: 'show_response'
+        }
+      ],
       method: 'POST',
       url: 'https://api.example.com/validar',
       headers: {
@@ -633,6 +784,54 @@ export class ServicesPageComponent implements OnInit {
   get canRead() {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.read']);
   }
+
+  get serviceSummary() {
+    const intent = this.intentLabels[this.guide.intent];
+    const source = this.sourceLabels[this.guide.source];
+    const result = this.resultLabels[this.guide.resultKind];
+    const effect = this.effectLabels[this.guide.effect];
+    const pagination =
+      this.guide.resultKind === 'paginated_list'
+        ? ` Usa paginación con ${this.guide.pageParam} y ${this.guide.pageSizeParam}.`
+        : '';
+    return `Este servicio sirve para ${intent}, opera sobre ${source}, devuelve ${result} y al terminar ${effect}.${pagination}`;
+  }
+
+  private readonly intentLabels: Record<ServiceIntent, string> = {
+    query: 'consultar una lista',
+    get_one: 'consultar un registro',
+    create: 'crear información',
+    update: 'editar información',
+    delete: 'borrar información',
+    validate: 'validar información',
+    sync: 'sincronizar información',
+    notify: 'enviar una notificación',
+    custom: 'ejecutar una operación personalizada'
+  };
+
+  private readonly sourceLabels: Record<ServiceSource, string> = {
+    external_api: 'una API externa',
+    internal_table: 'una tabla interna',
+    dynamic_record: 'records del tenant',
+    future_connector: 'un conector futuro'
+  };
+
+  private readonly resultLabels: Record<ServiceResultKind, string> = {
+    none: 'ningún dato',
+    single: 'un solo resultado',
+    list: 'una lista',
+    paginated_list: 'una lista paginada',
+    boolean: 'un resultado sí/no',
+    file: 'un archivo'
+  };
+
+  private readonly effectLabels: Record<ServiceEffect, string> = {
+    none: 'solo guarda el historial de ejecución',
+    show_response: 'muestra o expone la respuesta para revisión',
+    update_record: 'prepara la respuesta para actualizar un record',
+    update_custom_table: 'prepara la respuesta para actualizar una tabla custom',
+    emit_event: 'prepara la emisión de un evento'
+  };
 
   ngOnInit() {
     if (this.canRead) {
@@ -681,6 +880,7 @@ export class ServicesPageComponent implements OnInit {
       null,
       2
     );
+    this.loadGuideFromDefinition();
     this.formError = '';
     this.message = '';
     this.loadRuns();
@@ -766,6 +966,7 @@ export class ServicesPageComponent implements OnInit {
   loadPublishedDefinition() {
     if (this.selected?.publishedVersion) {
       this.definitionText = JSON.stringify(this.selected.publishedVersion.definition, null, 2);
+      this.loadGuideFromDefinition();
     }
   }
 
@@ -821,6 +1022,89 @@ export class ServicesPageComponent implements OnInit {
     } catch {
       this.formError = 'El JSON no es válido.';
       return null;
+    }
+  }
+
+  syncGuideToDefinition() {
+    const definition = this.parseDefinitionOrDefault();
+    definition.intent = this.guide.intent;
+    definition.source = this.guide.source;
+    definition.resultKind = this.guide.resultKind;
+    definition.pagination = {
+      enabled: this.guide.resultKind === 'paginated_list',
+      mode: 'page',
+      pageParam: this.guide.pageParam || 'page',
+      pageSizeParam: this.guide.pageSizeParam || 'pageSize',
+      itemsPath: this.guide.itemsPath || 'response.body.items',
+      totalPath: this.guide.totalPath || 'response.body.total'
+    };
+    definition.effects = [
+      {
+        type: this.guide.effect
+      }
+    ];
+
+    if (this.guide.intent === 'query' || this.guide.intent === 'get_one') {
+      definition.method = 'GET';
+      definition.body = null;
+    } else if (this.guide.intent === 'delete') {
+      definition.method = 'DELETE';
+      definition.body = null;
+    } else if (this.guide.intent === 'update') {
+      definition.method = 'PATCH';
+    } else if (definition.method === 'GET' || definition.method === 'DELETE') {
+      definition.method = 'POST';
+    }
+
+    if (this.guide.resultKind === 'paginated_list') {
+      definition.query = {
+        ...(definition.query ?? {}),
+        [this.guide.pageParam || 'page']: '{{input.page}}',
+        [this.guide.pageSizeParam || 'pageSize']: '{{input.pageSize}}'
+      };
+      definition.responseMap = {
+        ...(definition.responseMap ?? {}),
+        items: `{{${this.guide.itemsPath || 'response.body.items'}}}`,
+        total: `{{${this.guide.totalPath || 'response.body.total'}}}`
+      };
+    }
+
+    this.definitionText = JSON.stringify(definition, null, 2);
+  }
+
+  private loadGuideFromDefinition() {
+    const definition = this.parseDefinitionOrDefault();
+    const effect = definition.effects?.[0]?.type;
+    this.guide = {
+      intent: definition.intent ?? this.guide.intent,
+      source: definition.source ?? this.guide.source,
+      resultKind: definition.resultKind ?? this.guide.resultKind,
+      effect: effect ?? this.guide.effect,
+      pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
+      pageSizeParam: definition.pagination?.pageSizeParam ?? this.guide.pageSizeParam,
+      itemsPath: definition.pagination?.itemsPath ?? this.guide.itemsPath,
+      totalPath: definition.pagination?.totalPath ?? this.guide.totalPath
+    };
+  }
+
+  private parseDefinitionOrDefault(): DynamicServiceDefinition {
+    try {
+      return JSON.parse(this.definitionText) as DynamicServiceDefinition;
+    } catch {
+      return {
+        intent: this.guide.intent,
+        source: this.guide.source,
+        resultKind: this.guide.resultKind,
+        pagination: { enabled: false },
+        effects: [{ type: this.guide.effect }],
+        method: 'POST',
+        url: 'https://api.example.com/validar',
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        timeoutMs: 8000,
+        retry: { attempts: 0, backoffMs: 0 },
+        responseMap: {}
+      };
     }
   }
 

@@ -339,6 +339,11 @@ export class DynamicServicesService {
     }
 
     return {
+      intent: definition.intent ?? 'custom',
+      source: definition.source ?? 'external_api',
+      resultKind: definition.resultKind ?? 'single',
+      pagination: definition.pagination ?? { enabled: false },
+      effects: definition.effects ?? [{ type: 'show_response' }],
       method: definition.method,
       url: definition.url.trim(),
       headers: definition.headers ?? {},

@@ -1214,16 +1214,22 @@ export class DocsPageComponent {
     },
     {
       title: 'Flujo recomendado',
-      ui: 'En Servicios toca Nuevo, guarda key/nombre, crea versión, publica la versión y luego usa Prueba en vivo.',
+      ui: 'En Servicios toca Nuevo, guarda key/nombre, completa Qué hace este servicio, revisa el JSON, crea versión, publica y prueba.',
       swagger: 'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish y POST /test.',
       command:
-        '1. Crear dynamic_service\n2. Crear dynamic_service_version draft\n3. Publicar versión\n4. Probar desde backend\n5. Guardar dynamic_service_run\n6. Más adelante: ejecutar por eventos/workflows',
+        '1. Crear dynamic_service\n2. Definir intención: consultar, crear, editar, borrar, validar, sincronizar o notificar\n3. Definir fuente: API externa, tabla interna, records o conector futuro\n4. Definir resultado: uno, lista, lista paginada, booleano, archivo o nada\n5. Crear dynamic_service_version draft\n6. Publicar versión\n7. Probar desde backend\n8. Guardar dynamic_service_run',
       note: 'La ejecución productiva siempre debe usar una versión publicada, nunca una definición suelta del navegador.'
+    },
+    {
+      title: 'Qué hace vs cómo lo ejecuta',
+      command:
+        'Qué hace:\n  intent: query\n  source: external_api\n  resultKind: paginated_list\n  effects: show_response\n\nCómo lo ejecuta:\n  method: GET\n  url: https://api.ejemplo.com/clientes\n  query: page, pageSize, search',
+      note: 'El diseñador debe ser autodidacta: primero explica el objetivo del servicio y luego muestra el detalle técnico.'
     },
     {
       title: 'Ejemplo de definición',
       command:
-        '{\n  "method": "POST",\n  "url": "https://api.ejemplo.com/validar",\n  "headers": {\n    "Content-Type": "application/json",\n    "Authorization": "Bearer {{input.token}}"\n  },\n  "body": {\n    "serial": "{{input.serial}}",\n    "tenant": "{{tenant.slug}}"\n  },\n  "timeoutMs": 8000,\n  "retry": { "attempts": 0, "backoffMs": 0 },\n  "responseMap": {}\n}',
+        '{\n  "intent": "query",\n  "source": "external_api",\n  "resultKind": "paginated_list",\n  "pagination": {\n    "enabled": true,\n    "mode": "page",\n    "pageParam": "page",\n    "pageSizeParam": "pageSize",\n    "itemsPath": "response.body.items",\n    "totalPath": "response.body.total"\n  },\n  "effects": [{ "type": "show_response" }],\n  "method": "GET",\n  "url": "https://api.ejemplo.com/clientes",\n  "query": {\n    "page": "{{input.page}}",\n    "pageSize": "{{input.pageSize}}",\n    "search": "{{input.search}}"\n  },\n  "timeoutMs": 8000,\n  "retry": { "attempts": 0, "backoffMs": 0 },\n  "responseMap": {\n    "items": "{{response.body.items}}",\n    "total": "{{response.body.total}}"\n  }\n}',
       note: 'La V1 soporta http_request. Luego podremos agregar internal_action, conectores, webhooks o servicios nativos.'
     },
     {

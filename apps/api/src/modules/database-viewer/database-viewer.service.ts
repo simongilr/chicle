@@ -225,6 +225,10 @@ export class DatabaseViewerService {
       throw new BadRequestException('No editable values were provided');
     }
 
+    if (metadata.tableName === 'users' && id === auth.user.id && updates.active === false) {
+      throw new BadRequestException('You cannot disable your own user from the database viewer');
+    }
+
     const saved = await repository.save({ ...row, ...updates });
     return {
       table: visible,

@@ -344,6 +344,10 @@ export class DynamicServicesService {
       resultKind: definition.resultKind ?? 'single',
       pagination: definition.pagination ?? { enabled: false },
       effects: definition.effects ?? [{ type: 'show_response' }],
+      dataTarget: definition.dataTarget ?? {
+        queryMode: 'single_table',
+        involvedTables: []
+      },
       method: definition.method,
       url: definition.url.trim(),
       headers: definition.headers ?? {},

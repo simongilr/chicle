@@ -6,6 +6,7 @@ export type DynamicServiceIntent = 'query' | 'get_one' | 'create' | 'update' | '
 export type DynamicServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'future_connector';
 export type DynamicServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
 export type DynamicServiceEffectType = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
+export type DynamicServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
 
 export interface DynamicServiceDefinition {
   intent?: DynamicServiceIntent;
@@ -24,6 +25,14 @@ export interface DynamicServiceDefinition {
     target?: string;
     map?: Record<string, string>;
   }>;
+  dataTarget?: {
+    queryMode: DynamicServiceQueryMode;
+    primaryTable?: string;
+    involvedTables?: string[];
+    recordKey?: string;
+    relationNotes?: string;
+    filterNotes?: string;
+  };
   method: DynamicServiceHttpMethod;
   url: string;
   headers?: Record<string, string>;

@@ -11,6 +11,7 @@ type ServiceIntent = 'query' | 'get_one' | 'create' | 'update' | 'delete' | 'val
 type ServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'future_connector';
 type ServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
 type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
+type ServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
 
 interface DynamicServiceDefinition {
   intent?: ServiceIntent;
@@ -29,6 +30,14 @@ interface DynamicServiceDefinition {
     target?: string;
     map?: Record<string, string>;
   }>;
+  dataTarget?: {
+    queryMode: ServiceQueryMode;
+    primaryTable?: string;
+    involvedTables?: string[];
+    recordKey?: string;
+    relationNotes?: string;
+    filterNotes?: string;
+  };
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   headers?: Record<string, string>;
@@ -567,6 +576,60 @@ interface DynamicServiceRun {
                     </div>
                   }
 
+                  @if (guide.source === 'internal_table' || guide.source === 'dynamic_record') {
+                    <div class="grid">
+                      <div class="field">
+                        <label for="query-mode">Modo de consulta</label>
+                        <select id="query-mode" [(ngModel)]="guide.queryMode" (ngModelChange)="syncGuideToDefinition()">
+                          <option value="single_table">Una tabla</option>
+                          <option value="multi_table">Varias tablas relacionadas</option>
+                          <option value="advanced_read_model">Vista/modelo de lectura futuro</option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label for="primary-table">Tabla principal</label>
+                        <input id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="syncGuideToDefinition()" placeholder="custom_clients" />
+                      </div>
+                    </div>
+
+                    @if (guide.queryMode !== 'single_table') {
+                      <div class="field">
+                        <label for="involved-tables">Tablas involucradas</label>
+                        <input
+                          id="involved-tables"
+                          [(ngModel)]="guide.involvedTables"
+                          (ngModelChange)="syncGuideToDefinition()"
+                          placeholder="custom_clients, records, users"
+                        />
+                      </div>
+                    }
+
+                    <div class="grid">
+                      <div class="field">
+                        <label for="relation-notes">Cómo se relacionan</label>
+                        <input
+                          id="relation-notes"
+                          [(ngModel)]="guide.relationNotes"
+                          (ngModelChange)="syncGuideToDefinition()"
+                          placeholder="custom_clients.id = records.data.clientId"
+                        />
+                      </div>
+                      <div class="field">
+                        <label for="filter-notes">Filtros esperados</label>
+                        <input
+                          id="filter-notes"
+                          [(ngModel)]="guide.filterNotes"
+                          (ngModelChange)="syncGuideToDefinition()"
+                          placeholder="tenant actual, estado activo, rango de fechas"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="notice">
+                      Las consultas internas complejas se describen como plan seguro. No usamos SQL libre desde la UI.
+                    </div>
+                  }
+
                   <div class="summary-box">
                     <strong>Resumen</strong>
                     <span>{{ serviceSummary }}</span>
@@ -720,6 +783,11 @@ export class ServicesPageComponent implements OnInit {
     source: 'external_api' as ServiceSource,
     resultKind: 'boolean' as ServiceResultKind,
     effect: 'show_response' as ServiceEffect,
+    queryMode: 'single_table' as ServiceQueryMode,
+    primaryTable: '',
+    involvedTables: '',
+    relationNotes: '',
+    filterNotes: '',
     pageParam: 'page',
     pageSizeParam: 'pageSize',
     itemsPath: 'response.body.items',
@@ -739,6 +807,13 @@ export class ServicesPageComponent implements OnInit {
           type: 'show_response'
         }
       ],
+      dataTarget: {
+        queryMode: 'single_table',
+        primaryTable: '',
+        involvedTables: [],
+        relationNotes: '',
+        filterNotes: ''
+      },
       method: 'POST',
       url: 'https://api.example.com/validar',
       headers: {
@@ -794,7 +869,8 @@ export class ServicesPageComponent implements OnInit {
       this.guide.resultKind === 'paginated_list'
         ? ` Usa paginación con ${this.guide.pageParam} y ${this.guide.pageSizeParam}.`
         : '';
-    return `Este servicio sirve para ${intent}, opera sobre ${source}, devuelve ${result} y al terminar ${effect}.${pagination}`;
+    const target = this.targetSummary();
+    return `Este servicio sirve para ${intent}, opera sobre ${source}${target}, devuelve ${result} y al terminar ${effect}.${pagination}`;
   }
 
   private readonly intentLabels: Record<ServiceIntent, string> = {
@@ -831,6 +907,12 @@ export class ServicesPageComponent implements OnInit {
     update_record: 'prepara la respuesta para actualizar un record',
     update_custom_table: 'prepara la respuesta para actualizar una tabla custom',
     emit_event: 'prepara la emisión de un evento'
+  };
+
+  private readonly queryModeLabels: Record<ServiceQueryMode, string> = {
+    single_table: 'una sola tabla',
+    multi_table: 'varias tablas relacionadas',
+    advanced_read_model: 'un modelo de lectura preparado'
   };
 
   ngOnInit() {
@@ -1043,6 +1125,13 @@ export class ServicesPageComponent implements OnInit {
         type: this.guide.effect
       }
     ];
+    definition.dataTarget = {
+      queryMode: this.guide.queryMode,
+      primaryTable: this.guide.primaryTable.trim(),
+      involvedTables: this.tableList(this.guide.involvedTables),
+      relationNotes: this.guide.relationNotes.trim(),
+      filterNotes: this.guide.filterNotes.trim()
+    };
 
     if (this.guide.intent === 'query' || this.guide.intent === 'get_one') {
       definition.method = 'GET';
@@ -1075,11 +1164,17 @@ export class ServicesPageComponent implements OnInit {
   private loadGuideFromDefinition() {
     const definition = this.parseDefinitionOrDefault();
     const effect = definition.effects?.[0]?.type;
+    const dataTarget = definition.dataTarget;
     this.guide = {
       intent: definition.intent ?? this.guide.intent,
       source: definition.source ?? this.guide.source,
       resultKind: definition.resultKind ?? this.guide.resultKind,
       effect: effect ?? this.guide.effect,
+      queryMode: dataTarget?.queryMode ?? this.guide.queryMode,
+      primaryTable: dataTarget?.primaryTable ?? this.guide.primaryTable,
+      involvedTables: (dataTarget?.involvedTables ?? this.tableList(this.guide.involvedTables)).join(', '),
+      relationNotes: dataTarget?.relationNotes ?? this.guide.relationNotes,
+      filterNotes: dataTarget?.filterNotes ?? this.guide.filterNotes,
       pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
       pageSizeParam: definition.pagination?.pageSizeParam ?? this.guide.pageSizeParam,
       itemsPath: definition.pagination?.itemsPath ?? this.guide.itemsPath,
@@ -1097,6 +1192,13 @@ export class ServicesPageComponent implements OnInit {
         resultKind: this.guide.resultKind,
         pagination: { enabled: false },
         effects: [{ type: this.guide.effect }],
+        dataTarget: {
+          queryMode: this.guide.queryMode,
+          primaryTable: this.guide.primaryTable,
+          involvedTables: this.tableList(this.guide.involvedTables),
+          relationNotes: this.guide.relationNotes,
+          filterNotes: this.guide.filterNotes
+        },
         method: 'POST',
         url: 'https://api.example.com/validar',
         headers: { 'Content-Type': 'application/json' },
@@ -1106,6 +1208,28 @@ export class ServicesPageComponent implements OnInit {
         responseMap: {}
       };
     }
+  }
+
+  private tableList(value: string) {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private targetSummary() {
+    if (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') {
+      return '';
+    }
+
+    const table = this.guide.primaryTable.trim() || 'una tabla pendiente de definir';
+    const mode = this.queryModeLabels[this.guide.queryMode];
+    const involved = this.tableList(this.guide.involvedTables);
+    const involvedText =
+      this.guide.queryMode !== 'single_table' && involved.length
+        ? ` e involucra ${involved.join(', ')}`
+        : '';
+    return ` en ${mode}; tabla principal ${table}${involvedText}`;
   }
 
   private errorMessage(error: unknown) {

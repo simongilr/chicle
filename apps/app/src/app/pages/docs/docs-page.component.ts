@@ -1223,13 +1223,19 @@ export class DocsPageComponent {
     {
       title: 'Qué hace vs cómo lo ejecuta',
       command:
-        'Qué hace:\n  intent: query\n  source: external_api\n  resultKind: paginated_list\n  effects: show_response\n\nCómo lo ejecuta:\n  method: GET\n  url: https://api.ejemplo.com/clientes\n  query: page, pageSize, search',
+        'Qué hace:\n  intent: query\n  source: internal_table\n  resultKind: paginated_list\n  dataTarget.primaryTable: custom_clients\n  dataTarget.queryMode: single_table\n  effects: show_response\n\nCómo lo ejecuta:\n  method: GET\n  query: page, pageSize, search',
       note: 'El diseñador debe ser autodidacta: primero explica el objetivo del servicio y luego muestra el detalle técnico.'
+    },
+    {
+      title: 'Consultas internas y varias tablas',
+      command:
+        'Consulta simple:\n  dataTarget.queryMode: single_table\n  dataTarget.primaryTable: custom_clients\n\nConsulta compleja:\n  dataTarget.queryMode: multi_table\n  dataTarget.primaryTable: custom_orders\n  dataTarget.involvedTables: [custom_clients, records, users]\n  dataTarget.relationNotes: custom_orders.clientId = custom_clients.id\n  dataTarget.filterNotes: tenant actual, estado activo, rango de fechas',
+      note: 'No usamos SQL libre desde la UI. Las consultas complejas se describen como plan seguro para que luego un runner controlado las ejecute.'
     },
     {
       title: 'Ejemplo de definición',
       command:
-        '{\n  "intent": "query",\n  "source": "external_api",\n  "resultKind": "paginated_list",\n  "pagination": {\n    "enabled": true,\n    "mode": "page",\n    "pageParam": "page",\n    "pageSizeParam": "pageSize",\n    "itemsPath": "response.body.items",\n    "totalPath": "response.body.total"\n  },\n  "effects": [{ "type": "show_response" }],\n  "method": "GET",\n  "url": "https://api.ejemplo.com/clientes",\n  "query": {\n    "page": "{{input.page}}",\n    "pageSize": "{{input.pageSize}}",\n    "search": "{{input.search}}"\n  },\n  "timeoutMs": 8000,\n  "retry": { "attempts": 0, "backoffMs": 0 },\n  "responseMap": {\n    "items": "{{response.body.items}}",\n    "total": "{{response.body.total}}"\n  }\n}',
+        '{\n  "intent": "query",\n  "source": "internal_table",\n  "resultKind": "paginated_list",\n  "dataTarget": {\n    "queryMode": "multi_table",\n    "primaryTable": "custom_orders",\n    "involvedTables": ["custom_clients", "records"],\n    "relationNotes": "custom_orders.clientId = custom_clients.id",\n    "filterNotes": "tenant actual, estado activo, rango de fechas"\n  },\n  "pagination": {\n    "enabled": true,\n    "mode": "page",\n    "pageParam": "page",\n    "pageSizeParam": "pageSize",\n    "itemsPath": "response.body.items",\n    "totalPath": "response.body.total"\n  },\n  "effects": [{ "type": "show_response" }],\n  "method": "GET",\n  "query": {\n    "page": "{{input.page}}",\n    "pageSize": "{{input.pageSize}}",\n    "search": "{{input.search}}"\n  },\n  "timeoutMs": 8000\n}',
       note: 'La V1 soporta http_request. Luego podremos agregar internal_action, conectores, webhooks o servicios nativos.'
     },
     {

@@ -84,6 +84,25 @@ interface DynamicServiceRun {
   createdAt: string;
 }
 
+interface DatabaseColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary: boolean;
+  editable: boolean;
+}
+
+interface DatabaseTable {
+  name: string;
+  scope: string;
+  source: string;
+  columns: DatabaseColumn[];
+}
+
+interface DatabaseTablesResponse {
+  tables: DatabaseTable[];
+}
+
 @Component({
   selector: 'app-services-page',
   standalone: true,
@@ -322,6 +341,10 @@ interface DynamicServiceRun {
         background: #f7fbff;
         color: #173b5f;
         padding: 14px;
+      }
+
+      select[multiple] {
+        min-height: 128px;
       }
 
       .summary-box strong {
@@ -588,19 +611,33 @@ interface DynamicServiceRun {
                       </div>
                       <div class="field">
                         <label for="primary-table">Tabla principal</label>
-                        <input id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="syncGuideToDefinition()" placeholder="custom_clients" />
+                        <select id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="syncGuideToDefinition()">
+                          <option value="">Selecciona una tabla</option>
+                          @for (table of tableOptions; track table.name) {
+                            <option [value]="table.name">
+                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                            </option>
+                          }
+                        </select>
                       </div>
                     </div>
 
                     @if (guide.queryMode !== 'single_table') {
                       <div class="field">
                         <label for="involved-tables">Tablas involucradas</label>
-                        <input
+                        <select
                           id="involved-tables"
-                          [(ngModel)]="guide.involvedTables"
+                          multiple
+                          [(ngModel)]="guide.involvedTableList"
                           (ngModelChange)="syncGuideToDefinition()"
-                          placeholder="custom_clients, records, users"
-                        />
+                        >
+                          @for (table of tableOptions; track table.name) {
+                            <option [value]="table.name">
+                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                            </option>
+                          }
+                        </select>
+                        <span class="meta">Usa Cmd/Ctrl para seleccionar varias tablas.</span>
                       </div>
                     }
 
@@ -628,6 +665,26 @@ interface DynamicServiceRun {
                     <div class="notice">
                       Las consultas internas complejas se describen como plan seguro. No usamos SQL libre desde la UI.
                     </div>
+
+                    @if (tablesError) {
+                      <div class="notice error">{{ tablesError }}</div>
+                    }
+
+                    @if (selectedPrimaryTable) {
+                      <div class="notice">
+                        <strong>Columnas de {{ selectedPrimaryTable.name }}</strong>
+                        <span>{{ columnSummary(selectedPrimaryTable) }}</span>
+                      </div>
+                    }
+                  }
+
+                  @if (guideWarnings.length) {
+                    <div class="notice error">
+                      <strong>Antes de crear versión</strong>
+                      @for (warning of guideWarnings; track warning) {
+                        <span>{{ warning }}</span>
+                      }
+                    </div>
                   }
 
                   <div class="summary-box">
@@ -644,7 +701,7 @@ interface DynamicServiceRun {
                     </div>
                     <div class="actions">
                       <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
-                      <button class="primary" type="button" (click)="createVersion()" [disabled]="!canManage || saving">
+                      <button class="primary" type="button" (click)="createVersion()" [disabled]="!canCreateVersion">
                         Crear versión
                       </button>
                       <button
@@ -760,6 +817,7 @@ export class ServicesPageComponent implements OnInit {
   readonly auth = inject(AuthService);
 
   services: DynamicServiceItem[] = [];
+  tableOptions: DatabaseTable[] = [];
   selected?: DynamicServiceItem;
   runs: DynamicServiceRun[] = [];
   lastRun?: DynamicServiceRun;
@@ -768,6 +826,7 @@ export class ServicesPageComponent implements OnInit {
   testing = false;
   runsLoading = false;
   error = '';
+  tablesError = '';
   formError = '';
   message = '';
 
@@ -785,7 +844,7 @@ export class ServicesPageComponent implements OnInit {
     effect: 'show_response' as ServiceEffect,
     queryMode: 'single_table' as ServiceQueryMode,
     primaryTable: '',
-    involvedTables: '',
+    involvedTableList: [] as string[],
     relationNotes: '',
     filterNotes: '',
     pageParam: 'page',
@@ -860,6 +919,47 @@ export class ServicesPageComponent implements OnInit {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.read']);
   }
 
+  get selectedPrimaryTable() {
+    return this.tableOptions.find((table) => table.name === this.guide.primaryTable);
+  }
+
+  get guideWarnings() {
+    const warnings: string[] = [];
+    if (this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') {
+      if (!this.guide.primaryTable) {
+        warnings.push('Selecciona la tabla principal donde opera el servicio.');
+      } else if (this.tableOptions.length && !this.selectedPrimaryTable) {
+        warnings.push(`La tabla principal "${this.guide.primaryTable}" no existe en el catálogo visible.`);
+      }
+
+      if (this.guide.queryMode !== 'single_table' && this.guide.involvedTableList.length === 0) {
+        warnings.push('Selecciona al menos una tabla involucrada para consultas de varias tablas.');
+      }
+
+      const invalidTables = this.guide.involvedTableList.filter(
+        (tableName) => !this.tableOptions.some((table) => table.name === tableName)
+      );
+      if (invalidTables.length) {
+        warnings.push(`Estas tablas involucradas no existen en el catálogo visible: ${invalidTables.join(', ')}.`);
+      }
+    }
+
+    if (this.guide.resultKind === 'paginated_list') {
+      if (!this.guide.pageParam || !this.guide.pageSizeParam) {
+        warnings.push('Define los parámetros de página y tamaño para la paginación.');
+      }
+      if (!this.guide.itemsPath || !this.guide.totalPath) {
+        warnings.push('Define las rutas de items y total para interpretar la respuesta paginada.');
+      }
+    }
+
+    return warnings;
+  }
+
+  get canCreateVersion() {
+    return this.canManage && !this.saving && this.guideWarnings.length === 0;
+  }
+
   get serviceSummary() {
     const intent = this.intentLabels[this.guide.intent];
     const source = this.sourceLabels[this.guide.source];
@@ -918,6 +1018,7 @@ export class ServicesPageComponent implements OnInit {
   ngOnInit() {
     if (this.canRead) {
       this.load();
+      this.loadTables();
     }
   }
 
@@ -998,6 +1099,10 @@ export class ServicesPageComponent implements OnInit {
 
   createVersion() {
     if (!this.selected) {
+      return;
+    }
+    if (this.guideWarnings.length) {
+      this.formError = this.guideWarnings.join(' ');
       return;
     }
     const definition = this.parseJson<DynamicServiceDefinition>(this.definitionText);
@@ -1098,6 +1203,24 @@ export class ServicesPageComponent implements OnInit {
     });
   }
 
+  loadTables() {
+    this.tablesError = '';
+    this.api.get<DatabaseTablesResponse>('database/tables').subscribe({
+      next: (response) => {
+        this.tableOptions = response.tables;
+        this.syncGuideToDefinition();
+      },
+      error: () => {
+        this.tableOptions = [];
+        this.tablesError = 'No se pudo cargar el catálogo de tablas para selección guiada.';
+      }
+    });
+  }
+
+  columnSummary(table: DatabaseTable) {
+    return table.columns.map((column) => column.name).join(', ');
+  }
+
   private parseJson<T>(value: string): T | null {
     try {
       return JSON.parse(value) as T;
@@ -1128,7 +1251,7 @@ export class ServicesPageComponent implements OnInit {
     definition.dataTarget = {
       queryMode: this.guide.queryMode,
       primaryTable: this.guide.primaryTable.trim(),
-      involvedTables: this.tableList(this.guide.involvedTables),
+      involvedTables: this.guide.involvedTableList,
       relationNotes: this.guide.relationNotes.trim(),
       filterNotes: this.guide.filterNotes.trim()
     };
@@ -1172,7 +1295,7 @@ export class ServicesPageComponent implements OnInit {
       effect: effect ?? this.guide.effect,
       queryMode: dataTarget?.queryMode ?? this.guide.queryMode,
       primaryTable: dataTarget?.primaryTable ?? this.guide.primaryTable,
-      involvedTables: (dataTarget?.involvedTables ?? this.tableList(this.guide.involvedTables)).join(', '),
+      involvedTableList: dataTarget?.involvedTables ?? this.guide.involvedTableList,
       relationNotes: dataTarget?.relationNotes ?? this.guide.relationNotes,
       filterNotes: dataTarget?.filterNotes ?? this.guide.filterNotes,
       pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
@@ -1195,7 +1318,7 @@ export class ServicesPageComponent implements OnInit {
         dataTarget: {
           queryMode: this.guide.queryMode,
           primaryTable: this.guide.primaryTable,
-          involvedTables: this.tableList(this.guide.involvedTables),
+          involvedTables: this.guide.involvedTableList,
           relationNotes: this.guide.relationNotes,
           filterNotes: this.guide.filterNotes
         },
@@ -1210,13 +1333,6 @@ export class ServicesPageComponent implements OnInit {
     }
   }
 
-  private tableList(value: string) {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
   private targetSummary() {
     if (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') {
       return '';
@@ -1224,7 +1340,7 @@ export class ServicesPageComponent implements OnInit {
 
     const table = this.guide.primaryTable.trim() || 'una tabla pendiente de definir';
     const mode = this.queryModeLabels[this.guide.queryMode];
-    const involved = this.tableList(this.guide.involvedTables);
+    const involved = this.guide.involvedTableList;
     const involvedText =
       this.guide.queryMode !== 'single_table' && involved.length
         ? ` e involucra ${involved.join(', ')}`

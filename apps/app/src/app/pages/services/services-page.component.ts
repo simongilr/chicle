@@ -1032,9 +1032,9 @@ export class ServicesPageComponent implements OnInit {
   };
 
   ngOnInit() {
+    this.loadTables();
     if (this.canRead) {
       this.load();
-      this.loadTables();
     }
   }
 
@@ -1240,12 +1240,38 @@ export class ServicesPageComponent implements OnInit {
   }
 
   private applyTableCatalog(tables: DatabaseTable[], source: string) {
-    this.tableOptions = tables;
+    this.tableOptions = this.sortTableOptions(tables);
     this.tablesLoading = false;
-    this.tablesStatus = tables.length
-      ? `${tables.length} tablas cargadas desde ${source}.`
+    this.tablesStatus = this.tableOptions.length
+      ? `${this.tableOptions.length} tablas cargadas desde ${source}.`
       : `El catálogo de ${source} respondió sin tablas visibles.`;
+    this.ensurePrimaryTable();
     this.syncGuideToDefinition();
+  }
+
+  private sortTableOptions(tables: DatabaseTable[]) {
+    const priority = ['records', 'dynamic_forms', 'dynamic_services', 'users', 'tenants'];
+    return [...tables].sort((a, b) => {
+      const aPriority = priority.indexOf(a.name);
+      const bPriority = priority.indexOf(b.name);
+      if (aPriority !== -1 || bPriority !== -1) {
+        return (aPriority === -1 ? priority.length : aPriority) - (bPriority === -1 ? priority.length : bPriority);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  private ensurePrimaryTable() {
+    if (
+      this.guide.primaryTable ||
+      (this.guide.source !== 'internal_table' && this.guide.source !== 'dynamic_record') ||
+      !this.tableOptions.length
+    ) {
+      return;
+    }
+
+    const preferred = this.tableOptions.find((table) => table.name === 'records') ?? this.tableOptions[0];
+    this.guide.primaryTable = preferred.name;
   }
 
   columnSummary(table: DatabaseTable) {

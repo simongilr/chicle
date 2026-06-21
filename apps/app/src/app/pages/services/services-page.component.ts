@@ -608,9 +608,6 @@ interface DatabaseTablesResponse {
                           <option value="multi_table">Varias tablas relacionadas</option>
                           <option value="advanced_read_model">Vista/modelo de lectura futuro</option>
                         </select>
-                        @if (tablesLoading) {
-                          <span class="meta">Cargando catálogo de tablas...</span>
-                        }
                       </div>
                       <div class="field">
                         <label for="primary-table">Tabla principal</label>
@@ -622,6 +619,11 @@ interface DatabaseTablesResponse {
                             </option>
                           }
                         </select>
+                        @if (tablesLoading) {
+                          <span class="meta">Cargando catálogo de tablas...</span>
+                        } @else if (tableOptions.length) {
+                          <span class="meta">{{ tableOptions.length }} tablas disponibles.</span>
+                        }
                       </div>
                     </div>
 
@@ -837,6 +839,7 @@ export class ServicesPageComponent implements OnInit {
   testing = false;
   runsLoading = false;
   tablesLoading = false;
+  tablesRequested = false;
   error = '';
   tablesError = '';
   formError = '';
@@ -1076,6 +1079,7 @@ export class ServicesPageComponent implements OnInit {
       2
     );
     this.loadGuideFromDefinition();
+    this.ensureTableCatalog();
     this.formError = '';
     this.message = '';
     this.loadRuns();
@@ -1216,6 +1220,7 @@ export class ServicesPageComponent implements OnInit {
   }
 
   loadTables() {
+    this.tablesRequested = true;
     this.tablesLoading = true;
     this.tablesError = '';
     this.api.get<DatabaseTablesResponse>('dynamic-services/catalog/tables').subscribe({
@@ -1224,10 +1229,11 @@ export class ServicesPageComponent implements OnInit {
         this.tablesLoading = false;
         this.syncGuideToDefinition();
       },
-      error: () => {
+      error: (error) => {
         this.tableOptions = [];
         this.tablesLoading = false;
-        this.tablesError = 'No se pudo cargar el catálogo de tablas del diseñador de servicios.';
+        this.tablesRequested = false;
+        this.tablesError = `No se pudo cargar el catálogo de tablas del diseñador de servicios. ${this.errorMessage(error)}`;
       }
     });
   }
@@ -1300,10 +1306,19 @@ export class ServicesPageComponent implements OnInit {
   }
 
   onSourceChange() {
-    if ((this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') && !this.tableOptions.length) {
+    this.ensureTableCatalog();
+    this.syncGuideToDefinition();
+  }
+
+  ensureTableCatalog() {
+    if (
+      (this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') &&
+      !this.tableOptions.length &&
+      !this.tablesLoading &&
+      !this.tablesRequested
+    ) {
       this.loadTables();
     }
-    this.syncGuideToDefinition();
   }
 
   private loadGuideFromDefinition() {

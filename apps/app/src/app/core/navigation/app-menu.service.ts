@@ -96,7 +96,7 @@ export class AppMenuService {
   }
 
   private hasAccess(item: AppMenuItem) {
-    if (item.key === 'database' && this.auth.state.isOwnerOrAdmin) {
+    if (this.auth.state.isOwnerOrAdmin) {
       return true;
     }
 

@@ -413,6 +413,10 @@ export class HomePageComponent {
 
   get visibleModules() {
     return this.modules.filter((module) => {
+      if (this.auth.state.isOwnerOrAdmin) {
+        return true;
+      }
+
       const hasPermissions = !module.permissions || this.auth.state.hasAllPermissions(module.permissions);
       const hasRoles = !module.roles || this.auth.state.hasAnyRole(module.roles);
       return hasPermissions && hasRoles;

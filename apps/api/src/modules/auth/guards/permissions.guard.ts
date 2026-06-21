@@ -21,6 +21,15 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const auth = request.auth;
+    const isOwnerOrAdmin =
+      auth?.user.systemRole === 'owner' ||
+      auth?.user.systemRole === 'admin' ||
+      auth?.roles.some((role) => role.key === 'owner' || role.key === 'admin');
+    if (isOwnerOrAdmin) {
+      return true;
+    }
+
     const permissions = new Set(request.auth?.permissions ?? []);
     const allowed = required.every((permission) => permissions.has(permission));
     if (!allowed) {

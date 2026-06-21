@@ -337,7 +337,7 @@ interface DynamicServiceRun {
           <span class="badge">Tenant services</span>
         </section>
 
-        @if (!auth.state.hasAllPermissions(['services.read'])) {
+        @if (!canRead) {
           <section class="panel">
             <h2>Acceso restringido</h2>
             <p>Necesitas permiso services.read para ver este módulo.</p>
@@ -572,15 +572,19 @@ export class ServicesPageComponent implements OnInit {
   );
 
   get canManage() {
-    return this.auth.state.hasAllPermissions(['services.manage']);
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.manage']);
   }
 
   get canExecute() {
-    return this.auth.state.hasAllPermissions(['services.execute']);
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.execute']);
+  }
+
+  get canRead() {
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.read']);
   }
 
   ngOnInit() {
-    if (this.auth.state.hasAllPermissions(['services.read'])) {
+    if (this.canRead) {
       this.load();
     }
   }

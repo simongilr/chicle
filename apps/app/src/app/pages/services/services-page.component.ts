@@ -282,6 +282,32 @@ interface DynamicServiceRun {
         gap: 10px;
       }
 
+      .status-flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .status-step {
+        display: grid;
+        gap: 5px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        color: #254057;
+        padding: 10px;
+      }
+
+      .status-step.ready {
+        border-color: #a9ddb7;
+        background: #f4fbf6;
+        color: #17643a;
+      }
+
+      .status-step strong {
+        color: inherit;
+      }
+
       .run-item {
         display: grid;
         gap: 8px;
@@ -445,6 +471,8 @@ interface DynamicServiceRun {
                     <p class="meta">
                       Última versión: v{{ selected.latestVersion.version }} · {{ selected.latestVersion.status }}
                     </p>
+                  } @else {
+                    <p class="meta">Aún no hay versiones. Crea una versión con la definición actual.</p>
                   }
                 </section>
 
@@ -454,9 +482,24 @@ interface DynamicServiceRun {
                       <h2>Prueba en vivo</h2>
                       <p class="meta">El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos.</p>
                     </div>
-                    <button class="primary" type="button" (click)="testService()" [disabled]="!canExecute || testing">
+                    <button class="primary" type="button" (click)="testService()" [disabled]="!canTest">
                       Probar servicio
                     </button>
+                  </div>
+
+                  <div class="status-flow">
+                    <div class="status-step ready">
+                      <strong>1. Servicio</strong>
+                      <span>Guardado</span>
+                    </div>
+                    <div class="status-step" [class.ready]="Boolean(selected.latestVersion)">
+                      <strong>2. Versión</strong>
+                      <span>{{ selected.latestVersion ? 'v' + selected.latestVersion.version : 'Pendiente' }}</span>
+                    </div>
+                    <div class="status-step" [class.ready]="Boolean(selected.publishedVersion)">
+                      <strong>3. Publicación</strong>
+                      <span>{{ selected.publishedVersion ? 'Lista para probar' : 'Publica una versión' }}</span>
+                    </div>
                   </div>
 
                   <div class="grid">
@@ -468,6 +511,10 @@ interface DynamicServiceRun {
                       <label>Última respuesta</label>
                       @if (lastRun) {
                         <pre>{{ lastRun | json }}</pre>
+                      } @else if (!selected.publishedVersion) {
+                        <div class="notice">
+                          Primero crea una versión y publícala. La prueba solo ejecuta versiones publicadas.
+                        </div>
                       } @else {
                         <div class="notice">Ejecuta una prueba para ver request, response, duración y errores.</div>
                       }
@@ -577,6 +624,10 @@ export class ServicesPageComponent implements OnInit {
 
   get canExecute() {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.execute']);
+  }
+
+  get canTest() {
+    return Boolean(this.canExecute && this.selected?.publishedVersion && !this.testing);
   }
 
   get canRead() {
@@ -722,6 +773,10 @@ export class ServicesPageComponent implements OnInit {
     if (!this.selected) {
       return;
     }
+    if (!this.selected.publishedVersion) {
+      this.formError = 'Primero crea una versión y publícala antes de probar el servicio.';
+      return;
+    }
     const context = this.parseJson<Record<string, unknown>>(this.contextText);
     if (!context) {
       return;
@@ -772,6 +827,22 @@ export class ServicesPageComponent implements OnInit {
   private errorMessage(error: unknown) {
     const response = error as { error?: { message?: string | string[] }; message?: string };
     const message = response.error?.message ?? response.message;
-    return Array.isArray(message) ? message.join(', ') : message || 'Error inesperado.';
+    const text = Array.isArray(message) ? message.join(', ') : message || 'Error inesperado.';
+    const translations: Record<string, string> = {
+      'Publish a service version before testing it':
+        'Primero crea una versión y publícala antes de probar el servicio.',
+      'Service is inactive': 'El servicio está inactivo.',
+      'Dynamic service not found': 'No se encontró el servicio dinámico.',
+      'Definition is required': 'La definición del servicio es obligatoria.',
+      'Unsupported HTTP method': 'El método HTTP no está soportado.',
+      'URL is required': 'La URL del servicio es obligatoria.',
+      'Service URL is invalid': 'La URL del servicio no es válida.',
+      'Only HTTP and HTTPS URLs are allowed': 'Solo se permiten URLs HTTP o HTTPS.',
+      'Private hosts are blocked for dynamic services':
+        'Los hosts privados están bloqueados para servicios dinámicos.',
+      'Private network targets are blocked for dynamic services':
+        'Las redes privadas están bloqueadas para servicios dinámicos.'
+    };
+    return translations[text] ?? text;
   }
 }

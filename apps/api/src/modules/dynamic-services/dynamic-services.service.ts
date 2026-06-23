@@ -599,12 +599,30 @@ export class DynamicServicesService {
       params.push(auth.tenant.id);
     }
 
-    for (const filter of definition.dataTarget.filters ?? []) {
+    const filters = definition.dataTarget.filters ?? [];
+    const filterSql: string[] = [];
+    const filterParams: unknown[] = [];
+    for (const filter of filters) {
       const field = this.requireFilterColumn(table, filter.field);
       const value = this.resolveFilterValue(auth, input, filter);
-      const { sql, param } = this.filterSql(field, filter, value);
-      whereSql.push(sql);
-      params.push(param);
+      const expression = this.filterSql(field, filter, value);
+      if (!expression) {
+        continue;
+      }
+      filterSql.push(expression.sql);
+      filterParams.push(expression.param);
+    }
+
+    if (filters.length && !filterSql.length) {
+      throw new BadRequestException('At least one filter value is required');
+    }
+
+    if ((definition.dataTarget.matchMode ?? 'all') === 'any' && filterSql.length > 1) {
+      whereSql.push(`(${filterSql.join(' OR ')})`);
+      params.push(...filterParams);
+    } else {
+      whereSql.push(...filterSql);
+      params.push(...filterParams);
     }
 
     return {
@@ -686,6 +704,9 @@ export class DynamicServicesService {
 
   private filterSql(column: ServiceCatalogColumn, filter: DynamicServiceFilter, value: unknown) {
     if (value === undefined || value === null || value === '') {
+      if (filter.required === false) {
+        return null;
+      }
       throw new BadRequestException(`Filter value for ${column.name} is required`);
     }
 
@@ -782,9 +803,15 @@ export class DynamicServicesService {
       resultKind: definition.resultKind ?? 'single',
       pagination: definition.pagination ?? { enabled: false },
       effects: definition.effects ?? [{ type: 'show_response' }],
-      dataTarget: definition.dataTarget ?? {
-        queryMode: 'single_table',
-        involvedTables: []
+      dataTarget: {
+        queryMode: definition.dataTarget?.queryMode ?? 'single_table',
+        primaryTable: definition.dataTarget?.primaryTable,
+        involvedTables: definition.dataTarget?.involvedTables ?? [],
+        recordKey: definition.dataTarget?.recordKey,
+        relationNotes: definition.dataTarget?.relationNotes,
+        filterNotes: definition.dataTarget?.filterNotes,
+        matchMode: definition.dataTarget?.matchMode ?? 'all',
+        filters: definition.dataTarget?.filters ?? []
       },
       method: definition.method,
       url: definition.url?.trim() ?? '',

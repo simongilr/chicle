@@ -9,6 +9,7 @@ export type DynamicServiceEffectType = 'none' | 'show_response' | 'update_record
 export type DynamicServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
 export type DynamicServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
 export type DynamicServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
+export type DynamicServiceFilterMatchMode = 'all' | 'any';
 
 export interface DynamicServiceFilter {
   field: string;
@@ -16,6 +17,7 @@ export interface DynamicServiceFilter {
   valueSource: DynamicServiceFilterValueSource;
   inputKey?: string;
   value?: string;
+  required?: boolean;
 }
 
 export interface DynamicServiceDefinition {
@@ -42,6 +44,7 @@ export interface DynamicServiceDefinition {
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;
+    matchMode?: DynamicServiceFilterMatchMode;
     filters?: DynamicServiceFilter[];
   };
   method: DynamicServiceHttpMethod;

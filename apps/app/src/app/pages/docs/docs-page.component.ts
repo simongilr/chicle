@@ -1243,9 +1243,16 @@ export class DocsPageComponent {
       note: 'No usamos SQL libre desde la UI. Las consultas complejas se describen como plan seguro para que luego un runner controlado las ejecute.'
     },
     {
+      title: 'Combinaciones de filtros',
+      ui: 'En Servicios, para Una tabla, agrega varios filtros y elige si deben coincidir todos o cualquiera. Marca Obligatorio solo cuando el usuario siempre deba enviar ese valor.',
+      command:
+        'Buscar por email Y name:\n  matchMode: all\n  filters:\n    email equals input.email required\n    name contains input.name required\n\nBuscar por email O name:\n  matchMode: any\n  filters:\n    email equals input.email opcional\n    name contains input.name opcional\n\nRegla segura:\n  si todos los filtros opcionales llegan vacíos, la API bloquea la consulta.',
+      note: 'Esto permite búsquedas reales sin escribir SQL: exactas, por texto, obligatorias u opcionales.'
+    },
+    {
       title: 'Ejemplo de definición',
       command:
-        '{\n  "intent": "query",\n  "source": "internal_table",\n  "resultKind": "paginated_list",\n  "dataTarget": {\n    "queryMode": "multi_table",\n    "primaryTable": "custom_orders",\n    "involvedTables": ["custom_clients", "records"],\n    "relationNotes": "custom_orders.clientId = custom_clients.id",\n    "filterNotes": "tenant actual, estado activo, rango de fechas"\n  },\n  "pagination": {\n    "enabled": true,\n    "mode": "page",\n    "pageParam": "page",\n    "pageSizeParam": "pageSize",\n    "itemsPath": "response.body.items",\n    "totalPath": "response.body.total"\n  },\n  "effects": [{ "type": "show_response" }],\n  "method": "GET",\n  "query": {\n    "page": "{{input.page}}",\n    "pageSize": "{{input.pageSize}}",\n    "search": "{{input.search}}"\n  },\n  "timeoutMs": 8000\n}',
+        '{\n  "intent": "query",\n  "source": "internal_table",\n  "resultKind": "list",\n  "dataTarget": {\n    "queryMode": "single_table",\n    "primaryTable": "users",\n    "matchMode": "any",\n    "filterNotes": "email o name opcional",\n    "filters": [\n      {\n        "field": "email",\n        "operator": "equals",\n        "valueSource": "input",\n        "inputKey": "email",\n        "required": false\n      },\n      {\n        "field": "name",\n        "operator": "contains",\n        "valueSource": "input",\n        "inputKey": "name",\n        "required": false\n      }\n    ]\n  },\n  "effects": [{ "type": "show_response" }],\n  "method": "GET",\n  "timeoutMs": 8000\n}',
       note: 'La V1 soporta http_request. Luego podremos agregar internal_action, conectores, webhooks o servicios nativos.'
     },
     {

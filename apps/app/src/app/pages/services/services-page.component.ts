@@ -15,6 +15,7 @@ type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom
 type ServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
 type ServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
 type ServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
+type ServiceFilterMatchMode = 'all' | 'any';
 
 interface NoteOption {
   label: string;
@@ -27,6 +28,17 @@ interface ServiceFilter {
   valueSource: ServiceFilterValueSource;
   inputKey?: string;
   value?: string;
+  required?: boolean;
+}
+
+interface ServiceGuideFilter {
+  field: string;
+  customField: string;
+  operator: ServiceFilterOperator;
+  valueSource: ServiceFilterValueSource;
+  inputKey: string;
+  value: string;
+  required: boolean;
 }
 
 interface DynamicServiceDefinition {
@@ -53,6 +65,7 @@ interface DynamicServiceDefinition {
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;
+    matchMode?: ServiceFilterMatchMode;
     filters?: ServiceFilter[];
   };
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -301,6 +314,45 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         grid-template-columns: repeat(2, minmax(260px, 1fr));
       }
 
+      .filter-builder {
+        display: grid;
+        grid-column: 1 / -1;
+        gap: 12px;
+      }
+
+      .filter-row {
+        display: grid;
+        grid-template-columns: minmax(150px, 1fr) minmax(135px, 0.8fr) minmax(155px, 0.9fr) minmax(160px, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+        border: 1px solid #d4e0ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        padding: 12px;
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .checkline {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        width: auto;
+        color: #435b73;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .checkline input {
+        width: auto;
+        min-height: auto;
+      }
+
       .field,
       .block,
       .result {
@@ -472,6 +524,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         .guide-grid,
         .table-grid,
         .notes-grid,
+        .filter-row,
         .status-flow {
           grid-template-columns: 1fr;
         }
@@ -729,63 +782,101 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     @if (guide.queryMode === 'single_table') {
                       <div class="grid notes-grid">
                         <div class="field">
-                          <label for="filter-field">Campo a buscar</label>
-                          <select id="filter-field" [(ngModel)]="guide.filterField" (ngModelChange)="syncGuideToDefinition()">
-                            <option value="">Selecciona un campo</option>
-                            @for (column of filterColumnOptions; track column.name) {
-                              <option [value]="column.name">{{ column.name }} · {{ column.type }}</option>
-                            }
-                            <option [value]="customNoteValue">Otro campo</option>
-                          </select>
-                          @if (guide.filterField === customNoteValue) {
-                            <input
-                              [(ngModel)]="guide.customFilterField"
-                              (ngModelChange)="syncGuideToDefinition()"
-                              placeholder="nombre_del_campo"
-                            />
-                          }
-                        </div>
-                        <div class="field">
-                          <label for="filter-operator">Cómo comparar</label>
-                          <select id="filter-operator" [(ngModel)]="guide.filterOperator" (ngModelChange)="syncGuideToDefinition()">
-                            <option value="equals">Igual a</option>
-                            <option value="contains">Contiene</option>
-                            <option value="starts_with">Empieza por</option>
-                            <option value="greater_than">Mayor que</option>
-                            <option value="greater_or_equal">Mayor o igual</option>
-                            <option value="less_than">Menor que</option>
-                            <option value="less_or_equal">Menor o igual</option>
+                          <label for="filter-match-mode">Cómo combinar filtros</label>
+                          <select id="filter-match-mode" [(ngModel)]="guide.matchMode" (ngModelChange)="syncGuideToDefinition()">
+                            <option value="all">Todos deben coincidir</option>
+                            <option value="any">Cualquiera puede coincidir</option>
                           </select>
                         </div>
                         <div class="field">
-                          <label for="filter-source">Valor a comparar</label>
-                          <select id="filter-source" [(ngModel)]="guide.filterValueSource" (ngModelChange)="syncGuideToDefinition()">
-                            <option value="input">Viene del formulario/API</option>
-                            <option value="literal">Valor fijo</option>
-                            <option value="tenant">Tenant actual</option>
-                            <option value="current_user">Usuario actual</option>
-                          </select>
+                          <label>Filtros configurados</label>
+                          <button type="button" (click)="addGuideFilter()">Agregar filtro</button>
                         </div>
-                        <div class="field">
-                          @if (guide.filterValueSource === 'literal') {
-                            <label for="filter-literal">Valor fijo</label>
-                            <input
-                              id="filter-literal"
-                              [(ngModel)]="guide.filterLiteral"
-                              (ngModelChange)="syncGuideToDefinition()"
-                              placeholder="activo"
-                            />
-                          } @else if (guide.filterValueSource === 'input') {
-                            <label for="filter-input-key">Nombre del input</label>
-                            <input
-                              id="filter-input-key"
-                              [(ngModel)]="guide.filterInputKey"
-                              (ngModelChange)="syncGuideToDefinition()"
-                              placeholder="name"
-                            />
-                          } @else {
-                            <label>Origen</label>
-                            <div class="notice">{{ guide.filterValueSource === 'tenant' ? 'Usa el tenant actual.' : 'Usa el usuario autenticado.' }}</div>
+                        <div class="filter-builder">
+                          @for (filter of guide.filters; track $index; let index = $index) {
+                            <div class="filter-row">
+                              <div class="field">
+                                <label [for]="'filter-field-' + index">Campo</label>
+                                <select
+                                  [id]="'filter-field-' + index"
+                                  [(ngModel)]="filter.field"
+                                  (ngModelChange)="onGuideFilterFieldChange(filter)"
+                                >
+                                  <option value="">Selecciona un campo</option>
+                                  @for (column of filterColumnOptions; track column.name) {
+                                    <option [value]="column.name">{{ column.name }} · {{ column.type }}</option>
+                                  }
+                                  <option [value]="customNoteValue">Otro campo</option>
+                                </select>
+                                @if (filter.field === customNoteValue) {
+                                  <input
+                                    [(ngModel)]="filter.customField"
+                                    (ngModelChange)="syncGuideToDefinition()"
+                                    placeholder="nombre_del_campo"
+                                  />
+                                }
+                              </div>
+                              <div class="field">
+                                <label [for]="'filter-operator-' + index">Comparación</label>
+                                <select
+                                  [id]="'filter-operator-' + index"
+                                  [(ngModel)]="filter.operator"
+                                  (ngModelChange)="syncGuideToDefinition()"
+                                >
+                                  <option value="equals">Igual a</option>
+                                  <option value="contains">Contiene</option>
+                                  <option value="starts_with">Empieza por</option>
+                                  <option value="greater_than">Mayor que</option>
+                                  <option value="greater_or_equal">Mayor o igual</option>
+                                  <option value="less_than">Menor que</option>
+                                  <option value="less_or_equal">Menor o igual</option>
+                                </select>
+                              </div>
+                              <div class="field">
+                                <label [for]="'filter-source-' + index">Valor</label>
+                                <select
+                                  [id]="'filter-source-' + index"
+                                  [(ngModel)]="filter.valueSource"
+                                  (ngModelChange)="syncGuideToDefinition()"
+                                >
+                                  <option value="input">Viene del formulario/API</option>
+                                  <option value="literal">Valor fijo</option>
+                                  <option value="tenant">Tenant actual</option>
+                                  <option value="current_user">Usuario actual</option>
+                                </select>
+                              </div>
+                              <div class="field">
+                                @if (filter.valueSource === 'literal') {
+                                  <label [for]="'filter-literal-' + index">Valor fijo</label>
+                                  <input
+                                    [id]="'filter-literal-' + index"
+                                    [(ngModel)]="filter.value"
+                                    (ngModelChange)="syncGuideToDefinition()"
+                                    placeholder="activo"
+                                  />
+                                } @else if (filter.valueSource === 'input') {
+                                  <label [for]="'filter-input-key-' + index">Nombre del input</label>
+                                  <input
+                                    [id]="'filter-input-key-' + index"
+                                    [(ngModel)]="filter.inputKey"
+                                    (ngModelChange)="syncGuideToDefinition()"
+                                    placeholder="name"
+                                  />
+                                } @else {
+                                  <label>Origen</label>
+                                  <div class="notice">{{ filter.valueSource === 'tenant' ? 'Usa el tenant actual.' : 'Usa el usuario autenticado.' }}</div>
+                                }
+                              </div>
+                              <div class="filter-actions">
+                                <label class="checkline">
+                                  <input type="checkbox" [(ngModel)]="filter.required" (ngModelChange)="syncGuideToDefinition()" />
+                                  Obligatorio
+                                </label>
+                                <button type="button" (click)="removeGuideFilter(index)" [disabled]="guide.filters.length === 1">
+                                  Quitar
+                                </button>
+                              </div>
+                            </div>
                           }
                         </div>
                       </div>
@@ -1063,12 +1154,8 @@ export class ServicesPageComponent implements OnInit {
     queryMode: 'single_table' as ServiceQueryMode,
     primaryTable: '',
     involvedTableList: [] as string[],
-    filterField: '',
-    customFilterField: '',
-    filterOperator: 'equals' as ServiceFilterOperator,
-    filterValueSource: 'input' as ServiceFilterValueSource,
-    filterInputKey: 'name',
-    filterLiteral: '',
+    matchMode: 'all' as ServiceFilterMatchMode,
+    filters: [] as ServiceGuideFilter[],
     relationPreset: '',
     relationNotes: '',
     filterPreset: '',
@@ -1162,8 +1249,10 @@ export class ServicesPageComponent implements OnInit {
     return (this.selectedPrimaryTable?.columns ?? []).filter((column) => !/password|token|secret|hash/i.test(column.name));
   }
 
-  get selectedFilterField() {
-    return this.guide.filterField === CUSTOM_NOTE_VALUE ? this.guide.customFilterField.trim() : this.guide.filterField;
+  get selectedGuideFilters() {
+    return this.guide.filters
+      .map((filter) => this.toServiceFilter(filter))
+      .filter((filter): filter is ServiceFilter => Boolean(filter));
   }
 
   trackTableName(_index: number, table: DatabaseTable) {
@@ -1183,8 +1272,12 @@ export class ServicesPageComponent implements OnInit {
         warnings.push('Selecciona al menos una tabla involucrada para consultas de varias tablas.');
       }
 
-      if (this.guide.queryMode === 'single_table' && !this.selectedFilterField) {
-        warnings.push('Selecciona el campo de la tabla que va a filtrar la consulta.');
+      if (this.guide.queryMode === 'single_table') {
+        if (!this.guide.filters.length) {
+          warnings.push('Agrega al menos un filtro para controlar la consulta.');
+        } else if (!this.selectedGuideFilters.length) {
+          warnings.push('Cada filtro debe tener un campo de la tabla.');
+        }
       }
 
       const invalidTables = this.guide.involvedTableList.filter(
@@ -1613,12 +1706,56 @@ export class ServicesPageComponent implements OnInit {
     return table.columns.length ? table.columns.map((column) => column.name).join(', ') : 'Columnas pendientes de cargar.';
   }
 
+  addGuideFilter() {
+    const used = new Set(this.guide.filters.map((filter) => this.guideFilterField(filter)).filter(Boolean));
+    const preferred =
+      this.filterColumnOptions.find((column) => !used.has(column.name) && ['email', 'name', 'key', 'slug', 'id'].includes(column.name)) ??
+      this.filterColumnOptions.find((column) => !used.has(column.name)) ??
+      this.filterColumnOptions[0];
+    this.guide.filters = [...this.guide.filters, this.createGuideFilter(preferred?.name ?? '')];
+    this.syncGuideToDefinition();
+  }
+
+  removeGuideFilter(index: number) {
+    if (this.guide.filters.length === 1) {
+      return;
+    }
+    this.guide.filters = this.guide.filters.filter((_filter, filterIndex) => filterIndex !== index);
+    this.syncGuideToDefinition();
+  }
+
+  onGuideFilterFieldChange(filter: ServiceGuideFilter) {
+    const field = this.guideFilterField(filter);
+    if (field && (!filter.inputKey || filter.inputKey === filter.customField || filter.inputKey === 'name')) {
+      filter.inputKey = field;
+    }
+    this.syncGuideToDefinition();
+  }
+
+  private createGuideFilter(field: string): ServiceGuideFilter {
+    return {
+      field,
+      customField: '',
+      operator: field === 'name' ? 'contains' : 'equals',
+      valueSource: 'input',
+      inputKey: field || 'value',
+      value: '',
+      required: true
+    };
+  }
+
+  private guideFilterField(filter: ServiceGuideFilter) {
+    return filter.field === CUSTOM_NOTE_VALUE ? filter.customField.trim() : filter.field;
+  }
+
   private ensureFilterField(force = false) {
     if (this.guide.queryMode !== 'single_table' || !this.filterColumnOptions.length) {
       return;
     }
 
-    const currentIsValid = this.filterColumnOptions.some((column) => column.name === this.guide.filterField);
+    const currentIsValid = this.guide.filters.some((filter) =>
+      filter.field === CUSTOM_NOTE_VALUE || this.filterColumnOptions.some((column) => column.name === filter.field)
+    );
     if (!force && currentIsValid) {
       return;
     }
@@ -1627,9 +1764,7 @@ export class ServicesPageComponent implements OnInit {
     const preferred =
       preferredNames.map((name) => this.filterColumnOptions.find((column) => column.name === name)).find(Boolean) ??
       this.filterColumnOptions[0];
-    this.guide.filterField = preferred.name;
-    this.guide.customFilterField = '';
-    this.guide.filterInputKey = preferred.name;
+    this.guide.filters = [this.createGuideFilter(preferred.name)];
   }
 
   private parseJson<T>(value: string): T | null {
@@ -1659,14 +1794,15 @@ export class ServicesPageComponent implements OnInit {
         type: this.guide.effect
       }
     ];
-    const filter = this.simpleFilter();
+    const filters = this.selectedGuideFilters;
     definition.dataTarget = {
       queryMode: this.guide.queryMode,
       primaryTable: this.guide.primaryTable.trim(),
       involvedTables: this.guide.involvedTableList,
       relationNotes: this.guide.queryMode === 'single_table' ? '' : this.guide.relationNotes.trim(),
-      filterNotes: this.guide.queryMode === 'single_table' ? this.simpleFilterSummary() : this.guide.filterNotes.trim(),
-      filters: filter ? [filter] : []
+      filterNotes: this.guide.queryMode === 'single_table' ? this.filterSummary() : this.guide.filterNotes.trim(),
+      matchMode: this.guide.matchMode,
+      filters
     };
 
     if (this.guide.intent === 'query' || this.guide.intent === 'get_one') {
@@ -1755,9 +1891,13 @@ export class ServicesPageComponent implements OnInit {
     const definition = this.parseDefinitionOrDefault();
     const effect = definition.effects?.[0]?.type;
     const dataTarget = definition.dataTarget;
-    const filter = dataTarget?.filters?.[0];
     const relationNotes = dataTarget?.relationNotes ?? this.guide.relationNotes;
     const filterNotes = dataTarget?.filterNotes ?? this.guide.filterNotes;
+    const filters = dataTarget?.filters?.length
+      ? dataTarget.filters.map((filter) => this.fromServiceFilter(filter))
+      : this.guide.filters.length
+        ? this.guide.filters
+        : [this.createGuideFilter('')];
     this.guide = {
       intent: definition.intent ?? this.guide.intent,
       source: definition.source ?? this.guide.source,
@@ -1766,12 +1906,8 @@ export class ServicesPageComponent implements OnInit {
       queryMode: dataTarget?.queryMode ?? this.guide.queryMode,
       primaryTable: dataTarget?.primaryTable ?? this.guide.primaryTable,
       involvedTableList: dataTarget?.involvedTables ?? this.guide.involvedTableList,
-      filterField: filter?.field ?? this.guide.filterField,
-      customFilterField: '',
-      filterOperator: filter?.operator ?? this.guide.filterOperator,
-      filterValueSource: filter?.valueSource ?? this.guide.filterValueSource,
-      filterInputKey: filter?.inputKey ?? this.guide.filterInputKey,
-      filterLiteral: filter?.value ?? this.guide.filterLiteral,
+      matchMode: dataTarget?.matchMode ?? this.guide.matchMode,
+      filters,
       relationPreset: this.presetValueFor(relationNotes, this.relationPresetOptions),
       relationNotes,
       filterPreset: this.presetValueFor(filterNotes, this.filterPresetOptions),
@@ -1795,40 +1931,59 @@ export class ServicesPageComponent implements OnInit {
     return options.some((option) => option.value === value);
   }
 
-  private simpleFilter() {
-    const field = this.selectedFilterField;
+  private toServiceFilter(filter: ServiceGuideFilter) {
+    const field = this.guideFilterField(filter);
     if (this.guide.queryMode !== 'single_table' || !field) {
       return null;
     }
 
-    const filter: ServiceFilter = {
+    const serviceFilter: ServiceFilter = {
       field,
-      operator: this.guide.filterOperator,
-      valueSource: this.guide.filterValueSource
+      operator: filter.operator,
+      valueSource: filter.valueSource,
+      required: filter.required
     };
 
-    if (this.guide.filterValueSource === 'input') {
-      filter.inputKey = this.guide.filterInputKey.trim() || field;
-    } else if (this.guide.filterValueSource === 'literal') {
-      filter.value = this.guide.filterLiteral.trim();
+    if (filter.valueSource === 'input') {
+      serviceFilter.inputKey = filter.inputKey.trim() || field;
+    } else if (filter.valueSource === 'literal') {
+      serviceFilter.value = filter.value.trim();
     }
 
-    return filter;
+    return serviceFilter;
   }
 
-  private simpleFilterSummary() {
-    const filter = this.simpleFilter();
-    if (!filter) {
+  private fromServiceFilter(filter: ServiceFilter): ServiceGuideFilter {
+    return {
+      field: filter.field,
+      customField: '',
+      operator: filter.operator,
+      valueSource: filter.valueSource,
+      inputKey: filter.inputKey ?? filter.field,
+      value: filter.value ?? '',
+      required: filter.required ?? true
+    };
+  }
+
+  private filterSummary() {
+    const filters = this.selectedGuideFilters;
+    if (!filters.length) {
       return '';
     }
 
+    const joiner = this.guide.matchMode === 'any' ? ' o ' : ' y ';
+    return filters.map((filter) => this.filterLabel(filter)).join(joiner);
+  }
+
+  private filterLabel(filter: ServiceFilter) {
     const value =
       filter.valueSource === 'input'
         ? `input.${filter.inputKey ?? filter.field}`
         : filter.valueSource === 'literal'
           ? `"${filter.value ?? ''}"`
           : this.filterSourceLabels[filter.valueSource];
-    return `${filter.field} ${this.filterOperatorLabels[filter.operator]} ${value}`;
+    const optional = filter.required === false ? ' opcional' : '';
+    return `${filter.field} ${this.filterOperatorLabels[filter.operator]} ${value}${optional}`;
   }
 
   private syncContextProposal(definition: DynamicServiceDefinition) {
@@ -1923,7 +2078,8 @@ export class ServicesPageComponent implements OnInit {
           involvedTables: this.guide.involvedTableList,
           relationNotes: this.guide.relationNotes,
           filterNotes: this.guide.filterNotes,
-          filters: this.simpleFilter() ? [this.simpleFilter() as ServiceFilter] : []
+          matchMode: this.guide.matchMode,
+          filters: this.selectedGuideFilters
         },
         method: 'POST',
         url: 'https://api.example.com/validar',
@@ -1948,7 +2104,8 @@ export class ServicesPageComponent implements OnInit {
       this.guide.queryMode !== 'single_table' && involved.length
         ? ` e involucra ${involved.join(', ')}`
         : '';
-    const filterText = this.guide.queryMode === 'single_table' && this.simpleFilterSummary() ? `; filtro ${this.simpleFilterSummary()}` : '';
+    const filterSummary = this.filterSummary();
+    const filterText = this.guide.queryMode === 'single_table' && filterSummary ? `; filtros ${filterSummary}` : '';
     return ` en ${mode}; tabla principal ${table}${involvedText}${filterText}`;
   }
 
@@ -1959,6 +2116,10 @@ export class ServicesPageComponent implements OnInit {
     const translations: Record<string, string> = {
       'Publish a service version before testing it':
         'Primero crea una versión y publícala antes de probar el servicio.',
+      'Publish a service version before executing it':
+        'Primero crea una versión y publícala antes de ejecutar el servicio.',
+      'At least one filter value is required':
+        'Envía al menos un valor de filtro para ejecutar la consulta.',
       'Service is inactive': 'El servicio está inactivo.',
       'Dynamic service not found': 'No se encontró el servicio dinámico.',
       'Definition is required': 'La definición del servicio es obligatoria.',

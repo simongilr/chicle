@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { AuthMethodConfig, SecurityLevel, SecurityPolicy } from '../auth/auth.service';
@@ -35,11 +35,12 @@ export class ConfisysService implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(ConfisysParam)
     private readonly confisys: Repository<ConfisysParam>
-  ) {}
+  ) {
+    this.loadDefaultCache();
+  }
 
   async onApplicationBootstrap() {
-    await this.seedMissingDefaults();
-    await this.loadCache();
+    await this.tryLoadDatabaseCache();
   }
 
   async list(includePrivate = true): Promise<ConfisysEntry[]> {
@@ -82,36 +83,44 @@ export class ConfisysService implements OnApplicationBootstrap {
   }
 
   async upsert(key: string, update: ConfisysUpdate) {
-    const current = await this.confisys.findOne({ where: { key } });
-    const valueType = update.valueType ?? this.inferValueType(update.value);
-    const serialized = this.serialize(update.value, valueType);
+    try {
+      const current = await this.confisys.findOne({ where: { key } });
+      const valueType = update.valueType ?? this.inferValueType(update.value);
+      const serialized = this.serialize(update.value, valueType);
 
-    const entity = current
-      ? this.confisys.merge(current, {
-          value: serialized,
-          valueType,
-          category: update.category ?? current.category,
-          description: update.description ?? current.description,
-          isPublic: update.isPublic ?? current.isPublic,
-          editable: update.editable ?? current.editable,
-          source: 'admin'
-        })
-      : this.confisys.create({
-          key,
-          value: serialized,
-          valueType,
-          category: update.category ?? 'custom',
-          description: update.description,
-          isPublic: update.isPublic ?? false,
-          editable: update.editable ?? true,
-          source: 'admin'
-        });
+      const entity = current
+        ? this.confisys.merge(current, {
+            value: serialized,
+            valueType,
+            category: update.category ?? current.category,
+            description: update.description ?? current.description,
+            isPublic: update.isPublic ?? current.isPublic,
+            editable: update.editable ?? current.editable,
+            source: 'admin'
+          })
+        : this.confisys.create({
+            key,
+            value: serialized,
+            valueType,
+            category: update.category ?? 'custom',
+            description: update.description,
+            isPublic: update.isPublic ?? false,
+            editable: update.editable ?? true,
+            source: 'admin'
+          });
 
-    const saved = await this.confisys.save(entity);
-    return {
-      entry: this.toEntry(saved),
-      restartRequired: true
-    };
+      const saved = await this.confisys.save(entity);
+      return {
+        entry: this.toEntry(saved),
+        restartRequired: true
+      };
+    } catch (error) {
+      if (this.isMissingTableError(error)) {
+        throw new ServiceUnavailableException('Confisys table is not available yet');
+      }
+
+      throw error;
+    }
   }
 
   private async ensureLoaded() {
@@ -119,8 +128,22 @@ export class ConfisysService implements OnApplicationBootstrap {
       return;
     }
 
-    await this.seedMissingDefaults();
-    await this.loadCache();
+    await this.tryLoadDatabaseCache();
+  }
+
+  private async tryLoadDatabaseCache() {
+    try {
+      await this.seedMissingDefaults();
+      await this.loadCache();
+    } catch (error) {
+      if (!this.isMissingTableError(error)) {
+        throw error;
+      }
+
+      this.loadDefaultCache();
+      this.loaded = true;
+      this.logger.warn('Confisys table is not available; using in-memory defaults for this API process');
+    }
   }
 
   private async seedMissingDefaults() {
@@ -147,7 +170,7 @@ export class ConfisysService implements OnApplicationBootstrap {
 
   private async loadCache() {
     const rows = await this.confisys.find();
-    this.cache.clear();
+    this.loadDefaultCache();
 
     for (const row of rows) {
       this.cache.set(row.key, this.toEntry(row));
@@ -155,6 +178,23 @@ export class ConfisysService implements OnApplicationBootstrap {
 
     this.loaded = true;
     this.logger.log(`Loaded ${rows.length} confisys params into memory`);
+  }
+
+  private loadDefaultCache() {
+    this.cache.clear();
+
+    for (const item of CONFISYS_DEFAULTS) {
+      this.cache.set(item.key, {
+        key: item.key,
+        value: item.value,
+        valueType: item.valueType,
+        category: item.category,
+        description: item.description,
+        isPublic: item.isPublic ?? false,
+        editable: item.editable ?? true,
+        source: 'default'
+      });
+    }
   }
 
   private toEntry(row: ConfisysParam): ConfisysEntry {
@@ -266,5 +306,15 @@ export class ConfisysService implements OnApplicationBootstrap {
     }
 
     return value;
+  }
+
+  private isMissingTableError(error: unknown) {
+    const candidate = error as { code?: string; errno?: number; driverError?: { code?: string; errno?: number } };
+    return (
+      candidate.code === 'ER_NO_SUCH_TABLE' ||
+      candidate.errno === 1146 ||
+      candidate.driverError?.code === 'ER_NO_SUCH_TABLE' ||
+      candidate.driverError?.errno === 1146
+    );
   }
 }

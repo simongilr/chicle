@@ -47,6 +47,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 38
   },
   {
+    key: 'flows',
+    label: 'Flows',
+    route: '/flows',
+    icon: 'pi pi-sitemap',
+    permissions: ['flows.read'],
+    sortOrder: 39
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',

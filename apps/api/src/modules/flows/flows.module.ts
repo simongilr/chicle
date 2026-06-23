@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditModule } from '../audit/audit.module';
 import { FlowActionCatalog } from './flow-action-catalog.entity';
 import { FlowDecisionTable } from './flow-decision-table.entity';
 import { FlowExpression } from './flow-expression.entity';
@@ -10,9 +11,12 @@ import { FlowTestCase } from './flow-test-case.entity';
 import { FlowTrigger } from './flow-trigger.entity';
 import { FlowVersion } from './flow-version.entity';
 import { Flow } from './flow.entity';
+import { FlowsController } from './flows.controller';
+import { FlowsService } from './flows.service';
 
 @Module({
   imports: [
+    AuditModule,
     TypeOrmModule.forFeature([
       Flow,
       FlowVersion,
@@ -26,6 +30,8 @@ import { Flow } from './flow.entity';
       FlowTestCase
     ])
   ],
-  exports: [TypeOrmModule]
+  controllers: [FlowsController],
+  providers: [FlowsService],
+  exports: [TypeOrmModule, FlowsService]
 })
 export class FlowsModule {}

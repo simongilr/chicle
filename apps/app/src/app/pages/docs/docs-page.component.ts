@@ -1409,8 +1409,16 @@ export class DocsPageComponent {
     {
       title: 'Ruta de implementación',
       command:
-        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows/versiones/test cases\n\nPaso 3:\n  Expression Engine V1\n\nPaso 4:\n  ejecutar paso dynamic_service\n\nPaso 5:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 6:\n  Flow Designer visual\n\nPaso 7:\n  eventos, async, colas y websockets',
+        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Expression Engine V1\n\nPaso 5:\n  ejecutar paso dynamic_service\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  eventos, async, colas y websockets',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
+    },
+    {
+      title: 'Flow Builder V1 disponible',
+      ui: 'Abre /flows desde Home o Administración. Crea un flow, agrega pasos, revisa el Preview JSON, crea una versión y publícala.',
+      swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
+      command:
+        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar pasos draft\n  3. Revisar definitionPreview\n  4. Crear versión\n  5. Publicar versión\n\nTodavía no ejecuta:\n  runner\n  prueba paso a paso\n  expression engine real',
+      note: 'Esta versión crea la receta y su snapshot publicable. La ejecución llegará en el siguiente bloque.'
     }
   ];
 

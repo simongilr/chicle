@@ -401,6 +401,13 @@ export class HomePageComponent {
       status: 'Servicios'
     },
     {
+      title: 'Flow Designer',
+      description: 'Constructor inicial de flows, pasos, preview JSON, versiones y publicación.',
+      route: '/flows',
+      permissions: ['flows.read'],
+      status: 'Flows'
+    },
+    {
       title: 'Seguridad',
       description: 'Usuarios, roles, permisos y auditoría del tenant actual.',
       route: '/security',

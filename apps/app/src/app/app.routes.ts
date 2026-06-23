@@ -5,6 +5,7 @@ import { ConfisysPageComponent } from './pages/confisys/confisys-page.component'
 import { DatabasePageComponent } from './pages/database/database-page.component';
 import { DocsPageComponent } from './pages/docs/docs-page.component';
 import { DynamicFormPageComponent } from './pages/dynamic-form-page/dynamic-form-page.component';
+import { FlowsPageComponent } from './pages/flows/flows-page.component';
 import { HomePageComponent } from './pages/home/home-page.component';
 import { LoginPageComponent } from './pages/login/login-page.component';
 import { SecurityPageComponent } from './pages/security/security-page.component';
@@ -37,6 +38,12 @@ export const routes: Routes = [
     component: ServicesPageComponent,
     canActivate: [authGuard, permissionGuard],
     data: { permissions: ['services.read'] }
+  },
+  {
+    path: 'flows',
+    component: FlowsPageComponent,
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['flows.read'] }
   },
   { path: 'login', component: LoginPageComponent, canActivate: [loginGuard] },
   { path: 'home', component: HomePageComponent, canActivate: [authGuard] },

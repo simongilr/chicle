@@ -10,6 +10,7 @@ import { DevicesModule } from './modules/devices/devices.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { DynamicServicesModule } from './modules/dynamic-services/dynamic-services.module';
 import { FilesModule } from './modules/files/files.module';
+import { FlowsModule } from './modules/flows/flows.module';
 import { MenusModule } from './modules/menus/menus.module';
 import { RecordsModule } from './modules/records/records.module';
 import { RbacModule } from './modules/rbac/rbac.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './modules/users/users.module';
     MenusModule,
     DynamicFormsModule,
     DynamicServicesModule,
+    FlowsModule,
     ActionsModule,
     RecordsModule,
     FilesModule,

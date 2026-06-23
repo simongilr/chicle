@@ -786,6 +786,47 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="flow-engine" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Chicle Flow Engine</h2>
+                <p class="section-lead">
+                  El Flow Engine será el motor declarativo para reglas, validaciones, fórmulas,
+                  decisiones y orquestación de servicios dinámicos. La DB guarda recetas versionadas;
+                  el backend conserva las acciones reales y los límites de seguridad.
+                </p>
+              </div>
+              <div class="steps">
+                @for (step of flowEngineSteps; track step.title) {
+                  <article class="step">
+                    <h3>{{ step.title }}</h3>
+                    <div class="meta">
+                      <span>{{ step.note }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      @if (step.ui) {
+                        <div class="guide-block">
+                          <span class="guide-label">Modo gráfico</span>
+                          <div class="guide-text">{{ step.ui }}</div>
+                        </div>
+                      }
+                      @if (step.swagger) {
+                        <div class="guide-block">
+                          <span class="guide-label">Swagger</span>
+                          <div class="guide-text">{{ step.swagger }}</div>
+                        </div>
+                      }
+                      @if (step.command) {
+                        <div class="guide-block">
+                          <span class="guide-label">Arquitectura / ejemplo</span>
+                          <pre>{{ step.command }}</pre>
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+
             <section id="seguridad" class="doc-section" data-tone="security">
               <div class="section-header">
                 <h2>Seguridad modular</h2>
@@ -1016,6 +1057,7 @@ export class DocsPageComponent {
     { id: 'base-datos', label: 'Base de datos', summary: 'Visor, diseñador y migraciones.' },
     { id: 'modelo-saas', label: 'Modelo SaaS', summary: 'Tenants, usuarios, membresías y necesidades.' },
     { id: 'servicios-dinamicos', label: 'Servicios', summary: 'Objetos ejecutables, pruebas y runs.' },
+    { id: 'flow-engine', label: 'Flow Engine', summary: 'Reglas, fórmulas, workflows y pruebas paso a paso.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
     { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
     { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
@@ -1291,6 +1333,84 @@ export class DocsPageComponent {
       command:
         'V1 actual:\n  tablas internas simples\n  HTTP externo\n  prueba en vivo\n  historial de runs\n  consumo frontend por key\n\nSiguientes capacidades:\n  joins guiados\n  uniones y read models\n  paginación avanzada\n  SOAP\n  WebSocket\n  webhooks\n  colas asincrónicas\n  retries configurables\n  secretos administrados\n  mapping visual de request/response',
       note: 'El objetivo es que el creador sea cada vez mas completo sin romper el contrato del front: ejecutar por key con un contexto.'
+    }
+  ];
+
+  readonly flowEngineSteps: CommandStep[] = [
+    {
+      title: 'Nombre y alcance',
+      ui: 'La pantalla futura se llamará Flow Designer. Permitirá crear flows, agregar pasos, probar un paso, probar hasta aquí y probar todo junto.',
+      command:
+        'Nombre interno: Chicle Flow Engine\nPantalla: Flow Designer\nObjetivo: reglas, fórmulas, validaciones, decisiones, servicios dinámicos y workflows configurables.',
+      note: 'No es código libre en DB. Es lógica declarativa versionada que el backend interpreta con acciones permitidas.'
+    },
+    {
+      title: 'Arquitectura y patrón',
+      command:
+        'Patrón central:\n  Declarative Workflow Orchestration\n\nPiezas:\n  Expression Engine\n  Validation Engine\n  Rules Engine\n  Workflow Engine\n  Action Registry\n  Execution Tracker\n\nRegla:\n  el usuario configura qué debe pasar;\n  el backend controla cómo se ejecuta.',
+      note: 'La DB guarda recetas; el core conserva seguridad, permisos, acciones reales, timeouts y trazabilidad.'
+    },
+    {
+      title: 'Estándares de referencia',
+      command:
+        'BPMN-inspired:\n  start, task, gateway/decision, event, end\n\nDMN-inspired:\n  decision tables, reglas de negocio, expresiones controladas\n\nServerless Workflow-inspired:\n  definiciones JSON versionadas y ejecutables\n\nEvent-driven / Outbox futuro:\n  eventos confiables, async, retries y websockets',
+      note: 'No implementamos BPMN/DMN completo desde el día uno; usamos sus ideas para mantener el motor liviano y entendible.'
+    },
+    {
+      title: 'Objetos principales en DB',
+      command:
+        'flows\n  objeto administrable del tenant\n\nflow_versions\n  snapshot publicado que se ejecuta\n\nflow_steps\n  pasos editables o versionados para el diseñador\n\nflow_runs\n  ejecución completa\n\nflow_step_runs\n  resultado de cada paso\n\nflow_test_cases\n  casos de prueba reutilizables',
+      note: 'Estos objetos forman la base mínima para construir, publicar, ejecutar y depurar flows.'
+    },
+    {
+      title: 'Objetos de lógica reusable',
+      command:
+        'flow_expressions\n  fórmulas, condiciones, mappings, visibilidad y defaults\n\nflow_decision_tables\n  reglas tipo DMN para decisiones repetibles\n\nflow_action_catalog\n  acciones permitidas por backend o por tenant\n\nflow_triggers\n  disparadores manuales, HTTP, formularios, records, eventos o schedules',
+      note: 'No todo tiene que vivir embebido dentro del flow; la lógica que se repite puede administrarse como objeto reusable.'
+    },
+    {
+      title: 'Jerarquía de configuración runtime',
+      command:
+        'Prioridad:\n  1. Configuración del paso\n  2. Configuración de la versión\n  3. Configuración del flow\n  4. Confisys del tenant\n  5. Default interno del código\n\nEjemplo:\n  validar_externo.timeoutMs = 15000\n  flow.defaultStepTimeoutMs = 10000\n  confisys flow.defaultStepTimeoutMs = 8000',
+      note: 'Cada proceso puede adaptar timeouts, reintentos y límites sin perder defaults globales ni máximos seguros.'
+    },
+    {
+      title: 'Confisys base',
+      ui: 'En /confisys aparecerá la categoría flow cuando se sincronicen defaults. Ahí se ajustan límites generales del motor.',
+      command:
+        'flow.enabled = true\nflow.maxSteps = 50\nflow.maxDurationMs = 30000\nflow.defaultStepTimeoutMs = 8000\nflow.maxStepTimeoutMs = 60000\nflow.maxRetryAttempts = 5\nflow.logs.retentionDays = 30\nflow.expression.maxDepth = 10\nflow.expression.maxLength = 2000',
+      note: 'Confisys define defaults y límites máximos. Cada flow o paso puede pedir menos o más, pero nunca romper el máximo seguro.'
+    },
+    {
+      title: 'Tipos de paso V1',
+      command:
+        'start\n  entrada del flujo\n\ndynamic_service\n  ejecuta un servicio publicado por key\n\nformula\n  calcula valores\n\nvalidation\n  valida campos o contexto\n\ndecision\n  decide siguiente camino\n\nresponse\n  construye respuesta final\n\nend\n  termina ejecución',
+      note: 'Empezamos con pocos bloques muy claros. Luego sumamos records, eventos, notificaciones, reportes, async y tareas humanas.'
+    },
+    {
+      title: 'Prueba paso a paso',
+      ui: 'El diseñador debe permitir Probar paso, Probar hasta aquí y Probar flujo completo. Cada bloque muestra input, output, duración, estado y error.',
+      command:
+        'Estados visuales:\n  sin probar\n  probando\n  correcto\n  error\n  omitido\n\nNiveles:\n  probar solo este paso\n  probar desde inicio hasta este paso\n  probar todo el flow',
+      note: 'El usuario no debe construir a ciegas. Cada paso debe validarse visualmente antes de publicar.'
+    },
+    {
+      title: 'Ejemplo de definición',
+      command:
+        '{\n  "key": "validar_usuario_reporte",\n  "steps": [\n    { "key": "start", "type": "start", "next": "consultar_usuario" },\n    {\n      "key": "consultar_usuario",\n      "type": "dynamic_service",\n      "serviceKey": "buscar_usuario",\n      "inputMap": { "email": "{{input.email}}" },\n      "outputKey": "user",\n      "next": "validar_edad"\n    },\n    {\n      "key": "validar_edad",\n      "type": "decision",\n      "condition": "steps.user.age >= 18",\n      "onTrue": "respuesta_ok",\n      "onFalse": "respuesta_rechazo"\n    }\n  ]\n}',
+      note: 'El JSON técnico existe como preview avanzado; el usuario normal debe construirlo con selects, bloques y validaciones guiadas.'
+    },
+    {
+      title: 'Permisos',
+      command:
+        'flows.read\nflows.create\nflows.update\nflows.publish\nflows.execute\nflows.manage\nflows.audit',
+      note: 'Owner tiene todo. Admin recibe permisos de gestión. Más adelante podremos separar diseñador, operador y auditor.'
+    },
+    {
+      title: 'Ruta de implementación',
+      command:
+        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows/versiones/test cases\n\nPaso 3:\n  Expression Engine V1\n\nPaso 4:\n  ejecutar paso dynamic_service\n\nPaso 5:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 6:\n  Flow Designer visual\n\nPaso 7:\n  eventos, async, colas y websockets',
+      note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     }
   ];
 

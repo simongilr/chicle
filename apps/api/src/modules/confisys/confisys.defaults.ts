@@ -192,6 +192,69 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     valueType: 'boolean',
     category: 'services',
     description: 'Permite llamar localhost o redes privadas desde servicios dinámicos. Debe permanecer apagado salvo desarrollo controlado.'
+  },
+  {
+    key: 'flow.enabled',
+    value: true,
+    valueType: 'boolean',
+    category: 'flow',
+    description: 'Activa el motor de flujos configurables.'
+  },
+  {
+    key: 'flow.maxSteps',
+    value: 50,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Cantidad máxima de pasos permitida por ejecución de flow.'
+  },
+  {
+    key: 'flow.maxDurationMs',
+    value: 30000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Duración máxima por defecto para una ejecución completa de flow.'
+  },
+  {
+    key: 'flow.defaultStepTimeoutMs',
+    value: 8000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Timeout por defecto para un paso cuando el flow o el paso no lo especifica.'
+  },
+  {
+    key: 'flow.maxStepTimeoutMs',
+    value: 60000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Timeout máximo permitido para un paso aunque la definición pida más.'
+  },
+  {
+    key: 'flow.maxRetryAttempts',
+    value: 5,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Máximo de reintentos permitidos por paso.'
+  },
+  {
+    key: 'flow.logs.retentionDays',
+    value: 30,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Días de retención sugerida para historial técnico de ejecuciones de flow.'
+  },
+  {
+    key: 'flow.expression.maxDepth',
+    value: 10,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Profundidad máxima para expresiones declarativas del Flow Engine.'
+  },
+  {
+    key: 'flow.expression.maxLength',
+    value: 2000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Longitud máxima para expresiones declarativas del Flow Engine.'
   }
 ];
 

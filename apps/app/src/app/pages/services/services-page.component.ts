@@ -616,7 +616,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 <div class="section-head">
                   <div>
                     <h2>{{ selected ? 'Editar servicio' : 'Crear servicio' }}</h2>
-                    <p class="meta">El servicio es el objeto del tenant; la ejecución vive en versiones publicadas.</p>
+                    <p class="meta">Paso 1. Guarda solo los datos base: key, nombre, descripción y estado.</p>
                   </div>
                   <div class="actions">
                     <button type="button" (click)="load()">Refrescar</button>
@@ -630,8 +630,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           Enviar a papelera
                         </button>
                       }
-                      <button class="primary" type="button" (click)="saveService()" [disabled]="!canManage || saving">
-                        Guardar
+                      <button class="primary" type="button" (click)="saveService()" [disabled]="!canManage || saving || !serviceMetadataChanged">
+                        Guardar datos
                       </button>
                     }
                   </div>
@@ -655,6 +655,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   <input type="checkbox" [(ngModel)]="draft.active" [disabled]="!!selected?.trashedAt" />
                   Servicio activo
                 </label>
+                @if (selected && !serviceMetadataChanged) {
+                  <div class="notice">
+                    Los datos base no tienen cambios. Si editaste filtros, tablas o respuesta, continúa en Crear versión.
+                  </div>
+                }
               </section>
 
               @if (selected) {
@@ -663,8 +668,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     <div>
                       <h2>Qué hace este servicio</h2>
                       <p class="meta">
-                        Define primero la intención. El JSON técnico se actualiza con esta guía para
-                        que luego workflows, acciones y eventos sepan cómo usarlo.
+                        Paso 2. Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión y publicarla.
                       </p>
                     </div>
                     <button type="button" (click)="syncGuideToDefinition()">Actualizar JSON</button>
@@ -962,18 +966,23 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     <strong>Resumen</strong>
                     <span>{{ serviceSummary }}</span>
                   </div>
+                  @if (definitionChanged) {
+                    <div class="notice success">
+                      Cambiaste la lógica del servicio. El siguiente paso es Crear versión y luego Publicar última.
+                    </div>
+                  }
                 </section>
 
                 <section class="panel">
                   <div class="section-head">
                     <div>
-                      <h2>Definición HTTP</h2>
-                      <p class="meta">Crea una versión draft y publícala para habilitar pruebas y ejecuciones.</p>
+                      <h2>Versión ejecutable</h2>
+                      <p class="meta">Paso 3. Guarda la lógica como versión. Paso 4. Publícala para que el front, workflows y acciones la usen.</p>
                     </div>
                     <div class="actions">
                       <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
                       <button class="primary" type="button" (click)="createVersion()" [disabled]="!canCreateVersion">
-                        Crear versión
+                        {{ selected.latestVersion ? 'Crear nueva versión' : 'Crear versión' }}
                       </button>
                       <button
                         type="button"
@@ -993,6 +1002,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     </p>
                   } @else {
                     <p class="meta">Aún no hay versiones. Crea una versión con la definición actual.</p>
+                  }
+                  @if (selected.latestVersion?.status !== 'published') {
+                    <div class="notice">
+                      Hay una versión draft pendiente. Publícala para que sea la definición activa del servicio.
+                    </div>
                   }
                 </section>
 
@@ -1105,6 +1119,7 @@ export class ServicesPageComponent implements OnInit {
   formError = '';
   message = '';
   viewingTrash = false;
+  private savedDraftSnapshot = '';
   readonly customNoteValue = CUSTOM_NOTE_VALUE;
   readonly relationPresetOptions: NoteOption[] = [
     { label: 'Selecciona relación', value: '' },
@@ -1235,6 +1250,25 @@ export class ServicesPageComponent implements OnInit {
 
   get canEditSelected() {
     return this.canManage && !this.selected?.trashedAt;
+  }
+
+  get serviceMetadataChanged() {
+    if (!this.selected) {
+      return Boolean(this.draft.key.trim() || this.draft.name.trim() || this.draft.description.trim());
+    }
+    return this.savedDraftSnapshot !== this.draftSnapshot();
+  }
+
+  get definitionChanged() {
+    if (!this.selected) {
+      return false;
+    }
+    const current = this.definitionSnapshot(this.definitionText);
+    const saved = this.selected.latestVersion?.definition ?? this.selected.publishedVersion?.definition;
+    if (!saved) {
+      return Boolean(current);
+    }
+    return current !== JSON.stringify(saved);
   }
 
   get tableSelectOptions() {
@@ -1395,6 +1429,7 @@ export class ServicesPageComponent implements OnInit {
     this.runs = [];
     this.lastRun = undefined;
     this.draft = { key: '', name: '', description: '', active: true };
+    this.savedDraftSnapshot = this.draftSnapshot();
   }
 
   select(service: DynamicServiceItem) {
@@ -1405,6 +1440,7 @@ export class ServicesPageComponent implements OnInit {
       description: service.description ?? '',
       active: service.active
     };
+    this.savedDraftSnapshot = this.draftSnapshot();
     this.definitionText = JSON.stringify(
       service.latestVersion?.definition ?? service.publishedVersion?.definition ?? JSON.parse(this.definitionText),
       null,
@@ -1448,7 +1484,19 @@ export class ServicesPageComponent implements OnInit {
         this.saving = false;
         this.message = 'Servicio guardado.';
         this.selected = service;
-        this.load();
+        this.draft = {
+          key: service.key,
+          name: service.name,
+          description: service.description ?? '',
+          active: service.active
+        };
+        this.savedDraftSnapshot = this.draftSnapshot();
+        const existingIndex = this.services.findIndex((item) => item.id === service.id);
+        if (existingIndex >= 0) {
+          this.services = this.services.map((item) => (item.id === service.id ? service : item));
+        } else {
+          this.services = [service, ...this.services];
+        }
       },
       error: (error) => {
         this.saving = false;
@@ -1704,6 +1752,23 @@ export class ServicesPageComponent implements OnInit {
 
   columnSummary(table: DatabaseTable) {
     return table.columns.length ? table.columns.map((column) => column.name).join(', ') : 'Columnas pendientes de cargar.';
+  }
+
+  private draftSnapshot() {
+    return JSON.stringify({
+      key: this.draft.key.trim(),
+      name: this.draft.name.trim(),
+      description: this.draft.description.trim(),
+      active: Boolean(this.draft.active)
+    });
+  }
+
+  private definitionSnapshot(value: string) {
+    try {
+      return JSON.stringify(JSON.parse(value));
+    } catch {
+      return value.trim();
+    }
   }
 
   addGuideFilter() {

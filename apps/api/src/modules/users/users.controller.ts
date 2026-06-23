@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { CreateUserRequest, UpdateUserRequest, UsersService } from './users.service';
+import { CreateUserRequest, ListUsersQuery, UpdateUserRequest, UsersService } from './users.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -36,8 +36,8 @@ export class UsersController {
       ]
     }
   })
-  list(@CurrentAuth() auth: AuthContext) {
-    return this.users.list(auth);
+  list(@CurrentAuth() auth: AuthContext, @Query() query: ListUsersQuery) {
+    return this.users.list(auth, query);
   }
 
   @Post()

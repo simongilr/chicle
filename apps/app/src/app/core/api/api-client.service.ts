@@ -23,6 +23,10 @@ export class ApiClientService {
     return this.http.patch<T>(this.url(path), body, { withCredentials: true });
   }
 
+  delete<T>(path: string) {
+    return this.http.delete<T>(this.url(path), { withCredentials: true });
+  }
+
   private url(path: string): string {
     return `${this.baseUrl}/${path.replace(/^\/+/, '')}`;
   }

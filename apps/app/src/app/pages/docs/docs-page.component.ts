@@ -1355,9 +1355,9 @@ export class DocsPageComponent {
     },
     {
       title: 'Administrar seguridad',
-      ui: 'Abre /security desde Home. Ahí gestionas usuarios de acceso, roles, permisos, reset de contraseña, activación y auditoría.',
+      ui: 'Abre /security desde Home. Ahí gestionas usuarios de acceso con búsqueda, filtros y paginación; también roles, permisos, reset de contraseña, activación y auditoría.',
       swagger: 'En /api/docs usa los grupos Security / Users y Security / RBAC.',
-      note: 'Permite gestionar usuarios, roles, permisos y revisar auditoría del tenant.'
+      note: 'El front no carga todos los usuarios del tenant. Pide páginas al backend para que pueda crecer a bancos grandes de usuarios.'
     },
     {
       title: 'Clientes con login vs clientes de negocio',
@@ -1368,6 +1368,14 @@ export class DocsPageComponent {
       note: 'El rol Cliente app se instala con Sincronizar seguridad. Tiene permisos limitados para usar la app sin administrar el tenant.'
     },
     {
+      title: 'Roles base y roles custom',
+      ui: 'En /security abre Roles y permisos. Los roles base como owner, admin, operator, viewer y Cliente app vienen de la semilla de seguridad. Puedes crear roles custom, editar nombre/descripción, marcar permisos y eliminar roles custom no asignados.',
+      swagger: 'En /api/docs usa POST /api/roles, PATCH /api/roles/{roleId} y DELETE /api/roles/{roleId}.',
+      command:
+        'Crear rol:\nPOST /api/roles\n\nEditar rol:\nPATCH /api/roles/{roleId}\n\nEliminar rol custom no asignado:\nDELETE /api/roles/{roleId}',
+      note: 'Los roles built-in quedan protegidos para no romper setup, ownership ni permisos mínimos del sistema.'
+    },
+    {
       title: 'Sincronizar seguridad base',
       ui: 'En /security toca Sincronizar seguridad cuando agreguemos permisos, roles o menús base nuevos al producto.',
       swagger: 'En /api/docs ejecuta POST /api/security/sync con Bearer token autorizado.',
@@ -1376,11 +1384,11 @@ export class DocsPageComponent {
     },
     {
       title: 'Usuarios y roles por API',
-      ui: 'En /security usa el panel de usuarios para crear/editar y el panel de roles para revisar permisos.',
-      swagger: 'En /api/docs prueba GET /api/users, GET /api/roles y PUT /api/roles/{roleId}/permissions.',
+      ui: 'En /security usa el panel de usuarios para buscar por email/nombre, filtrar por estado o rol, avanzar página y editar el usuario seleccionado. Usa el panel de roles para crear, editar o eliminar perfiles custom.',
+      swagger: 'En /api/docs prueba GET /api/users?page=1&pageSize=25&search=simon&role=owner, GET /api/roles y PATCH /api/roles/{roleId}.',
       command:
-        'curl http://127.0.0.1:3000/api/users -H "Authorization: Bearer TOKEN"\\ncurl http://127.0.0.1:3000/api/roles -H "Authorization: Bearer TOKEN"',
-      note: 'Usuarios requiere users.read. Roles requiere roles.read. Cambios de permisos requieren roles.manage.'
+        'curl "http://127.0.0.1:3000/api/users?page=1&pageSize=25&search=simon&status=all&role=owner" \\\n  -H "Authorization: Bearer TOKEN"\n\ncurl http://127.0.0.1:3000/api/roles \\\n  -H "Authorization: Bearer TOKEN"',
+      note: 'Usuarios requiere users.read. Roles requiere roles.read. Crear, editar o eliminar roles requiere roles.manage.'
     },
     {
       title: 'Auditoría',

@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
+import { Role } from '../rbac/role.entity';
 import { RbacService } from '../rbac/rbac.service';
+import { UserRole } from '../rbac/user-role.entity';
 import { TenantMembership } from '../tenants/tenant-membership.entity';
 import { User, UserSystemRole } from './user.entity';
 
@@ -23,6 +25,14 @@ export interface UpdateUserRequest {
   password?: string;
 }
 
+export interface ListUsersQuery {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+  status?: 'all' | 'active' | 'inactive';
+  role?: string;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -35,22 +45,60 @@ export class UsersService {
     private readonly audit: AuditService
   ) {}
 
-  async list(auth: AuthContext) {
-    const memberships = await this.memberships.find({
-      where: { tenantId: auth.tenant.id },
-      order: { createdAt: 'ASC' }
-    });
-    if (!memberships.length) {
-      return [];
+  async list(auth: AuthContext, query: ListUsersQuery = {}) {
+    const page = this.safePage(query.page);
+    const pageSize = this.safePageSize(query.pageSize);
+    const builder = this.memberships
+      .createQueryBuilder('membership')
+      .innerJoin(User, 'user', 'user.id = membership.userId')
+      .where('membership.tenantId = :tenantId', { tenantId: auth.tenant.id });
+
+    const status = query.status ?? 'all';
+    if (status === 'active') {
+      builder.andWhere('membership.active = true').andWhere('user.active = true');
+    } else if (status === 'inactive') {
+      builder.andWhere('(membership.active = false OR user.active = false)');
     }
 
-    const users = await this.users.find({
-      where: { id: In(memberships.map((membership) => membership.userId)) },
-      order: { email: 'ASC' }
-    });
-    const membershipMap = new Map(memberships.map((membership) => [membership.userId, membership]));
+    const search = query.search?.trim().toLowerCase();
+    if (search) {
+      builder.andWhere('(LOWER(user.email) LIKE :search OR LOWER(user.name) LIKE :search)', {
+        search: `%${search}%`
+      });
+    }
 
-    return Promise.all(users.map((user) => this.toResponse(auth.tenant.id, user, membershipMap.get(user.id))));
+    const role = query.role?.trim();
+    if (role) {
+      builder
+        .innerJoin(UserRole, 'userRole', 'userRole.tenantId = membership.tenantId AND userRole.userId = user.id')
+        .innerJoin(Role, 'role', 'role.id = userRole.roleId AND role.key = :role', { role });
+    }
+
+    const total = await builder.clone().getCount();
+    const rows = await builder
+      .select('membership.userId', 'userId')
+      .addSelect('membership.createdAt', 'createdAt')
+      .addOrderBy('user.email', 'ASC')
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
+      .getRawMany<{ userId: string }>();
+
+    const userIds = rows.map((row) => row.userId);
+    if (!userIds.length) {
+      return { items: [], total, page, pageSize };
+    }
+
+    const users = await this.users
+      .createQueryBuilder('user')
+      .where('user.id IN (:...userIds)', { userIds })
+      .getMany();
+    const userMap = new Map(users.map((user) => [user.id, user]));
+    const memberships = await this.memberships.find({ where: userIds.map((userId) => ({ tenantId: auth.tenant.id, userId })) });
+    const membershipMap = new Map(memberships.map((membership) => [membership.userId, membership]));
+    const orderedUsers = userIds.map((userId) => userMap.get(userId)).filter((user): user is User => Boolean(user));
+    const items = await Promise.all(orderedUsers.map((user) => this.toResponse(auth.tenant.id, user, membershipMap.get(user.id))));
+
+    return { items, total, page, pageSize };
   }
 
   async create(auth: AuthContext, request: CreateUserRequest) {
@@ -194,6 +242,17 @@ export class UsersService {
     if (!password || password.length < minLength) {
       throw new BadRequestException(`Password must be at least ${minLength} characters`);
     }
+  }
+
+  private safePage(value?: string) {
+    const page = Number(value ?? 1);
+    return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  }
+
+  private safePageSize(value?: string) {
+    const pageSize = Number(value ?? 25);
+    const safe = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 25;
+    return Math.min(safe, 100);
   }
 
   private primarySystemRole(roles?: string[]): UserSystemRole {

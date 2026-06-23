@@ -12,6 +12,19 @@ export interface EffectiveAccess {
   permissions: string[];
 }
 
+export interface CreateRoleRequest {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  permissions?: string[];
+}
+
+export interface UpdateRoleRequest {
+  name?: string;
+  description?: string | null;
+  permissions?: string[];
+}
+
 export interface RbacSyncResult {
   permissionsCreated: number;
   permissionsUpdated: number;
@@ -254,6 +267,71 @@ export class RbacService {
     return { ...role, permissions: selected.map((permission) => permission.key).sort() };
   }
 
+  async createRole(tenantId: string, request: CreateRoleRequest) {
+    const key = this.normalizeRoleKey(request.key);
+    const name = this.cleanRoleName(request.name);
+    const exists = await this.roles.exist({ where: { tenantId, key } });
+    if (exists) {
+      throw new BadRequestException('Role already exists');
+    }
+
+    const role = await this.roles.save(
+      this.roles.create({
+        tenantId,
+        key,
+        name,
+        description: request.description?.trim() || null,
+        builtIn: false
+      })
+    );
+
+    return this.setRolePermissions(tenantId, role.id, request.permissions ?? []);
+  }
+
+  async updateRole(tenantId: string, roleId: string, request: UpdateRoleRequest) {
+    const role = await this.roles.findOne({ where: { id: roleId, tenantId } });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (role.key === 'owner') {
+      throw new BadRequestException('Owner role metadata is managed by the system');
+    }
+
+    if (request.name !== undefined) {
+      role.name = this.cleanRoleName(request.name);
+    }
+    if (request.description !== undefined) {
+      role.description = request.description?.trim() || null;
+    }
+    await this.roles.save(role);
+
+    if (request.permissions) {
+      return this.setRolePermissions(tenantId, role.id, request.permissions);
+    }
+
+    return (await this.listRoles(tenantId)).find((item) => item.id === role.id);
+  }
+
+  async deleteRole(tenantId: string, roleId: string) {
+    const role = await this.roles.findOne({ where: { id: roleId, tenantId } });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+    if (role.builtIn) {
+      throw new BadRequestException('Built-in roles cannot be deleted');
+    }
+
+    const assigned = await this.userRoles.exist({ where: { tenantId, roleId } });
+    if (assigned) {
+      throw new BadRequestException('Role is assigned to users');
+    }
+
+    await this.rolePermissions.delete({ roleId });
+    await this.roles.delete({ id: roleId, tenantId });
+    return { ok: true };
+  }
+
   async getUserRoleKeys(tenantId: string, userId: string) {
     const rows = await this.userRoles
       .createQueryBuilder('userRole')
@@ -320,6 +398,22 @@ export class RbacService {
     }
 
     return { map, created, updated };
+  }
+
+  private normalizeRoleKey(value?: string) {
+    const key = (value ?? '').trim().toLowerCase();
+    if (!/^[a-z][a-z0-9_]{2,79}$/.test(key)) {
+      throw new BadRequestException('Role key must use snake_case and be 3-80 characters long');
+    }
+    return key;
+  }
+
+  private cleanRoleName(value?: string) {
+    const name = (value ?? '').trim();
+    if (name.length < 3 || name.length > 120) {
+      throw new BadRequestException('Role name must be 3-120 characters long');
+    }
+    return name;
   }
 
   private repo<T extends object>(entity: new () => T, manager?: EntityManager): Repository<T> {

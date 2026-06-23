@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
@@ -8,7 +8,7 @@ import { RequirePermissions } from '../auth/decorators/require-permissions.decor
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { MenusService } from '../menus/menus.service';
-import { RbacService } from './rbac.service';
+import { CreateRoleRequest, RbacService, UpdateRoleRequest } from './rbac.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -63,6 +63,66 @@ export class RbacController {
   })
   listRoles(@CurrentAuth() auth: AuthContext) {
     return this.rbac.listRoles(auth.tenant.id);
+  }
+
+  @Post('roles')
+  @RequirePermissions('roles.manage')
+  @ApiOperation({ summary: 'Crear rol del tenant' })
+  @ApiBody({
+    schema: {
+      example: {
+        key: 'supervisor',
+        name: 'Supervisor',
+        description: 'Supervisa operaciones del tenant.',
+        permissions: ['users.read', 'records.read']
+      }
+    }
+  })
+  async createRole(@CurrentAuth() auth: AuthContext, @Body() body: CreateRoleRequest) {
+    const role = await this.rbac.createRole(auth.tenant.id, body);
+    await this.audit.record({
+      auth,
+      action: 'role.created',
+      resourceType: 'role',
+      resourceId: role.id,
+      metadata: { key: role.key, permissions: role.permissions }
+    });
+    return role;
+  }
+
+  @Patch('roles/:roleId')
+  @RequirePermissions('roles.manage')
+  @ApiOperation({ summary: 'Actualizar rol del tenant' })
+  @ApiParam({ name: 'roleId', example: 'role-id' })
+  async updateRole(
+    @CurrentAuth() auth: AuthContext,
+    @Param('roleId') roleId: string,
+    @Body() body: UpdateRoleRequest
+  ) {
+    const role = await this.rbac.updateRole(auth.tenant.id, roleId, body);
+    await this.audit.record({
+      auth,
+      action: 'role.updated',
+      resourceType: 'role',
+      resourceId: roleId,
+      metadata: { name: role?.name, permissions: role?.permissions }
+    });
+    return role;
+  }
+
+  @Delete('roles/:roleId')
+  @RequirePermissions('roles.manage')
+  @ApiOperation({ summary: 'Eliminar rol custom del tenant' })
+  @ApiParam({ name: 'roleId', example: 'role-id' })
+  async deleteRole(@CurrentAuth() auth: AuthContext, @Param('roleId') roleId: string) {
+    const result = await this.rbac.deleteRole(auth.tenant.id, roleId);
+    await this.audit.record({
+      auth,
+      action: 'role.deleted',
+      resourceType: 'role',
+      resourceId: roleId
+    });
+    return result;
   }
 
   @Put('roles/:roleId/permissions')

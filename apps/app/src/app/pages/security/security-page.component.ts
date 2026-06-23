@@ -15,6 +15,13 @@ interface SecurityUser {
   roles: string[];
 }
 
+interface SecurityUsersResponse {
+  items: SecurityUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 interface SecurityRole {
   id: string;
   key: string;
@@ -61,6 +68,7 @@ interface SecuritySyncResponse {
 type SecurityTab = 'users' | 'roles' | 'audit';
 type UserStatusFilter = 'all' | 'active' | 'inactive';
 type UserPanelMode = 'create' | 'edit';
+type RolePanelMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-security-page',
@@ -223,6 +231,13 @@ type UserPanelMode = 'create' | 'edit';
         color: #102f4d;
         padding: 9px 11px;
         font: inherit;
+      }
+
+      input[type='checkbox'] {
+        width: auto;
+        min-height: auto;
+        height: auto;
+        padding: 0;
       }
 
       .form-grid {
@@ -433,8 +448,8 @@ type UserPanelMode = 'create' | 'edit';
             </article>
             <article class="stat-card">
               <span class="meta">Usuarios</span>
-              <strong>{{ activeUsers }} activos</strong>
-              <span class="meta">{{ users.length }} registrados</span>
+              <strong>{{ usersTotal }}</strong>
+              <span class="meta">registrados según filtros actuales</span>
             </article>
             <article class="stat-card">
               <span class="meta">Roles</span>
@@ -470,7 +485,7 @@ type UserPanelMode = 'create' | 'edit';
               <div class="header-row">
                 <div class="section-title">
                   <h2>Usuarios del tenant</h2>
-                  <p class="meta">{{ filteredUsers.length }} de {{ users.length }} usuarios visibles.</p>
+                  <p class="meta">Página {{ userPage }} · {{ users.length }} de {{ usersTotal }} usuarios encontrados.</p>
                 </div>
                 <button class="primary" type="button" (click)="startCreateUser()" [disabled]="!canCreateUsers">
                   Nuevo
@@ -483,6 +498,7 @@ type UserPanelMode = 'create' | 'edit';
                   <input
                     type="search"
                     [(ngModel)]="userSearch"
+                    (ngModelChange)="scheduleUsersReload()"
                     autocomplete="off"
                     placeholder="Email, nombre o rol"
                   />
@@ -490,7 +506,7 @@ type UserPanelMode = 'create' | 'edit';
                 <div class="filter-grid">
                   <label>
                     Estado
-                    <select [(ngModel)]="userStatusFilter">
+                    <select [(ngModel)]="userStatusFilter" (ngModelChange)="loadUsers(1)">
                       <option value="all">Todos</option>
                       <option value="active">Activos</option>
                       <option value="inactive">Inactivos</option>
@@ -498,7 +514,7 @@ type UserPanelMode = 'create' | 'edit';
                   </label>
                   <label>
                     Rol
-                    <select [(ngModel)]="userRoleFilter">
+                    <select [(ngModel)]="userRoleFilter" (ngModelChange)="loadUsers(1)">
                       <option value="">Todos</option>
                       @for (role of roles; track role.id) {
                         <option [value]="role.key">{{ role.name }}</option>
@@ -509,7 +525,7 @@ type UserPanelMode = 'create' | 'edit';
               </div>
 
               <div class="user-list">
-                @for (user of filteredUsers; track user.id) {
+                @for (user of users; track user.id) {
                   <button
                     class="user-card"
                     type="button"
@@ -530,6 +546,14 @@ type UserPanelMode = 'create' | 'edit';
                 } @empty {
                   <div class="message">No hay usuarios con esos filtros.</div>
                 }
+              </div>
+              <div class="actions">
+                <button type="button" (click)="loadUsers(userPage - 1)" [disabled]="userPage <= 1">
+                  Anterior
+                </button>
+                <button type="button" (click)="loadUsers(userPage + 1)" [disabled]="userPage >= userTotalPages">
+                  Siguiente
+                </button>
               </div>
             </aside>
 
@@ -632,42 +656,106 @@ type UserPanelMode = 'create' | 'edit';
         }
 
         @if (securityTab === 'roles') {
-          <section class="panel">
-            <div class="section-title">
-              <h2>Roles y permisos</h2>
-              <p class="meta">Define qué puede hacer cada perfil. El rol owner conserva permisos del sistema.</p>
-            </div>
-            @for (role of roles; track role.id) {
-              <article class="row">
-                <div class="row-header">
-                  <div>
-                    <h3>{{ role.name }}</h3>
-                    <p>{{ role.description }}</p>
-                  </div>
+          <section class="security-layout">
+            <aside class="panel">
+              <div class="header-row">
+                <div class="section-title">
+                  <h2>Roles</h2>
+                  <p class="meta">{{ roles.length }} perfiles disponibles.</p>
+                </div>
+                <button class="primary" type="button" (click)="startCreateRole()" [disabled]="!canManageRoles">
+                  Nuevo
+                </button>
+              </div>
+
+              <div class="user-list">
+                @for (role of roles; track role.id) {
                   <button
-                    class="primary"
+                    class="user-card"
                     type="button"
-                    [disabled]="!canManageRoles || role.key === 'owner'"
-                    (click)="saveRolePermissions(role)"
+                    [class.active]="selectedRole?.id === role.id && rolePanelMode === 'edit'"
+                    (click)="selectRole(role)"
                   >
-                    Guardar permisos
+                    <strong>{{ role.name }}</strong>
+                    <span class="meta">{{ role.key }} · {{ role.builtIn ? 'base del sistema' : 'custom' }}</span>
+                    <span class="meta">{{ role.permissions.length }} permisos</span>
                   </button>
+                }
+              </div>
+            </aside>
+
+            <section class="panel">
+              @if (rolePanelMode === 'create') {
+                <div class="section-title">
+                  <h2>Crear rol</h2>
+                  <p class="meta">Crea un perfil custom para este tenant.</p>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Key
+                    <input [(ngModel)]="roleDraft.key" placeholder="supervisor" />
+                  </label>
+                  <label>
+                    Nombre
+                    <input [(ngModel)]="roleDraft.name" placeholder="Supervisor" />
+                  </label>
+                </div>
+                <label>
+                  Descripción
+                  <input [(ngModel)]="roleDraft.description" placeholder="Qué puede hacer este perfil" />
+                </label>
+                <button class="primary" type="button" (click)="createRole()" [disabled]="!canManageRoles">
+                  Crear rol
+                </button>
+              } @else if (selectedRole) {
+                <div class="detail-head">
+                  <div class="section-title">
+                    <h2>{{ selectedRole.name }}</h2>
+                    <p class="meta">{{ selectedRole.key }} · {{ selectedRole.builtIn ? 'rol base' : 'rol custom' }}</p>
+                  </div>
+                  @if (!selectedRole.builtIn) {
+                    <button class="danger" type="button" (click)="deleteSelectedRole()" [disabled]="!canManageRoles">
+                      Eliminar rol
+                    </button>
+                  }
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Nombre
+                    <input [(ngModel)]="roleDraft.name" [disabled]="selectedRole.key === 'owner'" />
+                  </label>
+                  <label>
+                    Descripción
+                    <input [(ngModel)]="roleDraft.description" [disabled]="selectedRole.key === 'owner'" />
+                  </label>
+                </div>
+                <div class="section-title">
+                  <h3>Permisos</h3>
+                  <p class="meta">Marca las capacidades que tendrá este rol.</p>
                 </div>
                 <div class="checks">
                   @for (permission of permissions; track permission.id) {
                     <label class="check">
                       <input
                         type="checkbox"
-                        [checked]="role.permissions.includes(permission.key)"
-                        [disabled]="!canManageRoles || role.key === 'owner'"
-                        (change)="toggleRolePermission(role, permission.key)"
+                        [checked]="selectedRole.permissions.includes(permission.key)"
+                        [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                        (change)="toggleRolePermission(selectedRole, permission.key)"
                       />
                       {{ permission.key }}
                     </label>
                   }
                 </div>
-              </article>
-            }
+                <button
+                  class="primary"
+                  type="button"
+                  [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                  (click)="saveSelectedRole()"
+                >
+                  Guardar rol
+                </button>
+              }
+            </section>
           </section>
         }
 
@@ -696,21 +784,32 @@ type UserPanelMode = 'create' | 'edit';
 export class SecurityPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
   private readonly menu = inject(AppMenuService);
+  private usersReloadTimer?: ReturnType<typeof setTimeout>;
   readonly auth = inject(AuthService);
 
   users: SecurityUser[] = [];
+  usersTotal = 0;
+  userPage = 1;
+  userPageSize = 25;
   roles: SecurityRole[] = [];
   permissions: SecurityPermission[] = [];
   audit: AuditEvent[] = [];
   securityTab: SecurityTab = 'users';
   userStatusFilter: UserStatusFilter = 'all';
   userPanelMode: UserPanelMode = 'create';
+  rolePanelMode: RolePanelMode = 'create';
   userSearch = '';
   userRoleFilter = '';
   selectedUserId = '';
+  selectedRoleId = '';
   userEditor = {
     name: '',
     password: ''
+  };
+  roleDraft = {
+    key: '',
+    name: '',
+    description: ''
   };
   message = '';
   syncing = false;
@@ -745,24 +844,16 @@ export class SecurityPageComponent implements OnInit {
     return this.users.filter((user) => user.active).length;
   }
 
-  get filteredUsers() {
-    const search = this.userSearch.trim().toLowerCase();
-    return this.users.filter((user) => {
-      const matchesSearch =
-        !search ||
-        user.email.toLowerCase().includes(search) ||
-        (user.name ?? '').toLowerCase().includes(search) ||
-        user.roles.some((role) => role.toLowerCase().includes(search));
-      const matchesStatus =
-        this.userStatusFilter === 'all' ||
-        (this.userStatusFilter === 'active' ? user.active : !user.active);
-      const matchesRole = !this.userRoleFilter || user.roles.includes(this.userRoleFilter);
-      return matchesSearch && matchesStatus && matchesRole;
-    });
+  get userTotalPages() {
+    return Math.max(1, Math.ceil(this.usersTotal / this.userPageSize));
   }
 
   get selectedUser() {
     return this.users.find((user) => user.id === this.selectedUserId);
+  }
+
+  get selectedRole() {
+    return this.roles.find((role) => role.id === this.selectedRoleId);
   }
 
   ngOnInit() {
@@ -775,17 +866,13 @@ export class SecurityPageComponent implements OnInit {
       next: (roles) => {
         this.roles = roles;
         this.newUser.role = roles.find((role) => role.key === 'viewer')?.key ?? roles[0]?.key ?? 'viewer';
-      }
-    });
-    this.api.get<SecurityPermission[]>('permissions').subscribe({ next: (permissions) => (this.permissions = permissions) });
-    this.api.get<SecurityUser[]>('users').subscribe({
-      next: (users) => {
-        this.users = users;
-        if (!this.selectedUserId && users.length) {
-          this.selectUser(users[0]);
+        if (!this.selectedRoleId && roles.length) {
+          this.selectRole(roles[0]);
         }
       }
     });
+    this.api.get<SecurityPermission[]>('permissions').subscribe({ next: (permissions) => (this.permissions = permissions) });
+    this.loadUsers(1);
     this.api.get<AuditEvent[]>('audit').subscribe({
       next: (audit) => {
         this.audit = audit;
@@ -807,16 +894,59 @@ export class SecurityPageComponent implements OnInit {
       })
       .subscribe({
         next: (user) => {
-          this.users = [...this.users, user].sort((a, b) => a.email.localeCompare(b.email));
           this.newUser = { email: '', name: '', password: '', role: this.newUser.role };
           this.selectUser(user);
           this.message = 'Usuario creado.';
+          this.loadUsers(1);
           this.reloadAudit();
         },
         error: () => {
           this.message = 'No se pudo crear el usuario.';
         }
       });
+  }
+
+  loadUsers(page = this.userPage) {
+    if (this.usersReloadTimer) {
+      clearTimeout(this.usersReloadTimer);
+      this.usersReloadTimer = undefined;
+    }
+    const nextPage = Math.max(1, page);
+    const params = new URLSearchParams({
+      page: String(nextPage),
+      pageSize: String(this.userPageSize),
+      status: this.userStatusFilter
+    });
+    if (this.userSearch.trim()) {
+      params.set('search', this.userSearch.trim());
+    }
+    if (this.userRoleFilter) {
+      params.set('role', this.userRoleFilter);
+    }
+
+    this.api.get<SecurityUsersResponse>(`users?${params.toString()}`).subscribe({
+      next: (response) => {
+        this.users = response.items;
+        this.usersTotal = response.total;
+        this.userPage = response.page;
+        this.userPageSize = response.pageSize;
+        if (this.selectedUserId && !this.users.some((user) => user.id === this.selectedUserId)) {
+          this.startCreateUser();
+        } else if (!this.selectedUserId && this.users.length) {
+          this.selectUser(this.users[0]);
+        }
+      },
+      error: () => {
+        this.message = 'No se pudieron cargar los usuarios.';
+      }
+    });
+  }
+
+  scheduleUsersReload() {
+    if (this.usersReloadTimer) {
+      clearTimeout(this.usersReloadTimer);
+    }
+    this.usersReloadTimer = setTimeout(() => this.loadUsers(1), 250);
   }
 
   toggleUser(user: SecurityUser) {
@@ -887,6 +1017,85 @@ export class SecurityPageComponent implements OnInit {
     role.permissions = role.permissions.includes(permissionKey)
       ? role.permissions.filter((item) => item !== permissionKey)
       : [...role.permissions, permissionKey].sort();
+  }
+
+  startCreateRole() {
+    this.rolePanelMode = 'create';
+    this.selectedRoleId = '';
+    this.roleDraft = { key: '', name: '', description: '' };
+  }
+
+  selectRole(role: SecurityRole) {
+    this.rolePanelMode = 'edit';
+    this.selectedRoleId = role.id;
+    this.roleDraft = {
+      key: role.key,
+      name: role.name,
+      description: role.description ?? ''
+    };
+  }
+
+  createRole() {
+    this.api
+      .post<SecurityRole>('roles', {
+        key: this.roleDraft.key,
+        name: this.roleDraft.name,
+        description: this.roleDraft.description,
+        permissions: []
+      })
+      .subscribe({
+        next: (role) => {
+          this.roles = [...this.roles, role].sort((a, b) => a.key.localeCompare(b.key));
+          this.selectRole(role);
+          this.message = 'Rol creado.';
+          this.reloadAudit();
+        },
+        error: () => {
+          this.message = 'No se pudo crear el rol.';
+        }
+      });
+  }
+
+  saveSelectedRole() {
+    const role = this.selectedRole;
+    if (!role) {
+      return;
+    }
+    this.api
+      .patch<SecurityRole>(`roles/${role.id}`, {
+        name: this.roleDraft.name,
+        description: this.roleDraft.description,
+        permissions: role.permissions
+      })
+      .subscribe({
+        next: (updated) => {
+          this.roles = this.roles.map((item) => (item.id === updated.id ? updated : item));
+          this.selectRole(updated);
+          this.message = 'Rol actualizado.';
+          this.reloadAudit();
+        },
+        error: () => {
+          this.message = 'No se pudo guardar el rol.';
+        }
+      });
+  }
+
+  deleteSelectedRole() {
+    const role = this.selectedRole;
+    if (!role) {
+      return;
+    }
+    this.api.delete<{ ok: true }>(`roles/${role.id}`).subscribe({
+      next: () => {
+        this.roles = this.roles.filter((item) => item.id !== role.id);
+        this.startCreateRole();
+        this.message = 'Rol eliminado.';
+        this.reloadAudit();
+      },
+      error: () => {
+        this.message = 'No se pudo eliminar el rol. Verifica que no esté asignado a usuarios.';
+      }
+    });
   }
 
   saveRolePermissions(role: SecurityRole) {

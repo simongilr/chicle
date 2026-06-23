@@ -58,6 +58,10 @@ interface SecuritySyncResponse {
   };
 }
 
+type SecurityTab = 'users' | 'roles' | 'audit';
+type UserStatusFilter = 'all' | 'active' | 'inactive';
+type UserPanelMode = 'create' | 'edit';
+
 @Component({
   selector: 'app-security-page',
   standalone: true,
@@ -229,11 +233,108 @@ interface SecuritySyncResponse {
         align-content: start;
       }
 
-      .user-edit-grid {
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tab {
+        width: auto;
+        min-width: 132px;
+      }
+
+      .tab.active {
+        border-color: #1554a2;
+        background: #1554a2;
+        color: #ffffff;
+      }
+
+      .security-layout {
         display: grid;
-        grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+        grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.4fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .toolbar {
+        display: grid;
+        gap: 10px;
+      }
+
+      .filter-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .user-list {
+        display: grid;
+        gap: 8px;
+        max-height: 620px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .user-card {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px;
+        color: #173b5f;
+        text-align: left;
+      }
+
+      .user-card.active {
+        border-color: #1554a2;
+        background: #eef5ff;
+      }
+
+      .user-card strong,
+      .user-card span {
+        overflow-wrap: anywhere;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .pill {
+        border-radius: 999px;
+        background: #edf4fb;
+        color: #173b5f;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .pill.warn {
+        background: #fff2e5;
+        color: #84531b;
+      }
+
+      .pill.ok {
+        background: #e9f8ef;
+        color: #17643a;
+      }
+
+      .detail-head {
+        display: flex;
+        justify-content: space-between;
         gap: 12px;
-        align-items: end;
+        align-items: flex-start;
+      }
+
+      .detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
       }
 
       .row {
@@ -295,7 +396,8 @@ interface SecuritySyncResponse {
       @media (max-width: 860px) {
         .grid,
         .form-grid,
-        .user-edit-grid,
+        .filter-grid,
+        .security-layout,
         .overview {
           grid-template-columns: 1fr;
         }
@@ -350,33 +452,230 @@ interface SecuritySyncResponse {
           }
         </section>
 
-        <section class="grid">
-          <article class="panel">
-            <div class="section-title">
-              <h2>Crear usuario de acceso</h2>
-              <p class="meta">Usuarios que pueden iniciar sesión en esta organización.</p>
-            </div>
-            <div class="form-grid">
-              <label>Email <input type="email" [(ngModel)]="newUser.email" /></label>
-              <label>Nombre <input type="text" [(ngModel)]="newUser.name" /></label>
-              <label>Password <input type="password" [(ngModel)]="newUser.password" /></label>
-              <label>Rol inicial
-                <select [(ngModel)]="newUser.role">
-                  @for (role of roles; track role.id) {
-                    <option [value]="role.key">{{ role.name }}</option>
-                  }
-                </select>
-              </label>
-            </div>
-            <button class="primary" type="button" (click)="createUser()" [disabled]="!canCreateUsers">
-              Crear usuario
-            </button>
-          </article>
+        <nav class="tabs" aria-label="Secciones de seguridad">
+          <button class="tab" type="button" [class.active]="securityTab === 'users'" (click)="securityTab = 'users'">
+            Usuarios
+          </button>
+          <button class="tab" type="button" [class.active]="securityTab === 'roles'" (click)="securityTab = 'roles'">
+            Roles y permisos
+          </button>
+          <button class="tab" type="button" [class.active]="securityTab === 'audit'" (click)="securityTab = 'audit'">
+            Auditoría
+          </button>
+        </nav>
 
-          <article class="panel">
+        @if (securityTab === 'users') {
+          <section class="security-layout">
+            <aside class="panel">
+              <div class="header-row">
+                <div class="section-title">
+                  <h2>Usuarios del tenant</h2>
+                  <p class="meta">{{ filteredUsers.length }} de {{ users.length }} usuarios visibles.</p>
+                </div>
+                <button class="primary" type="button" (click)="startCreateUser()" [disabled]="!canCreateUsers">
+                  Nuevo
+                </button>
+              </div>
+
+              <div class="toolbar">
+                <label>
+                  Buscar
+                  <input
+                    type="search"
+                    [(ngModel)]="userSearch"
+                    autocomplete="off"
+                    placeholder="Email, nombre o rol"
+                  />
+                </label>
+                <div class="filter-grid">
+                  <label>
+                    Estado
+                    <select [(ngModel)]="userStatusFilter">
+                      <option value="all">Todos</option>
+                      <option value="active">Activos</option>
+                      <option value="inactive">Inactivos</option>
+                    </select>
+                  </label>
+                  <label>
+                    Rol
+                    <select [(ngModel)]="userRoleFilter">
+                      <option value="">Todos</option>
+                      @for (role of roles; track role.id) {
+                        <option [value]="role.key">{{ role.name }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="user-list">
+                @for (user of filteredUsers; track user.id) {
+                  <button
+                    class="user-card"
+                    type="button"
+                    [class.active]="selectedUser?.id === user.id && userPanelMode === 'edit'"
+                    (click)="selectUser(user)"
+                  >
+                    <strong>{{ user.name || 'Sin nombre' }}</strong>
+                    <span class="meta">{{ user.email }}</span>
+                    <div class="pill-row">
+                      <span class="pill" [class.ok]="user.active" [class.warn]="!user.active">
+                        {{ user.active ? 'Activo' : 'Inactivo' }}
+                      </span>
+                      @for (role of user.roles; track role) {
+                        <span class="pill">{{ role }}</span>
+                      }
+                    </div>
+                  </button>
+                } @empty {
+                  <div class="message">No hay usuarios con esos filtros.</div>
+                }
+              </div>
+            </aside>
+
+            <section class="panel">
+              @if (userPanelMode === 'create') {
+                <div class="section-title">
+                  <h2>Crear usuario de acceso</h2>
+                  <p class="meta">Crea una cuenta para alguien que inicia sesión en esta organización.</p>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Email
+                    <input type="email" [(ngModel)]="newUser.email" autocomplete="off" placeholder="cliente@example.com" />
+                  </label>
+                  <label>
+                    Nombre
+                    <input type="text" [(ngModel)]="newUser.name" autocomplete="off" placeholder="Nombre visible" />
+                  </label>
+                  <label>
+                    Password temporal
+                    <input
+                      type="password"
+                      [(ngModel)]="newUser.password"
+                      autocomplete="new-password"
+                      placeholder="Clave temporal"
+                    />
+                  </label>
+                  <label>
+                    Rol inicial
+                    <select [(ngModel)]="newUser.role">
+                      @for (role of roles; track role.id) {
+                        <option [value]="role.key">{{ role.name }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+                <button class="primary" type="button" (click)="createUser()" [disabled]="!canCreateUsers">
+                  Crear usuario
+                </button>
+              } @else if (selectedUser) {
+                <div class="detail-head">
+                  <div class="section-title">
+                    <h2>{{ selectedUser.name || 'Usuario sin nombre' }}</h2>
+                    <p class="meta">{{ selectedUser.email }} · {{ selectedUser.active ? 'Activo' : 'Inactivo' }}</p>
+                  </div>
+                  <div class="detail-actions">
+                    <button
+                      class="danger"
+                      type="button"
+                      (click)="toggleUser(selectedUser)"
+                      [disabled]="!canUpdateUsers || selectedUser.id === auth.state.session()?.user?.id"
+                    >
+                      {{ selectedUser.active ? 'Desactivar acceso' : 'Activar acceso' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-grid">
+                  <label>
+                    Nombre visible
+                    <input type="text" [(ngModel)]="userEditor.name" autocomplete="off" placeholder="Nombre del usuario" />
+                  </label>
+                  <label>
+                    Resetear contraseña
+                    <input
+                      type="password"
+                      [(ngModel)]="userEditor.password"
+                      autocomplete="new-password"
+                      placeholder="Deja vacío para no cambiarla"
+                    />
+                  </label>
+                </div>
+
+                <div class="section-title">
+                  <h3>Roles asignados</h3>
+                  <p class="meta">Estos roles definen el acceso efectivo dentro del tenant.</p>
+                </div>
+                <div class="checks">
+                  @for (role of roles; track role.id) {
+                    <label class="check">
+                      <input
+                        type="checkbox"
+                        [checked]="selectedUser.roles.includes(role.key)"
+                        [disabled]="!canManageRoles"
+                        (change)="toggleUserRole(selectedUser, role.key)"
+                      />
+                      {{ role.name }}
+                    </label>
+                  }
+                </div>
+
+                <button type="button" (click)="saveSelectedUser()" [disabled]="!canUpdateUsers">
+                  Guardar cambios
+                </button>
+              } @else {
+                <div class="message">Selecciona un usuario o crea uno nuevo.</div>
+              }
+            </section>
+          </section>
+        }
+
+        @if (securityTab === 'roles') {
+          <section class="panel">
+            <div class="section-title">
+              <h2>Roles y permisos</h2>
+              <p class="meta">Define qué puede hacer cada perfil. El rol owner conserva permisos del sistema.</p>
+            </div>
+            @for (role of roles; track role.id) {
+              <article class="row">
+                <div class="row-header">
+                  <div>
+                    <h3>{{ role.name }}</h3>
+                    <p>{{ role.description }}</p>
+                  </div>
+                  <button
+                    class="primary"
+                    type="button"
+                    [disabled]="!canManageRoles || role.key === 'owner'"
+                    (click)="saveRolePermissions(role)"
+                  >
+                    Guardar permisos
+                  </button>
+                </div>
+                <div class="checks">
+                  @for (permission of permissions; track permission.id) {
+                    <label class="check">
+                      <input
+                        type="checkbox"
+                        [checked]="role.permissions.includes(permission.key)"
+                        [disabled]="!canManageRoles || role.key === 'owner'"
+                        (change)="toggleRolePermission(role, permission.key)"
+                      />
+                      {{ permission.key }}
+                    </label>
+                  }
+                </div>
+              </article>
+            }
+          </section>
+        }
+
+        @if (securityTab === 'audit') {
+          <section class="panel">
             <div class="section-title">
               <h2>Auditoría reciente</h2>
-              <p class="meta">Cambios sensibles de usuarios, roles y configuración.</p>
+              <p class="meta">Cambios sensibles de usuarios, roles, servicios y configuración.</p>
             </div>
             <div class="audit">
               @for (event of audit; track event.id) {
@@ -384,104 +683,12 @@ interface SecuritySyncResponse {
                   <strong>{{ event.action }}</strong>
                   <span class="meta">{{ event.resourceType }} · {{ event.createdAt }}</span>
                 </div>
+              } @empty {
+                <div class="message">Todavía no hay eventos de auditoría.</div>
               }
             </div>
-          </article>
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <h2>Usuarios del tenant</h2>
-            <p class="meta">Administra estado de acceso y roles de cada usuario dentro de la organización actual.</p>
-          </div>
-          @for (user of users; track user.id) {
-            <article class="row">
-              <div class="row-header">
-                <div>
-                  <h3>{{ user.email }}</h3>
-                  <p>{{ user.name || 'Sin nombre' }} · {{ user.active ? 'Activo' : 'Inactivo' }}</p>
-                </div>
-                <button
-                  class="danger"
-                  type="button"
-                  (click)="toggleUser(user)"
-                  [disabled]="!canUpdateUsers || user.id === auth.state.session()?.user?.id"
-                >
-                  {{ user.active ? 'Desactivar' : 'Activar' }}
-                </button>
-              </div>
-              <div class="user-edit-grid">
-                <label>
-                  Nombre visible
-                  <input type="text" [(ngModel)]="user.name" placeholder="Nombre del usuario" />
-                </label>
-                <label>
-                  Nueva contraseña
-                  <input
-                    type="password"
-                    [ngModel]="passwordDrafts[user.id] || ''"
-                    (ngModelChange)="passwordDrafts[user.id] = $event"
-                    placeholder="Solo si quieres resetearla"
-                  />
-                </label>
-                <button type="button" (click)="saveUser(user)" [disabled]="!canUpdateUsers">
-                  Guardar usuario
-                </button>
-              </div>
-              <div class="checks">
-                @for (role of roles; track role.id) {
-                  <label class="check">
-                    <input
-                      type="checkbox"
-                      [checked]="user.roles.includes(role.key)"
-                      [disabled]="!canManageRoles"
-                      (change)="toggleUserRole(user, role.key)"
-                    />
-                    {{ role.name }}
-                  </label>
-                }
-              </div>
-            </article>
-          }
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <h2>Roles y permisos</h2>
-            <p class="meta">Define qué puede hacer cada perfil. El rol owner conserva permisos del sistema.</p>
-          </div>
-          @for (role of roles; track role.id) {
-            <article class="row">
-              <div class="row-header">
-                <div>
-                  <h3>{{ role.name }}</h3>
-                  <p>{{ role.description }}</p>
-                </div>
-                <button
-                  class="primary"
-                  type="button"
-                  [disabled]="!canManageRoles || role.key === 'owner'"
-                  (click)="saveRolePermissions(role)"
-                >
-                  Guardar permisos
-                </button>
-              </div>
-              <div class="checks">
-                @for (permission of permissions; track permission.id) {
-                  <label class="check">
-                    <input
-                      type="checkbox"
-                      [checked]="role.permissions.includes(permission.key)"
-                      [disabled]="!canManageRoles || role.key === 'owner'"
-                      (change)="toggleRolePermission(role, permission.key)"
-                    />
-                    {{ permission.key }}
-                  </label>
-                }
-              </div>
-            </article>
-          }
-        </section>
+          </section>
+        }
       </main>
     </ion-content>
   `
@@ -495,7 +702,16 @@ export class SecurityPageComponent implements OnInit {
   roles: SecurityRole[] = [];
   permissions: SecurityPermission[] = [];
   audit: AuditEvent[] = [];
-  passwordDrafts: Record<string, string> = {};
+  securityTab: SecurityTab = 'users';
+  userStatusFilter: UserStatusFilter = 'all';
+  userPanelMode: UserPanelMode = 'create';
+  userSearch = '';
+  userRoleFilter = '';
+  selectedUserId = '';
+  userEditor = {
+    name: '',
+    password: ''
+  };
   message = '';
   syncing = false;
   newUser = {
@@ -529,6 +745,26 @@ export class SecurityPageComponent implements OnInit {
     return this.users.filter((user) => user.active).length;
   }
 
+  get filteredUsers() {
+    const search = this.userSearch.trim().toLowerCase();
+    return this.users.filter((user) => {
+      const matchesSearch =
+        !search ||
+        user.email.toLowerCase().includes(search) ||
+        (user.name ?? '').toLowerCase().includes(search) ||
+        user.roles.some((role) => role.toLowerCase().includes(search));
+      const matchesStatus =
+        this.userStatusFilter === 'all' ||
+        (this.userStatusFilter === 'active' ? user.active : !user.active);
+      const matchesRole = !this.userRoleFilter || user.roles.includes(this.userRoleFilter);
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }
+
+  get selectedUser() {
+    return this.users.find((user) => user.id === this.selectedUserId);
+  }
+
   ngOnInit() {
     this.load();
   }
@@ -542,7 +778,14 @@ export class SecurityPageComponent implements OnInit {
       }
     });
     this.api.get<SecurityPermission[]>('permissions').subscribe({ next: (permissions) => (this.permissions = permissions) });
-    this.api.get<SecurityUser[]>('users').subscribe({ next: (users) => (this.users = users) });
+    this.api.get<SecurityUser[]>('users').subscribe({
+      next: (users) => {
+        this.users = users;
+        if (!this.selectedUserId && users.length) {
+          this.selectUser(users[0]);
+        }
+      }
+    });
     this.api.get<AuditEvent[]>('audit').subscribe({
       next: (audit) => {
         this.audit = audit;
@@ -566,6 +809,7 @@ export class SecurityPageComponent implements OnInit {
         next: (user) => {
           this.users = [...this.users, user].sort((a, b) => a.email.localeCompare(b.email));
           this.newUser = { email: '', name: '', password: '', role: this.newUser.role };
+          this.selectUser(user);
           this.message = 'Usuario creado.';
           this.reloadAudit();
         },
@@ -584,17 +828,37 @@ export class SecurityPageComponent implements OnInit {
     });
   }
 
-  saveUser(user: SecurityUser) {
-    const password = this.passwordDrafts[user.id]?.trim();
+  startCreateUser() {
+    this.userPanelMode = 'create';
+    this.selectedUserId = '';
+    this.userEditor = { name: '', password: '' };
+    this.newUser = { email: '', name: '', password: '', role: this.newUser.role };
+  }
+
+  selectUser(user: SecurityUser) {
+    this.userPanelMode = 'edit';
+    this.selectedUserId = user.id;
+    this.userEditor = {
+      name: user.name ?? '',
+      password: ''
+    };
+  }
+
+  saveSelectedUser() {
+    const user = this.selectedUser;
+    if (!user) {
+      return;
+    }
+    const password = this.userEditor.password.trim();
     this.api
       .patch<SecurityUser>(`users/${user.id}`, {
-        name: user.name ?? null,
+        name: this.userEditor.name,
         ...(password ? { password } : {})
       })
       .subscribe({
         next: (updated) => {
           this.users = this.users.map((item) => (item.id === updated.id ? updated : item));
-          delete this.passwordDrafts[user.id];
+          this.selectUser(updated);
           this.message = password ? 'Usuario actualizado y contraseña reiniciada.' : 'Usuario actualizado.';
           this.reloadAudit();
         },

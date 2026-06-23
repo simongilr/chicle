@@ -911,7 +911,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
                   <div class="grid">
                     <div class="block">
-                      <label for="test-context">Contexto de prueba</label>
+                      <label for="test-context">JSON de consumo/prueba</label>
                       <textarea id="test-context" class="code" [(ngModel)]="contextText" spellcheck="false"></textarea>
                     </div>
                     <div class="block">
@@ -1602,6 +1602,7 @@ export class ServicesPageComponent implements OnInit {
     }
 
     this.definitionText = JSON.stringify(definition, null, 2);
+    this.syncContextProposal(definition);
   }
 
   onSourceChange() {
@@ -1735,6 +1736,82 @@ export class ServicesPageComponent implements OnInit {
           ? `"${filter.value ?? ''}"`
           : this.filterSourceLabels[filter.valueSource];
     return `${filter.field} ${this.filterOperatorLabels[filter.operator]} ${value}`;
+  }
+
+  private syncContextProposal(definition: DynamicServiceDefinition) {
+    const current = this.readCurrentContext();
+    const proposal: Record<string, unknown> = {};
+
+    if (definition.source === 'internal_table') {
+      for (const filter of definition.dataTarget?.filters ?? []) {
+        if (filter.valueSource === 'input') {
+          const key = filter.inputKey || filter.field;
+          proposal[key] = current[key] ?? this.exampleForField(filter.field);
+        }
+      }
+    } else {
+      this.collectInputTemplateKeys(definition.headers, proposal, current);
+      this.collectInputTemplateKeys(definition.query, proposal, current);
+      this.collectInputTemplateKeys(definition.body, proposal, current);
+    }
+
+    if (definition.resultKind === 'paginated_list') {
+      proposal['page'] = current['page'] ?? 1;
+      proposal['pageSize'] = current['pageSize'] ?? 20;
+    }
+
+    if (Object.keys(proposal).length) {
+      this.contextText = JSON.stringify(proposal, null, 2);
+    }
+  }
+
+  private readCurrentContext() {
+    try {
+      const parsed = JSON.parse(this.contextText) as Record<string, unknown>;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private collectInputTemplateKeys(value: unknown, proposal: Record<string, unknown>, current: Record<string, unknown>) {
+    if (typeof value === 'string') {
+      const matches = value.matchAll(/\{\{\s*input\.([a-zA-Z0-9_]+)\s*\}\}/g);
+      for (const match of matches) {
+        const key = match[1];
+        proposal[key] = current[key] ?? this.exampleForField(key);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => this.collectInputTemplateKeys(item, proposal, current));
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      Object.values(value as Record<string, unknown>).forEach((item) => this.collectInputTemplateKeys(item, proposal, current));
+    }
+  }
+
+  private exampleForField(field: string) {
+    const normalized = field.toLowerCase();
+    if (normalized.includes('email')) {
+      return 'admin@example.com';
+    }
+    if (normalized.includes('name')) {
+      return 'simon';
+    }
+    if (normalized.includes('serial')) {
+      return 'ABC-123';
+    }
+    if (normalized.includes('token')) {
+      return 'solo-para-prueba';
+    }
+    if (normalized.includes('id')) {
+      return 'id-de-prueba';
+    }
+    return 'valor-de-prueba';
   }
 
   private parseDefinitionOrDefault(): DynamicServiceDefinition {

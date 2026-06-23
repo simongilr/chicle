@@ -131,6 +131,7 @@ interface SecuritySyncResponse {
 
       .panel {
         display: grid;
+        align-content: start;
         gap: 14px;
         border-radius: 8px;
         padding: 18px;
@@ -140,6 +141,34 @@ interface SecuritySyncResponse {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 18px;
+        align-items: start;
+      }
+
+      .overview {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stat-card {
+        display: grid;
+        gap: 6px;
+        min-height: 94px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        padding: 14px;
+      }
+
+      .stat-card strong {
+        color: #102f4d;
+        font-size: 1.1rem;
+        overflow-wrap: anywhere;
+      }
+
+      .section-title {
+        display: grid;
+        gap: 4px;
       }
 
       h1,
@@ -172,6 +201,7 @@ interface SecuritySyncResponse {
 
       label {
         display: grid;
+        align-content: start;
         gap: 7px;
         color: #173b5f;
         font-weight: 750;
@@ -179,10 +209,13 @@ interface SecuritySyncResponse {
 
       input,
       select {
+        box-sizing: border-box;
         width: 100%;
         min-height: 40px;
+        height: 40px;
         border: 1px solid #b9c9d8;
         border-radius: 8px;
+        background: #ffffff;
         color: #102f4d;
         padding: 9px 11px;
         font: inherit;
@@ -192,6 +225,8 @@ interface SecuritySyncResponse {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+        align-items: start;
+        align-content: start;
       }
 
       .row {
@@ -227,6 +262,9 @@ interface SecuritySyncResponse {
       .audit {
         display: grid;
         gap: 8px;
+        max-height: 520px;
+        overflow: auto;
+        padding-right: 4px;
       }
 
       .message {
@@ -249,7 +287,8 @@ interface SecuritySyncResponse {
 
       @media (max-width: 860px) {
         .grid,
-        .form-grid {
+        .form-grid,
+        .overview {
           grid-template-columns: 1fr;
         }
 
@@ -267,14 +306,36 @@ interface SecuritySyncResponse {
         <section class="panel">
           <div class="header-row">
             <div>
-              <h1>Seguridad</h1>
-              <p>Usuarios, roles, permisos y auditoría del tenant actual.</p>
+              <h1>Seguridad y administración</h1>
+              <p>Control operativo del tenant actual: organización, usuarios, roles, permisos y auditoría.</p>
             </div>
             <div class="actions">
               <button class="primary" type="button" (click)="syncSecurity()" [disabled]="!canManageRoles || syncing">
                 {{ syncing ? 'Sincronizando...' : 'Sincronizar seguridad' }}
               </button>
             </div>
+          </div>
+          <div class="overview">
+            <article class="stat-card">
+              <span class="meta">Organización actual</span>
+              <strong>{{ tenantName }}</strong>
+              <span class="meta">{{ tenantSlug }}</span>
+            </article>
+            <article class="stat-card">
+              <span class="meta">Usuarios</span>
+              <strong>{{ activeUsers }} activos</strong>
+              <span class="meta">{{ users.length }} registrados</span>
+            </article>
+            <article class="stat-card">
+              <span class="meta">Roles</span>
+              <strong>{{ roles.length }}</strong>
+              <span class="meta">{{ permissions.length }} permisos disponibles</span>
+            </article>
+            <article class="stat-card">
+              <span class="meta">Clientes y personas</span>
+              <strong>Modelo del tenant</strong>
+              <span class="meta">Se administrarán como entidades de negocio, no como usuarios de login.</span>
+            </article>
           </div>
           @if (message) {
             <div class="message">{{ message }}</div>
@@ -283,7 +344,10 @@ interface SecuritySyncResponse {
 
         <section class="grid">
           <article class="panel">
-            <h2>Crear usuario</h2>
+            <div class="section-title">
+              <h2>Crear usuario de acceso</h2>
+              <p class="meta">Usuarios que pueden iniciar sesión en esta organización.</p>
+            </div>
             <div class="form-grid">
               <label>Email <input type="email" [(ngModel)]="newUser.email" /></label>
               <label>Nombre <input type="text" [(ngModel)]="newUser.name" /></label>
@@ -302,7 +366,10 @@ interface SecuritySyncResponse {
           </article>
 
           <article class="panel">
-            <h2>Auditoría reciente</h2>
+            <div class="section-title">
+              <h2>Auditoría reciente</h2>
+              <p class="meta">Cambios sensibles de usuarios, roles y configuración.</p>
+            </div>
             <div class="audit">
               @for (event of audit; track event.id) {
                 <div class="row">
@@ -315,7 +382,10 @@ interface SecuritySyncResponse {
         </section>
 
         <section class="panel">
-          <h2>Usuarios</h2>
+          <div class="section-title">
+            <h2>Usuarios del tenant</h2>
+            <p class="meta">Administra estado de acceso y roles de cada usuario dentro de la organización actual.</p>
+          </div>
           @for (user of users; track user.id) {
             <article class="row">
               <div class="row-header">
@@ -350,7 +420,10 @@ interface SecuritySyncResponse {
         </section>
 
         <section class="panel">
-          <h2>Roles y permisos</h2>
+          <div class="section-title">
+            <h2>Roles y permisos</h2>
+            <p class="meta">Define qué puede hacer cada perfil. El rol owner conserva permisos del sistema.</p>
+          </div>
           @for (role of roles; track role.id) {
             <article class="row">
               <div class="row-header">
@@ -415,6 +488,18 @@ export class SecurityPageComponent implements OnInit {
 
   get canManageRoles() {
     return this.auth.state.hasPermission('roles.manage');
+  }
+
+  get tenantName() {
+    return this.auth.state.session()?.tenant.name ?? 'Tenant actual';
+  }
+
+  get tenantSlug() {
+    return this.auth.state.session()?.tenant.slug ?? 'sin-slug';
+  }
+
+  get activeUsers() {
+    return this.users.filter((user) => user.active).length;
   }
 
   ngOnInit() {

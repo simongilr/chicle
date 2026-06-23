@@ -18,7 +18,7 @@ import {
   DynamicServiceHttpMethod,
   DynamicServiceVersion
 } from './dynamic-service-version.entity';
-import { DynamicServiceRun, DynamicServiceRunStatus } from './dynamic-service-run.entity';
+import { DynamicServiceRun, DynamicServiceRunStatus, DynamicServiceRunTrigger } from './dynamic-service-run.entity';
 
 export interface DynamicServiceUpsertRequest {
   key?: string;
@@ -32,6 +32,10 @@ export interface DynamicServiceVersionRequest {
 }
 
 export interface DynamicServiceTestRequest {
+  context?: Record<string, unknown>;
+}
+
+export interface DynamicServiceExecuteRequest {
   context?: Record<string, unknown>;
 }
 
@@ -357,6 +361,20 @@ export class DynamicServicesService {
 
   async test(auth: AuthContext, serviceId: string, request: DynamicServiceTestRequest) {
     const service = await this.requireService(auth, serviceId);
+    return this.executePublished(auth, service, request.context ?? {}, 'manual_test');
+  }
+
+  async executeByKey(auth: AuthContext, serviceKey: string, request: DynamicServiceExecuteRequest) {
+    const service = await this.requireServiceByKey(auth, this.normalizeKey(serviceKey));
+    return this.executePublished(auth, service, request.context ?? {}, 'frontend');
+  }
+
+  private async executePublished(
+    auth: AuthContext,
+    service: DynamicService,
+    input: Record<string, unknown>,
+    triggerType: DynamicServiceRunTrigger
+  ) {
     if (!service.active) {
       throw new BadRequestException('Service is inactive');
     }
@@ -366,21 +384,22 @@ export class DynamicServicesService {
       order: { version: 'DESC' }
     });
     if (!version) {
-      throw new BadRequestException('Publish a service version before testing it');
+      throw new BadRequestException('Publish a service version before executing it');
     }
 
     if (version.definition.source === 'internal_table') {
-      return this.executeInternalQuery(auth, service, version, request.context ?? {});
+      return this.executeInternalQuery(auth, service, version, input, triggerType);
     }
 
-    return this.executeHttp(auth, service, version, request.context ?? {});
+    return this.executeHttp(auth, service, version, input, triggerType);
   }
 
   private async executeInternalQuery(
     auth: AuthContext,
     service: DynamicService,
     version: DynamicServiceVersion,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
+    triggerType: DynamicServiceRunTrigger
   ) {
     const definition = version.definition;
     const run = await this.runs.save(
@@ -388,7 +407,7 @@ export class DynamicServicesService {
         tenantId: auth.tenant.id,
         serviceId: service.id,
         versionId: version.id,
-        triggerType: 'manual_test',
+        triggerType,
         status: 'running',
         requestSnapshot: {
           type: 'internal_table',
@@ -438,7 +457,8 @@ export class DynamicServicesService {
     auth: AuthContext,
     service: DynamicService,
     version: DynamicServiceVersion,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
+    triggerType: DynamicServiceRunTrigger
   ) {
     const limits = this.serviceLimits();
     const context: RenderContext = { tenant: auth.tenant, user: auth.user, input };
@@ -449,7 +469,7 @@ export class DynamicServicesService {
         tenantId: auth.tenant.id,
         serviceId: service.id,
         versionId: version.id,
-        triggerType: 'manual_test',
+        triggerType,
         status: 'running',
         requestSnapshot: null,
         timeoutMs,
@@ -511,6 +531,14 @@ export class DynamicServicesService {
 
   private async requireService(auth: AuthContext, serviceId: string) {
     const service = await this.services.findOne({ where: { id: serviceId, tenantId: auth.tenant.id, trashedAt: IsNull() } });
+    if (!service) {
+      throw new NotFoundException('Dynamic service not found');
+    }
+    return service;
+  }
+
+  private async requireServiceByKey(auth: AuthContext, key: string) {
+    const service = await this.services.findOne({ where: { key, tenantId: auth.tenant.id, trashedAt: IsNull() } });
     if (!service) {
       throw new NotFoundException('Dynamic service not found');
     }

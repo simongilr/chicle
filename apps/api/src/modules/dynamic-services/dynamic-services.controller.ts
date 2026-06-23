@@ -6,6 +6,7 @@ import { RequirePermissions } from '../auth/decorators/require-permissions.decor
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
+  DynamicServiceExecuteRequest,
   DynamicServiceTestRequest,
   DynamicServiceUpsertRequest,
   DynamicServiceVersionRequest,
@@ -48,6 +49,31 @@ export class DynamicServicesController {
   })
   tableCatalog() {
     return this.dynamicServices.tableCatalog();
+  }
+
+  @Post('by-key/:serviceKey/execute')
+  @RequirePermissions('services.execute')
+  @ApiOperation({
+    summary: 'Ejecutar servicio dinámico por key',
+    description:
+      'Punto estable para pantallas, acciones y componentes del frontend. Permite consumir cualquier servicio publicado sin crear un endpoint nuevo por caso.'
+  })
+  @ApiParam({ name: 'serviceKey', example: 'buscar_usuario' })
+  @ApiBody({
+    schema: {
+      example: {
+        context: {
+          name: 'simon'
+        }
+      }
+    }
+  })
+  executeByKey(
+    @CurrentAuth() auth: AuthContext,
+    @Param('serviceKey') serviceKey: string,
+    @Body() body: DynamicServiceExecuteRequest
+  ) {
+    return this.dynamicServices.executeByKey(auth, serviceKey, body);
   }
 
   @Post()

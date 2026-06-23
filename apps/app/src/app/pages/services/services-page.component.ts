@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
 type DynamicServiceStatus = 'draft' | 'published' | 'archived';
@@ -993,6 +994,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 })
 export class ServicesPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
+  private readonly serviceClient = inject(DynamicServiceClientService);
   readonly auth = inject(AuthService);
 
   services: DynamicServiceItem[] = [];
@@ -1490,7 +1492,7 @@ export class ServicesPageComponent implements OnInit {
 
     this.testing = true;
     this.formError = '';
-    this.api.post<DynamicServiceRun>(`dynamic-services/${this.selected.id}/test`, { context }).subscribe({
+    this.serviceClient.executeRaw(this.selected.key, context).subscribe({
       next: (run) => {
         this.testing = false;
         this.lastRun = run;

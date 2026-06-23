@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 export type DynamicServiceRunStatus = 'pending' | 'running' | 'success' | 'failed' | 'timeout' | 'blocked';
-export type DynamicServiceRunTrigger = 'manual_test' | 'event' | 'workflow' | 'action';
+export type DynamicServiceRunTrigger = 'manual_test' | 'frontend' | 'event' | 'workflow' | 'action';
 
 @Entity('dynamic_service_runs')
 @Index(['tenantId', 'createdAt'])

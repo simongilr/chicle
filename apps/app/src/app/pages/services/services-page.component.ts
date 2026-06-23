@@ -84,6 +84,8 @@ interface DynamicServiceItem {
   description?: string | null;
   active: boolean;
   type: 'http_request';
+  trashedAt?: string | null;
+  trashedByUserId?: string | null;
   latestVersion?: DynamicServiceVersion | null;
   publishedVersion?: DynamicServiceVersion | null;
 }
@@ -511,8 +513,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
           <section class="designer">
             <aside class="services-list">
               <div class="list-header">
-                <h2>Servicios</h2>
-                <button type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
+                <h2>{{ viewingTrash ? 'Papelera' : 'Servicios' }}</h2>
+                <div class="actions">
+                  <button type="button" (click)="toggleTrash()">{{ viewingTrash ? 'Activos' : 'Papelera' }}</button>
+                  @if (!viewingTrash) {
+                    <button type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
+                  }
+                </div>
               </div>
 
               @if (loading) {
@@ -525,8 +532,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </div>
               } @else if (!services.length) {
                 <div class="notice">
-                  <strong>Sin servicios todavía</strong>
-                  <span>Crea el primer servicio dinámico de esta organización.</span>
+                  <strong>{{ viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía' }}</strong>
+                  <span>{{ viewingTrash ? 'Los servicios enviados a papelera aparecerán aquí.' : 'Crea el primer servicio dinámico de esta organización.' }}</span>
                 </div>
               }
 
@@ -538,7 +545,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   (click)="select(service)"
                 >
                   <strong>{{ service.name }}</strong>
-                  <span class="meta">{{ service.key }} · {{ service.active ? 'activo' : 'inactivo' }}</span>
+                  <span class="meta">
+                    {{ service.key }} ·
+                    {{ service.trashedAt ? 'en papelera' : service.active ? 'activo' : 'inactivo' }}
+                  </span>
                   <span class="meta">
                     publicada:
                     {{ service.publishedVersion ? 'v' + service.publishedVersion.version : 'sin publicar' }}
@@ -556,9 +566,20 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   </div>
                   <div class="actions">
                     <button type="button" (click)="load()">Refrescar</button>
-                    <button class="primary" type="button" (click)="saveService()" [disabled]="!canManage || saving">
-                      Guardar
-                    </button>
+                    @if (selected?.trashedAt) {
+                      <button class="primary" type="button" (click)="restoreService()" [disabled]="!canManage || saving">
+                        Restaurar
+                      </button>
+                    } @else {
+                      @if (selected) {
+                        <button type="button" (click)="trashService()" [disabled]="!canManage || saving">
+                          Enviar a papelera
+                        </button>
+                      }
+                      <button class="primary" type="button" (click)="saveService()" [disabled]="!canManage || saving">
+                        Guardar
+                      </button>
+                    }
                   </div>
                 </div>
 
@@ -577,7 +598,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   <input id="service-description" [(ngModel)]="draft.description" placeholder="Qué hace este servicio" />
                 </div>
                 <label class="meta">
-                  <input type="checkbox" [(ngModel)]="draft.active" />
+                  <input type="checkbox" [(ngModel)]="draft.active" [disabled]="!!selected?.trashedAt" />
                   Servicio activo
                 </label>
               </section>
@@ -865,7 +886,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <button
                         type="button"
                         (click)="publishLatest()"
-                        [disabled]="!canManage || !selected.latestVersion || selected.latestVersion.status === 'published' || saving"
+                        [disabled]="!canEditSelected || !selected.latestVersion || selected.latestVersion.status === 'published' || saving"
                       >
                         Publicar última
                       </button>
@@ -990,6 +1011,7 @@ export class ServicesPageComponent implements OnInit {
   tablesStatus = 'Catálogo pendiente de cargar.';
   formError = '';
   message = '';
+  viewingTrash = false;
   readonly customNoteValue = CUSTOM_NOTE_VALUE;
   readonly relationPresetOptions: NoteOption[] = [
     { label: 'Selecciona relación', value: '' },
@@ -1115,11 +1137,15 @@ export class ServicesPageComponent implements OnInit {
   }
 
   get canTest() {
-    return Boolean(this.canExecute && this.selected?.publishedVersion && !this.testing);
+    return Boolean(this.canExecute && this.selected?.publishedVersion && !this.selected?.trashedAt && !this.testing);
   }
 
   get canRead() {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasAllPermissions(['services.read']);
+  }
+
+  get canEditSelected() {
+    return this.canManage && !this.selected?.trashedAt;
   }
 
   get tableSelectOptions() {
@@ -1180,7 +1206,7 @@ export class ServicesPageComponent implements OnInit {
   }
 
   get canCreateVersion() {
-    return this.canManage && !this.saving && this.guideWarnings.length === 0;
+    return this.canEditSelected && !this.saving && this.guideWarnings.length === 0;
   }
 
   get serviceSummary() {
@@ -1249,7 +1275,8 @@ export class ServicesPageComponent implements OnInit {
   load() {
     this.loading = true;
     this.error = '';
-    this.api.get<DynamicServiceItem[]>('dynamic-services').subscribe({
+    const endpoint = this.viewingTrash ? 'dynamic-services/trash' : 'dynamic-services';
+    this.api.get<DynamicServiceItem[]>(endpoint).subscribe({
       next: (services) => {
         this.services = services;
         this.loading = false;
@@ -1268,6 +1295,7 @@ export class ServicesPageComponent implements OnInit {
   }
 
   newService() {
+    this.viewingTrash = false;
     this.selected = undefined;
     this.runs = [];
     this.lastRun = undefined;
@@ -1293,10 +1321,20 @@ export class ServicesPageComponent implements OnInit {
     this.syncGuideToDefinition();
     this.formError = '';
     this.message = '';
-    this.loadRuns();
+    if (service.trashedAt) {
+      this.runs = [];
+      this.lastRun = undefined;
+    } else {
+      this.loadRuns();
+    }
   }
 
   saveService() {
+    if (this.selected?.trashedAt) {
+      this.formError = 'Restaura el servicio antes de editarlo.';
+      return;
+    }
+
     this.saving = true;
     this.formError = '';
     this.message = '';
@@ -1314,6 +1352,59 @@ export class ServicesPageComponent implements OnInit {
       next: (service) => {
         this.saving = false;
         this.message = 'Servicio guardado.';
+        this.selected = service;
+        this.load();
+      },
+      error: (error) => {
+        this.saving = false;
+        this.formError = this.errorMessage(error);
+      }
+    });
+  }
+
+  toggleTrash() {
+    this.viewingTrash = !this.viewingTrash;
+    this.selected = undefined;
+    this.runs = [];
+    this.lastRun = undefined;
+    this.load();
+  }
+
+  trashService() {
+    if (!this.selected) {
+      return;
+    }
+
+    this.saving = true;
+    this.formError = '';
+    this.api.post<DynamicServiceItem>(`dynamic-services/${this.selected.id}/trash`, {}).subscribe({
+      next: () => {
+        this.saving = false;
+        this.message = 'Servicio enviado a papelera.';
+        this.selected = undefined;
+        this.runs = [];
+        this.lastRun = undefined;
+        this.load();
+      },
+      error: (error) => {
+        this.saving = false;
+        this.formError = this.errorMessage(error);
+      }
+    });
+  }
+
+  restoreService() {
+    if (!this.selected) {
+      return;
+    }
+
+    this.saving = true;
+    this.formError = '';
+    this.api.post<DynamicServiceItem>(`dynamic-services/${this.selected.id}/restore`, {}).subscribe({
+      next: (service) => {
+        this.saving = false;
+        this.viewingTrash = false;
+        this.message = 'Servicio restaurado.';
         this.selected = service;
         this.load();
       },

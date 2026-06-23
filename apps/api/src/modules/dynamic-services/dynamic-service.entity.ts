@@ -26,6 +26,12 @@ export class DynamicService {
   @Column({ default: true })
   active!: boolean;
 
+  @Column({ type: 'datetime', nullable: true })
+  trashedAt?: Date | null;
+
+  @Column({ type: 'varchar', length: 180, nullable: true })
+  trashedByUserId?: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
@@ -157,9 +157,23 @@ export class DynamicServicesService {
 
   async list(auth: AuthContext) {
     const services = await this.services.find({
-      where: { tenantId: auth.tenant.id },
+      where: { tenantId: auth.tenant.id, trashedAt: IsNull() },
       order: { key: 'ASC' }
     });
+    return this.withVersions(auth, services);
+  }
+
+  async listTrashed(auth: AuthContext) {
+    const services = await this.services
+      .createQueryBuilder('service')
+      .where('service.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('service.trashedAt IS NOT NULL')
+      .orderBy('service.trashedAt', 'DESC')
+      .getMany();
+    return this.withVersions(auth, services);
+  }
+
+  private async withVersions(auth: AuthContext, services: DynamicService[]) {
     const serviceIds = services.map((service) => service.id);
     const versions = serviceIds.length
       ? await this.versions
@@ -231,6 +245,48 @@ export class DynamicServicesService {
       metadata: { key: saved.key, active: saved.active }
     });
 
+    return saved;
+  }
+
+  async trash(auth: AuthContext, serviceId: string) {
+    const service = await this.requireService(auth, serviceId);
+    if (service.trashedAt) {
+      return service;
+    }
+
+    const saved = await this.services.save(
+      this.services.merge(service, {
+        active: false,
+        trashedAt: new Date(),
+        trashedByUserId: auth.user.id
+      })
+    );
+    await this.audit.record({
+      auth,
+      action: 'dynamic_service.trashed',
+      resourceType: 'dynamic_service',
+      resourceId: saved.id,
+      metadata: { key: saved.key }
+    });
+    return saved;
+  }
+
+  async restore(auth: AuthContext, serviceId: string) {
+    const service = await this.requireTrashedService(auth, serviceId);
+    const saved = await this.services.save(
+      this.services.merge(service, {
+        active: true,
+        trashedAt: null,
+        trashedByUserId: null
+      })
+    );
+    await this.audit.record({
+      auth,
+      action: 'dynamic_service.restored',
+      resourceType: 'dynamic_service',
+      resourceId: saved.id,
+      metadata: { key: saved.key }
+    });
     return saved;
   }
 
@@ -454,9 +510,22 @@ export class DynamicServicesService {
   }
 
   private async requireService(auth: AuthContext, serviceId: string) {
-    const service = await this.services.findOne({ where: { id: serviceId, tenantId: auth.tenant.id } });
+    const service = await this.services.findOne({ where: { id: serviceId, tenantId: auth.tenant.id, trashedAt: IsNull() } });
     if (!service) {
       throw new NotFoundException('Dynamic service not found');
+    }
+    return service;
+  }
+
+  private async requireTrashedService(auth: AuthContext, serviceId: string) {
+    const service = await this.services
+      .createQueryBuilder('service')
+      .where('service.id = :serviceId', { serviceId })
+      .andWhere('service.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('service.trashedAt IS NOT NULL')
+      .getOne();
+    if (!service) {
+      throw new NotFoundException('Dynamic service not found in trash');
     }
     return service;
   }

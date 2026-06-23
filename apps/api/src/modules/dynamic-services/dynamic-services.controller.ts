@@ -29,6 +29,16 @@ export class DynamicServicesController {
     return this.dynamicServices.list(auth);
   }
 
+  @Get('trash')
+  @RequirePermissions('services.read')
+  @ApiOperation({
+    summary: 'Listar servicios en papelera',
+    description: 'Devuelve servicios enviados a papelera para permitir restaurarlos sin perder versiones ni historial.'
+  })
+  listTrash(@CurrentAuth() auth: AuthContext) {
+    return this.dynamicServices.listTrashed(auth);
+  }
+
   @Get('catalog/tables')
   @RequirePermissions('services.read')
   @ApiOperation({
@@ -70,6 +80,22 @@ export class DynamicServicesController {
     @Body() body: DynamicServiceUpsertRequest
   ) {
     return this.dynamicServices.update(auth, serviceId, body);
+  }
+
+  @Post(':serviceId/trash')
+  @RequirePermissions('services.manage')
+  @ApiOperation({ summary: 'Enviar servicio dinámico a papelera' })
+  @ApiParam({ name: 'serviceId', example: 'service-id' })
+  trash(@CurrentAuth() auth: AuthContext, @Param('serviceId') serviceId: string) {
+    return this.dynamicServices.trash(auth, serviceId);
+  }
+
+  @Post(':serviceId/restore')
+  @RequirePermissions('services.manage')
+  @ApiOperation({ summary: 'Restaurar servicio dinámico desde papelera' })
+  @ApiParam({ name: 'serviceId', example: 'service-id' })
+  restore(@CurrentAuth() auth: AuthContext, @Param('serviceId') serviceId: string) {
+    return this.dynamicServices.restore(auth, serviceId);
   }
 
   @Post(':serviceId/versions')

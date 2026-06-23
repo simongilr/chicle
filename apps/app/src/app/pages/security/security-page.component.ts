@@ -229,6 +229,13 @@ interface SecuritySyncResponse {
         align-content: start;
       }
 
+      .user-edit-grid {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+      }
+
       .row {
         display: grid;
         gap: 10px;
@@ -288,6 +295,7 @@ interface SecuritySyncResponse {
       @media (max-width: 860px) {
         .grid,
         .form-grid,
+        .user-edit-grid,
         .overview {
           grid-template-columns: 1fr;
         }
@@ -402,6 +410,24 @@ interface SecuritySyncResponse {
                   {{ user.active ? 'Desactivar' : 'Activar' }}
                 </button>
               </div>
+              <div class="user-edit-grid">
+                <label>
+                  Nombre visible
+                  <input type="text" [(ngModel)]="user.name" placeholder="Nombre del usuario" />
+                </label>
+                <label>
+                  Nueva contraseña
+                  <input
+                    type="password"
+                    [ngModel]="passwordDrafts[user.id] || ''"
+                    (ngModelChange)="passwordDrafts[user.id] = $event"
+                    placeholder="Solo si quieres resetearla"
+                  />
+                </label>
+                <button type="button" (click)="saveUser(user)" [disabled]="!canUpdateUsers">
+                  Guardar usuario
+                </button>
+              </div>
               <div class="checks">
                 @for (role of roles; track role.id) {
                   <label class="check">
@@ -469,6 +495,7 @@ export class SecurityPageComponent implements OnInit {
   roles: SecurityRole[] = [];
   permissions: SecurityPermission[] = [];
   audit: AuditEvent[] = [];
+  passwordDrafts: Record<string, string> = {};
   message = '';
   syncing = false;
   newUser = {
@@ -555,6 +582,26 @@ export class SecurityPageComponent implements OnInit {
         this.reloadAudit();
       }
     });
+  }
+
+  saveUser(user: SecurityUser) {
+    const password = this.passwordDrafts[user.id]?.trim();
+    this.api
+      .patch<SecurityUser>(`users/${user.id}`, {
+        name: user.name ?? null,
+        ...(password ? { password } : {})
+      })
+      .subscribe({
+        next: (updated) => {
+          this.users = this.users.map((item) => (item.id === updated.id ? updated : item));
+          delete this.passwordDrafts[user.id];
+          this.message = password ? 'Usuario actualizado y contraseña reiniciada.' : 'Usuario actualizado.';
+          this.reloadAudit();
+        },
+        error: () => {
+          this.message = 'No se pudo actualizar el usuario.';
+        }
+      });
   }
 
   toggleUserRole(user: SecurityUser, roleKey: string) {

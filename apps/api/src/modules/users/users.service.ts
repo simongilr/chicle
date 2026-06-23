@@ -20,6 +20,7 @@ export interface UpdateUserRequest {
   name?: string | null;
   systemRole?: UserSystemRole;
   active?: boolean;
+  password?: string;
 }
 
 @Injectable()
@@ -110,6 +111,10 @@ export class UsersService {
       }
       membership.active = request.active;
     }
+    if (request.password !== undefined && request.password !== '') {
+      this.assertPasswordPolicy(request.password);
+      user.passwordHash = await hash(request.password, 12);
+    }
 
     const saved = await this.users.manager.transaction(async (manager) => {
       const savedUser = await manager.save(User, user);
@@ -121,7 +126,7 @@ export class UsersService {
       action: 'user.updated',
       resourceType: 'user',
       resourceId: saved.id,
-      metadata: { active: membership.active, systemRole: membership.systemRole }
+      metadata: { active: membership.active, systemRole: membership.systemRole, passwordChanged: Boolean(request.password) }
     });
     return this.toResponse(auth.tenant.id, saved, membership);
   }

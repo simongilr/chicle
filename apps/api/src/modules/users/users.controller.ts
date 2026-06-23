@@ -71,7 +71,8 @@ export class UsersController {
     schema: {
       example: {
         name: 'Operador Principal',
-        active: true
+        active: true,
+        password: 'NuevaClaveSegura123'
       }
     }
   })

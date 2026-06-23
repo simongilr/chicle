@@ -99,5 +99,11 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     name: 'Viewer',
     description: 'Consulta de información sin modificación.',
     permissions: ['menus.read', 'forms.read', 'records.read', 'files.read']
+  },
+  {
+    key: 'client',
+    name: 'Cliente app',
+    description: 'Cliente o usuario externo que usa la app del tenant con acceso limitado.',
+    permissions: ['menus.read', 'forms.read', 'records.read', 'records.create', 'files.upload', 'files.read']
   }
 ];

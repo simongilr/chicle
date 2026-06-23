@@ -1355,9 +1355,17 @@ export class DocsPageComponent {
     },
     {
       title: 'Administrar seguridad',
-      ui: 'Abre /security desde Home. Ahí gestionas usuarios, roles, permisos y auditoría.',
+      ui: 'Abre /security desde Home. Ahí gestionas usuarios de acceso, roles, permisos, reset de contraseña, activación y auditoría.',
       swagger: 'En /api/docs usa los grupos Security / Users y Security / RBAC.',
       note: 'Permite gestionar usuarios, roles, permisos y revisar auditoría del tenant.'
+    },
+    {
+      title: 'Clientes con login vs clientes de negocio',
+      ui: 'Si el cliente entra a la app, créalo como usuario de acceso y asígnale el rol Cliente app. Si es un cliente/contacto sin login, debe ir al futuro módulo Directorio/Clientes.',
+      swagger: 'En /api/docs crea el usuario con POST /api/users y roles: ["client"]. Para resetear clave usa PATCH /api/users/{userId}.',
+      command:
+        'Usuario con login:\n  users + tenant_memberships + rol client\n\nCliente/contacto sin login:\n  futuro directorio: parties / party_roles / contacts\n\nOperaciones disponibles:\n  activar/desactivar acceso\n  editar nombre visible\n  resetear contraseña\n  asignar roles',
+      note: 'El rol Cliente app se instala con Sincronizar seguridad. Tiene permisos limitados para usar la app sin administrar el tenant.'
     },
     {
       title: 'Sincronizar seguridad base',

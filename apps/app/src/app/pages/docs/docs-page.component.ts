@@ -1215,10 +1215,18 @@ export class DocsPageComponent {
     {
       title: 'Flujo recomendado',
       ui: 'En Servicios toca Nuevo, guarda key/nombre, completa Qué hace este servicio, revisa el JSON, crea versión, publica y prueba.',
-      swagger: 'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish y POST /test.',
+      swagger: 'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish, POST /test y POST /by-key/{serviceKey}/execute.',
       command:
-        '1. Crear dynamic_service\n2. Definir intención: consultar, crear, editar, borrar, validar, sincronizar o notificar\n3. Definir fuente: API externa, tabla interna, records o conector futuro\n4. Definir resultado: uno, lista, lista paginada, booleano, archivo o nada\n5. Crear dynamic_service_version draft\n6. Publicar versión\n7. Probar desde backend\n8. Guardar dynamic_service_run',
+        '1. Crear dynamic_service\n2. Definir intención: consultar, crear, editar, borrar, validar, sincronizar o notificar\n3. Definir fuente: API externa, tabla interna, records o conector futuro\n4. Definir resultado: uno, lista, lista paginada, booleano, archivo o nada\n5. Crear dynamic_service_version draft\n6. Publicar versión\n7. Probar desde backend\n8. Consumir por key desde frontend, workflow o action\n9. Guardar dynamic_service_run',
       note: 'La ejecución productiva siempre debe usar una versión publicada, nunca una definición suelta del navegador.'
+    },
+    {
+      title: 'Consumo dinámico desde frontend',
+      ui: 'Cuando una pantalla necesite usar un servicio publicado, solo llama el key del servicio y envía el contexto. No se crea un endpoint ni un método HTTP nuevo por cada caso.',
+      swagger: 'En /api/docs ejecuta POST /api/dynamic-services/by-key/{serviceKey}/execute con body { "context": { ... } }.',
+      command:
+        'this.dynamicServices.execute<boolean>("buscar_usuario", {\n  name: "simon"\n});\n\nRequisitos:\n  servicio activo\n  version publicada\n  permiso services.execute\n\nRespuesta:\n  ok: true/false\n  result: dato normalizado\n  run: historial tecnico completo',
+      note: 'Este es el contrato que usará el futuro diseñador de pantallas: los componentes llaman servicios por key y el backend resuelve la implementación guardada en DB.'
     },
     {
       title: 'Qué hace vs cómo lo ejecuta',
@@ -1269,7 +1277,13 @@ export class DocsPageComponent {
       title: 'Relación con event-driven',
       command:
         'record.created\n  -> workflow selecciona servicio\n  -> dynamic_service_run queued/running\n  -> dynamic_service.executed o dynamic_service.failed\n  -> websocket notifica progreso\n  -> actions mapean respuesta al record',
-      note: 'Hoy ya tenemos prueba síncrona controlada. La siguiente evolución natural es cola interna, retries, eventos y websockets.'
+      note: 'Hoy ya tenemos prueba síncrona y consumo frontend por key. La siguiente evolución natural es cola interna, retries, eventos y websockets.'
+    },
+    {
+      title: 'Mapa de evolución',
+      command:
+        'V1 actual:\n  tablas internas simples\n  HTTP externo\n  prueba en vivo\n  historial de runs\n  consumo frontend por key\n\nSiguientes capacidades:\n  joins guiados\n  uniones y read models\n  paginación avanzada\n  SOAP\n  WebSocket\n  webhooks\n  colas asincrónicas\n  retries configurables\n  secretos administrados\n  mapping visual de request/response',
+      note: 'El objetivo es que el creador sea cada vez mas completo sin romper el contrato del front: ejecutar por key con un contexto.'
     }
   ];
 

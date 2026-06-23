@@ -74,10 +74,21 @@ The engine renders:
 - Forms
 - Fields
 - Views
+- Services
 - Actions
 - Workflows
 
 The app does not contain pages named after business operations. It contains generic pages such as dynamic form, record list and record detail.
+
+Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
+
+```ts
+dynamicServices.execute('buscar_usuario', { name: 'simon' });
+```
+
+The API resolves the published definition behind `POST /api/dynamic-services/by-key/:serviceKey/execute`, applies tenant scope and permissions, runs the service, and records the execution in `dynamic_service_runs`.
+
+The same contract must survive future capabilities such as guided joins, unions, read models, SOAP, WebSocket, webhooks, async queues and response mapping.
 
 ## Declarative Actions
 

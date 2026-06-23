@@ -7,6 +7,16 @@ export type DynamicServiceSource = 'external_api' | 'internal_table' | 'dynamic_
 export type DynamicServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
 export type DynamicServiceEffectType = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 export type DynamicServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
+export type DynamicServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
+export type DynamicServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
+
+export interface DynamicServiceFilter {
+  field: string;
+  operator: DynamicServiceFilterOperator;
+  valueSource: DynamicServiceFilterValueSource;
+  inputKey?: string;
+  value?: string;
+}
 
 export interface DynamicServiceDefinition {
   intent?: DynamicServiceIntent;
@@ -32,6 +42,7 @@ export interface DynamicServiceDefinition {
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;
+    filters?: DynamicServiceFilter[];
   };
   method: DynamicServiceHttpMethod;
   url: string;

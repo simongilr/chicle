@@ -14,6 +14,7 @@ import { ConfisysService } from '../confisys/confisys.service';
 import { DynamicService } from './dynamic-service.entity';
 import {
   DynamicServiceDefinition,
+  DynamicServiceFilter,
   DynamicServiceHttpMethod,
   DynamicServiceVersion
 } from './dynamic-service-version.entity';
@@ -39,6 +40,13 @@ interface ServiceLimits {
   maxTimeoutMs: number;
   maxResponseBytes: number;
   allowPrivateHosts: boolean;
+}
+
+interface InternalQueryPlan {
+  table: ServiceCatalogTable;
+  whereSql: string[];
+  params: unknown[];
+  limit: number;
 }
 
 interface RenderContext {
@@ -305,7 +313,69 @@ export class DynamicServicesService {
       throw new BadRequestException('Publish a service version before testing it');
     }
 
+    if (version.definition.source === 'internal_table') {
+      return this.executeInternalQuery(auth, service, version, request.context ?? {});
+    }
+
     return this.executeHttp(auth, service, version, request.context ?? {});
+  }
+
+  private async executeInternalQuery(
+    auth: AuthContext,
+    service: DynamicService,
+    version: DynamicServiceVersion,
+    input: Record<string, unknown>
+  ) {
+    const definition = version.definition;
+    const run = await this.runs.save(
+      this.runs.create({
+        tenantId: auth.tenant.id,
+        serviceId: service.id,
+        versionId: version.id,
+        triggerType: 'manual_test',
+        status: 'running',
+        requestSnapshot: {
+          type: 'internal_table',
+          table: definition.dataTarget?.primaryTable,
+          filters: definition.dataTarget?.filters ?? [],
+          input: this.maskSecrets(input)
+        },
+        actorUserId: auth.user.id
+      })
+    );
+
+    const started = Date.now();
+    try {
+      const plan = await this.internalQueryPlan(auth, definition, input);
+      const sql = `SELECT * FROM ${this.escapeIdentifier(plan.table.name)}${
+        plan.whereSql.length ? ` WHERE ${plan.whereSql.join(' AND ')}` : ''
+      } LIMIT ?`;
+      const rows = (await this.dataSource.query(sql, [...plan.params, plan.limit])) as Record<string, unknown>[];
+      const safeRows = rows.map((row) => this.maskSecrets(row));
+      const responseSnapshot = {
+        table: plan.table.name,
+        count: safeRows.length,
+        rows: safeRows,
+        result:
+          definition.resultKind === 'boolean'
+            ? safeRows.length > 0
+            : definition.resultKind === 'single'
+              ? safeRows[0] ?? null
+              : safeRows
+      };
+      const saved = await this.finishRun(run.id, 'success', started, { responseSnapshot });
+      await this.audit.record({
+        auth,
+        action: 'dynamic_service.executed',
+        resourceType: 'dynamic_service',
+        resourceId: service.id,
+        metadata: { runId: run.id, mode: 'internal_table', table: plan.table.name, count: safeRows.length }
+      });
+      return saved;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown internal service execution error';
+      return this.finishRun(run.id, 'failed', started, { error: message });
+    }
   }
 
   private async executeHttp(
@@ -404,6 +474,155 @@ export class DynamicServicesService {
     return null;
   }
 
+  private async internalQueryPlan(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    input: Record<string, unknown>
+  ): Promise<InternalQueryPlan> {
+    if (definition.dataTarget?.queryMode !== 'single_table') {
+      throw new BadRequestException('Only single table internal queries are implemented');
+    }
+
+    const tableName = definition.dataTarget.primaryTable?.trim();
+    if (!tableName) {
+      throw new BadRequestException('Internal query table is required');
+    }
+
+    const table = await this.visibleServiceTable(tableName);
+    const whereSql: string[] = [];
+    const params: unknown[] = [];
+
+    if (table.scope === 'tenant') {
+      this.requireColumn(table, 'tenantId');
+      whereSql.push(`${this.escapeIdentifier('tenantId')} = ?`);
+      params.push(auth.tenant.id);
+    } else if (table.scope === 'current_tenant') {
+      this.requireColumn(table, 'id');
+      whereSql.push(`${this.escapeIdentifier('id')} = ?`);
+      params.push(auth.tenant.id);
+    }
+
+    for (const filter of definition.dataTarget.filters ?? []) {
+      const field = this.requireFilterColumn(table, filter.field);
+      const value = this.resolveFilterValue(auth, input, filter);
+      const { sql, param } = this.filterSql(field, filter, value);
+      whereSql.push(sql);
+      params.push(param);
+    }
+
+    return {
+      table,
+      whereSql,
+      params,
+      limit: definition.resultKind === 'list' || definition.resultKind === 'paginated_list' ? 100 : 1
+    };
+  }
+
+  private async visibleServiceTable(tableName: string) {
+    if (!this.safeIdentifier(tableName) || SERVICE_CATALOG_BLOCKED_TABLES.has(tableName)) {
+      throw new BadRequestException('Internal query table is not allowed');
+    }
+
+    const exists = (await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_type = 'BASE TABLE'
+          AND table_name = ?
+      `,
+      [tableName]
+    )) as Array<{ total: string | number }>;
+    if (Number(exists[0]?.total ?? 0) === 0) {
+      throw new BadRequestException('Internal query table does not exist');
+    }
+
+    const columns = await this.tableColumns(tableName);
+    const scope = this.catalogScope(
+      tableName,
+      columns.some((column) => column.name === 'tenantId' || column.name === 'tenant_id')
+    );
+    if (!scope) {
+      throw new BadRequestException('Internal query table is not visible for services');
+    }
+
+    return {
+      name: tableName,
+      scope,
+      source: tableName.startsWith('custom_') ? 'schema' : 'entity',
+      columns: columns.filter((column) => !/password|token|secret|hash/i.test(column.name))
+    } satisfies ServiceCatalogTable;
+  }
+
+  private requireColumn(table: ServiceCatalogTable, columnName: string) {
+    const column = table.columns.find((item) => item.name === columnName);
+    if (!column) {
+      throw new BadRequestException(`Column ${columnName} is required for scoped internal query`);
+    }
+    return column;
+  }
+
+  private requireFilterColumn(table: ServiceCatalogTable, columnName: string) {
+    if (!this.safeIdentifier(columnName) || /password|token|secret|hash/i.test(columnName)) {
+      throw new BadRequestException('Internal query filter column is not allowed');
+    }
+
+    return this.requireColumn(table, columnName);
+  }
+
+  private resolveFilterValue(auth: AuthContext, input: Record<string, unknown>, filter: DynamicServiceFilter) {
+    if (filter.valueSource === 'tenant') {
+      return auth.tenant.id;
+    }
+
+    if (filter.valueSource === 'current_user') {
+      return auth.user.id;
+    }
+
+    if (filter.valueSource === 'literal') {
+      return filter.value ?? '';
+    }
+
+    const inputKey = filter.inputKey?.trim() || filter.field;
+    return input[inputKey];
+  }
+
+  private filterSql(column: ServiceCatalogColumn, filter: DynamicServiceFilter, value: unknown) {
+    if (value === undefined || value === null || value === '') {
+      throw new BadRequestException(`Filter value for ${column.name} is required`);
+    }
+
+    const field = this.escapeIdentifier(column.name);
+    if (filter.operator === 'contains') {
+      return { sql: `${field} LIKE ?`, param: `%${String(value)}%` };
+    }
+
+    if (filter.operator === 'starts_with') {
+      return { sql: `${field} LIKE ?`, param: `${String(value)}%` };
+    }
+
+    const operators: Record<Exclude<DynamicServiceFilter['operator'], 'contains' | 'starts_with'>, string> = {
+      equals: '=',
+      greater_than: '>',
+      greater_or_equal: '>=',
+      less_than: '<',
+      less_or_equal: '<='
+    };
+    return { sql: `${field} ${operators[filter.operator as keyof typeof operators]} ?`, param: value };
+  }
+
+  private escapeIdentifier(identifier: string) {
+    if (!this.safeIdentifier(identifier)) {
+      throw new BadRequestException('Invalid internal query identifier');
+    }
+
+    return `\`${identifier}\``;
+  }
+
+  private safeIdentifier(identifier: string) {
+    return /^[A-Za-z][A-Za-z0-9_]*$/.test(identifier);
+  }
+
   private async tableColumns(tableName: string): Promise<ServiceCatalogColumn[]> {
     const columns = (await this.dataSource.query(
       `
@@ -448,7 +667,7 @@ export class DynamicServicesService {
       throw new BadRequestException('Unsupported HTTP method');
     }
 
-    if (!definition.url || typeof definition.url !== 'string') {
+    if ((definition.source ?? 'external_api') === 'external_api' && (!definition.url || typeof definition.url !== 'string')) {
       throw new BadRequestException('URL is required');
     }
 
@@ -471,7 +690,7 @@ export class DynamicServicesService {
         involvedTables: []
       },
       method: definition.method,
-      url: definition.url.trim(),
+      url: definition.url?.trim() ?? '',
       headers: definition.headers ?? {},
       query: definition.query ?? {},
       body: definition.body ?? null,
@@ -657,6 +876,23 @@ export class DynamicServicesService {
         SECRET_HEADER_PATTERN.test(key) ? '***' : value
       ])
     );
+  }
+
+  private maskSecrets(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.maskSecrets(item));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+          key,
+          SECRET_HEADER_PATTERN.test(key) || /password|hash/i.test(key) ? '***' : this.maskSecrets(item)
+        ])
+      );
+    }
+
+    return value;
   }
 
   private truncateSnapshot(value: unknown) {

@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
@@ -10,7 +10,11 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  return auth.hydrate().then((authenticated) => authenticated || router.createUrlTree(['/login']));
+  return auth
+    .hydrate()
+    .then((authenticated) =>
+      authenticated || router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } })
+    );
 };
 
 export const loginGuard: CanActivateFn = () => {
@@ -28,7 +32,7 @@ export const loginGuard: CanActivateFn = () => {
   return auth.hydrate().then((authenticated) => authenticated ? router.createUrlTree(['/home']) : true);
 };
 
-export const permissionGuard: CanActivateFn = (route) => {
+export const permissionGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const permissions = (route.data['permissions'] as string[] | undefined) ?? [];
@@ -46,5 +50,8 @@ export const permissionGuard: CanActivateFn = (route) => {
 
   return auth
     .hydrate()
-    .then((authenticated) => (authenticated ? validate() : router.createUrlTree(['/login'])));
+    .then((authenticated) =>
+      authenticated || router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } })
+    )
+    .then((result) => (result === true ? validate() : result));
 };

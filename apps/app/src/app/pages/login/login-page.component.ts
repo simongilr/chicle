@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -361,6 +361,7 @@ export class LoginPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   config?: PublicAuthConfig;
   channel: SecurityChannel = 'web';
@@ -417,13 +418,18 @@ export class LoginPageComponent implements OnInit {
         next: (response) => {
           this.auth.completeLogin(response);
           this.submitting = false;
-          void this.router.navigateByUrl('/home');
+          void this.router.navigateByUrl(this.returnUrl);
         },
         error: () => {
           this.submitting = false;
           this.message = 'No se pudo iniciar sesión. Revisa tus credenciales.';
         }
       });
+  }
+
+  private get returnUrl() {
+    const value = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/home';
+    return value.startsWith('/') && !value.startsWith('//') ? value : '/home';
   }
 
   methodDescription(method: AuthMethodConfig) {

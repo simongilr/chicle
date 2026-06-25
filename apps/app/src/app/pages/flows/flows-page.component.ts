@@ -531,15 +531,15 @@ export class FlowsPageComponent implements OnInit {
   }
 
   get canCreate() {
-    return this.auth.state.hasPermission('flows.create');
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasPermission('flows.create');
   }
 
   get canUpdate() {
-    return this.auth.state.hasPermission('flows.update');
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasPermission('flows.update');
   }
 
   get canPublish() {
-    return this.auth.state.hasPermission('flows.publish');
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasPermission('flows.publish');
   }
 
   ngOnInit() {
@@ -550,6 +550,9 @@ export class FlowsPageComponent implements OnInit {
     this.api.get<FlowItem[]>('flows').subscribe({
       next: (flows) => {
         this.flows = flows;
+        if (this.auth.state.isOwnerOrAdmin && !this.auth.state.hasPermission('flows.read')) {
+          this.message = 'Flow Designer listo. Ejecuta Seguridad -> Sincronizar seguridad para instalar permisos flows.* en este tenant.';
+        }
         const selected = flows.find((flow) => flow.id === selectId) ?? flows[0];
         if (selected) {
           this.selectFlow(selected);

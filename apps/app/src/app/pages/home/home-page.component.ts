@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonContent } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth/auth.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 
@@ -16,11 +15,14 @@ interface HomeModule {
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, IonContent, MainNavComponent],
+  imports: [RouterLink, MainNavComponent],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
+      :host {
+        display: block;
+        min-height: 100vh;
+        background: #f5f7fb;
+        color: #12365a;
       }
 
       .topbar {
@@ -290,85 +292,88 @@ interface HomeModule {
     `
   ],
   template: `
-    <ion-content>
-      <app-main-nav contextLabel="Panel principal" />
+    <app-main-nav contextLabel="Panel principal" />
 
-      <main class="shell">
-        @if (auth.state.session(); as session) {
-          <section class="hero">
-            <article class="welcome">
-              <span class="eyebrow">Tenant activo</span>
-              <h1>{{ session.tenant.name }}</h1>
-              <p>
-                Este es el punto de entrada para operar Chicle Engine. Desde aquí se accede al
-                manual, configuración del sistema y administración de seguridad según permisos.
-              </p>
-            </article>
+    <main class="shell">
+      @if (auth.state.session(); as session) {
+        <section class="hero">
+          <article class="welcome">
+            <span class="eyebrow">Tenant activo</span>
+            <h1>{{ session.tenant.name }}</h1>
+            <p>
+              Este es el punto de entrada para operar Chicle Engine. Desde aquí se accede al
+              manual, configuración del sistema y administración de seguridad según permisos.
+            </p>
+          </article>
 
-            <aside class="session-card" aria-label="Sesión actual">
-              <div class="session-row">
-                <span class="label">Usuario</span>
-                <span class="value">{{ session.user.email }}</span>
-              </div>
-              <div class="session-row">
-                <span class="label">Rol sistema</span>
-                <span class="value">{{ session.user.systemRole }}</span>
-              </div>
-              <div class="session-row">
-                <span class="label">Roles tenant</span>
-                <span class="value">{{ roleList(session.roles) }}</span>
-              </div>
-            </aside>
-          </section>
+          <aside class="session-card" aria-label="Sesión actual">
+            <div class="session-row">
+              <span class="label">Usuario</span>
+              <span class="value">{{ session.user.email }}</span>
+            </div>
+            <div class="session-row">
+              <span class="label">Rol sistema</span>
+              <span class="value">{{ session.user.systemRole }}</span>
+            </div>
+            <div class="session-row">
+              <span class="label">Roles tenant</span>
+              <span class="value">{{ roleList(session.roles) }}</span>
+            </div>
+          </aside>
+        </section>
 
-          <section class="content-grid">
-            <article class="panel">
-              <div>
-                <h2>Accesos disponibles</h2>
-                <p class="muted">Las opciones visibles dependen de tus permisos actuales.</p>
-              </div>
+        <section class="content-grid">
+          <article class="panel">
+            <div>
+              <h2>Accesos disponibles</h2>
+              <p class="muted">Las opciones visibles dependen de tus permisos actuales.</p>
+            </div>
 
-              <div class="modules-grid">
-                @for (module of visibleModules; track module.title) {
-                  <a class="module-card" [routerLink]="module.route">
-                    <span class="status-pill">{{ module.status }}</span>
-                    <strong>{{ module.title }}</strong>
-                    <span class="meta">{{ module.description }}</span>
-                  </a>
-                }
-              </div>
-
-              @if (!visibleModules.length) {
-                <div class="empty-state">
-                  No hay módulos administrativos disponibles para esta sesión.
-                </div>
+            <div class="modules-grid">
+              @for (module of visibleModules; track module.title) {
+                <a class="module-card" [routerLink]="module.route">
+                  <span class="status-pill">{{ module.status }}</span>
+                  <strong>{{ module.title }}</strong>
+                  <span class="meta">{{ module.description }}</span>
+                </a>
               }
-            </article>
+            </div>
 
-            <aside class="panel">
-              <div>
-                <h2>Estado de seguridad</h2>
-                <p class="muted">Resumen rápido de la sesión y permisos cargados.</p>
+            @if (!visibleModules.length) {
+              <div class="empty-state">
+                No hay módulos administrativos disponibles para esta sesión.
               </div>
-              <div class="status-list">
-                <div class="status-item">
-                  <strong>Sesión</strong>
-                  <span class="meta">Activa con access token y refresh cookie HttpOnly.</span>
-                </div>
-                <div class="status-item">
-                  <strong>Permisos efectivos</strong>
-                  <span class="meta">{{ session.permissions.length }} permisos disponibles.</span>
-                </div>
-                <div class="status-item">
-                  <strong>Documentación API</strong>
-                  <span class="meta">Swagger disponible en /api/docs para pruebas guiadas.</span>
-                </div>
+            }
+          </article>
+
+          <aside class="panel">
+            <div>
+              <h2>Estado de seguridad</h2>
+              <p class="muted">Resumen rápido de la sesión y permisos cargados.</p>
+            </div>
+            <div class="status-list">
+              <div class="status-item">
+                <strong>Sesión</strong>
+                <span class="meta">Activa con access token y refresh cookie HttpOnly.</span>
               </div>
-            </aside>
-          </section>
-        }
-      </main>
-    </ion-content>
+              <div class="status-item">
+                <strong>Permisos efectivos</strong>
+                <span class="meta">{{ session.permissions.length }} permisos disponibles.</span>
+              </div>
+              <div class="status-item">
+                <strong>Documentación API</strong>
+                <span class="meta">Swagger disponible en /api/docs para pruebas guiadas.</span>
+              </div>
+            </div>
+          </aside>
+        </section>
+      } @else {
+        <section class="panel">
+          <h1>Preparando sesión</h1>
+          <p class="muted">Si esta pantalla permanece así, vuelve a iniciar sesión para recargar el contexto del tenant.</p>
+        </section>
+      }
+    </main>
   `
 })
 export class HomePageComponent {

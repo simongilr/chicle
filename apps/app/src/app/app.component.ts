@@ -15,8 +15,6 @@ import { IonApp } from '@ionic/angular/standalone';
           [
             style({
               display: 'block',
-              inset: 0,
-              position: 'absolute',
               width: '100%'
             })
           ],

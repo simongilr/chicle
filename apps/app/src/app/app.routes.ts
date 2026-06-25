@@ -42,8 +42,7 @@ export const routes: Routes = [
   {
     path: 'flows',
     component: FlowsPageComponent,
-    canActivate: [authGuard, permissionGuard],
-    data: { permissions: ['flows.read'] }
+    canActivate: [authGuard]
   },
   { path: 'login', component: LoginPageComponent, canActivate: [loginGuard] },
   { path: 'home', component: HomePageComponent, canActivate: [authGuard] },

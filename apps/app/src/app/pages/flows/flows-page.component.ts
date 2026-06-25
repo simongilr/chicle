@@ -523,6 +523,7 @@ export class FlowsPageComponent implements OnInit {
   flows: FlowItem[] = [];
   selectedFlowId = '';
   message = '';
+  loading = false;
   flowDraft: FlowDraft = this.emptyFlowDraft();
   stepDraft: StepDraft = this.emptyStepDraft();
 
@@ -547,11 +548,16 @@ export class FlowsPageComponent implements OnInit {
   }
 
   load(selectId = this.selectedFlowId) {
+    this.loading = true;
+    this.message = 'Cargando Flow Designer...';
     this.api.get<FlowItem[]>('flows').subscribe({
       next: (flows) => {
+        this.loading = false;
         this.flows = flows;
         if (this.auth.state.isOwnerOrAdmin && !this.auth.state.hasPermission('flows.read')) {
           this.message = 'Flow Designer listo. Ejecuta Seguridad -> Sincronizar seguridad para instalar permisos flows.* en este tenant.';
+        } else {
+          this.message = '';
         }
         const selected = flows.find((flow) => flow.id === selectId) ?? flows[0];
         if (selected) {
@@ -561,7 +567,10 @@ export class FlowsPageComponent implements OnInit {
         }
       },
       error: () => {
-        this.message = 'No se pudieron cargar los flows.';
+        this.loading = false;
+        this.flows = [];
+        this.startNewFlow();
+        this.message = 'No se pudieron cargar los flows. Verifica que la API esté arriba, que la sesión siga activa y que Seguridad -> Sincronizar seguridad haya instalado flows.*.';
       }
     });
   }

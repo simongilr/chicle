@@ -1,7 +1,6 @@
 import { JsonPipe } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
@@ -70,7 +69,7 @@ interface StepDraft {
 @Component({
   selector: 'app-flows-page',
   standalone: true,
-  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent],
+  imports: [FormsModule, JsonPipe, MainNavComponent],
   styles: [
     `
       :host {
@@ -298,9 +297,8 @@ interface StepDraft {
     `
   ],
   template: `
-    <app-main-nav subtitle="Flow Designer"></app-main-nav>
-    <ion-content>
-      <main class="page">
+    <app-main-nav contextLabel="Flow Designer"></app-main-nav>
+    <main class="page">
         <section class="hero">
           <div>
             <span class="eyebrow">Chicle Flow Engine</span>
@@ -511,8 +509,7 @@ interface StepDraft {
             }
           </section>
         </section>
-      </main>
-    </ion-content>
+    </main>
   `
 })
 export class FlowsPageComponent implements OnInit {

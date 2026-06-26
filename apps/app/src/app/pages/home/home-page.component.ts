@@ -253,6 +253,35 @@ interface HomeModule {
         padding: 16px;
       }
 
+      .quick-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .quick-actions a {
+        border: 1px solid #c8d6e4;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #173b5f;
+        padding: 9px 12px;
+        text-decoration: none;
+        font-weight: 850;
+      }
+
+      .quick-actions a.primary {
+        border-color: #1554a2;
+        background: #1554a2;
+        color: #ffffff;
+      }
+
       @media (max-width: 860px) {
         .topbar {
           align-items: flex-start;
@@ -285,6 +314,11 @@ interface HomeModule {
           grid-template-columns: 1fr;
         }
 
+        .quick-panel {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
         h1 {
           font-size: 1.6rem;
         }
@@ -295,6 +329,18 @@ interface HomeModule {
     <app-main-nav contextLabel="Panel principal" />
 
     <main class="shell">
+      <section class="panel quick-panel">
+        <div>
+          <h1>Panel principal</h1>
+          <p class="muted">Accesos rápidos del entorno administrativo.</p>
+        </div>
+        <div class="quick-actions">
+          <a class="primary" routerLink="/flows">Abrir Flow Designer</a>
+          <a routerLink="/services">Servicios</a>
+          <a routerLink="/docs">Manual</a>
+        </div>
+      </section>
+
       @if (auth.state.session(); as session) {
         <section class="hero">
           <article class="welcome">

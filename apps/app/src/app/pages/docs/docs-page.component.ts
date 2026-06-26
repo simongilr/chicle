@@ -1436,6 +1436,27 @@ export class DocsPageComponent {
       command:
         'Decisión:\n{\n  "language": "json_logic",\n  "rule": { ">=": [{ "var": "input.edad" }, 18] }\n}\n\nFórmula:\n{\n  "language": "json_logic",\n  "rule": { "*": [{ "var": "input.subtotal" }, 1.19] },\n  "precision": 2\n}\n\nValidación:\n{\n  "field": "input.email",\n  "operator": "email",\n  "message": "Escribe un correo válido"\n}',
       note: 'Se usa JSON Logic como AST declarativo serializable. No usamos eval ni funciones arbitrarias guardadas en la base de datos.'
+    },
+    {
+      title: 'Flow Designer V3 visual',
+      ui: 'La etapa Construir muestra una línea visual desde Datos de entrada hasta Fin. Los botones + insertan pasos, cada bloque permite Probar hasta aquí y los estados correcto/error quedan visibles sobre el recorrido.',
+      swagger: 'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
+      command:
+        'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
+      note: 'Para encadenar servicios: guarda el primero, agrega otro con el botón +, selecciónalo y usa “Tomar el valor de” para elegir una salida del paso anterior.'
+    },
+    {
+      title: 'Ejemplo: dos servicios',
+      ui: 'En /flows elige Encadenar servicios. Configura y guarda el primer servicio. Agrega el segundo debajo; sus entradas se proponen con datos iniciales y aliases del primer resultado.',
+      command:
+        'Entrada del flow:\n  email = persona@example.com\n\nPaso 1:\n  servicio = buscar_cliente\n  guarda resultado como cliente\n\nPaso 2:\n  servicio = consultar_pedidos\n  clientId toma el valor de:\n    Buscar cliente: customerId\n\nValor generado internamente:\n  {{steps.cliente.response.mapped.customerId}}',
+      note: 'La ruta técnica se conserva en el JSON, pero el usuario normal la selecciona por nombre.'
+    },
+    {
+      title: 'Después de V3',
+      command:
+        'Runner V2:\n  servicios paralelos\n  foreach sobre listas\n  subflows\n  esperas y reanudación\n  compensaciones\n\nOperación:\n  casos de prueba guardados\n  comparación y rollback de versiones\n  métricas y alertas\n  triggers por evento, schedule y webhook\n  colas y websockets',
+      note: 'Estas capacidades cambian el modelo de ejecución; no se presentan como controles visuales hasta que el runner pueda ejecutarlas de forma segura.'
     }
   ];
 

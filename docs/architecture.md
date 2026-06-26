@@ -105,6 +105,17 @@ Decisions and formulas use JSON Logic as a serializable abstract syntax tree. Va
 
 The UI follows four explicit stages: define, build, test and publish. Start and end nodes are synthesized when omitted, so common processes do not require technical plumbing.
 
+Flow Designer V3 treats data contracts as first-class configuration:
+
+- Flow input fields live in `flows.metadata.inputFields` and become a JSON-like `inputSchema` inside each immutable version.
+- The API validates required values and primitive types before preview or published execution.
+- The frontend infers service inputs from `{{input.*}}` references and internal filters.
+- Previous outputs are presented as named options instead of requiring users to type template paths.
+- Dynamic service `responseMap` aliases are materialized under `response.mapped`.
+- Preview results enrich the mapper with fields observed during a real test.
+
+The visual timeline and data mapper are standalone Angular components. Parallel branches, loops and subflows remain runner capabilities rather than frontend-only decorations.
+
 ## Declarative Actions
 
 Supported action types start small:

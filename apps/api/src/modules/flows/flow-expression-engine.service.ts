@@ -12,6 +12,42 @@ export interface FlowValidationConfig {
   rule?: FlowRule;
 }
 
+const ALLOWED_JSON_LOGIC_OPERATORS = new Set([
+  'var',
+  'missing',
+  'missing_some',
+  'if',
+  '==',
+  '===',
+  '!=',
+  '!==',
+  '!',
+  '!!',
+  'or',
+  'and',
+  '>',
+  '>=',
+  '<',
+  '<=',
+  'max',
+  'min',
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  'map',
+  'filter',
+  'reduce',
+  'all',
+  'none',
+  'some',
+  'merge',
+  'in',
+  'cat',
+  'substr'
+]);
+
 @Injectable()
 export class FlowExpressionEngine {
   constructor(private readonly confisys: ConfisysService) {}
@@ -28,6 +64,31 @@ export class FlowExpressionEngine {
 
   evaluateBoolean(rule: unknown, data: Record<string, unknown>) {
     return jsonLogic.truthy(this.evaluate(rule, data));
+  }
+
+  validateRule(rule: unknown) {
+    this.assertRule(rule);
+  }
+
+  validateValidationConfig(config: FlowValidationConfig) {
+    this.cleanPath(config.field);
+    const operator = config.operator?.trim() || 'required';
+    if (
+      ![
+        'required',
+        'not_empty',
+        'equals',
+        'not_equals',
+        'greater_than',
+        'min',
+        'less_than',
+        'max',
+        'contains',
+        'email'
+      ].includes(operator)
+    ) {
+      throw new BadRequestException(`Unsupported validation operator: ${operator}`);
+    }
   }
 
   validate(config: FlowValidationConfig, data: Record<string, unknown>) {
@@ -94,6 +155,22 @@ export class FlowExpressionEngine {
     ) {
       throw new BadRequestException('A JSON Logic rule with exactly one operation is required');
     }
+    this.assertAllowedOperators(rule);
+  }
+
+  private assertAllowedOperators(value: unknown) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => this.assertAllowedOperators(item));
+      return;
+    }
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length !== 1 || !ALLOWED_JSON_LOGIC_OPERATORS.has(entries[0][0])) {
+      throw new BadRequestException(`Unsupported JSON Logic operation: ${entries[0]?.[0] ?? 'empty'}`);
+    }
+    this.assertAllowedOperators(entries[0][1]);
   }
 
   private ruleDepth(value: unknown, depth = 0): number {

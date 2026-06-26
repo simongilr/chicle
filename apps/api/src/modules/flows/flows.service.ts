@@ -125,7 +125,7 @@ export class FlowsService {
         status: request.status ?? 'draft',
         runtimeConfig: request.runtimeConfig ?? null,
         tags: this.cleanTags(request.tags),
-        metadata: request.metadata ?? null
+        metadata: this.cleanMetadata(request.metadata)
       })
     );
 
@@ -151,7 +151,7 @@ export class FlowsService {
         status: request.status ?? flow.status,
         runtimeConfig: request.runtimeConfig !== undefined ? request.runtimeConfig : flow.runtimeConfig,
         tags: request.tags !== undefined ? this.cleanTags(request.tags) : flow.tags,
-        metadata: request.metadata !== undefined ? request.metadata : flow.metadata
+        metadata: request.metadata !== undefined ? this.cleanMetadata(request.metadata) : flow.metadata
       })
     );
 
@@ -434,10 +434,12 @@ export class FlowsService {
       throw new BadRequestException(`Step ${throughStepKey} not found in draft flow`);
     }
 
+    const previewInput = this.asRecord(request.input);
+    this.validateFlowInput(previewInput, definition.inputSchema);
     const context: FlowExecutionContext = {
       tenant: auth.tenant,
       user: auth.user,
-      input: this.asRecord(request.input),
+      input: previewInput,
       steps: {}
     };
     const results: Array<Record<string, unknown>> = [];
@@ -535,6 +537,7 @@ export class FlowsService {
     }
 
     const input = this.asRecord(request.input);
+    this.validateFlowInput(input, version.definition.inputSchema);
     const started = Date.now();
     const run = await this.runs.save(
       this.runs.create({
@@ -897,6 +900,7 @@ export class FlowsService {
       name: flow.name,
       version: 0,
       description: flow.description ?? null,
+      inputSchema: this.inputSchemaFromFlow(flow),
       runtimeConfig: flow.runtimeConfig ?? undefined,
       steps: [
         ...(hasStart ? [] : [{ key: 'start', type: 'start' as const, next: firstStep ?? 'end' }]),
@@ -930,6 +934,81 @@ export class FlowsService {
       onFalse: step.onFalseStepKey ?? undefined,
       ui: step.ui ?? undefined
     };
+  }
+
+  private inputSchemaFromFlow(flow: Flow): Record<string, unknown> | undefined {
+    const inputFields = this.asArray(flow.metadata?.['inputFields']);
+    if (!inputFields.length) {
+      return undefined;
+    }
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+    for (const rawField of inputFields) {
+      const field = this.asRecord(rawField);
+      const key = typeof field['key'] === 'string' ? field['key'].trim() : '';
+      if (!/^[a-z][a-z0-9_]{1,79}$/.test(key)) {
+        continue;
+      }
+      const type = typeof field['type'] === 'string' ? field['type'] : 'text';
+      properties[key] = {
+        type: type === 'number' ? 'number' : type === 'boolean' ? 'boolean' : 'string',
+        ...(type === 'email' ? { format: 'email' } : {}),
+        ...(type === 'date' ? { format: 'date' } : {}),
+        title: typeof field['label'] === 'string' ? field['label'] : key
+      };
+      if (field['required'] === true) {
+        required.push(key);
+      }
+    }
+    return {
+      type: 'object',
+      properties,
+      required,
+      additionalProperties: true
+    };
+  }
+
+  private validateFlowInput(input: Record<string, unknown>, schema?: Record<string, unknown>) {
+    if (!schema) {
+      return;
+    }
+    const properties = this.asRecord(schema['properties']);
+    const required = this.asArray(schema['required']).filter((value): value is string => typeof value === 'string');
+    const missing = required.find((key) => input[key] === undefined || input[key] === null || input[key] === '');
+    if (missing) {
+      throw new BadRequestException(`Flow input ${missing} is required`);
+    }
+    for (const [key, rawDefinition] of Object.entries(properties)) {
+      const value = input[key];
+      if (value === undefined || value === null) {
+        continue;
+      }
+      const definition = this.asRecord(rawDefinition);
+      const expectedType = definition['type'];
+      if (expectedType === 'number' && (typeof value !== 'number' || !Number.isFinite(value))) {
+        throw new BadRequestException(`Flow input ${key} must be a number`);
+      }
+      if (expectedType === 'boolean' && typeof value !== 'boolean') {
+        throw new BadRequestException(`Flow input ${key} must be boolean`);
+      }
+      if (expectedType === 'string' && typeof value !== 'string') {
+        throw new BadRequestException(`Flow input ${key} must be text`);
+      }
+      if (
+        definition['format'] === 'email' &&
+        typeof value === 'string' &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+      ) {
+        throw new BadRequestException(`Flow input ${key} must be a valid email`);
+      }
+      if (
+        definition['format'] === 'date' &&
+        typeof value === 'string' &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(value)
+      ) {
+        throw new BadRequestException(`Flow input ${key} must use YYYY-MM-DD`);
+      }
+    }
   }
 
   private async snapshotStepsForVersion(auth: AuthContext, flowId: string, versionId: string, steps: FlowStep[]) {
@@ -1029,6 +1108,18 @@ export class FlowsService {
       if (missingTarget) {
         throw new BadRequestException(`Step ${step.key} points to missing step ${missingTarget}`);
       }
+      if (step.type === 'decision') {
+        if (!step.onTrueStepKey || !step.onFalseStepKey || step.onTrueStepKey === step.onFalseStepKey) {
+          throw new BadRequestException(`Decision step ${step.key} requires different true and false targets`);
+        }
+        this.expressions.validateRule((step.config ?? {})['rule']);
+      }
+      if (step.type === 'formula') {
+        this.expressions.validateRule((step.config ?? {})['rule']);
+      }
+      if (step.type === 'validation') {
+        this.expressions.validateValidationConfig(step.config ?? {});
+      }
     }
 
     const serviceSteps = steps.filter((step) => step.type === 'dynamic_service');
@@ -1090,6 +1181,47 @@ export class FlowsService {
       return null;
     }
     return tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 20);
+  }
+
+  private cleanMetadata(metadata?: Record<string, unknown> | null) {
+    if (!metadata) {
+      return null;
+    }
+    const inputFields = metadata['inputFields'];
+    if (inputFields === undefined) {
+      return metadata;
+    }
+    if (!Array.isArray(inputFields) || inputFields.length > 100) {
+      throw new BadRequestException('Flow inputFields must be an array with at most 100 items');
+    }
+    const cleanedFields = inputFields.map((rawField) => {
+      const field = this.asRecord(rawField);
+      const key = typeof field['key'] === 'string' ? field['key'].trim() : '';
+      if (!/^[a-z][a-z0-9_]{1,79}$/.test(key)) {
+        throw new BadRequestException(`Invalid flow input key: ${key || 'empty'}`);
+      }
+      const type = typeof field['type'] === 'string' ? field['type'] : 'text';
+      if (!['text', 'number', 'boolean', 'email', 'date'].includes(type)) {
+        throw new BadRequestException(`Invalid flow input type for ${key}`);
+      }
+      return {
+        key,
+        label: typeof field['label'] === 'string' ? field['label'].trim().slice(0, 120) || key : key,
+        type,
+        required: field['required'] === true,
+        example:
+          field['example'] === undefined || field['example'] === null
+            ? ''
+            : String(field['example']).slice(0, 500)
+      };
+    });
+    if (new Set(cleanedFields.map((field) => field.key)).size !== cleanedFields.length) {
+      throw new BadRequestException('Flow input keys must be unique');
+    }
+    return {
+      ...metadata,
+      inputFields: cleanedFields
+    };
   }
 
   private stringConfig(config: Record<string, unknown>, key: string) {
@@ -1243,6 +1375,10 @@ export class FlowsService {
 
   private asRecord(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  }
+
+  private asArray(value: unknown): unknown[] {
+    return Array.isArray(value) ? value : [];
   }
 
   private asRecordOrValue(value: unknown): Record<string, unknown> {

@@ -437,7 +437,7 @@ export class DynamicServicesService {
       } LIMIT ?`;
       const rows = (await this.dataSource.query(sql, [...plan.params, plan.limit])) as Record<string, unknown>[];
       const safeRows = rows.map((row) => this.maskSecrets(row));
-      const responseSnapshot = {
+      const baseResponseSnapshot = {
         table: plan.table.name,
         count: safeRows.length,
         rows: safeRows,
@@ -448,6 +448,7 @@ export class DynamicServicesService {
               ? safeRows[0] ?? null
               : safeRows
       };
+      const responseSnapshot = this.withMappedResponse(baseResponseSnapshot, definition.responseMap);
       const saved = await this.finishRun(run.id, 'success', started, { responseSnapshot });
       await this.audit.record({
         auth,
@@ -510,7 +511,8 @@ export class DynamicServicesService {
         clearTimeout(timeout);
       }
 
-      const responseSnapshot = await this.responseSnapshot(response, limits);
+      const baseResponseSnapshot = await this.responseSnapshot(response, limits);
+      const responseSnapshot = this.withMappedResponse(baseResponseSnapshot, definition.responseMap);
       const status: DynamicServiceRunStatus = response.ok ? 'success' : 'failed';
       const saved = await this.finishRun(run.id, status, started, { responseSnapshot });
       await this.audit.record({
@@ -1001,6 +1003,31 @@ export class DynamicServicesService {
       body: this.tryParseJson(body),
       truncated: text.length > limits.maxResponseBytes
     };
+  }
+
+  private withMappedResponse(
+    responseSnapshot: Record<string, unknown>,
+    responseMap?: Record<string, string>
+  ): Record<string, unknown> {
+    if (!responseMap || !Object.keys(responseMap).length) {
+      return responseSnapshot;
+    }
+    const root = { response: responseSnapshot };
+    const mapped = Object.entries(responseMap).reduce<Record<string, unknown>>((result, [key, template]) => {
+      const match = template.match(/^\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}$/);
+      result[key] = match ? this.resolveObjectPath(root, match[1]) : template;
+      return result;
+    }, {});
+    return { ...responseSnapshot, mapped };
+  }
+
+  private resolveObjectPath(root: Record<string, unknown>, path: string): unknown {
+    return path.split('.').reduce<unknown>((current, part) => {
+      if (!current || typeof current !== 'object') {
+        return undefined;
+      }
+      return (current as Record<string, unknown>)[part];
+    }, root);
   }
 
   private maskHeaders(headers: Record<string, string>) {

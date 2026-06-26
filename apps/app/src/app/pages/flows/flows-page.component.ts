@@ -44,6 +44,29 @@ interface FlowItem {
   definitionPreview: Record<string, unknown>;
 }
 
+interface FlowRunItem {
+  id: string;
+  status: 'queued' | 'running' | 'success' | 'failed' | 'timeout' | 'cancelled';
+  input: Record<string, unknown>;
+  output?: Record<string, unknown> | null;
+  error?: Record<string, unknown> | null;
+  durationMs?: number | null;
+  createdAt: string;
+  steps?: FlowStepRunItem[];
+}
+
+interface FlowStepRunItem {
+  id: string;
+  stepKey: string;
+  stepName: string;
+  stepType: FlowStepType;
+  status: 'pending' | 'running' | 'success' | 'failed' | 'timeout' | 'skipped';
+  input?: Record<string, unknown> | null;
+  output?: Record<string, unknown> | null;
+  error?: Record<string, unknown> | null;
+  durationMs?: number | null;
+}
+
 interface FlowDraft {
   key: string;
   name: string;
@@ -341,6 +364,33 @@ interface DynamicServiceItem {
         color: #12365a;
         font-size: 0.9rem;
         font-weight: 900;
+      }
+
+      .run-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #d7e5f2;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 10px;
+      }
+
+      .status-success {
+        background: #e8f8ef;
+        color: #116b3b;
+      }
+
+      .status-failed,
+      .status-timeout {
+        background: #fff0f0;
+        color: #9b1c24;
+      }
+
+      .step-run {
+        display: grid;
+        gap: 4px;
+        border-left: 3px solid #b9cfe6;
+        padding-left: 9px;
       }
 
       pre {
@@ -754,6 +804,60 @@ interface DynamicServiceItem {
                       }
                     </div>
                   </div>
+
+                  <div class="panel" style="margin-top: 12px;">
+                    <div class="toolbar">
+                      <div>
+                        <h3>Prueba en vivo</h3>
+                        <p class="meta">Ejecuta la versión publicada del flow y revisa cada paso.</p>
+                      </div>
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="executeFlow()"
+                        [disabled]="executing || !selectedFlow.publishedVersion"
+                      >
+                        {{ executing ? 'Ejecutando...' : 'Probar flow' }}
+                      </button>
+                    </div>
+                    @if (!selectedFlow.publishedVersion) {
+                      <div class="message">Crea y publica una versión antes de probar el flow.</div>
+                    }
+                    <label>
+                      Input JSON
+                      <textarea [(ngModel)]="testInputText"></textarea>
+                    </label>
+                    @if (lastRun) {
+                      <div class="run-card" style="margin-top: 10px;">
+                        <div class="toolbar">
+                          <strong>Última ejecución</strong>
+                          <span class="badge" [class.status-success]="lastRun.status === 'success'" [class.status-failed]="lastRun.status === 'failed'">
+                            {{ lastRun.status }}
+                          </span>
+                        </div>
+                        <div class="meta">{{ lastRun.durationMs ?? 0 }} ms · {{ lastRun.createdAt }}</div>
+                        <pre>{{ lastRun | json }}</pre>
+                      </div>
+                    }
+                    <div class="steps" style="margin-top: 10px;">
+                      @for (run of flowRuns; track run.id) {
+                        <div class="run-card">
+                          <div class="toolbar">
+                            <strong>{{ run.status }}</strong>
+                            <span class="meta">{{ run.durationMs ?? 0 }} ms · {{ run.createdAt }}</span>
+                          </div>
+                          @for (step of run.steps ?? []; track step.id) {
+                            <div class="step-run">
+                              <strong>{{ step.stepName }}</strong>
+                              <span class="meta">{{ step.stepKey }} · {{ step.stepType }} · {{ step.status }} · {{ step.durationMs ?? 0 }} ms</span>
+                            </div>
+                          }
+                        </div>
+                      } @empty {
+                        <div class="hint">Sin ejecuciones todavía.</div>
+                      }
+                    </div>
+                  </div>
                 </section>
               </div>
             }
@@ -769,9 +873,13 @@ export class FlowsPageComponent implements OnInit {
   readonly stepTypes: FlowStepType[] = ['dynamic_service', 'decision', 'formula', 'validation', 'response', 'action', 'start', 'end'];
   flows: FlowItem[] = [];
   services: DynamicServiceItem[] = [];
+  flowRuns: FlowRunItem[] = [];
   selectedFlowId = '';
   message = '';
   loading = false;
+  executing = false;
+  testInputText = '{\n  "email": "admin@example.com"\n}';
+  lastRun?: FlowRunItem;
   flowDraft: FlowDraft = this.emptyFlowDraft();
   stepDraft: StepDraft = this.emptyStepDraft();
 
@@ -854,6 +962,8 @@ export class FlowsPageComponent implements OnInit {
       category: flow.category ?? ''
     };
     this.stepDraft = this.emptyStepDraft(flow.steps.length ? Math.max(...flow.steps.map((step) => step.position)) + 10 : 10);
+    this.lastRun = undefined;
+    this.loadRuns(flow.id);
   }
 
   createFlow() {
@@ -1070,6 +1180,51 @@ export class FlowsPageComponent implements OnInit {
       },
       error: () => {
         this.message = 'No se pudo publicar la versión.';
+      }
+    });
+  }
+
+  loadRuns(flowId = this.selectedFlowId) {
+    if (!flowId) {
+      this.flowRuns = [];
+      return;
+    }
+    this.api.get<FlowRunItem[]>(`flows/${flowId}/runs`).subscribe({
+      next: (runs) => {
+        this.flowRuns = runs;
+      },
+      error: () => {
+        this.flowRuns = [];
+      }
+    });
+  }
+
+  executeFlow() {
+    const flow = this.selectedFlow;
+    if (!flow?.publishedVersion) {
+      this.message = 'Publica una versión antes de probar el flow.';
+      return;
+    }
+    let input: Record<string, unknown>;
+    try {
+      input = this.parseJson(this.testInputText);
+    } catch {
+      this.message = 'El input JSON de prueba no es válido.';
+      return;
+    }
+
+    this.executing = true;
+    this.message = 'Ejecutando flow publicado...';
+    this.api.post<FlowRunItem>(`flows/${flow.id}/execute`, { input, triggerType: 'test' }).subscribe({
+      next: (run) => {
+        this.executing = false;
+        this.lastRun = run;
+        this.message = run.status === 'success' ? 'Flow ejecutado correctamente.' : 'Flow terminó con error.';
+        this.loadRuns(flow.id);
+      },
+      error: () => {
+        this.executing = false;
+        this.message = 'No se pudo ejecutar el flow. Revisa publicación, permisos y pasos.';
       }
     });
   }

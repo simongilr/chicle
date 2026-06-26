@@ -1409,7 +1409,7 @@ export class DocsPageComponent {
     {
       title: 'Ruta de implementación',
       command:
-        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Flow Builder V2 guiado con tipos de paso, servicios publicados e input map visual\n\nPaso 5:\n  Flow Runner V1 para ejecutar dynamic_service publicado\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  Expression Engine, validaciones reales, decisiones y fórmulas\n\nPaso 8:\n  eventos, async, colas y websockets',
+        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Flow Builder V2 guiado con tipos de paso, servicios publicados e input map visual\n\nPaso 5:\n  Flow Runner V1 para ejecutar dynamic_service publicado, response y end\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  Expression Engine, validaciones reales, decisiones y fórmulas\n\nPaso 8:\n  eventos, async, colas y websockets',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     },
     {
@@ -1417,8 +1417,16 @@ export class DocsPageComponent {
       ui: 'Abre /flows desde Home o Administración. Crea un flow, agrega pasos desde el asistente, selecciona servicios publicados, define input map por filas, revisa el JSON avanzado, crea una versión y publícala.',
       swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
       command:
-        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar paso start si aplica\n  3. Agregar paso Servicio y elegir un servicio dinámico publicado\n  4. Mapear entradas: email = {{input.email}}, tenant = {{tenant.slug}}, etc.\n  5. Agregar validación, decisión, fórmula o respuesta\n  6. Revisar definitionPreview\n  7. Crear versión\n  8. Publicar versión\n\nTodavía no ejecuta:\n  runner real\n  prueba paso a paso\n  expression engine real',
-      note: 'Esta versión facilita construir la receta sin escribir JSON manual. La ejecución llegará en el siguiente bloque.'
+        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar paso start si aplica\n  3. Agregar paso Servicio y elegir un servicio dinámico publicado\n  4. Mapear entradas: email = {{input.email}}, tenant = {{tenant.slug}}, etc.\n  5. Agregar respuesta o end\n  6. Revisar definitionPreview\n  7. Crear versión\n  8. Publicar versión\n  9. Probar flow desde la caja de Prueba en vivo\n\nRunner V1 soporta:\n  start\n  dynamic_service\n  response\n  end\n\nPendiente:\n  prueba paso a paso\n  expression engine real para formula, validation, decision y action',
+      note: 'Esta versión ya ejecuta flows publicados y guarda flow_runs y flow_step_runs.'
+    },
+    {
+      title: 'Flow Runner V1 disponible',
+      ui: 'En /flows selecciona un flow publicado. En Prueba en vivo escribe un input JSON y pulsa Probar flow. La pantalla muestra última respuesta e historial con pasos.',
+      swagger: 'En /api/docs usa POST /flows/{flowId}/execute o POST /flows/by-key/{flowKey}/execute. Consulta historial con GET /flows/{flowId}/runs.',
+      command:
+        'POST /api/flows/by-key/validar_usuario_reporte/execute\n{\n  "input": {\n    "email": "admin@example.com"\n  },\n  "triggerType": "test"\n}\n\nRespuesta:\n  flow_run\n  steps[]\n  output\n  error si aplica',
+      note: 'Los pasos no implementados todavía se registran como salida skipped controlada, para que el flow no falle por placeholders mientras construimos Expression Engine.'
     }
   ];
 

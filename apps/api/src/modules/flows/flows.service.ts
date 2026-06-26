@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
+import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
+import { FlowRun, FlowRunTriggerType } from './flow-run.entity';
+import { FlowStepRun, FlowStepRunStatus } from './flow-step-run.entity';
 import { FlowStep } from './flow-step.entity';
 import { FlowVersion, FlowDefinition, FlowDefinitionStep, FlowStepType } from './flow-version.entity';
 import { Flow, FlowRuntimeConfig } from './flow.entity';
@@ -47,6 +50,19 @@ export interface FlowStepRequest {
   ui?: Record<string, unknown> | null;
 }
 
+export interface FlowExecuteRequest {
+  input?: Record<string, unknown>;
+  triggerType?: FlowRunTriggerType;
+  triggerKey?: string | null;
+}
+
+interface FlowExecutionContext {
+  tenant: AuthContext['tenant'];
+  user: AuthContext['user'];
+  input: Record<string, unknown>;
+  steps: Record<string, unknown>;
+}
+
 @Injectable()
 export class FlowsService {
   constructor(
@@ -56,6 +72,11 @@ export class FlowsService {
     private readonly versions: Repository<FlowVersion>,
     @InjectRepository(FlowStep)
     private readonly steps: Repository<FlowStep>,
+    @InjectRepository(FlowRun)
+    private readonly runs: Repository<FlowRun>,
+    @InjectRepository(FlowStepRun)
+    private readonly stepRuns: Repository<FlowStepRun>,
+    private readonly dynamicServices: DynamicServicesService,
     private readonly audit: AuditService
   ) {}
 
@@ -356,6 +377,299 @@ export class FlowsService {
     return this.requireVersion(auth, flow.id, version.id);
   }
 
+  async listRuns(auth: AuthContext, flowId: string) {
+    const flow = await this.requireFlow(auth, flowId);
+    const runs = await this.runs.find({
+      where: { tenantId: auth.tenant.id, flowId: flow.id },
+      order: { createdAt: 'DESC' },
+      take: 30
+    });
+    const runIds = runs.map((run) => run.id);
+    const steps = runIds.length
+      ? await this.stepRuns
+          .createQueryBuilder('stepRun')
+          .where('stepRun.tenantId = :tenantId', { tenantId: auth.tenant.id })
+          .andWhere('stepRun.runId IN (:...runIds)', { runIds })
+          .orderBy('stepRun.createdAt', 'ASC')
+          .getMany()
+      : [];
+    const stepsByRun = new Map<string, FlowStepRun[]>();
+    for (const step of steps) {
+      stepsByRun.set(step.runId, [...(stepsByRun.get(step.runId) ?? []), step]);
+    }
+    return runs.map((run) => ({ ...run, steps: stepsByRun.get(run.id) ?? [] }));
+  }
+
+  async executeByKey(auth: AuthContext, flowKey: string, request: FlowExecuteRequest) {
+    const flow = await this.requireFlowByKey(auth, this.normalizeKey(flowKey));
+    return this.executePublishedFlow(auth, flow, request);
+  }
+
+  async execute(auth: AuthContext, flowId: string, request: FlowExecuteRequest) {
+    const flow = await this.requireFlow(auth, flowId);
+    return this.executePublishedFlow(auth, flow, request);
+  }
+
+  private async executePublishedFlow(auth: AuthContext, flow: Flow, request: FlowExecuteRequest) {
+    if (flow.status !== 'active') {
+      throw new BadRequestException('Flow must be active before execution');
+    }
+
+    const version = await this.versions.findOne({
+      where: { tenantId: auth.tenant.id, flowId: flow.id, status: 'published' },
+      order: { version: 'DESC' }
+    });
+    if (!version) {
+      throw new BadRequestException('Publish a flow version before executing it');
+    }
+
+    const input = this.asRecord(request.input);
+    const started = Date.now();
+    const run = await this.runs.save(
+      this.runs.create({
+        tenantId: auth.tenant.id,
+        flowId: flow.id,
+        versionId: version.id,
+        triggerType: request.triggerType ?? 'test',
+        triggerKey: request.triggerKey?.trim() || null,
+        status: 'running',
+        input,
+        startedAt: new Date(),
+        createdByUserId: auth.user.id
+      })
+    );
+
+    const context: FlowExecutionContext = {
+      tenant: auth.tenant,
+      user: auth.user,
+      input,
+      steps: {}
+    };
+
+    try {
+      const output = await this.runDefinition(auth, flow, version, run.id, context);
+      const finishedAt = new Date();
+      await this.runs.update(
+        { id: run.id, tenantId: auth.tenant.id },
+        {
+          status: 'success',
+          output: this.asRecord(output) as any,
+          contextSnapshot: { input, steps: context.steps },
+          durationMs: Date.now() - started,
+          finishedAt
+        }
+      );
+      await this.audit.record({
+        auth,
+        action: 'flow.executed',
+        resourceType: 'flow',
+        resourceId: flow.id,
+        metadata: { runId: run.id, version: version.version }
+      });
+      return this.runWithSteps(auth, run.id);
+    } catch (error) {
+      const finishedAt = new Date();
+      const message = error instanceof Error ? error.message : 'Unknown flow execution error';
+      await this.runs.update(
+        { id: run.id, tenantId: auth.tenant.id },
+        {
+          status: 'failed',
+          error: { message },
+          contextSnapshot: { input, steps: context.steps },
+          durationMs: Date.now() - started,
+          finishedAt
+        }
+      );
+      await this.audit.record({
+        auth,
+        action: 'flow.failed',
+        resourceType: 'flow',
+        resourceId: flow.id,
+        metadata: { runId: run.id, version: version.version, error: message }
+      });
+      return this.runWithSteps(auth, run.id);
+    }
+  }
+
+  private async runDefinition(
+    auth: AuthContext,
+    flow: Flow,
+    version: FlowVersion,
+    runId: string,
+    context: FlowExecutionContext
+  ) {
+    const steps = version.definition.steps ?? [];
+    if (!steps.length) {
+      throw new BadRequestException('Published flow has no steps');
+    }
+
+    const byKey = new Map(steps.map((step) => [step.key, step]));
+    let currentKey: string | undefined = steps.find((step) => step.type === 'start')?.key ?? steps[0]?.key;
+    let output: unknown = { ok: true };
+    const visited = new Set<string>();
+
+    for (let guard = 0; currentKey && guard < 100; guard += 1) {
+      if (visited.has(currentKey)) {
+        throw new BadRequestException(`Flow loop detected at step ${currentKey}`);
+      }
+      visited.add(currentKey);
+      const step = byKey.get(currentKey);
+      if (!step) {
+        throw new BadRequestException(`Step ${currentKey} not found`);
+      }
+
+      const result = await this.runStep(auth, flow, version, runId, step, context);
+      if (result.output !== undefined) {
+        output = result.output;
+      }
+      if (step.type === 'end') {
+        return output;
+      }
+      currentKey = result.nextKey;
+    }
+
+    if (currentKey) {
+      throw new BadRequestException('Flow exceeded max step guard');
+    }
+    return output;
+  }
+
+  private async runStep(
+    auth: AuthContext,
+    flow: Flow,
+    version: FlowVersion,
+    runId: string,
+    step: FlowDefinitionStep,
+    context: FlowExecutionContext
+  ) {
+    const started = Date.now();
+    const input = this.renderRecord(step.inputMap ?? {}, context);
+    const stepRun = await this.stepRuns.save(
+      this.stepRuns.create({
+        tenantId: auth.tenant.id,
+        runId,
+        flowId: flow.id,
+        versionId: version.id,
+        stepKey: step.key,
+        stepName: step.name ?? step.key,
+        stepType: step.type,
+        status: 'running',
+        input,
+        startedAt: new Date()
+      })
+    );
+
+    try {
+      const result = await this.executeStep(auth, step, input, context);
+      const outputKey = step.outputKey || step.key;
+      if (result.output !== undefined) {
+        context.steps[outputKey] = result.output;
+      }
+      await this.finishStepRun(auth, stepRun.id, 'success', started, { output: this.asRecordOrValue(result.output) });
+      return {
+        output: result.output,
+        nextKey: result.nextKey ?? this.nextStepKey(step, true)
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown step execution error';
+      await this.finishStepRun(auth, stepRun.id, 'failed', started, { error: { message } });
+      if (step.onError) {
+        return { output: { ok: false, error: message }, nextKey: step.onError };
+      }
+      throw error;
+    }
+  }
+
+  private async executeStep(
+    auth: AuthContext,
+    step: FlowDefinitionStep,
+    input: Record<string, unknown>,
+    context: FlowExecutionContext
+  ): Promise<{ output?: unknown; nextKey?: string }> {
+    switch (step.type) {
+      case 'start':
+        return { output: context.input, nextKey: step.next };
+      case 'dynamic_service': {
+        const serviceKey = step.serviceKey || this.stringConfig(step.config ?? {}, 'serviceKey');
+        if (!serviceKey) {
+          throw new BadRequestException(`Step ${step.key} requires serviceKey`);
+        }
+        const serviceRun = await this.dynamicServices.executeByKey(auth, serviceKey, {
+          context: input
+        });
+        const ok = serviceRun.status === 'success';
+        return {
+          output: {
+            ok,
+            status: serviceRun.status,
+            durationMs: serviceRun.durationMs,
+            response: serviceRun.responseSnapshot ?? null,
+            error: serviceRun.error ?? null
+          },
+          nextKey: ok ? this.nextStepKey(step, true) : (step.onError ?? this.nextStepKey(step, false))
+        };
+      }
+      case 'response': {
+        const config = step.config ?? {};
+        return {
+          output: {
+            status: this.stringConfig(config, 'status') ?? 'success',
+            body: this.renderValue(config['body'] ?? { ok: true, steps: '{{steps}}' }, context)
+          },
+          nextKey: step.next
+        };
+      }
+      case 'end':
+        return { output: { ok: true, steps: context.steps } };
+      case 'formula':
+      case 'validation':
+      case 'decision':
+      case 'action':
+        return {
+          output: {
+            skipped: true,
+            reason: `${step.type} runner is pending Expression Engine V1`,
+            config: step.config ?? {}
+          },
+          nextKey: this.nextStepKey(step, true)
+        };
+    }
+  }
+
+  private nextStepKey(step: FlowDefinitionStep, success: boolean) {
+    if (step.type === 'decision') {
+      return success ? (step.onTrue ?? step.next) : (step.onFalse ?? step.next);
+    }
+    return success ? (step.onSuccess ?? step.next) : (step.onError ?? step.next);
+  }
+
+  private async finishStepRun(
+    auth: AuthContext,
+    stepRunId: string,
+    status: FlowStepRunStatus,
+    started: number,
+    updates: Pick<FlowStepRun, 'output'> | Pick<FlowStepRun, 'error'>
+  ) {
+    await this.stepRuns.update(
+      { id: stepRunId, tenantId: auth.tenant.id },
+      {
+        status,
+        durationMs: Date.now() - started,
+        finishedAt: new Date(),
+        ...(updates as Record<string, unknown>)
+      }
+    );
+  }
+
+  private async runWithSteps(auth: AuthContext, runId: string) {
+    const run = await this.runs.findOneOrFail({ where: { id: runId, tenantId: auth.tenant.id } });
+    const steps = await this.stepRuns.find({
+      where: { tenantId: auth.tenant.id, runId },
+      order: { createdAt: 'ASC' }
+    });
+    return { ...run, steps };
+  }
+
   private async withDetails(auth: AuthContext, flows: Flow[]) {
     const flowIds = flows.map((flow) => flow.id);
     const [versions, steps] = await Promise.all([
@@ -482,6 +796,14 @@ export class FlowsService {
     return flow;
   }
 
+  private async requireFlowByKey(auth: AuthContext, key: string) {
+    const flow = await this.flows.findOne({ where: { key, tenantId: auth.tenant.id, trashedAt: IsNull() } });
+    if (!flow) {
+      throw new NotFoundException('Flow not found');
+    }
+    return flow;
+  }
+
   private async requireTrashedFlow(auth: AuthContext, flowId: string) {
     const flow = await this.flows
       .createQueryBuilder('flow')
@@ -563,5 +885,65 @@ export class FlowsService {
   private stringConfig(config: Record<string, unknown>, key: string) {
     const value = config[key];
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  }
+
+  private renderRecord(record: Record<string, unknown>, context: FlowExecutionContext) {
+    return Object.entries(record).reduce<Record<string, unknown>>((rendered, [key, value]) => {
+      rendered[key] = this.renderValue(value, context);
+      return rendered;
+    }, {});
+  }
+
+  private renderValue(value: unknown, context: FlowExecutionContext): unknown {
+    if (typeof value === 'string') {
+      const exact = value.match(/^{{\s*([^}]+)\s*}}$/);
+      if (exact) {
+        return this.resolvePath(context, exact[1]);
+      }
+      return value.replace(/{{\s*([^}]+)\s*}}/g, (_match, path: string) => {
+        const resolved = this.resolvePath(context, path);
+        return resolved === undefined || resolved === null ? '' : String(resolved);
+      });
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.renderValue(item, context));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>((rendered, [key, item]) => {
+        rendered[key] = this.renderValue(item, context);
+        return rendered;
+      }, {});
+    }
+
+    return value;
+  }
+
+  private resolvePath(context: FlowExecutionContext, rawPath: string) {
+    const path = rawPath.trim();
+    const root: Record<string, unknown> = {
+      input: context.input,
+      tenant: context.tenant,
+      user: context.user,
+      steps: context.steps
+    };
+    return path.split('.').reduce<unknown>((value, part) => {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      if (typeof value !== 'object') {
+        return undefined;
+      }
+      return (value as Record<string, unknown>)[part];
+    }, root);
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  }
+
+  private asRecordOrValue(value: unknown): Record<string, unknown> {
+    return this.asRecord(value) === value ? (value as Record<string, unknown>) : { value };
   }
 }

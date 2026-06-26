@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { DynamicServicesModule } from '../dynamic-services/dynamic-services.module';
 import { FlowActionCatalog } from './flow-action-catalog.entity';
 import { FlowDecisionTable } from './flow-decision-table.entity';
 import { FlowExpression } from './flow-expression.entity';
@@ -17,6 +18,7 @@ import { FlowsService } from './flows.service';
 @Module({
   imports: [
     AuditModule,
+    DynamicServicesModule,
     TypeOrmModule.forFeature([
       Flow,
       FlowVersion,

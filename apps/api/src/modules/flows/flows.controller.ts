@@ -5,7 +5,7 @@ import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { FlowStepRequest, FlowUpsertRequest, FlowsService } from './flows.service';
+import { FlowExecuteRequest, FlowStepRequest, FlowUpsertRequest, FlowsService } from './flows.service';
 
 @Controller('flows')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -45,12 +45,54 @@ export class FlowsController {
     return this.flows.create(auth, body);
   }
 
+  @Post('by-key/:flowKey/execute')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Ejecutar flow publicado por key' })
+  @ApiParam({ name: 'flowKey', example: 'validar_usuario_reporte' })
+  @ApiBody({
+    schema: {
+      example: {
+        input: {
+          email: 'admin@example.com'
+        }
+      }
+    }
+  })
+  executeByKey(@CurrentAuth() auth: AuthContext, @Param('flowKey') flowKey: string, @Body() body: FlowExecuteRequest) {
+    return this.flows.executeByKey(auth, flowKey, body);
+  }
+
   @Get(':flowId')
   @RequirePermissions('flows.read')
   @ApiOperation({ summary: 'Obtener flow con pasos y versiones' })
   @ApiParam({ name: 'flowId', example: 'flow-id' })
   get(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
     return this.flows.get(auth, flowId);
+  }
+
+  @Get(':flowId/runs')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar ejecuciones recientes de un flow' })
+  @ApiParam({ name: 'flowId', example: 'flow-id' })
+  runs(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
+    return this.flows.listRuns(auth, flowId);
+  }
+
+  @Post(':flowId/execute')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Ejecutar flow publicado por id' })
+  @ApiParam({ name: 'flowId', example: 'flow-id' })
+  @ApiBody({
+    schema: {
+      example: {
+        input: {
+          email: 'admin@example.com'
+        }
+      }
+    }
+  })
+  execute(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowExecuteRequest) {
+    return this.flows.execute(auth, flowId, body);
   }
 
   @Patch(':flowId')

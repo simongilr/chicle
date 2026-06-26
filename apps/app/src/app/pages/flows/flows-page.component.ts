@@ -64,6 +64,35 @@ interface StepDraft {
   onErrorStepKey: string;
   configText: string;
   inputMapText: string;
+  serviceKey: string;
+  timeoutMs: number;
+  retryAttempts: number;
+  retryBackoffMs: number;
+  conditionExpression: string;
+  formulaExpression: string;
+  validationField: string;
+  validationOperator: string;
+  validationValue: string;
+  actionName: string;
+  responseStatus: string;
+  responseBodyText: string;
+  inputRows: StepInputRow[];
+  advancedMode: boolean;
+}
+
+interface StepInputRow {
+  key: string;
+  value: string;
+}
+
+interface DynamicServiceItem {
+  id: string;
+  key: string;
+  name: string;
+  active: boolean;
+  description?: string | null;
+  latestVersion?: { version: number; status: string } | null;
+  publishedVersion?: { version: number; status: string } | null;
 }
 
 @Component({
@@ -264,6 +293,56 @@ interface StepDraft {
         font-weight: 900;
       }
 
+      .type-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .type-button {
+        justify-content: flex-start;
+        min-height: 58px;
+        text-align: left;
+      }
+
+      .type-button.active {
+        border-color: #1f5ca8;
+        background: #eaf3ff;
+      }
+
+      .guided-panel {
+        display: grid;
+        gap: 10px;
+        border: 1px solid #d6e4f2;
+        border-radius: 8px;
+        background: #f8fbff;
+        margin-top: 10px;
+        padding: 12px;
+      }
+
+      .map-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr) auto;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .hint {
+        border: 1px solid #d7e5f2;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #526a82;
+        padding: 9px 10px;
+        line-height: 1.45;
+      }
+
+      .mini-title {
+        color: #12365a;
+        font-size: 0.9rem;
+        font-weight: 900;
+      }
+
       pre {
         max-height: 440px;
         overflow: auto;
@@ -286,7 +365,9 @@ interface StepDraft {
       @media (max-width: 900px) {
         .layout,
         .builder,
-        .grid {
+        .grid,
+        .type-grid,
+        .map-row {
           grid-template-columns: 1fr;
         }
 
@@ -431,9 +512,9 @@ interface StepDraft {
                       </label>
                       <label>
                         Tipo
-                        <select [(ngModel)]="stepDraft.type">
+                        <select [(ngModel)]="stepDraft.type" (ngModelChange)="onStepTypeChange()">
                           @for (type of stepTypes; track type) {
-                            <option [value]="type">{{ type }}</option>
+                            <option [value]="type">{{ stepTypeLabel(type) }}</option>
                           }
                         </select>
                       </label>
@@ -457,15 +538,184 @@ interface StepDraft {
                         Si falso
                         <input [(ngModel)]="stepDraft.onFalseStepKey" placeholder="respuesta_rechazo" />
                       </label>
+                      <label>
+                        Si error
+                        <input [(ngModel)]="stepDraft.onErrorStepKey" placeholder="manejar_error" />
+                      </label>
                     </div>
-                    <label style="margin-top: 10px;">
-                      Config JSON
-                      <textarea [(ngModel)]="stepDraft.configText"></textarea>
-                    </label>
-                    <label style="margin-top: 10px;">
-                      Input map JSON
-                      <textarea [(ngModel)]="stepDraft.inputMapText"></textarea>
-                    </label>
+
+                    <div class="guided-panel">
+                      <div>
+                        <div class="mini-title">Tipo de paso</div>
+                        <p class="meta">Elige qué hace este bloque. La configuración JSON se genera desde esta guía.</p>
+                      </div>
+                      <div class="type-grid">
+                        @for (type of stepTypes; track type) {
+                          <button
+                            class="type-button"
+                            type="button"
+                            [class.active]="stepDraft.type === type"
+                            (click)="setStepType(type)"
+                          >
+                            <span>
+                              <strong>{{ stepTypeLabel(type) }}</strong>
+                              <span class="meta">{{ stepTypeSummary(type) }}</span>
+                            </span>
+                          </button>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="guided-panel">
+                      @if (stepDraft.type === 'dynamic_service') {
+                        <div class="grid">
+                          <label>
+                            Servicio publicado
+                            <select [(ngModel)]="stepDraft.serviceKey" (ngModelChange)="syncGuidedStepJson()">
+                              <option value="">Selecciona un servicio</option>
+                              @for (service of publishedServices; track service.id) {
+                                <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
+                              }
+                            </select>
+                          </label>
+                          <label>
+                            Timeout ms
+                            <input type="number" [(ngModel)]="stepDraft.timeoutMs" (ngModelChange)="syncGuidedStepJson()" />
+                          </label>
+                          <label>
+                            Reintentos
+                            <input type="number" [(ngModel)]="stepDraft.retryAttempts" (ngModelChange)="syncGuidedStepJson()" />
+                          </label>
+                          <label>
+                            Backoff ms
+                            <input type="number" [(ngModel)]="stepDraft.retryBackoffMs" (ngModelChange)="syncGuidedStepJson()" />
+                          </label>
+                        </div>
+                        <div class="hint">
+                          Este paso ejecuta un servicio dinámico publicado. Las entradas se toman del input del flow,
+                          del tenant, del usuario o de salidas previas: <code>{{ '{{input.email}}' }}</code>,
+                          <code>{{ '{{tenant.slug}}' }}</code>, <code>{{ '{{steps.buscar_usuario}}' }}</code>.
+                        </div>
+                      } @else if (stepDraft.type === 'decision') {
+                        <label>
+                          Condición
+                          <input
+                            [(ngModel)]="stepDraft.conditionExpression"
+                            (ngModelChange)="syncGuidedStepJson()"
+                            placeholder="{{ '{{steps.usuario.active}} === true' }}"
+                          />
+                        </label>
+                        <div class="hint">Si la condición da verdadero usa “Si verdadero”; si no, usa “Si falso”.</div>
+                      } @else if (stepDraft.type === 'formula') {
+                        <label>
+                          Fórmula
+                          <input
+                            [(ngModel)]="stepDraft.formulaExpression"
+                            (ngModelChange)="syncGuidedStepJson()"
+                            placeholder="round({{ '{{input.total}}' }} * 0.19, 2)"
+                          />
+                        </label>
+                      } @else if (stepDraft.type === 'validation') {
+                        <div class="grid">
+                          <label>
+                            Campo
+                            <input [(ngModel)]="stepDraft.validationField" (ngModelChange)="syncGuidedStepJson()" placeholder="input.email" />
+                          </label>
+                          <label>
+                            Operador
+                            <select [(ngModel)]="stepDraft.validationOperator" (ngModelChange)="syncGuidedStepJson()">
+                              <option value="required">Requerido</option>
+                              <option value="equals">Igual a</option>
+                              <option value="not_empty">No vacío</option>
+                              <option value="min">Mínimo</option>
+                              <option value="max">Máximo</option>
+                              <option value="regex">Regex</option>
+                            </select>
+                          </label>
+                          <label>
+                            Valor esperado
+                            <input [(ngModel)]="stepDraft.validationValue" (ngModelChange)="syncGuidedStepJson()" placeholder="opcional" />
+                          </label>
+                        </div>
+                      } @else if (stepDraft.type === 'response') {
+                        <div class="grid">
+                          <label>
+                            Estado
+                            <select [(ngModel)]="stepDraft.responseStatus" (ngModelChange)="syncGuidedStepJson()">
+                              <option value="success">success</option>
+                              <option value="failed">failed</option>
+                              <option value="partial">partial</option>
+                            </select>
+                          </label>
+                          <label>
+                            Cuerpo de respuesta JSON
+                            <textarea [(ngModel)]="stepDraft.responseBodyText" (ngModelChange)="syncGuidedStepJson()"></textarea>
+                          </label>
+                        </div>
+                      } @else if (stepDraft.type === 'action') {
+                        <label>
+                          Acción declarativa
+                          <select [(ngModel)]="stepDraft.actionName" (ngModelChange)="syncGuidedStepJson()">
+                            <option value="create_record">create_record</option>
+                            <option value="show_modal">show_modal</option>
+                            <option value="navigate">navigate</option>
+                            <option value="queue_offline">queue_offline</option>
+                            <option value="upload_files">upload_files</option>
+                          </select>
+                        </label>
+                      } @else {
+                        <div class="hint">{{ stepTypeSummary(stepDraft.type) }}</div>
+                      }
+                    </div>
+
+                    <div class="guided-panel">
+                      <div class="toolbar">
+                        <div>
+                          <div class="mini-title">Input map</div>
+                          <p class="meta">Define qué datos recibe este paso sin escribir JSON completo.</p>
+                        </div>
+                        <button type="button" (click)="addInputRow()">Agregar entrada</button>
+                      </div>
+                      @for (row of stepDraft.inputRows; track $index) {
+                        <div class="map-row">
+                          <label>
+                            Nombre
+                            <input [(ngModel)]="row.key" (ngModelChange)="syncGuidedStepJson()" placeholder="email" />
+                          </label>
+                          <label>
+                            Valor
+                            <input [(ngModel)]="row.value" (ngModelChange)="syncGuidedStepJson()" placeholder="{{ '{{input.email}}' }}" />
+                          </label>
+                          <button type="button" (click)="removeInputRow($index)">Quitar</button>
+                        </div>
+                      } @empty {
+                        <div class="hint">Sin entradas. Puedes agregarlas si este paso necesita datos.</div>
+                      }
+                    </div>
+
+                    <div class="guided-panel">
+                      <div class="toolbar">
+                        <div>
+                          <div class="mini-title">JSON avanzado</div>
+                          <p class="meta">Se actualiza con la guía. Actívalo solo si necesitas ajustar algo libre.</p>
+                        </div>
+                        <label style="display: inline-flex; align-items: center; gap: 6px;">
+                          <input type="checkbox" [(ngModel)]="stepDraft.advancedMode" />
+                          Editar JSON
+                        </label>
+                      </div>
+                      <div class="grid">
+                        <label>
+                          Config JSON
+                          <textarea [(ngModel)]="stepDraft.configText" [disabled]="!stepDraft.advancedMode"></textarea>
+                        </label>
+                        <label>
+                          Input map JSON
+                          <textarea [(ngModel)]="stepDraft.inputMapText" [disabled]="!stepDraft.advancedMode"></textarea>
+                        </label>
+                      </div>
+                    </div>
+
                     <div class="row" style="margin-top: 10px;">
                       <button class="primary" type="button" (click)="saveStep()" [disabled]="!canUpdate">
                         {{ stepDraft.id ? 'Guardar paso' : 'Agregar paso' }}
@@ -518,6 +768,7 @@ export class FlowsPageComponent implements OnInit {
 
   readonly stepTypes: FlowStepType[] = ['dynamic_service', 'decision', 'formula', 'validation', 'response', 'action', 'start', 'end'];
   flows: FlowItem[] = [];
+  services: DynamicServiceItem[] = [];
   selectedFlowId = '';
   message = '';
   loading = false;
@@ -526,6 +777,10 @@ export class FlowsPageComponent implements OnInit {
 
   get selectedFlow() {
     return this.flows.find((flow) => flow.id === this.selectedFlowId);
+  }
+
+  get publishedServices() {
+    return this.services.filter((service) => service.active && service.publishedVersion);
   }
 
   get canCreate() {
@@ -541,7 +796,19 @@ export class FlowsPageComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadServices();
     this.load();
+  }
+
+  loadServices() {
+    this.api.get<DynamicServiceItem[]>('dynamic-services').subscribe({
+      next: (services) => {
+        this.services = services;
+      },
+      error: () => {
+        this.services = [];
+      }
+    });
   }
 
   load(selectId = this.selectedFlowId) {
@@ -641,6 +908,7 @@ export class FlowsPageComponent implements OnInit {
 
   selectStep(step: FlowStep) {
     this.stepDraft = {
+      ...this.emptyStepDraft(step.position),
       id: step.id,
       key: step.key,
       name: step.name,
@@ -652,8 +920,80 @@ export class FlowsPageComponent implements OnInit {
       onFalseStepKey: step.onFalseStepKey ?? '',
       onErrorStepKey: step.onErrorStepKey ?? '',
       configText: JSON.stringify(step.config ?? {}, null, 2),
-      inputMapText: JSON.stringify(step.inputMap ?? {}, null, 2)
+      inputMapText: JSON.stringify(step.inputMap ?? {}, null, 2),
+      ...this.guidedFieldsFromStep(step)
     };
+  }
+
+  setStepType(type: FlowStepType) {
+    this.stepDraft.type = type;
+    this.onStepTypeChange();
+  }
+
+  onStepTypeChange() {
+    const labels: Record<FlowStepType, string> = {
+      start: 'Inicio',
+      dynamic_service: 'Ejecutar servicio',
+      formula: 'Calcular valor',
+      validation: 'Validar dato',
+      decision: 'Tomar decisión',
+      action: 'Ejecutar acción',
+      response: 'Responder',
+      end: 'Fin'
+    };
+    if (!this.stepDraft.name) {
+      this.stepDraft.name = labels[this.stepDraft.type];
+    }
+    if (!this.stepDraft.key) {
+      this.stepDraft.key = this.slugify(labels[this.stepDraft.type]);
+    }
+    this.syncGuidedStepJson();
+  }
+
+  addInputRow() {
+    this.stepDraft.inputRows = [...this.stepDraft.inputRows, { key: '', value: '' }];
+    this.syncGuidedStepJson();
+  }
+
+  removeInputRow(index: number) {
+    this.stepDraft.inputRows = this.stepDraft.inputRows.filter((_, itemIndex) => itemIndex !== index);
+    this.syncGuidedStepJson();
+  }
+
+  syncGuidedStepJson() {
+    if (this.stepDraft.advancedMode) {
+      return;
+    }
+    this.stepDraft.configText = JSON.stringify(this.guidedConfig(), null, 2);
+    this.stepDraft.inputMapText = JSON.stringify(this.guidedInputMap(), null, 2);
+  }
+
+  stepTypeLabel(type: FlowStepType) {
+    const labels: Record<FlowStepType, string> = {
+      start: 'Inicio',
+      dynamic_service: 'Servicio',
+      formula: 'Fórmula',
+      validation: 'Validación',
+      decision: 'Decisión',
+      action: 'Acción',
+      response: 'Respuesta',
+      end: 'Fin'
+    };
+    return labels[type];
+  }
+
+  stepTypeSummary(type: FlowStepType) {
+    const summaries: Record<FlowStepType, string> = {
+      start: 'Marca la entrada del proceso.',
+      dynamic_service: 'Consume un servicio dinámico publicado.',
+      formula: 'Calcula valores a partir del contexto.',
+      validation: 'Verifica campos antes de avanzar.',
+      decision: 'Divide el camino en verdadero o falso.',
+      action: 'Ejecuta una acción declarativa.',
+      response: 'Construye la salida final.',
+      end: 'Cierra el proceso.'
+    };
+    return summaries[type];
   }
 
   saveStep() {
@@ -661,6 +1001,7 @@ export class FlowsPageComponent implements OnInit {
     if (!flow) {
       return;
     }
+    this.syncGuidedStepJson();
     let payload: Record<string, unknown>;
     try {
       payload = this.stepPayload();
@@ -738,6 +1079,86 @@ export class FlowsPageComponent implements OnInit {
     this.selectFlow(flow);
   }
 
+  private guidedConfig() {
+    const timeoutMs = Number(this.stepDraft.timeoutMs) || 0;
+    const retryAttempts = Number(this.stepDraft.retryAttempts) || 0;
+    const retryBackoffMs = Number(this.stepDraft.retryBackoffMs) || 0;
+    switch (this.stepDraft.type) {
+      case 'dynamic_service':
+        return {
+          serviceKey: this.stepDraft.serviceKey,
+          timeoutMs,
+          retry: {
+            attempts: retryAttempts,
+            backoffMs: retryBackoffMs
+          }
+        };
+      case 'decision':
+        return {
+          expression: this.stepDraft.conditionExpression
+        };
+      case 'formula':
+        return {
+          expression: this.stepDraft.formulaExpression
+        };
+      case 'validation':
+        return {
+          field: this.stepDraft.validationField,
+          operator: this.stepDraft.validationOperator,
+          value: this.stepDraft.validationValue || null
+        };
+      case 'action':
+        return {
+          action: this.stepDraft.actionName
+        };
+      case 'response':
+        return {
+          status: this.stepDraft.responseStatus,
+          body: this.parseJsonLenient(this.stepDraft.responseBodyText)
+        };
+      case 'start':
+        return {
+          mode: 'manual'
+        };
+      case 'end':
+        return {
+          status: 'completed'
+        };
+    }
+  }
+
+  private guidedInputMap() {
+    return this.stepDraft.inputRows.reduce<Record<string, string>>((map, row) => {
+      const key = row.key.trim();
+      if (key) {
+        map[key] = row.value;
+      }
+      return map;
+    }, {});
+  }
+
+  private guidedFieldsFromStep(step: FlowStep): Partial<StepDraft> {
+    const config = step.config ?? {};
+    const inputMap = step.inputMap ?? {};
+    const retry = this.asRecord(config['retry']);
+    return {
+      serviceKey: this.asString(config['serviceKey']),
+      timeoutMs: this.asNumber(config['timeoutMs'], 8000),
+      retryAttempts: this.asNumber(retry['attempts'], 0),
+      retryBackoffMs: this.asNumber(retry['backoffMs'], 0),
+      conditionExpression: this.asString(config['expression']),
+      formulaExpression: this.asString(config['expression']),
+      validationField: this.asString(config['field']),
+      validationOperator: this.asString(config['operator']) || 'required',
+      validationValue: config['value'] === null || config['value'] === undefined ? '' : String(config['value']),
+      actionName: this.asString(config['action']) || 'create_record',
+      responseStatus: this.asString(config['status']) || 'success',
+      responseBodyText: JSON.stringify(config['body'] ?? { ok: true, data: '{{steps}}' }, null, 2),
+      inputRows: Object.entries(inputMap).map(([key, value]) => ({ key, value: String(value) })),
+      advancedMode: false
+    };
+  }
+
   private stepPayload() {
     return {
       key: this.stepDraft.key,
@@ -762,6 +1183,14 @@ export class FlowsPageComponent implements OnInit {
     return JSON.parse(trimmed) as Record<string, unknown>;
   }
 
+  private parseJsonLenient(value: string) {
+    try {
+      return this.parseJson(value);
+    } catch {
+      return { raw: value };
+    }
+  }
+
   private emptyFlowDraft(): FlowDraft {
     return {
       key: '',
@@ -784,7 +1213,43 @@ export class FlowsPageComponent implements OnInit {
       onFalseStepKey: '',
       onErrorStepKey: '',
       configText: '{\n  "serviceKey": ""\n}',
-      inputMapText: '{\n  "value": "{{input.value}}"\n}'
+      inputMapText: '{\n  "value": "{{input.value}}"\n}',
+      serviceKey: '',
+      timeoutMs: 8000,
+      retryAttempts: 0,
+      retryBackoffMs: 0,
+      conditionExpression: '{{steps.servicio.ok}} === true',
+      formulaExpression: '{{input.value}}',
+      validationField: 'input.value',
+      validationOperator: 'required',
+      validationValue: '',
+      actionName: 'create_record',
+      responseStatus: 'success',
+      responseBodyText: '{\n  "ok": true,\n  "data": "{{steps}}"\n}',
+      inputRows: [{ key: 'value', value: '{{input.value}}' }],
+      advancedMode: false
     };
+  }
+
+  private asRecord(value: unknown) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  }
+
+  private asString(value: unknown) {
+    return typeof value === 'string' ? value : '';
+  }
+
+  private asNumber(value: unknown, fallback: number) {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : fallback;
+  }
+
+  private slugify(value: string) {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 }

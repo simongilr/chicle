@@ -1339,7 +1339,7 @@ export class DocsPageComponent {
   readonly flowEngineSteps: CommandStep[] = [
     {
       title: 'Nombre y alcance',
-      ui: 'La pantalla futura se llamará Flow Designer. Permitirá crear flows, agregar pasos, probar un paso, probar hasta aquí y probar todo junto.',
+      ui: 'La pantalla se llama Flow Designer. Permite crear flows, agregar pasos guiados, conectar servicios dinámicos publicados y revisar el JSON generado.',
       command:
         'Nombre interno: Chicle Flow Engine\nPantalla: Flow Designer\nObjetivo: reglas, fórmulas, validaciones, decisiones, servicios dinámicos y workflows configurables.',
       note: 'No es código libre en DB. Es lógica declarativa versionada que el backend interpreta con acciones permitidas.'
@@ -1409,16 +1409,16 @@ export class DocsPageComponent {
     {
       title: 'Ruta de implementación',
       command:
-        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Expression Engine V1\n\nPaso 5:\n  ejecutar paso dynamic_service\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  eventos, async, colas y websockets',
+        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Flow Builder V2 guiado con tipos de paso, servicios publicados e input map visual\n\nPaso 5:\n  Flow Runner V1 para ejecutar dynamic_service publicado\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  Expression Engine, validaciones reales, decisiones y fórmulas\n\nPaso 8:\n  eventos, async, colas y websockets',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     },
     {
-      title: 'Flow Builder V1 disponible',
-      ui: 'Abre /flows desde Home o Administración. Crea un flow, agrega pasos, revisa el Preview JSON, crea una versión y publícala.',
+      title: 'Flow Builder V2 disponible',
+      ui: 'Abre /flows desde Home o Administración. Crea un flow, agrega pasos desde el asistente, selecciona servicios publicados, define input map por filas, revisa el JSON avanzado, crea una versión y publícala.',
       swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
       command:
-        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar pasos draft\n  3. Revisar definitionPreview\n  4. Crear versión\n  5. Publicar versión\n\nTodavía no ejecuta:\n  runner\n  prueba paso a paso\n  expression engine real',
-      note: 'Esta versión crea la receta y su snapshot publicable. La ejecución llegará en el siguiente bloque.'
+        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar paso start si aplica\n  3. Agregar paso Servicio y elegir un servicio dinámico publicado\n  4. Mapear entradas: email = {{input.email}}, tenant = {{tenant.slug}}, etc.\n  5. Agregar validación, decisión, fórmula o respuesta\n  6. Revisar definitionPreview\n  7. Crear versión\n  8. Publicar versión\n\nTodavía no ejecuta:\n  runner real\n  prueba paso a paso\n  expression engine real',
+      note: 'Esta versión facilita construir la receta sin escribir JSON manual. La ejecución llegará en el siguiente bloque.'
     }
   ];
 

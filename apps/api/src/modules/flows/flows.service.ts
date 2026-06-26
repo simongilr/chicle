@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
+import { ConfisysService } from '../confisys/confisys.service';
 import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
 import { FlowRun, FlowRunTriggerType } from './flow-run.entity';
+import { FlowExpressionEngine } from './flow-expression-engine.service';
 import { FlowStepRun, FlowStepRunStatus } from './flow-step-run.entity';
 import { FlowStep } from './flow-step.entity';
 import { FlowVersion, FlowDefinition, FlowDefinitionStep, FlowStepType } from './flow-version.entity';
@@ -56,11 +58,16 @@ export interface FlowExecuteRequest {
   triggerKey?: string | null;
 }
 
+export interface FlowPreviewRequest extends FlowExecuteRequest {
+  throughStepKey?: string | null;
+}
+
 interface FlowExecutionContext {
   tenant: AuthContext['tenant'];
   user: AuthContext['user'];
   input: Record<string, unknown>;
   steps: Record<string, unknown>;
+  lastOutput?: unknown;
 }
 
 @Injectable()
@@ -77,6 +84,8 @@ export class FlowsService {
     @InjectRepository(FlowStepRun)
     private readonly stepRuns: Repository<FlowStepRun>,
     private readonly dynamicServices: DynamicServicesService,
+    private readonly expressions: FlowExpressionEngine,
+    private readonly confisys: ConfisysService,
     private readonly audit: AuditService
   ) {}
 
@@ -314,6 +323,7 @@ export class FlowsService {
   async createVersion(auth: AuthContext, flowId: string) {
     const flow = await this.requireFlow(auth, flowId);
     const steps = await this.listDraftSteps(auth, flow.id);
+    await this.validateDraftForVersion(auth, steps);
     const definition = this.buildDefinition(flow, steps);
     const latest = await this.versions.findOne({
       where: { tenantId: auth.tenant.id, flowId: flow.id },
@@ -410,7 +420,108 @@ export class FlowsService {
     return this.executePublishedFlow(auth, flow, request);
   }
 
+  async preview(auth: AuthContext, flowId: string, request: FlowPreviewRequest) {
+    this.assertFlowEnabled();
+    const flow = await this.requireFlow(auth, flowId);
+    const draftSteps = await this.listDraftSteps(auth, flow.id);
+    if (!draftSteps.length) {
+      throw new BadRequestException('Add at least one step before testing the draft');
+    }
+    const definition = this.buildDefinition(flow, draftSteps);
+    const throughStepKey = request.throughStepKey?.trim() || null;
+    const byKey = new Map(definition.steps.map((step) => [step.key, step]));
+    if (throughStepKey && !byKey.has(throughStepKey)) {
+      throw new BadRequestException(`Step ${throughStepKey} not found in draft flow`);
+    }
+
+    const context: FlowExecutionContext = {
+      tenant: auth.tenant,
+      user: auth.user,
+      input: this.asRecord(request.input),
+      steps: {}
+    };
+    const results: Array<Record<string, unknown>> = [];
+    const visited = new Set<string>();
+    const maxSteps = this.flowLimit(flow.runtimeConfig?.maxSteps, 'flow.maxSteps', 50, 1, 500);
+    const maxDurationMs = this.flowLimit(flow.runtimeConfig?.maxDurationMs, 'flow.maxDurationMs', 30000, 100, 300000);
+    const previewStarted = Date.now();
+    let currentKey: string | undefined =
+      definition.steps.find((step) => step.type === 'start')?.key ?? definition.steps[0]?.key;
+    let output: unknown = { ok: true };
+
+    for (let guard = 0; currentKey && guard < maxSteps; guard += 1) {
+      if (Date.now() - previewStarted > maxDurationMs) {
+        return this.failedPreview(results, context, output, `Draft exceeded ${maxDurationMs} ms`);
+      }
+      if (visited.has(currentKey)) {
+        return this.failedPreview(results, context, output, `Flow loop detected at step ${currentKey}`);
+      }
+      visited.add(currentKey);
+      const step = byKey.get(currentKey);
+      if (!step) {
+        return this.failedPreview(results, context, output, `Step ${currentKey} not found`);
+      }
+
+      const started = Date.now();
+      const input = this.renderRecord(step.inputMap ?? {}, context);
+      try {
+        const result = await this.executeStep(auth, step, input, context);
+        const outputKey = step.outputKey || step.key;
+        if (result.output !== undefined) {
+          output = result.output;
+          context.lastOutput = result.output;
+          context.steps[outputKey] = result.output;
+        }
+        results.push({
+          stepKey: step.key,
+          stepName: step.name ?? step.key,
+          stepType: step.type,
+          status: 'success',
+          durationMs: Date.now() - started,
+          input,
+          output: this.asRecordOrValue(result.output)
+        });
+
+        if (step.key === throughStepKey || step.type === 'end') {
+          return {
+            status: 'success',
+            throughStepKey: step.key,
+            output: this.asRecordOrValue(output),
+            context: { input: context.input, steps: context.steps },
+            steps: results
+          };
+        }
+        currentKey = result.nextKey ?? this.nextStepKey(step, true);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown step execution error';
+        results.push({
+          stepKey: step.key,
+          stepName: step.name ?? step.key,
+          stepType: step.type,
+          status: 'failed',
+          durationMs: Date.now() - started,
+          input,
+          error: { message }
+        });
+        return this.failedPreview(results, context, output, message);
+      }
+    }
+
+    if (currentKey) {
+      return this.failedPreview(results, context, output, `Draft exceeded the maximum of ${maxSteps} steps`);
+    }
+
+    return {
+      status: 'success',
+      throughStepKey,
+      output: this.asRecordOrValue(output),
+      context: { input: context.input, steps: context.steps },
+      steps: results
+    };
+  }
+
   private async executePublishedFlow(auth: AuthContext, flow: Flow, request: FlowExecuteRequest) {
+    this.assertFlowEnabled();
     if (flow.status !== 'active') {
       throw new BadRequestException('Flow must be active before execution');
     }
@@ -453,7 +564,7 @@ export class FlowsService {
         { id: run.id, tenantId: auth.tenant.id },
         {
           status: 'success',
-          output: this.asRecord(output) as any,
+          output: this.asRecordOrValue(output) as any,
           contextSnapshot: { input, steps: context.steps },
           durationMs: Date.now() - started,
           finishedAt
@@ -507,8 +618,26 @@ export class FlowsService {
     let currentKey: string | undefined = steps.find((step) => step.type === 'start')?.key ?? steps[0]?.key;
     let output: unknown = { ok: true };
     const visited = new Set<string>();
+    const maxSteps = this.flowLimit(
+      version.runtimeConfig?.maxSteps ?? flow.runtimeConfig?.maxSteps,
+      'flow.maxSteps',
+      50,
+      1,
+      500
+    );
+    const maxDurationMs = this.flowLimit(
+      version.runtimeConfig?.maxDurationMs ?? flow.runtimeConfig?.maxDurationMs,
+      'flow.maxDurationMs',
+      30000,
+      100,
+      300000
+    );
+    const definitionStarted = Date.now();
 
-    for (let guard = 0; currentKey && guard < 100; guard += 1) {
+    for (let guard = 0; currentKey && guard < maxSteps; guard += 1) {
+      if (Date.now() - definitionStarted > maxDurationMs) {
+        throw new BadRequestException(`Flow exceeded ${maxDurationMs} ms`);
+      }
       if (visited.has(currentKey)) {
         throw new BadRequestException(`Flow loop detected at step ${currentKey}`);
       }
@@ -521,6 +650,7 @@ export class FlowsService {
       const result = await this.runStep(auth, flow, version, runId, step, context);
       if (result.output !== undefined) {
         output = result.output;
+        context.lastOutput = result.output;
       }
       if (step.type === 'end') {
         return output;
@@ -590,13 +720,12 @@ export class FlowsService {
       case 'start':
         return { output: context.input, nextKey: step.next };
       case 'dynamic_service': {
+        const config = step.config ?? {};
         const serviceKey = step.serviceKey || this.stringConfig(step.config ?? {}, 'serviceKey');
         if (!serviceKey) {
           throw new BadRequestException(`Step ${step.key} requires serviceKey`);
         }
-        const serviceRun = await this.dynamicServices.executeByKey(auth, serviceKey, {
-          context: input
-        });
+        const serviceRun = await this.executeDynamicServiceStep(auth, serviceKey, input, config);
         const ok = serviceRun.status === 'success';
         return {
           output: {
@@ -620,19 +749,60 @@ export class FlowsService {
         };
       }
       case 'end':
-        return { output: { ok: true, steps: context.steps } };
-      case 'formula':
-      case 'validation':
-      case 'decision':
-      case 'action':
+        return {
+          output: context.lastOutput ?? {
+            ok: true,
+            steps: context.steps
+          }
+        };
+      case 'formula': {
+        const config = step.config ?? {};
+        const rule = config['rule'];
+        const rawResult = this.expressions.evaluate(rule, this.expressionData(context));
+        if (typeof rawResult === 'number' && !Number.isFinite(rawResult)) {
+          throw new BadRequestException(`Step ${step.key} produced a non-finite number`);
+        }
+        const precision = Number(config['precision']);
+        const result =
+          Number.isFinite(precision) && typeof rawResult === 'number'
+            ? Number(rawResult.toFixed(Math.min(Math.max(Math.floor(precision), 0), 10)))
+            : rawResult;
+        return {
+          output: result,
+          nextKey: this.nextStepKey(step, true)
+        };
+      }
+      case 'validation': {
+        const validation = this.expressions.validate(step.config ?? {}, this.expressionData(context));
+        if (!validation.valid && !step.onFalse && !step.onError) {
+          throw new BadRequestException(validation.message ?? `Step ${step.key} validation failed`);
+        }
+        return {
+          output: validation,
+          nextKey: validation.valid
+            ? this.nextStepKey(step, true)
+            : (step.onFalse ?? step.onError ?? this.nextStepKey(step, false))
+        };
+      }
+      case 'decision': {
+        const rule = (step.config ?? {})['rule'];
+        const result = this.expressions.evaluateBoolean(rule, this.expressionData(context));
+        return {
+          output: { result },
+          nextKey: result ? (step.onTrue ?? step.next) : (step.onFalse ?? step.next)
+        };
+      }
+      case 'action': {
+        const config = step.config ?? {};
         return {
           output: {
-            skipped: true,
-            reason: `${step.type} runner is pending Expression Engine V1`,
-            config: step.config ?? {}
+            action: this.stringConfig(config, 'action') ?? 'custom',
+            payload: input,
+            instruction: true
           },
           nextKey: this.nextStepKey(step, true)
         };
+      }
     }
   }
 
@@ -840,6 +1010,46 @@ export class FlowsService {
     });
   }
 
+  private async validateDraftForVersion(auth: AuthContext, steps: FlowStep[]) {
+    if (!steps.length) {
+      throw new BadRequestException('Add at least one step before creating a version');
+    }
+
+    const knownKeys = new Set(['start', 'end', ...steps.map((step) => step.key)]);
+    for (const step of steps) {
+      const targets = [
+        step.nextStepKey,
+        step.onSuccessStepKey,
+        step.onErrorStepKey,
+        step.onTimeoutStepKey,
+        step.onTrueStepKey,
+        step.onFalseStepKey
+      ].filter((value): value is string => Boolean(value));
+      const missingTarget = targets.find((target) => !knownKeys.has(target));
+      if (missingTarget) {
+        throw new BadRequestException(`Step ${step.key} points to missing step ${missingTarget}`);
+      }
+    }
+
+    const serviceSteps = steps.filter((step) => step.type === 'dynamic_service');
+    if (serviceSteps.length) {
+      const services = (await this.dynamicServices.list(auth)) as Array<{
+        key: string;
+        active: boolean;
+        publishedVersion?: unknown;
+      }>;
+      const available = new Set(
+        services.filter((service) => service.active && service.publishedVersion).map((service) => service.key)
+      );
+      const unavailable = serviceSteps.find(
+        (step) => !available.has(this.stringConfig(step.config ?? {}, 'serviceKey') ?? '')
+      );
+      if (unavailable) {
+        throw new BadRequestException(`Step ${unavailable.key} requires an active published service`);
+      }
+    }
+  }
+
   private async assertStepKeyAvailable(auth: AuthContext, flowId: string, key: string) {
     const exists = await this.steps.exist({ where: { tenantId: auth.tenant.id, flowId, versionId: IsNull(), key } });
     if (exists) {
@@ -892,6 +1102,98 @@ export class FlowsService {
       rendered[key] = this.renderValue(value, context);
       return rendered;
     }, {});
+  }
+
+  private expressionData(context: FlowExecutionContext): Record<string, unknown> {
+    return {
+      input: context.input,
+      tenant: context.tenant,
+      user: context.user,
+      steps: context.steps
+    };
+  }
+
+  private async executeDynamicServiceStep(
+    auth: AuthContext,
+    serviceKey: string,
+    input: Record<string, unknown>,
+    config: Record<string, unknown>
+  ) {
+    const maxTimeoutMs = this.confisys.get<number>('flow.maxStepTimeoutMs', 60000);
+    const defaultTimeoutMs = this.confisys.get<number>('flow.defaultStepTimeoutMs', 8000);
+    const timeoutMs = Math.min(
+      Math.max(Number(config['timeoutMs']) || defaultTimeoutMs, 100),
+      Math.max(maxTimeoutMs, 100)
+    );
+    const retry = this.asRecord(config['retry']);
+    const maxAttempts = this.confisys.get<number>('flow.maxRetryAttempts', 5);
+    const attempts = Math.min(Math.max(Number(retry['attempts']) || 0, 0), Math.max(maxAttempts, 0));
+    const backoffMs = Math.min(Math.max(Number(retry['backoffMs']) || 0, 0), 30000);
+    let lastRun: Awaited<ReturnType<DynamicServicesService['executeByKey']>> | undefined;
+
+    for (let attempt = 0; attempt <= attempts; attempt += 1) {
+      lastRun = await this.withTimeout(
+        this.dynamicServices.executeByKey(auth, serviceKey, { context: input }),
+        timeoutMs,
+        `Service ${serviceKey} exceeded ${timeoutMs} ms`
+      );
+      if (lastRun.status === 'success' || attempt === attempts) {
+        return lastRun;
+      }
+      if (backoffMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+
+    return lastRun!;
+  }
+
+  private async withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(new BadRequestException(message)), timeoutMs);
+        })
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  private flowLimit(
+    configured: number | undefined,
+    confisysKey: string,
+    fallback: number,
+    minimum: number,
+    maximum: number
+  ) {
+    const value = Number(configured ?? this.confisys.get<number>(confisysKey, fallback));
+    return Math.min(Math.max(Number.isFinite(value) ? Math.floor(value) : fallback, minimum), maximum);
+  }
+
+  private assertFlowEnabled() {
+    if (!this.confisys.get<boolean>('flow.enabled', true)) {
+      throw new BadRequestException('Flow Engine is disabled for this environment');
+    }
+  }
+
+  private failedPreview(
+    steps: Array<Record<string, unknown>>,
+    context: FlowExecutionContext,
+    output: unknown,
+    message: string
+  ) {
+    return {
+      status: 'failed',
+      output: this.asRecordOrValue(output),
+      error: { message },
+      context: { input: context.input, steps: context.steps },
+      steps
+    };
   }
 
   private renderValue(value: unknown, context: FlowExecutionContext): unknown {

@@ -1389,10 +1389,11 @@ export class DocsPageComponent {
     },
     {
       title: 'Prueba paso a paso',
-      ui: 'El diseñador debe permitir Probar paso, Probar hasta aquí y Probar flujo completo. Cada bloque muestra input, output, duración, estado y error.',
+      ui: 'En /flows abre la etapa Probar. Selecciona Todo el borrador o un paso específico en Probar hasta. La pantalla muestra input, output, duración, estado y error de cada bloque.',
+      swagger: 'En /api/docs usa POST /flows/{flowId}/preview con input y throughStepKey opcional. Esta ruta prueba el borrador sin crear ni publicar una versión.',
       command:
-        'Estados visuales:\n  sin probar\n  probando\n  correcto\n  error\n  omitido\n\nNiveles:\n  probar solo este paso\n  probar desde inicio hasta este paso\n  probar todo el flow',
-      note: 'El usuario no debe construir a ciegas. Cada paso debe validarse visualmente antes de publicar.'
+        'POST /api/flows/{flowId}/preview\n{\n  "input": { "email": "persona@example.com" },\n  "throughStepKey": "validar_correo"\n}\n\nNiveles disponibles:\n  desde inicio hasta un paso\n  borrador completo\n  versión publicada completa',
+      note: 'La prueba del borrador no crea historial persistente. La ejecución de una versión publicada sí guarda flow_runs y flow_step_runs.'
     },
     {
       title: 'Ejemplo de definición',
@@ -1409,16 +1410,16 @@ export class DocsPageComponent {
     {
       title: 'Ruta de implementación',
       command:
-        'Paso 1:\n  tablas, entidades, permisos, confisys y documentación\n\nPaso 2:\n  API CRUD de flows, pasos, versiones y publicación\n\nPaso 3:\n  Flow Designer V1 para crear flows y preview JSON\n\nPaso 4:\n  Flow Builder V2 guiado con tipos de paso, servicios publicados e input map visual\n\nPaso 5:\n  Flow Runner V1 para ejecutar dynamic_service publicado, response y end\n\nPaso 6:\n  probar paso, probar hasta aquí, probar flow completo\n\nPaso 7:\n  Expression Engine, validaciones reales, decisiones y fórmulas\n\nPaso 8:\n  eventos, async, colas y websockets',
+        'Completado:\n  tablas, entidades, permisos y confisys\n  CRUD, pasos, versiones y publicación\n  asistente Definir -> Construir -> Probar -> Publicar\n  ejecución de servicios, respuestas y cierre\n  preview del borrador hasta un paso\n  JSON Logic para decisiones y fórmulas\n  validaciones reales y seguras\n\nSiguiente:\n  catálogo de acciones ejecutables\n  casos de prueba guardados\n  decision tables reusables\n  triggers, eventos, async, colas y websockets',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     },
     {
-      title: 'Flow Builder V2 disponible',
-      ui: 'Abre /flows desde Home o Administración. Crea un flow, agrega pasos desde el asistente, selecciona servicios publicados, define input map por filas, revisa el JSON avanzado, crea una versión y publícala.',
-      swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
+      title: 'Asistente visual disponible',
+      ui: 'Abre /flows. El recorrido tiene cuatro etapas: Definir, Construir, Probar y Publicar. Para empezar puedes elegir Validar datos, Usar un servicio, Calcular un valor o Comenzar vacío.',
+      swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/preview, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
       command:
-        'Flujo de trabajo:\n  1. Crear flow\n  2. Agregar paso start si aplica\n  3. Agregar paso Servicio y elegir un servicio dinámico publicado\n  4. Mapear entradas: email = {{input.email}}, tenant = {{tenant.slug}}, etc.\n  5. Agregar respuesta o end\n  6. Revisar definitionPreview\n  7. Crear versión\n  8. Publicar versión\n  9. Probar flow desde la caja de Prueba en vivo\n\nRunner V1 soporta:\n  start\n  dynamic_service\n  response\n  end\n\nPendiente:\n  prueba paso a paso\n  expression engine real para formula, validation, decision y action',
-      note: 'Esta versión ya ejecuta flows publicados y guarda flow_runs y flow_step_runs.'
+        'Recorrido gráfico:\n  1. Definir nombre, propósito y categoría\n  2. Construir validaciones, servicios, decisiones, fórmulas, respuestas o acciones\n  3. Probar el borrador completo o hasta un paso\n  4. Crear versión\n  5. Publicar versión\n  6. Consumir el flow por key\n\nInicio y fin se agregan automáticamente.\nEl JSON queda en Opciones avanzadas.',
+      note: 'No es necesario escribir expresiones ni conexiones manuales para los casos comunes.'
     },
     {
       title: 'Flow Runner V1 disponible',
@@ -1426,7 +1427,15 @@ export class DocsPageComponent {
       swagger: 'En /api/docs usa POST /flows/{flowId}/execute o POST /flows/by-key/{flowKey}/execute. Consulta historial con GET /flows/{flowId}/runs.',
       command:
         'POST /api/flows/by-key/validar_usuario_reporte/execute\n{\n  "input": {\n    "email": "admin@example.com"\n  },\n  "triggerType": "test"\n}\n\nRespuesta:\n  flow_run\n  steps[]\n  output\n  error si aplica',
-      note: 'Los pasos no implementados todavía se registran como salida skipped controlada, para que el flow no falle por placeholders mientras construimos Expression Engine.'
+      note: 'La ejecución publicada guarda flow_runs y flow_step_runs. Inicio, servicio, fórmula, validación, decisión, respuesta y fin ya producen una salida controlada. El catálogo de acciones ejecutables es el siguiente bloque.'
+    },
+    {
+      title: 'Expression Engine V1',
+      ui: 'Decisiones y fórmulas se construyen con selects y campos. La UI genera la regla JSON Logic; el JSON solo aparece como opción avanzada.',
+      swagger: 'Las reglas viajan dentro de config.rule al crear o editar un paso. No se acepta JavaScript ejecutable.',
+      command:
+        'Decisión:\n{\n  "language": "json_logic",\n  "rule": { ">=": [{ "var": "input.edad" }, 18] }\n}\n\nFórmula:\n{\n  "language": "json_logic",\n  "rule": { "*": [{ "var": "input.subtotal" }, 1.19] },\n  "precision": 2\n}\n\nValidación:\n{\n  "field": "input.email",\n  "operator": "email",\n  "message": "Escribe un correo válido"\n}',
+      note: 'Se usa JSON Logic como AST declarativo serializable. No usamos eval ni funciones arbitrarias guardadas en la base de datos.'
     }
   ];
 

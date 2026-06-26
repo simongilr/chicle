@@ -90,6 +90,21 @@ The API resolves the published definition behind `POST /api/dynamic-services/by-
 
 The same contract must survive future capabilities such as guided joins, unions, read models, SOAP, WebSocket, webhooks, async queues and response mapping.
 
+## Chicle Flow Engine
+
+Flows use declarative workflow orchestration. The database stores tenant-owned recipes, while the API owns execution, permissions, limits and traceability.
+
+- `flows` stores editable process metadata.
+- `flow_steps` stores draft and versioned steps.
+- `flow_versions` stores immutable snapshots.
+- `flow_runs` and `flow_step_runs` store published execution history.
+- `POST /api/flows/:flowId/preview` executes a draft in memory, optionally through one step.
+- `POST /api/flows/by-key/:flowKey/execute` executes the published version.
+
+Decisions and formulas use JSON Logic as a serializable abstract syntax tree. Validations use a controlled operator catalog. The runtime never evaluates JavaScript stored in the database.
+
+The UI follows four explicit stages: define, build, test and publish. Start and end nodes are synthesized when omitted, so common processes do not require technical plumbing.
+
 ## Declarative Actions
 
 Supported action types start small:

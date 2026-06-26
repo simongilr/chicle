@@ -25,6 +25,7 @@
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "json-logic-js": "^2.0.5",
     "mysql2": "^3.11.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -38,6 +39,7 @@
     "@nestjs/testing": "^10.4.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.13",
+    "@types/json-logic-js": "^2.0.8",
     "@types/node": "^22.5.5",
     "@typescript-eslint/eslint-plugin": "^8.6.0",
     "@typescript-eslint/parser": "^8.6.0",
@@ -47,5 +49,18 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testEnvironment": "node"
   }
 }

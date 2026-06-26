@@ -5,7 +5,7 @@ import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { FlowExecuteRequest, FlowStepRequest, FlowUpsertRequest, FlowsService } from './flows.service';
+import { FlowExecuteRequest, FlowPreviewRequest, FlowStepRequest, FlowUpsertRequest, FlowsService } from './flows.service';
 
 @Controller('flows')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -93,6 +93,22 @@ export class FlowsController {
   })
   execute(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowExecuteRequest) {
     return this.flows.execute(auth, flowId, body);
+  }
+
+  @Post(':flowId/preview')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Probar el borrador completo o hasta un paso sin publicarlo' })
+  @ApiParam({ name: 'flowId', example: 'flow-id' })
+  @ApiBody({
+    schema: {
+      example: {
+        input: { email: 'admin@example.com', total: 100 },
+        throughStepKey: 'validar_email'
+      }
+    }
+  })
+  preview(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowPreviewRequest) {
+    return this.flows.preview(auth, flowId, body);
   }
 
   @Patch(':flowId')

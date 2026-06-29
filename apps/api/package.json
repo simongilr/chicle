@@ -8,6 +8,7 @@
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
+    "smoke:flows": "node dist/scripts/smoke-flow-assistant.js",
     "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
     "migration:create": "typeorm migration:create src/database/migrations/manual",
     "migration:generate": "npm run typeorm -- migration:generate src/database/migrations/generated",

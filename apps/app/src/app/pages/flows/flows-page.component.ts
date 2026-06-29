@@ -1,6 +1,7 @@
 import { JsonPipe } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
@@ -550,6 +551,25 @@ interface FlowPreviewItem {
         color: #71400f;
       }
 
+      .assistant-actions {
+        position: sticky;
+        bottom: 10px;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #b9cfe6;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 8px 24px rgba(30, 80, 130, 0.14);
+      }
+
+      .assistant-actions .meta {
+        margin-right: auto;
+      }
+
       .hint {
         border: 1px solid #d7e5f2;
         border-radius: 8px;
@@ -737,6 +757,45 @@ interface FlowPreviewItem {
                     </button>
                   }
                 </div>
+
+                @if (selectedStarter === 'service' || selectedStarter === 'multi_service') {
+                  <div class="guided-panel">
+                    <div>
+                      <div class="mini-title">
+                        {{ selectedStarter === 'multi_service' ? 'Elige los servicios en el orden de ejecución' : 'Elige el servicio principal' }}
+                      </div>
+                      <p class="meta">Solo aparecen servicios activos con una versión publicada.</p>
+                    </div>
+                    <div class="grid">
+                      <label>
+                        {{ selectedStarter === 'multi_service' ? 'Primer servicio' : 'Servicio' }}
+                        <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
+                          <option value="">Selecciona un servicio</option>
+                          @for (service of publishedServices; track service.id) {
+                            <option [value]="service.key">{{ service.name }}</option>
+                          }
+                        </select>
+                      </label>
+                      @if (selectedStarter === 'multi_service') {
+                        <label>
+                          Segundo servicio
+                          <select [(ngModel)]="starterServiceKeys[1]" (ngModelChange)="onStarterServicesChanged()">
+                            <option value="">Selecciona un servicio</option>
+                            @for (service of publishedServices; track service.id) {
+                              <option [value]="service.key">{{ service.name }}</option>
+                            }
+                          </select>
+                        </label>
+                      }
+                    </div>
+                    @if (!publishedServices.length) {
+                      <div class="issue">
+                        <i class="pi pi-info-circle" aria-hidden="true"></i>
+                        <span>Primero crea y publica al menos un servicio desde Administración → Servicios.</span>
+                      </div>
+                    }
+                  </div>
+                }
               }
 
               <div class="grid">
@@ -819,8 +878,8 @@ interface FlowPreviewItem {
                   <button class="primary" type="button" (click)="saveFlow()" [disabled]="!canUpdate">Guardar cambios</button>
                   <button type="button" (click)="saveFlow('build')">Guardar y continuar</button>
                 } @else {
-                  <button class="primary" type="button" (click)="createFlow()" [disabled]="!canCreate || !canCreateDraft">
-                    Crear y comenzar
+                  <button class="primary" type="button" (click)="createFlow()" [disabled]="!canCreate || !canCreateDraft || creatingFlow">
+                    {{ creatingFlow ? 'Creando proceso...' : 'Crear proceso completo' }}
                   </button>
                 }
               </div>
@@ -858,9 +917,20 @@ interface FlowPreviewItem {
                     (selected)="selectTimelineStep($event)"
                     (addAfter)="startNewStepAfter($event)"
                     (testStep)="testTimelineStep($event)"
+                    (duplicateStep)="duplicateTimelineStep($event)"
                   ></app-flow-timeline>
 
                   <div class="step-editor">
+                    @if (stepDraftIssues.length) {
+                      <div class="issue-list">
+                        @for (issue of stepDraftIssues; track issue) {
+                          <div class="issue">
+                            <i class="pi pi-info-circle" aria-hidden="true"></i>
+                            <span>{{ issue }}</span>
+                          </div>
+                        }
+                      </div>
+                    }
                     <div class="guided-panel">
                       <div>
                         <div class="mini-title">{{ stepDraft.id ? 'Edita este paso' : '¿Qué debe ocurrir ahora?' }}</div>
@@ -1161,9 +1231,21 @@ interface FlowPreviewItem {
                       </div>
                     </div>
 
-                    <div class="row" style="margin-top: 10px;">
-                      <button class="primary" type="button" (click)="saveStep()" [disabled]="!canUpdate">
-                        {{ stepDraft.id ? 'Guardar paso' : 'Agregar paso' }}
+                    <div class="assistant-actions">
+                      <span class="meta">
+                        {{ stepHasChanges ? 'Hay cambios sin guardar.' : 'Paso guardado. Puedes probarlo o continuar.' }}
+                      </span>
+                      @if (stepDraft.id && stepHasChanges) {
+                        <button type="button" (click)="resetStepChanges()">Deshacer cambios</button>
+                      }
+                      <button type="button" (click)="saveStep('stay')" [disabled]="!canUpdate || stepDraftIssues.length > 0">
+                        <i class="pi pi-save" aria-hidden="true"></i> Guardar
+                      </button>
+                      <button class="primary" type="button" (click)="saveStep('test')" [disabled]="!canUpdate || stepDraftIssues.length > 0">
+                        <i class="pi pi-bolt" aria-hidden="true"></i> Guardar y probar
+                      </button>
+                      <button type="button" (click)="saveStep('next')" [disabled]="!canUpdate || stepDraftIssues.length > 0">
+                        Guardar y agregar siguiente <i class="pi pi-arrow-right" aria-hidden="true"></i>
                       </button>
                       @if (stepDraft.id) {
                         <button class="danger" type="button" (click)="deleteStep()" [disabled]="!canUpdate">
@@ -1214,10 +1296,38 @@ interface FlowPreviewItem {
                 </div>
 
                 <div class="grid">
-                  <label>
-                    Datos de prueba en JSON
-                    <textarea [(ngModel)]="testInputText"></textarea>
-                  </label>
+                  <div class="guided-panel">
+                    <div>
+                      <div class="mini-title">Datos de prueba</div>
+                      <p class="meta">Completa el formulario como lo haría una pantalla real.</p>
+                    </div>
+                    @for (field of flowInputs; track field.key) {
+                      <label>
+                        {{ field.label || field.key }}{{ field.required ? ' *' : '' }}
+                        @if (field.type === 'boolean') {
+                          <select
+                            [ngModel]="testInputValues[field.key]"
+                            (ngModelChange)="setTestInputValue(field, $event)"
+                          >
+                            <option [ngValue]="true">Sí</option>
+                            <option [ngValue]="false">No</option>
+                          </select>
+                        } @else {
+                          <input
+                            [type]="testInputType(field)"
+                            [ngModel]="testInputValues[field.key]"
+                            (ngModelChange)="setTestInputValue(field, $event)"
+                          />
+                        }
+                      </label>
+                    } @empty {
+                      <div class="hint">Este proceso no definió entradas. Puedes usar el JSON avanzado.</div>
+                    }
+                    <details>
+                      <summary><strong>JSON avanzado</strong></summary>
+                      <textarea [(ngModel)]="testInputText" (ngModelChange)="syncTestValuesFromJson()"></textarea>
+                    </details>
+                  </div>
                   <div>
                     <label>
                       Probar hasta
@@ -1264,6 +1374,15 @@ interface FlowPreviewItem {
                       <summary><strong>Resultado final</strong></summary>
                       <pre>{{ lastPreview.output | json }}</pre>
                     </details>
+                    <div class="row">
+                      @if (lastPreview.status === 'success') {
+                        <button class="primary" type="button" (click)="continueFromPreview()">
+                          Usar resultado y continuar <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                        </button>
+                      } @else {
+                        <button type="button" (click)="editFailedPreviewStep()">Corregir paso con error</button>
+                      }
+                    </div>
                   </div>
                 }
 
@@ -1358,13 +1477,17 @@ export class FlowsPageComponent implements OnInit {
   message = '';
   loading = false;
   executing = false;
+  creatingFlow = false;
   activeStage: FlowStage = 'describe';
   selectedStarter: FlowStarter = 'validate';
+  starterServiceKeys = ['', ''];
   previewThroughStepKey = '';
   testInputText = '{\n  "email": "admin@example.com"\n}';
+  testInputValues: Record<string, unknown> = {};
   lastRun?: FlowRunItem;
   lastPreview?: FlowPreviewItem;
   flowInputs: FlowInputField[] = [];
+  stepBaseline = '';
   flowDraft: FlowDraft = this.emptyFlowDraft();
   stepDraft: StepDraft = this.emptyStepDraft();
 
@@ -1454,8 +1577,49 @@ export class FlowsPageComponent implements OnInit {
     return [...new Set(issues)];
   }
 
+  get stepDraftIssues() {
+    const issues: string[] = [];
+    const baseIssue = this.validateStepDraft();
+    if (baseIssue) {
+      issues.push(baseIssue);
+    }
+    if (this.stepDraft.type === 'dynamic_service' && this.stepDraft.serviceKey) {
+      const missingInputs = this.selectedServiceInputKeys.filter((key) => {
+        const row = this.stepDraft.inputRows.find((item) => item.key === key);
+        return !row?.value || row.value === '__manual__';
+      });
+      if (missingInputs.length) {
+        issues.push(`Conecta los datos requeridos por el servicio: ${missingInputs.join(', ')}.`);
+      }
+    }
+    if (
+      this.stepDraft.type === 'decision' &&
+      (!this.stepDraft.onTrueStepKey ||
+        !this.stepDraft.onFalseStepKey ||
+        this.stepDraft.onTrueStepKey === this.stepDraft.onFalseStepKey)
+    ) {
+      issues.push('Selecciona dos pasos diferentes para las rutas Sí y No.');
+    }
+    return [...new Set(issues)];
+  }
+
+  get stepHasChanges() {
+    return this.stepDraftSnapshot() !== this.stepBaseline;
+  }
+
   get canCreateDraft() {
-    return this.flowDraft.name.trim().length >= 3 && /^[a-z][a-z0-9_]{2,119}$/.test(this.flowDraft.key);
+    const baseValid =
+      this.flowDraft.name.trim().length >= 3 && /^[a-z][a-z0-9_]{2,119}$/.test(this.flowDraft.key);
+    if (!baseValid) {
+      return false;
+    }
+    if (this.selectedStarter === 'service') {
+      return Boolean(this.starterServiceKeys[0]);
+    }
+    if (this.selectedStarter === 'multi_service') {
+      return Boolean(this.starterServiceKeys[0] && this.starterServiceKeys[1]);
+    }
+    return true;
   }
 
   get validationNeedsValue() {
@@ -1551,6 +1715,7 @@ export class FlowsPageComponent implements OnInit {
     this.selectedStarter = 'validate';
     this.chooseStarter('validate');
     this.stepDraft = this.emptyStepDraft();
+    this.captureStepBaseline();
     this.flowInputs = [];
     this.lastPreview = undefined;
   }
@@ -1571,6 +1736,7 @@ export class FlowsPageComponent implements OnInit {
       this.syncTestInputFromFields();
     }
     this.stepDraft = this.emptyStepDraft(flow.steps.length ? Math.max(...flow.steps.map((step) => step.position)) + 10 : 10);
+    this.captureStepBaseline();
     this.lastRun = undefined;
     this.lastPreview = undefined;
     this.previewThroughStepKey = '';
@@ -1579,6 +1745,7 @@ export class FlowsPageComponent implements OnInit {
 
   chooseStarter(starter: FlowStarter) {
     this.selectedStarter = starter;
+    this.starterServiceKeys = ['', ''];
     const examples: Record<FlowStarter, Pick<FlowDraft, 'name' | 'description' | 'category'>> = {
       validate: {
         name: 'Validar una solicitud',
@@ -1636,6 +1803,25 @@ export class FlowsPageComponent implements OnInit {
     }
   }
 
+  onStarterServicesChanged() {
+    const selectedServices = this.starterServiceKeys
+      .map((key) => this.publishedServices.find((service) => service.key === key))
+      .filter((service): service is DynamicServiceItem => Boolean(service));
+    const requiredKeys = new Set(selectedServices.flatMap((service) => this.serviceInputKeys(service)));
+    const existing = new Map(this.flowInputs.map((field) => [field.key, field]));
+    this.flowInputs = [...requiredKeys].map(
+      (key) =>
+        existing.get(key) ?? {
+          key,
+          label: this.humanizeKey(key),
+          type: key.toLowerCase().includes('email') ? 'email' : 'text',
+          required: true,
+          example: key.toLowerCase().includes('email') ? 'persona@example.com' : ''
+        }
+    );
+    this.syncTestInputFromFields();
+  }
+
   addFlowInput() {
     this.flowInputs = [
       ...this.flowInputs,
@@ -1658,23 +1844,65 @@ export class FlowsPageComponent implements OnInit {
     this.syncTestInputFromFields();
   }
 
-  createFlow() {
+  testInputType(field: FlowInputField) {
+    if (field.type === 'number') {
+      return 'number';
+    }
+    if (field.type === 'email') {
+      return 'email';
+    }
+    if (field.type === 'date') {
+      return 'date';
+    }
+    return 'text';
+  }
+
+  setTestInputValue(field: FlowInputField, value: unknown) {
+    this.testInputValues = {
+      ...this.testInputValues,
+      [field.key]: field.type === 'number' && value !== '' ? Number(value) : value
+    };
+    this.testInputText = JSON.stringify(this.testInputValues, null, 2);
+  }
+
+  syncTestValuesFromJson() {
+    try {
+      this.testInputValues = this.parseJson(this.testInputText);
+    } catch {
+      // The advanced editor reports invalid JSON when the test is executed.
+    }
+  }
+
+  async createFlow() {
     if (!this.canCreateDraft) {
-      this.message = 'Escribe un nombre de al menos 3 caracteres para comenzar.';
+      this.message = 'Completa el nombre y los servicios requeridos para crear el proceso.';
       return;
     }
-    this.api.post<FlowItem>('flows', this.flowPayload()).subscribe({
-      next: (flow) => {
-        this.flows = [flow, ...this.flows];
-        this.selectFlow(flow);
-        this.activeStage = 'build';
-        this.prepareStarterStep();
-        this.message = 'Proceso creado. Configura el primer paso y guárdalo.';
-      },
-      error: () => {
-        this.message = 'No se pudo crear el flow. Revisa key y nombre.';
+    this.creatingFlow = true;
+    this.message = 'Creando el proceso y sus pasos iniciales...';
+    let flow: FlowItem | undefined;
+    try {
+      flow = await firstValueFrom(this.api.post<FlowItem>('flows', this.flowPayload()));
+      let updated = flow;
+      for (const step of this.starterSteps()) {
+        updated = await firstValueFrom(this.api.post<FlowItem>(`flows/${flow.id}/steps`, step));
       }
-    });
+      this.flows = [updated, ...this.flows.filter((item) => item.id !== updated.id)];
+      this.selectFlow(updated);
+      this.activeStage = updated.steps.length ? 'test' : 'build';
+      this.message = updated.steps.length
+        ? `Proceso creado con ${updated.steps.length} pasos. Prueba el borrador y revisa cada resultado.`
+        : 'Proceso vacío creado. Agrega el primer paso con el botón +.';
+    } catch {
+      this.message = flow
+        ? 'El proceso fue creado, pero no se pudieron completar todos los pasos de la plantilla. Puedes terminarlos desde Construir.'
+        : 'No se pudo crear el proceso. Revisa el identificador y los datos obligatorios.';
+      if (flow) {
+        this.load(flow.id);
+      }
+    } finally {
+      this.creatingFlow = false;
+    }
   }
 
   goToStage(stage: FlowStage) {
@@ -1723,6 +1951,7 @@ export class FlowsPageComponent implements OnInit {
   startNewStep() {
     const flow = this.selectedFlow;
     this.stepDraft = this.emptyStepDraft(flow?.steps.length ? Math.max(...flow.steps.map((step) => step.position)) + 10 : 10);
+    this.captureStepBaseline();
   }
 
   startNewStepAfter(step: FlowTimelineStep | null) {
@@ -1730,6 +1959,7 @@ export class FlowsPageComponent implements OnInit {
     if (!step) {
       const firstPosition = steps[0]?.position ?? 10;
       this.stepDraft = this.emptyStepDraft(Math.max(0, Math.floor(firstPosition / 2)));
+      this.captureStepBaseline();
       return;
     }
     const currentIndex = steps.findIndex((item) => item.id === step.id);
@@ -1739,6 +1969,7 @@ export class FlowsPageComponent implements OnInit {
         ? Math.floor((step.position + nextPosition) / 2)
         : step.position;
     this.stepDraft = this.emptyStepDraft(position);
+    this.captureStepBaseline();
   }
 
   selectTimelineStep(step: FlowTimelineStep) {
@@ -1752,6 +1983,41 @@ export class FlowsPageComponent implements OnInit {
     this.previewThroughStepKey = step.key;
     this.activeStage = 'test';
     this.previewFlow();
+  }
+
+  async duplicateTimelineStep(step: FlowTimelineStep) {
+    const flow = this.selectedFlow;
+    const source = flow?.steps.find((item) => item.id === step.id);
+    if (!flow || !source) {
+      return;
+    }
+    const key = this.uniqueStepKey(`${source.key}_copia`);
+    const outputKey = this.uniqueOutputKey(`${source.outputKey || source.key}_copia`);
+    try {
+      const updated = await firstValueFrom(
+        this.api.post<FlowItem>(`flows/${flow.id}/steps`, {
+          key,
+          name: `${source.name} copia`,
+          type: source.type,
+          position: source.position,
+          outputKey,
+          nextStepKey: source.nextStepKey ?? null,
+          onTrueStepKey: source.onTrueStepKey ?? null,
+          onFalseStepKey: source.onFalseStepKey ?? null,
+          onErrorStepKey: source.onErrorStepKey ?? null,
+          config: source.config ?? {},
+          inputMap: source.inputMap ?? {}
+        })
+      );
+      this.replaceFlow(updated);
+      const copy = updated.steps.find((item) => item.key === key);
+      if (copy) {
+        this.selectStep(copy);
+      }
+      this.message = 'Paso duplicado. Revisa sus conexiones antes de probar.';
+    } catch {
+      this.message = 'No se pudo duplicar el paso.';
+    }
   }
 
   syncStepKey() {
@@ -1780,6 +2046,7 @@ export class FlowsPageComponent implements OnInit {
       inputMapText: JSON.stringify(step.inputMap ?? {}, null, 2),
       ...this.guidedFieldsFromStep(step)
     };
+    this.captureStepBaseline();
   }
 
   setStepType(type: FlowStepType) {
@@ -1885,7 +2152,7 @@ export class FlowsPageComponent implements OnInit {
     return summaries[type];
   }
 
-  saveStep() {
+  saveStep(afterSave: 'stay' | 'test' | 'next' = 'stay') {
     const flow = this.selectedFlow;
     if (!flow) {
       return;
@@ -1909,15 +2176,34 @@ export class FlowsPageComponent implements OnInit {
 
     request.subscribe({
       next: (updated) => {
+        const savedKey = this.stepDraft.key;
+        const wasUpdate = Boolean(this.stepDraft.id);
         const createdFirstService =
           !this.stepDraft.id && this.selectedStarter === 'multi_service' && this.stepDraft.type === 'dynamic_service';
-        this.message = this.stepDraft.id
+        this.replaceFlow(updated);
+        const savedStep = updated.steps.find((step) => step.key === savedKey);
+        if (afterSave === 'test' && savedStep) {
+          this.previewThroughStepKey = savedStep.key;
+          this.activeStage = 'test';
+          this.previewFlow();
+          return;
+        }
+        if (afterSave === 'next' && savedStep) {
+          this.activeStage = 'build';
+          this.startNewStepAfter(savedStep);
+          this.message = 'Paso guardado. Configura el siguiente; ya puedes usar el resultado anterior como entrada.';
+          return;
+        }
+        this.message = wasUpdate
           ? 'Paso actualizado.'
           : createdFirstService
             ? 'Primer servicio guardado. Usa el botón + debajo para agregar el segundo; sus entradas podrán tomar este resultado.'
             : 'Paso agregado.';
-        this.replaceFlow(updated);
-        this.startNewStep();
+        if (savedStep) {
+          this.selectStep(savedStep);
+        } else {
+          this.startNewStep();
+        }
       },
       error: () => {
         this.message = 'No se pudo guardar el paso. Revisa el JSON y los campos obligatorios.';
@@ -2056,6 +2342,46 @@ export class FlowsPageComponent implements OnInit {
       });
   }
 
+  continueFromPreview() {
+    const executedKeys = (this.lastPreview?.steps ?? []).map((step) => step.stepKey).reverse();
+    const lastSavedStep = executedKeys
+      .map((key) => this.selectedFlow?.steps.find((step) => step.key === key))
+      .find((step): step is FlowStep => Boolean(step));
+    this.activeStage = 'build';
+    if (lastSavedStep) {
+      this.startNewStepAfter(lastSavedStep);
+      this.message = 'Resultado conservado. El siguiente paso puede elegir sus campos desde “Resultados de pasos anteriores”.';
+    } else {
+      this.startNewStep();
+    }
+  }
+
+  editFailedPreviewStep() {
+    const failedKey = this.lastPreview?.steps.find((step) => step.status === 'failed')?.stepKey;
+    const failedStep = this.selectedFlow?.steps.find((step) => step.key === failedKey);
+    this.activeStage = 'build';
+    if (failedStep) {
+      this.selectStep(failedStep);
+      this.message = `Revisa la configuración de “${failedStep.name}”.`;
+    }
+  }
+
+  resetStepChanges() {
+    const saved = this.selectedFlow?.steps.find((step) => step.id === this.stepDraft.id);
+    if (saved) {
+      this.selectStep(saved);
+      this.message = 'Cambios del paso descartados.';
+    }
+  }
+
+  private captureStepBaseline() {
+    this.stepBaseline = this.stepDraftSnapshot();
+  }
+
+  private stepDraftSnapshot() {
+    return JSON.stringify(this.stepDraft);
+  }
+
   private replaceFlow(flow: FlowItem) {
     this.flows = this.flows.map((item) => (item.id === flow.id ? flow : item));
     this.selectFlow(flow, false);
@@ -2101,6 +2427,7 @@ export class FlowsPageComponent implements OnInit {
 
   private syncTestInputFromFields() {
     if (!this.flowInputs.length) {
+      this.testInputValues = {};
       this.testInputText = '{}';
       return;
     }
@@ -2111,6 +2438,7 @@ export class FlowsPageComponent implements OnInit {
       }
       return result;
     }, {});
+    this.testInputValues = input;
     this.testInputText = JSON.stringify(input, null, 2);
   }
 
@@ -2265,44 +2593,156 @@ export class FlowsPageComponent implements OnInit {
     });
   }
 
-  private prepareStarterStep() {
-    this.startNewStep();
+  private starterSteps(): Array<Record<string, unknown>> {
     switch (this.selectedStarter) {
       case 'validate':
-        this.stepDraft.type = 'validation';
-        this.stepDraft.name = 'Validar correo';
-        this.stepDraft.key = 'validar_correo';
-        this.stepDraft.outputKey = 'validacion_correo';
-        this.stepDraft.validationField = 'input.email';
-        this.stepDraft.validationOperator = 'email';
-        this.stepDraft.validationMessage = 'Escribe un correo válido';
-        this.testInputText = '{\n  "email": "persona@example.com"\n}';
-        break;
-      case 'service':
-      case 'multi_service':
-        this.stepDraft.type = 'dynamic_service';
-        this.stepDraft.name = this.selectedStarter === 'multi_service' ? 'Ejecutar primer servicio' : 'Ejecutar servicio';
-        this.stepDraft.key = this.selectedStarter === 'multi_service' ? 'primer_servicio' : 'ejecutar_servicio';
-        this.stepDraft.outputKey = this.selectedStarter === 'multi_service' ? 'primer_resultado' : 'resultado_servicio';
-        this.stepDraft.serviceKey = this.publishedServices[0]?.key ?? '';
-        this.testInputText = '{\n  "email": "persona@example.com"\n}';
-        break;
+        return [
+          {
+            key: 'validar_email',
+            name: 'Validar correo',
+            type: 'validation',
+            position: 10,
+            outputKey: 'validacion_email',
+            nextStepKey: 'respuesta',
+            config: {
+              field: 'input.email',
+              operator: 'email',
+              value: null,
+              message: 'Escribe un correo válido'
+            },
+            inputMap: {}
+          },
+          this.templateResponseStep(20, {
+            ok: true,
+            email: '{{input.email}}',
+            validacion: '{{steps.validacion_email}}'
+          })
+        ];
       case 'calculate':
-        this.stepDraft.type = 'formula';
-        this.stepDraft.name = 'Calcular total';
-        this.stepDraft.key = 'calcular_total';
-        this.stepDraft.outputKey = 'total';
-        this.stepDraft.formulaLeft = 'input.subtotal';
-        this.stepDraft.formulaOperator = '*';
-        this.stepDraft.formulaRight = '1.19';
-        this.testInputText = '{\n  "subtotal": 100\n}';
-        break;
+        return [
+          {
+            key: 'calcular_total',
+            name: 'Calcular total',
+            type: 'formula',
+            position: 10,
+            outputKey: 'total',
+            nextStepKey: 'respuesta',
+            config: {
+              language: 'json_logic',
+              rule: { '*': [{ var: 'input.subtotal' }, 1.19] },
+              precision: 2
+            },
+            inputMap: {}
+          },
+          this.templateResponseStep(20, {
+            ok: true,
+            subtotal: '{{input.subtotal}}',
+            total: '{{steps.total}}'
+          })
+        ];
+      case 'service': {
+        const service = this.publishedServices.find((item) => item.key === this.starterServiceKeys[0]);
+        if (!service) {
+          return [];
+        }
+        return [
+          this.templateServiceStep(service, 10, 'ejecutar_servicio', 'resultado_servicio', 'respuesta'),
+          this.templateResponseStep(20, {
+            ok: '{{steps.resultado_servicio.ok}}',
+            data: '{{steps.resultado_servicio.response}}'
+          })
+        ];
+      }
+      case 'multi_service': {
+        const firstService = this.publishedServices.find((item) => item.key === this.starterServiceKeys[0]);
+        const secondService = this.publishedServices.find((item) => item.key === this.starterServiceKeys[1]);
+        if (!firstService || !secondService) {
+          return [];
+        }
+        return [
+          this.templateServiceStep(firstService, 10, 'primer_servicio', 'primer_resultado', 'segundo_servicio'),
+          this.templateServiceStep(
+            secondService,
+            20,
+            'segundo_servicio',
+            'segundo_resultado',
+            'respuesta',
+            firstService,
+            'primer_resultado'
+          ),
+          this.templateResponseStep(30, {
+            ok: '{{steps.segundo_resultado.ok}}',
+            primerServicio: '{{steps.primer_resultado.response}}',
+            resultadoFinal: '{{steps.segundo_resultado.response}}'
+          })
+        ];
+      }
       case 'blank':
-        this.stepDraft = this.emptyStepDraft();
-        this.stepDraft.inputRows = [];
-        break;
+        return [];
     }
-    this.syncGuidedStepJson();
+  }
+
+  private templateServiceStep(
+    service: DynamicServiceItem,
+    position: number,
+    key: string,
+    outputKey: string,
+    nextStepKey: string,
+    previousService?: DynamicServiceItem,
+    previousOutputKey?: string
+  ) {
+    return {
+      key,
+      name: service.name,
+      type: 'dynamic_service',
+      position,
+      outputKey,
+      nextStepKey,
+      config: {
+        serviceKey: service.key,
+        timeoutMs: 8000,
+        retry: { attempts: 0, backoffMs: 0 }
+      },
+      inputMap: this.templateServiceInputMap(service, previousService, previousOutputKey)
+    };
+  }
+
+  private templateServiceInputMap(
+    service: DynamicServiceItem,
+    previousService?: DynamicServiceItem,
+    previousOutputKey?: string
+  ) {
+    return this.serviceInputKeys(service).reduce<Record<string, string>>((map, key) => {
+      const flowInput = this.flowInputs.find((field) => field.key === key);
+      const previousDefinition = previousService?.publishedVersion?.definition;
+      if (previousOutputKey && previousDefinition?.responseMap?.[key]) {
+        map[key] = `{{steps.${previousOutputKey}.response.mapped.${key}}}`;
+      } else if (flowInput) {
+        map[key] = `{{input.${flowInput.key}}}`;
+      } else if (previousOutputKey && previousDefinition?.source === 'internal_table') {
+        map[key] = `{{steps.${previousOutputKey}.response.result.${key}}}`;
+      } else if (previousOutputKey) {
+        map[key] = `{{steps.${previousOutputKey}.response.body.${key}}}`;
+      } else {
+        map[key] = `{{input.${key}}}`;
+      }
+      return map;
+    }, {});
+  }
+
+  private templateResponseStep(position: number, body: Record<string, unknown>) {
+    return {
+      key: 'respuesta',
+      name: 'Construir respuesta',
+      type: 'response',
+      position,
+      outputKey: 'respuesta',
+      config: {
+        status: 'success',
+        body
+      },
+      inputMap: {}
+    };
   }
 
   private validateStepDraft() {
@@ -2615,5 +3055,32 @@ export class FlowsPageComponent implements OnInit {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '');
+  }
+
+  private humanizeKey(value: string) {
+    const text = value.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : value;
+  }
+
+  private uniqueStepKey(base: string) {
+    const existing = new Set((this.selectedFlow?.steps ?? []).map((step) => step.key));
+    let key = this.slugify(base).slice(0, 112);
+    let suffix = 2;
+    while (existing.has(key)) {
+      key = `${this.slugify(base).slice(0, 108)}_${suffix}`;
+      suffix += 1;
+    }
+    return key;
+  }
+
+  private uniqueOutputKey(base: string) {
+    const existing = new Set((this.selectedFlow?.steps ?? []).map((step) => step.outputKey || step.key));
+    let key = this.slugify(base).slice(0, 112);
+    let suffix = 2;
+    while (existing.has(key)) {
+      key = `${this.slugify(base).slice(0, 108)}_${suffix}`;
+      suffix += 1;
+    }
+    return key;
   }
 }

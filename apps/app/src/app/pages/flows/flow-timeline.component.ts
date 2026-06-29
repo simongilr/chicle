@@ -154,6 +154,23 @@ export interface FlowTimelineStatus {
         cursor: pointer;
       }
 
+      .step-tools {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .tool {
+        width: 28px;
+        height: 28px;
+        min-height: 28px;
+        padding: 0;
+        border: 1px solid #bfd2e5;
+        border-radius: 6px;
+        background: #fff;
+        color: #153b61;
+        cursor: pointer;
+      }
+
       @media (max-width: 620px) {
         .step {
           grid-template-columns: 32px minmax(0, 1fr);
@@ -209,6 +226,11 @@ export interface FlowTimelineStatus {
             <button class="test" type="button" (click)="testClicked($event, step)">
               <i class="pi pi-bolt" aria-hidden="true"></i> Probar hasta aquí
             </button>
+            <span class="step-tools">
+              <button class="tool" type="button" title="Duplicar paso" (click)="duplicateClicked($event, step)">
+                <i class="pi pi-copy" aria-hidden="true"></i>
+              </button>
+            </span>
           </span>
         </div>
 
@@ -231,6 +253,7 @@ export class FlowTimelineComponent {
   @Output() selected = new EventEmitter<FlowTimelineStep>();
   @Output() addAfter = new EventEmitter<FlowTimelineStep | null>();
   @Output() testStep = new EventEmitter<FlowTimelineStep>();
+  @Output() duplicateStep = new EventEmitter<FlowTimelineStep>();
 
   statusFor(stepKey: string) {
     return this.statuses.find((status) => status.stepKey === stepKey)?.status;
@@ -239,6 +262,11 @@ export class FlowTimelineComponent {
   testClicked(event: Event, step: FlowTimelineStep) {
     event.stopPropagation();
     this.testStep.emit(step);
+  }
+
+  duplicateClicked(event: Event, step: FlowTimelineStep) {
+    event.stopPropagation();
+    this.duplicateStep.emit(step);
   }
 
   typeLabel(type: string) {

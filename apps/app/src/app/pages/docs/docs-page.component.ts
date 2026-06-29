@@ -1446,6 +1446,20 @@ export class DocsPageComponent {
       note: 'Para encadenar servicios: guarda el primero, agrega otro con el botón +, selecciónalo y usa “Tomar el valor de” para elegir una salida del paso anterior.'
     },
     {
+      title: 'Flow Assistant V3.1',
+      ui: 'Las plantillas crean procesos completos. Después de editar un paso usa Guardar y probar; si funciona, pulsa Usar resultado y continuar para configurar el siguiente con las salidas observadas.',
+      command:
+        'Ciclo guiado:\n  1. Elegir plantilla\n  2. Elegir uno o dos servicios cuando aplica\n  3. Crear todos los pasos iniciales\n  4. Completar datos de prueba en formulario\n  5. Guardar y probar el paso\n  6. Revisar entrada y salida\n  7. Usar resultado y continuar\n  8. Probar borrador completo\n  9. Crear versión y publicar\n\nPlantillas:\n  validar datos\n  usar un servicio\n  encadenar servicios\n  calcular un valor\n  comenzar vacío',
+      note: 'El JSON sigue disponible como modo avanzado, pero ya no es el camino principal.'
+    },
+    {
+      title: 'Smoke test de flows en Docker',
+      ui: 'No modifica usuarios ni contraseñas. Crea datos temporales, ejecuta dos servicios internos encadenados y los elimina al terminar.',
+      command:
+        'npm run build --workspace @chicle/api\n\ndocker compose -f infra/docker/docker-compose.yml up -d --build api\n\ndocker compose -f infra/docker/docker-compose.yml exec -T api \\\n  node dist/scripts/smoke-flow-assistant.js',
+      note: 'La prueba valida preview draft, responseMap, mapeo entre servicios, versión, publicación, ejecución e historial.'
+    },
+    {
       title: 'Ejemplo: dos servicios',
       ui: 'En /flows elige Encadenar servicios. Configura y guarda el primer servicio. Agrega el segundo debajo; sus entradas se proponen con datos iniciales y aliases del primer resultado.',
       command:

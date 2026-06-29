@@ -116,6 +116,15 @@ Flow Designer V3 treats data contracts as first-class configuration:
 
 The visual timeline and data mapper are standalone Angular components. Parallel branches, loops and subflows remain runner capabilities rather than frontend-only decorations.
 
+Flow Assistant V3.1 adds a progressive authoring loop:
+
+1. A starter template creates a complete draft, including the final response.
+2. Service templates require published services before creation.
+3. Each step can be saved and previewed immediately.
+4. A successful preview keeps observed outputs available to the next step.
+5. Test inputs render as typed form controls, while raw JSON remains advanced mode.
+6. The container smoke test builds two temporary internal services, chains them in a flow, previews, publishes, executes and cleans up.
+
 ## Declarative Actions
 
 Supported action types start small:

@@ -5,7 +5,14 @@ import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { FlowExecuteRequest, FlowPreviewRequest, FlowStepRequest, FlowUpsertRequest, FlowsService } from './flows.service';
+import {
+  FlowExecuteRequest,
+  FlowPreviewRequest,
+  FlowStepRequest,
+  FlowTestCaseRequest,
+  FlowUpsertRequest,
+  FlowsService
+} from './flows.service';
 
 @Controller('flows')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -76,6 +83,79 @@ export class FlowsController {
   @ApiParam({ name: 'flowId', example: 'flow-id' })
   runs(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
     return this.flows.listRuns(auth, flowId);
+  }
+
+  @Get(':flowId/test-cases')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar casos de prueba persistentes de un flow' })
+  listTestCases(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
+    return this.flows.listTestCases(auth, flowId);
+  }
+
+  @Post(':flowId/test-cases')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Crear caso de prueba con assertions' })
+  @ApiBody({
+    schema: {
+      example: {
+        name: 'Usuario owner válido',
+        target: 'draft',
+        expectedStatus: 'success',
+        input: { email: 'admin@example.com' },
+        assertions: [
+          { path: 'output.body.ok', operator: 'equals', expected: true },
+          { path: 'output.body.role', operator: 'equals', expected: 'owner' }
+        ]
+      }
+    }
+  })
+  createTestCase(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Body() body: FlowTestCaseRequest
+  ) {
+    return this.flows.createTestCase(auth, flowId, body);
+  }
+
+  @Patch(':flowId/test-cases/:testCaseId')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Actualizar caso de prueba de un flow' })
+  updateTestCase(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('testCaseId') testCaseId: string,
+    @Body() body: FlowTestCaseRequest
+  ) {
+    return this.flows.updateTestCase(auth, flowId, testCaseId, body);
+  }
+
+  @Delete(':flowId/test-cases/:testCaseId')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Eliminar caso de prueba de un flow' })
+  deleteTestCase(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('testCaseId') testCaseId: string
+  ) {
+    return this.flows.deleteTestCase(auth, flowId, testCaseId);
+  }
+
+  @Post(':flowId/test-cases/:testCaseId/run')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Ejecutar un caso de prueba y evaluar sus assertions' })
+  runTestCase(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('testCaseId') testCaseId: string
+  ) {
+    return this.flows.runTestCase(auth, flowId, testCaseId);
+  }
+
+  @Post(':flowId/test-suite/run')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Ejecutar todos los casos de prueba activos del flow' })
+  runTestSuite(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
+    return this.flows.runTestSuite(auth, flowId);
   }
 
   @Post(':flowId/execute')

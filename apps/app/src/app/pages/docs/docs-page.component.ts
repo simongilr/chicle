@@ -1410,7 +1410,7 @@ export class DocsPageComponent {
     {
       title: 'Ruta de implementación',
       command:
-        'Completado:\n  tablas, entidades, permisos y confisys\n  CRUD, pasos, versiones y publicación\n  asistente Definir -> Construir -> Probar -> Publicar\n  ejecución de servicios, respuestas y cierre\n  preview del borrador hasta un paso\n  JSON Logic para decisiones y fórmulas\n  validaciones reales y seguras\n\nSiguiente:\n  catálogo de acciones ejecutables\n  casos de prueba guardados\n  decision tables reusables\n  triggers, eventos, async, colas y websockets',
+        'Completado:\n  tablas, entidades, permisos y confisys\n  CRUD, pasos, versiones y publicación\n  asistente Definir -> Construir -> Probar -> Publicar\n  ejecución de servicios, respuestas y cierre\n  preview del borrador hasta un paso\n  JSON Logic para decisiones y fórmulas\n  validaciones reales y seguras\n  grafo de conexiones explícitas\n  casos de prueba y suite persistente\n\nSiguiente:\n  catálogo de acciones ejecutables\n  decision tables reusables\n  triggers, eventos, async, colas y websockets',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     },
     {
@@ -1449,15 +1449,30 @@ export class DocsPageComponent {
       title: 'Flow Assistant V3.1',
       ui: 'Las plantillas crean procesos completos. Después de editar un paso usa Guardar y probar; si funciona, pulsa Usar resultado y continuar para configurar el siguiente con las salidas observadas.',
       command:
-        'Ciclo guiado:\n  1. Elegir plantilla\n  2. Elegir uno o dos servicios cuando aplica\n  3. Crear todos los pasos iniciales\n  4. Completar datos de prueba en formulario\n  5. Guardar y probar el paso\n  6. Revisar entrada y salida\n  7. Usar resultado y continuar\n  8. Probar borrador completo\n  9. Crear versión y publicar\n\nPlantillas:\n  validar datos\n  usar un servicio\n  encadenar servicios\n  calcular un valor\n  comenzar vacío',
+        'Ciclo guiado:\n  1. Elegir plantilla\n  2. Elegir todos los servicios en orden cuando aplica\n  3. Crear todos los pasos iniciales\n  4. Completar datos de prueba en formulario\n  5. Guardar y probar el paso\n  6. Revisar entrada y salida\n  7. Usar resultado y continuar\n  8. Probar borrador completo\n  9. Crear versión y publicar\n\nPlantillas:\n  validar datos\n  usar un servicio\n  encadenar cualquier cantidad de servicios\n  calcular un valor\n  comenzar vacío',
       note: 'El JSON sigue disponible como modo avanzado, pero ya no es el camino principal.'
     },
     {
+      title: 'Mapa de conexiones V3.2',
+      ui: 'En Construir usa Mapa para ver qué activa cada paso. Cada bloque muestra Continúa, Error, Timeout o las ramas Sí/No y el nombre del destino.',
+      command:
+        'Conexiones persistidas:\n  nextStepKey\n  onSuccessStepKey\n  onErrorStepKey\n  onTimeoutStepKey\n  onTrueStepKey\n  onFalseStepKey\n\nVacío:\n  continúa por el orden visual\n\nExplícito:\n  salta al paso seleccionado',
+      note: 'El mapa no es decorativo: representa las mismas claves que interpreta el runner.'
+    },
+    {
+      title: 'Flow Test Studio',
+      ui: 'En Probar crea escenarios con entrada, destino borrador/publicada, resultado esperado y comprobaciones por ruta. Ejecuta un caso o toda la suite.',
+      swagger: 'Usa GET/POST /flows/{flowId}/test-cases, POST /flows/{flowId}/test-cases/{testCaseId}/run y POST /flows/{flowId}/test-suite/run.',
+      command:
+        'Assertion:\n{\n  "path": "output.body.role",\n  "operator": "equals",\n  "expected": "owner"\n}\n\nOperadores:\n  equals\n  not_equals\n  contains\n  exists\n  truthy\n  greater_than\n  less_than',
+      note: 'Cada caso guarda su último resultado. La suite ejecuta todos los casos activos y resume aprobados y fallidos.'
+    },
+    {
       title: 'Smoke test de flows en Docker',
-      ui: 'No modifica usuarios ni contraseñas. Crea datos temporales, ejecuta dos servicios internos encadenados y los elimina al terminar.',
+      ui: 'No modifica usuarios ni contraseñas. Crea datos temporales, ejecuta tres servicios internos encadenados, corre dos casos y elimina todo al terminar.',
       command:
         'npm run build --workspace @chicle/api\n\ndocker compose -f infra/docker/docker-compose.yml up -d --build api\n\ndocker compose -f infra/docker/docker-compose.yml exec -T api \\\n  node dist/scripts/smoke-flow-assistant.js',
-      note: 'La prueba valida preview draft, responseMap, mapeo entre servicios, versión, publicación, ejecución e historial.'
+      note: 'La prueba valida preview, tres servicios, responseMap, assertions, suite, versión, publicación, ejecución e historial.'
     },
     {
       title: 'Ejemplo: dos servicios',
@@ -1469,7 +1484,7 @@ export class DocsPageComponent {
     {
       title: 'Después de V3',
       command:
-        'Runner V2:\n  servicios paralelos\n  foreach sobre listas\n  subflows\n  esperas y reanudación\n  compensaciones\n\nOperación:\n  casos de prueba guardados\n  comparación y rollback de versiones\n  métricas y alertas\n  triggers por evento, schedule y webhook\n  colas y websockets',
+        'Runner V2:\n  servicios paralelos\n  foreach sobre listas\n  subflows\n  esperas y reanudación\n  compensaciones\n\nOperación:\n  comparación y rollback de versiones\n  métricas y alertas\n  triggers por evento, schedule y webhook\n  outbox, colas y websockets',
       note: 'Estas capacidades cambian el modelo de ejecución; no se presentan como controles visuales hasta que el runner pueda ejecutarlas de forma segura.'
     }
   ];

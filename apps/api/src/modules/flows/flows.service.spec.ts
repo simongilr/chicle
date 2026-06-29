@@ -45,4 +45,51 @@ describe('FlowsService input contract', () => {
       })
     ).toThrow(BadRequestException);
   });
+
+  it('evaluates assertions against nested flow output', () => {
+    const actual = {
+      status: 'success',
+      output: {
+        body: {
+          ok: true,
+          role: 'owner',
+          total: 125
+        }
+      }
+    };
+
+    expect(
+      service.evaluateTestAssertion(
+        { path: 'output.body.role', operator: 'equals', expected: 'owner' },
+        actual
+      ).passed
+    ).toBe(true);
+    expect(
+      service.evaluateTestAssertion(
+        { path: 'output.body.total', operator: 'greater_than', expected: 100 },
+        actual
+      ).passed
+    ).toBe(true);
+    expect(
+      service.evaluateTestAssertion(
+        { path: 'output.body.missing', operator: 'exists' },
+        actual
+      ).passed
+    ).toBe(false);
+  });
+
+  it('matches expected output as a partial object', () => {
+    expect(
+      service.deepContains(
+        { status: 'success', body: { ok: true, role: 'owner', extra: 1 } },
+        { body: { ok: true, role: 'owner' } }
+      )
+    ).toBe(true);
+    expect(
+      service.deepContains(
+        { status: 'success', body: { ok: false } },
+        { body: { ok: true } }
+      )
+    ).toBe(false);
+  });
 });

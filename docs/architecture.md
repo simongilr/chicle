@@ -123,7 +123,19 @@ Flow Assistant V3.1 adds a progressive authoring loop:
 3. Each step can be saved and previewed immediately.
 4. A successful preview keeps observed outputs available to the next step.
 5. Test inputs render as typed form controls, while raw JSON remains advanced mode.
-6. The container smoke test builds two temporary internal services, chains them in a flow, previews, publishes, executes and cleans up.
+6. The container smoke test builds temporary internal services, chains them in a flow, previews, publishes, executes and cleans up.
+
+Flow Designer V3.2 makes execution routing and regression tests explicit:
+
+- The graph view renders every draft step and labels its outgoing routes: success, error, timeout, true and false.
+- A blank connection means "continue by visual order"; an explicit connection stores the target step key.
+- Starter flows can chain any number of published services. The two-service wizard is no longer a structural limit.
+- `flow_test_cases` persists draft or published targets, input fixtures, expected status, partial expected output and path assertions.
+- A test suite executes every active case and records the latest result on each case.
+- Timeout routes are honored by both draft preview and published execution.
+- The Docker smoke test chains three services and validates draft preview, assertions, test suite, publication and execution.
+
+The current runner is a synchronous deterministic state machine, not yet an asynchronous event-driven runtime. `flow_triggers` reserves the trigger contract, while queue workers, transactional outbox, schedules and WebSocket progress remain the next execution layer.
 
 ## Declarative Actions
 

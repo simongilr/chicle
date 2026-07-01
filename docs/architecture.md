@@ -109,6 +109,8 @@ Operational designers share the same reusable interface language:
 
 - `ProcessStepsComponent` renders progress, readiness and navigation for both Dynamic Services and Flows.
 - `WorkflowGuideComponent` explains the current objective, the blocking condition and the next recommended action.
+- `DesignerWorkspaceComponent` owns the responsive catalog-and-workspace shell used by both designers, including the mobile collapse behavior.
+- Active, trash and new states use the same navigation contract. A trashed object opens a restore-only workspace instead of its editor.
 - Advanced JSON and reusable test suites stay behind progressive disclosure; the first path remains guided and visual.
 - Frontend validation mirrors publish-time constraints so missing services, broken routes, subflows and event keys are visible before version creation.
 
@@ -131,6 +133,8 @@ Flow Assistant V3.1 adds a progressive authoring loop:
 4. A successful preview keeps observed outputs available to the next step.
 5. Test inputs render as typed form controls, while raw JSON remains advanced mode.
 6. The container smoke test builds temporary internal services, chains them in a flow, previews, publishes, executes and cleans up.
+
+Each step has its own authoring sequence: purpose, operation configuration, data mapping when needed, execution routes, then save and test. This nested guide uses the same shared progress and contextual-guide components as the top-level flow.
 
 Flow Designer V3.2 makes execution routing and regression tests explicit:
 

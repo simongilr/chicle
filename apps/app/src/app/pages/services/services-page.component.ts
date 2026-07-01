@@ -5,6 +5,7 @@ import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
+import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
@@ -167,7 +168,16 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 @Component({
   selector: 'app-services-page',
   standalone: true,
-  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent, NgFor, ProcessStepsComponent, WorkflowGuideComponent],
+  imports: [
+    FormsModule,
+    IonContent,
+    JsonPipe,
+    MainNavComponent,
+    NgFor,
+    ProcessStepsComponent,
+    WorkflowGuideComponent,
+    DesignerWorkspaceComponent
+  ],
   styles: [
     `
       ion-content {
@@ -183,8 +193,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       .intro,
-      .panel,
-      .designer {
+      .panel {
         border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #ffffff;
@@ -247,23 +256,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         font-weight: 850;
       }
 
-      .designer {
-        display: grid;
-        grid-template-columns: 300px minmax(0, 1fr);
-        min-height: 680px;
-        overflow: hidden;
-      }
-
-      .services-list {
-        display: grid;
-        align-content: start;
-        gap: 12px;
-        overflow: auto;
-        border-right: 1px solid #d9e2ec;
-        background: #fbfcfe;
-        padding: 14px;
-      }
-
       .list-header,
       .section-head,
       .actions {
@@ -298,15 +290,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       .service-button strong,
       .service-button span {
         overflow-wrap: anywhere;
-      }
-
-      .workspace {
-        display: grid;
-        gap: 18px;
-        align-content: start;
-        min-width: 0;
-        overflow: auto;
-        padding: 18px;
       }
 
       .grid {
@@ -508,24 +491,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       @media (max-width: 940px) {
-        .designer,
         .grid,
         .guide-grid,
         .table-grid,
         .notes-grid,
         .filter-row {
           grid-template-columns: 1fr;
-        }
-
-        .designer {
-          min-height: 0;
-          overflow: visible;
-        }
-
-        .services-list {
-          max-height: 340px;
-          border-right: 0;
-          border-bottom: 1px solid #d9e2ec;
         }
       }
     `
@@ -566,8 +537,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
             <p>Necesitas permiso services.read para ver este módulo.</p>
           </section>
         } @else {
-          <section class="designer">
-            <aside class="services-list">
+          <app-designer-workspace>
+            <ng-container designer-navigation>
               <div class="list-header">
                 <h2>{{ viewingTrash ? 'Papelera' : 'Servicios' }}</h2>
                 <div class="actions">
@@ -615,9 +586,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   </span>
                 </button>
               }
-            </aside>
+            </ng-container>
 
-            <div class="workspace">
+            <ng-container designer-workspace>
               <section class="panel" id="service-data">
                 <div class="section-head">
                   <div>
@@ -1163,8 +1134,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
               @if (formError) {
                 <div class="notice error">{{ formError }}</div>
               }
-            </div>
-          </section>
+            </ng-container>
+          </app-designer-workspace>
         }
       </main>
     </ion-content>

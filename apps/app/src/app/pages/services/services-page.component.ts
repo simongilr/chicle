@@ -5,9 +5,14 @@ import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
+import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
+import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
 type DynamicServiceStatus = 'draft' | 'published' | 'archived';
@@ -176,7 +181,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
     NgFor,
     ProcessStepsComponent,
     WorkflowGuideComponent,
-    DesignerWorkspaceComponent
+    DesignerWorkspaceComponent,
+    ModuleHeaderComponent,
+    CatalogHeaderComponent,
+    CatalogItemComponent,
+    SectionHeaderComponent,
+    StatusNoticeComponent
   ],
   styles: [
     `
@@ -192,7 +202,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         padding: 24px 0 54px;
       }
 
-      .intro,
       .panel {
         border: 1px solid #d9e2ec;
         border-radius: 8px;
@@ -200,7 +209,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
       }
 
-      .intro,
       .panel {
         padding: 18px;
       }
@@ -209,13 +217,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         display: grid;
         gap: 16px;
         align-content: start;
-      }
-
-      .intro {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
       }
 
       h1,
@@ -240,8 +241,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         font-size: 1rem;
       }
 
-      .meta,
-      .intro p {
+      .meta {
         color: #52677a;
         line-height: 1.45;
       }
@@ -256,7 +256,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         font-weight: 850;
       }
 
-      .list-header,
       .section-head,
       .actions {
         display: flex;
@@ -264,32 +263,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-      }
-
-      .service-button {
-        display: grid;
-        gap: 6px;
-        width: 100%;
-        min-height: 78px;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        background: transparent;
-        color: #173b5f;
-        padding: 12px;
-        text-align: left;
-        font: inherit;
-        line-height: 1.3;
-        cursor: pointer;
-      }
-
-      .service-button.active {
-        border-color: #b7cce2;
-        background: #eaf3fc;
-      }
-
-      .service-button strong,
-      .service-button span {
-        overflow-wrap: anywhere;
       }
 
       .grid {
@@ -407,7 +380,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       .actions button,
-      .list-header button,
       .section-head > button,
       .notice button {
         width: auto;
@@ -506,16 +478,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       <app-main-nav contextLabel="Servicios" />
 
       <main class="shell">
-        <section class="intro">
-          <div>
-            <h1>Servicios dinámicos</h1>
-            <p>
-              Diseña servicios configurables por organización, publica versiones y prueba respuestas desde backend con
-              límites de seguridad.
-            </p>
-          </div>
-          <span class="badge">Tenant services</span>
-        </section>
+        <app-module-header
+          title="Servicios dinámicos"
+          description="Diseña servicios configurables por organización, publica versiones y prueba respuestas desde backend con límites de seguridad."
+          badge="Tenant services"
+        ></app-module-header>
 
         @if (canRead) {
           <app-process-steps
@@ -539,90 +506,76 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         } @else {
           <app-designer-workspace>
             <ng-container designer-navigation>
-              <div class="list-header">
-                <h2>{{ viewingTrash ? 'Papelera' : 'Servicios' }}</h2>
-                <div class="actions">
-                  <button type="button" (click)="toggleTrash()">{{ viewingTrash ? 'Activos' : 'Papelera' }}</button>
-                  @if (!viewingTrash) {
-                    <button type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
-                  }
-                </div>
-              </div>
+              <app-catalog-header
+                [title]="viewingTrash ? 'Papelera' : 'Servicios'"
+                [summary]="services.length + (services.length === 1 ? ' servicio' : ' servicios')"
+              >
+                <button type="button" (click)="toggleTrash()">{{ viewingTrash ? 'Activos' : 'Papelera' }}</button>
+                @if (!viewingTrash) {
+                  <button type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
+                }
+              </app-catalog-header>
 
               @if (loading) {
                 <p class="meta">Cargando servicios...</p>
               } @else if (error) {
-                <div class="notice error">
-                  <strong>No se pudieron cargar</strong>
+                <app-status-notice title="No se pudieron cargar" tone="error">
                   <span>{{ error }}</span>
-                  <button type="button" (click)="load()">Reintentar</button>
-                </div>
+                  <button notice-action type="button" (click)="load()">Reintentar</button>
+                </app-status-notice>
               } @else if (!services.length) {
-                <div class="notice">
-                  <strong>{{ viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía' }}</strong>
+                <app-status-notice [title]="viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía'">
                   <span>{{
                     viewingTrash
                       ? 'Los servicios enviados a papelera aparecerán aquí.'
                       : 'Crea el primer servicio dinámico de esta organización.'
                   }}</span>
-                </div>
+                </app-status-notice>
               }
 
               @for (service of services; track service.id) {
-                <button
-                  class="service-button"
-                  type="button"
-                  [class.active]="selected?.id === service.id"
-                  (click)="select(service)"
-                >
-                  <strong>{{ service.name }}</strong>
-                  <span class="meta">
-                    {{ service.key }} ·
-                    {{ service.trashedAt ? 'en papelera' : service.active ? 'activo' : 'inactivo' }}
-                  </span>
-                  <span class="meta">
-                    publicada:
-                    {{ service.publishedVersion ? 'v' + service.publishedVersion.version : 'sin publicar' }}
-                  </span>
-                </button>
+                <app-catalog-item
+                  [title]="service.name"
+                  [meta]="
+                    service.key + ' · ' + (service.trashedAt ? 'en papelera' : service.active ? 'activo' : 'inactivo')
+                  "
+                  [detail]="
+                    'publicada: ' + (service.publishedVersion ? 'v' + service.publishedVersion.version : 'sin publicar')
+                  "
+                  [active]="selected?.id === service.id"
+                  (selected)="select(service)"
+                ></app-catalog-item>
               }
             </ng-container>
 
             <ng-container designer-workspace>
               <section class="panel" id="service-data">
-                <div class="section-head">
-                  <div>
-                    <h2>{{ selected ? 'Editar servicio' : 'Crear servicio' }}</h2>
-                    <p class="meta">Paso 1. Guarda solo los datos base: key, nombre, descripción y estado.</p>
-                  </div>
-                  <div class="actions">
-                    <button type="button" (click)="load()">Refrescar</button>
-                    @if (selected?.trashedAt) {
-                      <button
-                        class="primary"
-                        type="button"
-                        (click)="restoreService()"
-                        [disabled]="!canManage || saving"
-                      >
-                        Restaurar
-                      </button>
-                    } @else {
-                      @if (selected) {
-                        <button type="button" (click)="trashService()" [disabled]="!canManage || saving">
-                          Enviar a papelera
-                        </button>
-                      }
-                      <button
-                        class="primary"
-                        type="button"
-                        (click)="saveService()"
-                        [disabled]="!canManage || saving || !serviceMetadataChanged"
-                      >
-                        Guardar datos
+                <app-section-header
+                  [title]="selected ? 'Editar servicio' : 'Crear servicio'"
+                  description="Guarda solo los datos base: key, nombre, descripción y estado."
+                  stepLabel="Paso 1"
+                >
+                  <button type="button" (click)="load()">Refrescar</button>
+                  @if (selected?.trashedAt) {
+                    <button class="primary" type="button" (click)="restoreService()" [disabled]="!canManage || saving">
+                      Restaurar
+                    </button>
+                  } @else {
+                    @if (selected) {
+                      <button type="button" (click)="trashService()" [disabled]="!canManage || saving">
+                        Enviar a papelera
                       </button>
                     }
-                  </div>
-                </div>
+                    <button
+                      class="primary"
+                      type="button"
+                      (click)="saveService()"
+                      [disabled]="!canManage || saving || !serviceMetadataChanged"
+                    >
+                      Guardar datos
+                    </button>
+                  }
+                </app-section-header>
 
                 <div class="grid">
                   <div class="field">
@@ -656,16 +609,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
               @if (selected) {
                 <section class="panel" id="service-design">
-                  <div class="section-head">
-                    <div>
-                      <h2>Qué hace este servicio</h2>
-                      <p class="meta">
-                        Paso 2. Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión
-                        y publicarla.
-                      </p>
-                    </div>
+                  <app-section-header
+                    title="Qué hace este servicio"
+                    description="Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión y publicarla."
+                    stepLabel="Paso 2"
+                  >
                     <button type="button" (click)="syncGuideToDefinition()">Actualizar JSON</button>
-                  </div>
+                  </app-section-header>
 
                   <div class="guide-grid">
                     <div class="field">
@@ -1015,33 +965,28 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </section>
 
                 <section class="panel" id="service-version">
-                  <div class="section-head">
-                    <div>
-                      <h2>Versión ejecutable</h2>
-                      <p class="meta">
-                        Paso 3. Guarda la lógica como versión. Paso 4. Publícala para que el front, workflows y acciones
-                        la usen.
-                      </p>
-                    </div>
-                    <div class="actions">
-                      <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
-                      <button class="primary" type="button" (click)="createVersion()" [disabled]="!canCreateVersion">
-                        {{ selected.latestVersion ? 'Crear nueva versión' : 'Crear versión' }}
-                      </button>
-                      <button
-                        type="button"
-                        (click)="publishLatest()"
-                        [disabled]="
-                          !canEditSelected ||
-                          !selected.latestVersion ||
-                          selected.latestVersion.status === 'published' ||
-                          saving
-                        "
-                      >
-                        Publicar última
-                      </button>
-                    </div>
-                  </div>
+                  <app-section-header
+                    title="Versión ejecutable"
+                    description="Guarda la lógica como versión y publícala para que el front, workflows y acciones la usen."
+                    stepLabel="Pasos 3 y 4"
+                  >
+                    <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
+                    <button class="primary" type="button" (click)="createVersion()" [disabled]="!canCreateVersion">
+                      {{ selected.latestVersion ? 'Crear nueva versión' : 'Crear versión' }}
+                    </button>
+                    <button
+                      type="button"
+                      (click)="publishLatest()"
+                      [disabled]="
+                        !canEditSelected ||
+                        !selected.latestVersion ||
+                        selected.latestVersion.status === 'published' ||
+                        saving
+                      "
+                    >
+                      Publicar última
+                    </button>
+                  </app-section-header>
 
                   <textarea class="code" [(ngModel)]="definitionText" spellcheck="false"></textarea>
 
@@ -1060,17 +1005,15 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </section>
 
                 <section class="panel" id="service-test">
-                  <div class="section-head">
-                    <div>
-                      <h2>Prueba en vivo</h2>
-                      <p class="meta">
-                        El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos.
-                      </p>
-                    </div>
+                  <app-section-header
+                    title="Prueba en vivo"
+                    description="El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos."
+                    stepLabel="Verificación"
+                  >
                     <button class="primary" type="button" (click)="testService()" [disabled]="!canTest">
                       Probar servicio
                     </button>
-                  </div>
+                  </app-section-header>
 
                   <app-process-steps
                     [items]="serviceReadinessSteps"
@@ -1101,13 +1044,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </section>
 
                 <section class="panel" id="service-history">
-                  <div class="section-head">
-                    <div>
-                      <h2>Historial</h2>
-                      <p class="meta">Últimas ejecuciones registradas para este servicio.</p>
-                    </div>
+                  <app-section-header
+                    title="Historial"
+                    description="Últimas ejecuciones registradas para este servicio."
+                    stepLabel="Observabilidad"
+                  >
                     <button type="button" (click)="loadRuns()" [disabled]="runsLoading">Actualizar historial</button>
-                  </div>
+                  </app-section-header>
 
                   <div class="run-list">
                     @for (run of runs; track run.id) {
@@ -1129,10 +1072,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
               }
 
               @if (message) {
-                <div class="notice success">{{ message }}</div>
+                <app-status-notice tone="success">{{ message }}</app-status-notice>
               }
               @if (formError) {
-                <div class="notice error">{{ formError }}</div>
+                <app-status-notice tone="error">{{ formError }}</app-status-notice>
               }
             </ng-container>
           </app-designer-workspace>

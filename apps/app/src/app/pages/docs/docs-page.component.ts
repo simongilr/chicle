@@ -1560,7 +1560,7 @@ export class DocsPageComponent {
     },
     {
       title: 'Flow Designer V3 visual',
-      ui: 'Servicios y Flows comparten catálogo lateral, workspace, vistas Activos/Papelera/Nuevo, indicador de etapas y guía contextual. Dentro de Construir, cada bloque avanza por Propósito, Configurar, Conectar datos, Continuación y Guardar y probar.',
+      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores de vista y workspace responsive. Dentro de Construir, cada bloque avanza por Propósito, Configurar, Conectar datos, Continuación y Guardar y probar.',
       swagger:
         'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:

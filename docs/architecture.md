@@ -110,6 +110,9 @@ Operational designers share the same reusable interface language:
 - `ProcessStepsComponent` renders progress, readiness and navigation for both Dynamic Services and Flows.
 - `WorkflowGuideComponent` explains the current objective, the blocking condition and the next recommended action.
 - `DesignerWorkspaceComponent` owns the responsive catalog-and-workspace shell used by both designers, including the mobile collapse behavior.
+- `ModuleHeaderComponent`, `CatalogHeaderComponent`, `CatalogItemComponent` and `SectionHeaderComponent` keep module titles, catalogs and workspace sections identical across Database, Dynamic Services and Flows.
+- `StatusNoticeComponent` centralizes empty, information, success, warning and error states.
+- `SegmentedControlComponent` provides the same compact view selector for Database modes and Flow map/list views.
 - Active, trash and new states use the same navigation contract. A trashed object opens a restore-only workspace instead of its editor.
 - Advanced JSON and reusable test suites stay behind progressive disclosure; the first path remains guided and visual.
 - Frontend validation mirrors publish-time constraints so missing services, broken routes, subflows and event keys are visible before version creation.

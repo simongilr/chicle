@@ -1,14 +1,24 @@
 import { JsonPipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { IonContent } from '@ionic/angular/standalone';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
+import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
+import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
+import {
+  SegmentedControlComponent,
+  SegmentedControlItem
+} from '../../shared/segmented-control/segmented-control.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import { FlowDataMapperComponent, FlowDataOption, FlowMapRow } from './flow-data-mapper.component';
 import { FlowGraphComponent } from './flow-graph.component';
@@ -330,8 +340,15 @@ interface FlowJobItem {
   standalone: true,
   imports: [
     FormsModule,
+    IonContent,
     JsonPipe,
     MainNavComponent,
+    ModuleHeaderComponent,
+    CatalogHeaderComponent,
+    CatalogItemComponent,
+    SectionHeaderComponent,
+    SegmentedControlComponent,
+    StatusNoticeComponent,
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
@@ -344,8 +361,11 @@ interface FlowJobItem {
       :host {
         display: block;
         min-height: 100vh;
-        color: #12365a;
-        background: #f4f8fc;
+        color: #173b5f;
+      }
+
+      ion-content {
+        --background: #f5f7fb;
       }
 
       .page {
@@ -353,24 +373,12 @@ interface FlowJobItem {
         gap: 18px;
         max-width: 1260px;
         margin: 0 auto;
-        padding: 24px 20px 54px;
-      }
-
-      .hero {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: flex-start;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #fff;
-        padding: 18px;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        padding: 24px 0 54px;
       }
 
       .eyebrow,
       .meta {
-        color: #526a82;
+        color: #52677a;
         font-size: 0.86rem;
       }
 
@@ -387,20 +395,24 @@ interface FlowJobItem {
         margin: 6px 0 10px;
       }
 
-      .panel {
-        background: #fff;
-        border: 1px solid #cbdcee;
-        border-radius: 8px;
-        padding: 14px;
-        box-shadow: 0 16px 36px rgba(30, 80, 130, 0.08);
+      h2 {
+        color: #173b5f;
+        font-size: 1.15rem;
       }
 
-      .list-header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+      h3 {
+        color: #173b5f;
+        font-size: 1rem;
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        background: #fff;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        padding: 18px;
       }
 
       app-process-steps,
@@ -410,22 +422,27 @@ interface FlowJobItem {
 
       .starter-grid {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 9px;
         margin: 14px 0 18px;
       }
 
       .starter {
-        min-height: 104px;
+        min-height: 118px;
         text-align: left;
         display: grid;
         align-content: start;
         gap: 6px;
       }
 
+      .starter i {
+        color: #1554a2;
+        font-size: 1.15rem;
+      }
+
       .starter.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
+        border-color: #1554a2;
+        background: #eaf3fc;
       }
 
       .section-heading {
@@ -435,7 +452,7 @@ interface FlowJobItem {
       }
 
       .callout {
-        border-left: 4px solid #1f5ca8;
+        border-left: 4px solid #1554a2;
         background: #eef6ff;
         padding: 12px 14px;
         margin-bottom: 14px;
@@ -454,7 +471,7 @@ interface FlowJobItem {
         gap: 9px;
         align-items: start;
         padding: 10px;
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 7px;
       }
 
@@ -473,26 +490,8 @@ interface FlowJobItem {
         margin-top: 12px;
       }
 
-      .item {
-        display: grid;
-        gap: 6px;
-        width: 100%;
-        min-height: 78px;
-        border: 1px solid #c8d9eb;
-        background: transparent;
-        color: #12365a;
-        text-align: left;
-        border-radius: 8px;
-        padding: 12px;
-        cursor: pointer;
-      }
-
-      .item.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
-      }
-
       .toolbar,
+      .section-head,
       .row {
         display: flex;
         flex-wrap: wrap;
@@ -503,6 +502,10 @@ interface FlowJobItem {
       .toolbar {
         justify-content: space-between;
         margin-bottom: 12px;
+      }
+
+      .section-head {
+        justify-content: space-between;
       }
 
       .grid {
@@ -518,32 +521,10 @@ interface FlowJobItem {
         margin-top: 14px;
       }
 
-      .view-switch {
-        display: inline-flex;
-        gap: 4px;
-        padding: 3px;
-        border: 1px solid #c8d9eb;
-        border-radius: 8px;
-        background: #eef4fa;
-      }
-
-      .view-switch button {
-        border: 0;
-        min-height: 30px;
-        padding: 5px 9px;
-        background: transparent;
-      }
-
-      .view-switch button.active {
-        background: #fff;
-        color: #174f91;
-        box-shadow: 0 1px 4px rgba(23, 79, 145, 0.14);
-      }
-
       .connection-summary {
         display: grid;
         gap: 8px;
-        border-left: 4px solid #1f5ca8;
+        border-left: 4px solid #1554a2;
         background: #eef6ff;
         padding: 10px 12px;
       }
@@ -555,19 +536,22 @@ interface FlowJobItem {
       label {
         display: grid;
         gap: 5px;
-        font-weight: 700;
+        color: #173b5f;
+        font-weight: 850;
         font-size: 0.9rem;
+        line-height: 1.25;
       }
 
       input,
       select,
       textarea {
         width: 100%;
-        border: 1px solid #b9cfe6;
-        border-radius: 7px;
+        box-sizing: border-box;
+        border: 1px solid #b9c9d8;
+        border-radius: 8px;
         min-height: 38px;
         padding: 8px 10px;
-        color: #12365a;
+        color: #173b5f;
         background: #fff;
         font: inherit;
       }
@@ -580,10 +564,11 @@ interface FlowJobItem {
       }
 
       button {
-        border: 1px solid #b9cfe6;
+        box-sizing: border-box;
+        border: 1px solid #b9c9d8;
         background: #fff;
-        color: #12365a;
-        border-radius: 7px;
+        color: #173b5f;
+        border-radius: 8px;
         min-height: 36px;
         padding: 8px 12px;
         font-weight: 800;
@@ -591,8 +576,8 @@ interface FlowJobItem {
       }
 
       button.primary {
-        background: #1f5ca8;
-        border-color: #1f5ca8;
+        background: #1554a2;
+        border-color: #1554a2;
         color: #fff;
       }
 
@@ -616,7 +601,7 @@ interface FlowJobItem {
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 10px;
-        border: 1px solid #c8d9eb;
+        border: 1px solid #c8d6e4;
         background: #f8fbff;
         border-radius: 8px;
         padding: 10px;
@@ -625,8 +610,8 @@ interface FlowJobItem {
       }
 
       .step-card.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
+        border-color: #1554a2;
+        background: #eaf3fc;
       }
 
       .badge {
@@ -637,7 +622,7 @@ interface FlowJobItem {
         height: 28px;
         border-radius: 999px;
         background: #e9eef5;
-        color: #12365a;
+        color: #173b5f;
         font-size: 0.78rem;
         font-weight: 900;
       }
@@ -656,14 +641,14 @@ interface FlowJobItem {
       }
 
       .type-button.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
+        border-color: #1554a2;
+        background: #eaf3fc;
       }
 
       .guided-panel {
         display: grid;
         gap: 10px;
-        border: 1px solid #d6e4f2;
+        border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #f8fbff;
         margin-top: 10px;
@@ -705,7 +690,7 @@ interface FlowJobItem {
         gap: 12px;
         margin-top: 14px;
         padding-top: 14px;
-        border-top: 1px solid #d6e4f2;
+        border-top: 1px solid #d9e2ec;
       }
 
       .map-row {
@@ -774,7 +759,7 @@ interface FlowJobItem {
         gap: 8px;
         align-items: center;
         padding: 10px;
-        border: 1px solid #b9cfe6;
+        border: 1px solid #b9c9d8;
         border-radius: 8px;
         background: rgba(255, 255, 255, 0.97);
         box-shadow: 0 8px 24px rgba(30, 80, 130, 0.14);
@@ -785,16 +770,16 @@ interface FlowJobItem {
       }
 
       .hint {
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #ffffff;
-        color: #526a82;
+        color: #52677a;
         padding: 9px 10px;
         line-height: 1.45;
       }
 
       .mini-title {
-        color: #12365a;
+        color: #173b5f;
         font-size: 0.9rem;
         font-weight: 900;
       }
@@ -802,7 +787,7 @@ interface FlowJobItem {
       .run-card {
         display: grid;
         gap: 8px;
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #ffffff;
         padding: 10px;
@@ -817,7 +802,7 @@ interface FlowJobItem {
 
       .test-suite-panel {
         margin-top: 18px;
-        border-top: 1px solid #d7e5f2;
+        border-top: 1px solid #d9e2ec;
         padding-top: 14px;
       }
 
@@ -840,7 +825,7 @@ interface FlowJobItem {
       }
 
       .test-suite-panel > summary small {
-        color: #526a82;
+        color: #52677a;
         font-size: 0.8rem;
         font-weight: 500;
       }
@@ -858,8 +843,8 @@ interface FlowJobItem {
       }
 
       .test-case.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
+        border-color: #1554a2;
+        background: #eaf3fc;
       }
 
       .test-result-bar {
@@ -871,7 +856,7 @@ interface FlowJobItem {
       .test-result-bar > div {
         display: grid;
         gap: 2px;
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 7px;
         padding: 9px;
         background: #fff;
@@ -901,14 +886,14 @@ interface FlowJobItem {
       .runtime-item {
         display: grid;
         gap: 6px;
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 8px;
         background: #fff;
         padding: 10px;
       }
 
       .runtime-item.selected {
-        border-color: #1f5ca8;
+        border-color: #1554a2;
         background: #f2f7ff;
       }
 
@@ -945,7 +930,7 @@ interface FlowJobItem {
 
       .code-line {
         overflow-wrap: anywhere;
-        border: 1px solid #d7e5f2;
+        border: 1px solid #d9e2ec;
         border-radius: 7px;
         background: #f7fafc;
         padding: 8px 10px;
@@ -967,7 +952,7 @@ interface FlowJobItem {
       .step-run {
         display: grid;
         gap: 4px;
-        border-left: 3px solid #b9cfe6;
+        border-left: 3px solid #b9c9d8;
         padding-left: 9px;
       }
 
@@ -990,22 +975,23 @@ interface FlowJobItem {
         padding: 10px 12px;
       }
 
-      @media (max-width: 900px) {
+      @media (max-width: 1120px) {
         .builder,
+        .test-studio,
+        .runtime-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 900px) {
         .grid,
         .map-row,
         .branch-row,
         .input-field-row,
-        .test-studio,
-        .runtime-grid,
         .test-result-bar,
         .assertion-row,
         .starter-grid {
           grid-template-columns: 1fr;
-        }
-
-        .hero {
-          display: grid;
         }
 
         h1 {
@@ -1015,177 +1001,198 @@ interface FlowJobItem {
     `
   ],
   template: `
-    <app-main-nav contextLabel="Flow Designer"></app-main-nav>
-    <main class="page">
-      <section class="hero">
-        <div>
-          <span class="eyebrow">Procesos de la organización</span>
-          <h1>Flows dinámicos</h1>
-          <p class="meta">
-            Crea un proceso paso a paso, pruébalo con datos de ejemplo y publícalo cuando el resultado sea correcto.
-          </p>
-        </div>
-        <span class="badge">Flow Engine</span>
-      </section>
+    <ion-content class="ion-padding">
+      <app-main-nav contextLabel="Flow Designer"></app-main-nav>
+      <main class="page">
+        <app-module-header
+          eyebrow="Procesos de la organización"
+          title="Flows dinámicos"
+          description="Crea un proceso paso a paso, pruébalo con datos de ejemplo y publícalo cuando el resultado sea correcto."
+          badge="Flow Engine"
+        ></app-module-header>
 
-      @if (message) {
-        <div class="message">{{ message }}</div>
-      }
-
-      @if (!viewingTrash) {
-        @if (selectedFlow) {
-          <app-process-steps
-            [items]="flowProcessSteps"
-            [activeKey]="activeStage"
-            (selected)="goToStage($event)"
-          ></app-process-steps>
+        @if (message) {
+          <app-status-notice tone="info">{{ message }}</app-status-notice>
         }
 
-        <app-workflow-guide
-          [stepLabel]="currentGuide.stepLabel"
-          [title]="currentGuide.title"
-          [description]="currentGuide.description"
-          [tone]="currentGuide.tone"
-        >
-          @if (selectedFlow && currentGuide.actionLabel) {
-            <button type="button" (click)="runGuideAction()">
-              {{ currentGuide.actionLabel }}
-              <i class="pi pi-arrow-right" aria-hidden="true"></i>
-            </button>
+        @if (!viewingTrash) {
+          @if (selectedFlow) {
+            <app-process-steps
+              [items]="flowProcessSteps"
+              [activeKey]="activeStage"
+              (selected)="goToStage($event)"
+            ></app-process-steps>
           }
-        </app-workflow-guide>
-      }
 
-      <app-designer-workspace>
-        <ng-container designer-navigation>
-          <div class="list-header">
-            <div>
-              <h2>{{ viewingTrash ? 'Papelera' : 'Flows' }}</h2>
-              <span class="meta">{{ flows.length }} {{ flows.length === 1 ? 'proceso' : 'procesos' }}</span>
-            </div>
-            <div class="row">
-              <button type="button" (click)="toggleTrash()">
-                {{ viewingTrash ? 'Activos' : 'Papelera' }}
+          <app-workflow-guide
+            [stepLabel]="currentGuide.stepLabel"
+            [title]="currentGuide.title"
+            [description]="currentGuide.description"
+            [tone]="currentGuide.tone"
+          >
+            @if (selectedFlow && currentGuide.actionLabel) {
+              <button type="button" (click)="runGuideAction()">
+                {{ currentGuide.actionLabel }}
+                <i class="pi pi-arrow-right" aria-hidden="true"></i>
               </button>
-              @if (!viewingTrash) {
-                <button class="primary" type="button" (click)="startNewFlow()" [disabled]="!canCreate">Nuevo</button>
-              }
-            </div>
-          </div>
-          <div class="list">
-            @for (flow of flows; track flow.id) {
-              <button class="item" type="button" [class.active]="flow.id === selectedFlowId" (click)="selectFlow(flow)">
-                <strong>{{ flow.name }}</strong>
-                <div class="meta">{{ flow.key }} · {{ viewingTrash ? 'en papelera' : flow.status }}</div>
-                <div class="meta">
-                  {{ flow.steps.length }} pasos · publicada:
-                  {{ flow.publishedVersion ? 'v' + flow.publishedVersion.version : 'sin publicar' }}
-                </div>
-              </button>
-            } @empty {
-              <div class="hint">
-                <strong>{{ viewingTrash ? 'Papelera vacía' : 'Sin flows todavía' }}</strong>
-                <br />
-                {{
-                  viewingTrash
-                    ? 'Los procesos eliminados aparecerán aquí y podrán restaurarse.'
-                    : 'Pulsa Nuevo. El asistente te ayudará a crear el primer proceso.'
-                }}
-              </div>
             }
-          </div>
-        </ng-container>
+          </app-workflow-guide>
+        }
 
-        <ng-container designer-workspace>
-          @if (viewingTrash) {
-            <section class="panel trash-state">
-              @if (selectedFlow) {
-                <span class="badge">En papelera</span>
-                <h2>{{ selectedFlow.name }}</h2>
-                <p class="meta">
-                  {{ selectedFlow.key }} · {{ selectedFlow.steps.length }} pasos. Restáuralo para volver a editar,
-                  probar o publicar.
-                </p>
-                <button class="primary" type="button" (click)="restoreFlow()" [disabled]="!canUpdate">
-                  Restaurar flow
+        <app-designer-workspace>
+          <ng-container designer-navigation>
+            <app-catalog-header
+              [title]="viewingTrash ? 'Papelera' : 'Flows'"
+              [summary]="flows.length + (flows.length === 1 ? ' proceso' : ' procesos')"
+            >
+              <div class="row">
+                <button type="button" (click)="toggleTrash()">
+                  {{ viewingTrash ? 'Activos' : 'Papelera' }}
                 </button>
-              } @else {
-                <h2>Selecciona un flow eliminado</h2>
-                <p class="meta">Desde aquí puedes revisar y restaurar procesos sin mezclarlos con los activos.</p>
-              }
-            </section>
-          } @else {
-            <section class="panel">
-              <div class="toolbar">
-                <div>
-                  <h2>
-                    {{ selectedFlow ? selectedFlow.name : 'Crea tu primer proceso' }}
-                  </h2>
-                  <p class="meta">
-                    {{
-                      selectedFlow
-                        ? 'Avanza por las cuatro etapas sin perder el contexto.'
-                        : 'Primero dinos qué quieres lograr. Los datos técnicos se generan solos.'
-                    }}
-                  </p>
-                </div>
-                @if (selectedFlow) {
-                  <button class="danger" type="button" (click)="trashFlow()" [disabled]="!canUpdate">
-                    Enviar a papelera
-                  </button>
+                @if (!viewingTrash) {
+                  <button class="primary" type="button" (click)="startNewFlow()" [disabled]="!canCreate">Nuevo</button>
                 }
               </div>
+            </app-catalog-header>
+            <div class="list">
+              @for (flow of flows; track flow.id) {
+                <app-catalog-item
+                  [title]="flow.name"
+                  [meta]="flow.key + ' · ' + (viewingTrash ? 'en papelera' : flow.status)"
+                  [detail]="
+                    flow.steps.length +
+                    ' pasos · publicada: ' +
+                    (flow.publishedVersion ? 'v' + flow.publishedVersion.version : 'sin publicar')
+                  "
+                  [active]="flow.id === selectedFlowId"
+                  (selected)="selectFlow(flow)"
+                ></app-catalog-item>
+              } @empty {
+                <app-status-notice [title]="viewingTrash ? 'Papelera vacía' : 'Sin flows todavía'">
+                  {{
+                    viewingTrash
+                      ? 'Los procesos eliminados aparecerán aquí y podrán restaurarse.'
+                      : 'Pulsa Nuevo. El asistente te ayudará a crear el primer proceso.'
+                  }}
+                </app-status-notice>
+              }
+            </div>
+          </ng-container>
 
-            @if (!selectedFlow || activeStage === 'describe') {
-                <div class="section-heading">
-                  <h3>
-                    {{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}
-                  </h3>
+          <ng-container designer-workspace>
+            @if (viewingTrash) {
+              <section class="panel trash-state">
+                @if (selectedFlow) {
+                  <span class="badge">En papelera</span>
+                  <h2>{{ selectedFlow.name }}</h2>
                   <p class="meta">
-                    {{
-                      selectedFlow
-                        ? 'Estos datos ayudan a encontrar y entender el proceso.'
-                        : 'Elige el punto de partida más parecido. Después podrás cambiar cada paso.'
-                    }}
+                    {{ selectedFlow.key }} · {{ selectedFlow.steps.length }} pasos. Restáuralo para volver a editar,
+                    probar o publicar.
                   </p>
-                </div>
+                  <button class="primary" type="button" (click)="restoreFlow()" [disabled]="!canUpdate">
+                    Restaurar flow
+                  </button>
+                } @else {
+                  <h2>Selecciona un flow eliminado</h2>
+                  <p class="meta">Desde aquí puedes revisar y restaurar procesos sin mezclarlos con los activos.</p>
+                }
+              </section>
+            } @else {
+              <section class="panel">
+                <app-section-header
+                  [title]="selectedFlow ? selectedFlow.name : 'Crea tu primer proceso'"
+                  [description]="
+                    selectedFlow
+                      ? 'Avanza por las cuatro etapas sin perder el contexto.'
+                      : 'Primero dinos qué quieres lograr. Los datos técnicos se generan solos.'
+                  "
+                  [stepLabel]="selectedFlow ? 'Flow seleccionado' : 'Nuevo flow'"
+                >
+                  @if (selectedFlow) {
+                    <button class="danger" type="button" (click)="trashFlow()" [disabled]="!canUpdate">
+                      Enviar a papelera
+                    </button>
+                  }
+                </app-section-header>
 
-                @if (!selectedFlow) {
-                  <div class="starter-grid">
-                    @for (starter of starters; track starter.key) {
-                      <button
-                        class="starter"
-                        type="button"
-                        [class.active]="selectedStarter === starter.key"
-                        (click)="chooseStarter(starter.key)"
-                      >
-                        <strong>{{ starter.label }}</strong>
-                        <span class="meta">{{ starter.summary }}</span>
-                      </button>
-                    }
+                @if (!selectedFlow || activeStage === 'describe') {
+                  <div class="section-heading">
+                    <h3>
+                      {{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}
+                    </h3>
+                    <p class="meta">
+                      {{
+                        selectedFlow
+                          ? 'Estos datos ayudan a encontrar y entender el proceso.'
+                          : 'Elige el punto de partida más parecido. Después podrás cambiar cada paso.'
+                      }}
+                    </p>
                   </div>
 
-                  @if (selectedStarter === 'service' || selectedStarter === 'multi_service') {
-                    <div class="guided-panel">
-                      <div>
-                        <div class="mini-title">
-                          {{
-                            selectedStarter === 'multi_service'
-                              ? 'Elige todos los servicios en el orden de ejecución'
-                              : 'Elige el servicio principal'
-                          }}
+                  @if (!selectedFlow) {
+                    <div class="starter-grid">
+                      @for (starter of starters; track starter.key) {
+                        <button
+                          class="starter"
+                          type="button"
+                          [class.active]="selectedStarter === starter.key"
+                          (click)="chooseStarter(starter.key)"
+                        >
+                          <i [class]="starter.icon" aria-hidden="true"></i>
+                          <strong>{{ starter.label }}</strong>
+                          <span class="meta">{{ starter.summary }}</span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (selectedStarter === 'service' || selectedStarter === 'multi_service') {
+                      <div class="guided-panel">
+                        <div>
+                          <div class="mini-title">
+                            {{
+                              selectedStarter === 'multi_service'
+                                ? 'Elige todos los servicios en el orden de ejecución'
+                                : 'Elige el servicio principal'
+                            }}
+                          </div>
+                          <p class="meta">Solo aparecen servicios activos con una versión publicada.</p>
                         </div>
-                        <p class="meta">Solo aparecen servicios activos con una versión publicada.</p>
-                      </div>
-                      @if (selectedStarter === 'multi_service') {
-                        @for (serviceKey of starterServiceKeys; track $index) {
-                          <div class="map-row">
-                            <label>
-                              Servicio {{ $index + 1 }}
-                              <select
-                                [(ngModel)]="starterServiceKeys[$index]"
-                                (ngModelChange)="onStarterServicesChanged()"
+                        @if (selectedStarter === 'multi_service') {
+                          @for (serviceKey of starterServiceKeys; track $index) {
+                            <div class="map-row">
+                              <label>
+                                Servicio {{ $index + 1 }}
+                                <select
+                                  [(ngModel)]="starterServiceKeys[$index]"
+                                  (ngModelChange)="onStarterServicesChanged()"
+                                >
+                                  <option value="">Selecciona un servicio</option>
+                                  @for (service of publishedServices; track service.id) {
+                                    <option [value]="service.key">
+                                      {{ service.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                              <span class="meta">Se ejecuta después del servicio {{ $index || 'de entrada' }}.</span>
+                              <button
+                                type="button"
+                                title="Quitar servicio"
+                                (click)="removeStarterService($index)"
+                                [disabled]="starterServiceKeys.length <= 2"
                               >
+                                <i class="pi pi-trash" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          }
+                          <button type="button" (click)="addStarterService()">
+                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar otro servicio
+                          </button>
+                        } @else {
+                          <div class="grid">
+                            <label>
+                              Servicio
+                              <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
                                 <option value="">Selecciona un servicio</option>
                                 @for (service of publishedServices; track service.id) {
                                   <option [value]="service.key">
@@ -1194,1551 +1201,1557 @@ interface FlowJobItem {
                                 }
                               </select>
                             </label>
-                            <span class="meta">Se ejecuta después del servicio {{ $index || 'de entrada' }}.</span>
-                            <button
-                              type="button"
-                              title="Quitar servicio"
-                              (click)="removeStarterService($index)"
-                              [disabled]="starterServiceKeys.length <= 2"
-                            >
-                              <i class="pi pi-trash" aria-hidden="true"></i>
-                            </button>
                           </div>
                         }
-                        <button type="button" (click)="addStarterService()">
-                          <i class="pi pi-plus" aria-hidden="true"></i> Agregar otro servicio
-                        </button>
-                      } @else {
-                        <div class="grid">
-                          <label>
-                            Servicio
-                            <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
-                              <option value="">Selecciona un servicio</option>
-                              @for (service of publishedServices; track service.id) {
-                                <option [value]="service.key">
-                                  {{ service.name }}
-                                </option>
-                              }
-                            </select>
-                          </label>
-                        </div>
-                      }
-                      @if (!publishedServices.length) {
-                        <div class="issue">
-                          <i class="pi pi-info-circle" aria-hidden="true"></i>
-                          <span>Primero crea y publica al menos un servicio desde Administración → Servicios.</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                }
-
-                <div class="grid">
-                  <label>
-                    Nombre del proceso
-                    <input
-                      [(ngModel)]="flowDraft.name"
-                      (ngModelChange)="syncFlowKey(true)"
-                      placeholder="Validar una solicitud"
-                    />
-                  </label>
-                  <label>
-                    ¿Qué resultado esperas?
-                    <input [(ngModel)]="flowDraft.description" placeholder="Aceptar solicitudes con datos completos" />
-                  </label>
-                  <label>
-                    Categoría
-                    <select [(ngModel)]="flowDraft.category">
-                      <option value="operaciones">Operaciones</option>
-                      <option value="ventas">Ventas</option>
-                      <option value="seguridad">Seguridad</option>
-                      <option value="integraciones">Integraciones</option>
-                      <option value="experiencia">Experiencia de usuario</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  </label>
-                  <label>
-                    Identificador técnico
-                    <input [(ngModel)]="flowDraft.key" placeholder="validar_solicitud" [disabled]="!!selectedFlow" />
-                  </label>
-                </div>
-
-                <div class="guided-panel">
-                  <div class="toolbar">
-                    <div>
-                      <div class="mini-title">Datos que recibe el proceso</div>
-                      <p class="meta">
-                        Defínelos una vez. Después aparecerán como opciones al conectar servicios y reglas.
-                      </p>
-                    </div>
-                    <button type="button" (click)="addFlowInput()">
-                      <i class="pi pi-plus" aria-hidden="true"></i> Agregar dato
-                    </button>
-                  </div>
-                  @for (field of flowInputs; track $index) {
-                    <div class="input-field-row">
-                      <label>
-                        Identificador
-                        <input [(ngModel)]="field.key" (ngModelChange)="onFlowInputsChanged()" placeholder="email" />
-                      </label>
-                      <label>
-                        Nombre visible
-                        <input [(ngModel)]="field.label" (ngModelChange)="onFlowInputsChanged()" placeholder="Correo" />
-                      </label>
-                      <label>
-                        Tipo
-                        <select [(ngModel)]="field.type" (ngModelChange)="onFlowInputsChanged()">
-                          <option value="text">Texto</option>
-                          <option value="email">Correo</option>
-                          <option value="number">Número</option>
-                          <option value="boolean">Sí / no</option>
-                          <option value="date">Fecha</option>
-                        </select>
-                      </label>
-                      <label>
-                        Ejemplo
-                        <input
-                          [(ngModel)]="field.example"
-                          (ngModelChange)="onFlowInputsChanged()"
-                          placeholder="persona@example.com"
-                        />
-                      </label>
-                      <label class="inline-check">
-                        <input type="checkbox" [(ngModel)]="field.required" (ngModelChange)="onFlowInputsChanged()" />
-                        Obligatorio
-                      </label>
-                      <button type="button" title="Quitar dato" (click)="removeFlowInput($index)">
-                        <i class="pi pi-trash" aria-hidden="true"></i>
-                      </button>
-                    </div>
-                  } @empty {
-                    <div class="hint">
-                      Sin datos definidos. Puedes agregarlos ahora o escribirlos manualmente durante las pruebas.
-                    </div>
-                  }
-                </div>
-
-                <div class="row" style="margin-top: 14px;">
-                  @if (selectedFlow) {
-                    <button class="primary" type="button" (click)="saveFlow()" [disabled]="!canUpdate">
-                      Guardar cambios
-                    </button>
-                    <button type="button" (click)="saveFlow('build')">Guardar y continuar</button>
-                  } @else {
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="createFlow()"
-                      [disabled]="!canCreate || !canCreateDraft || creatingFlow"
-                    >
-                      {{ creatingFlow ? 'Creando proceso...' : 'Crear proceso completo' }}
-                    </button>
-                  }
-                </div>
-              }
-
-              @if (selectedFlow && activeStage === 'build') {
-                @if (designerIssues.length) {
-                  <div class="issue-list">
-                    @for (issue of designerIssues; track issue) {
-                      <div class="issue">
-                        <i class="pi pi-info-circle" aria-hidden="true"></i>
-                        <span>{{ issue }}</span>
+                        @if (!publishedServices.length) {
+                          <div class="issue">
+                            <i class="pi pi-info-circle" aria-hidden="true"></i>
+                            <span>Primero crea y publica al menos un servicio desde Administración → Servicios.</span>
+                          </div>
+                        }
                       </div>
                     }
+                  }
+
+                  <div class="grid">
+                    <label>
+                      Nombre del proceso
+                      <input
+                        [(ngModel)]="flowDraft.name"
+                        (ngModelChange)="syncFlowKey(true)"
+                        placeholder="Validar una solicitud"
+                      />
+                    </label>
+                    <label>
+                      ¿Qué resultado esperas?
+                      <input
+                        [(ngModel)]="flowDraft.description"
+                        placeholder="Aceptar solicitudes con datos completos"
+                      />
+                    </label>
+                    <label>
+                      Categoría
+                      <select [(ngModel)]="flowDraft.category">
+                        <option value="operaciones">Operaciones</option>
+                        <option value="ventas">Ventas</option>
+                        <option value="seguridad">Seguridad</option>
+                        <option value="integraciones">Integraciones</option>
+                        <option value="experiencia">Experiencia de usuario</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </label>
+                    <label>
+                      Identificador técnico
+                      <input [(ngModel)]="flowDraft.key" placeholder="validar_solicitud" [disabled]="!!selectedFlow" />
+                    </label>
                   </div>
-                } @else {
-                  <div class="callout">
-                    El borrador está completo para probar. Usa “Probar hasta aquí” en cualquier paso o continúa a
-                    Pruebas.
-                  </div>
-                }
-                <div class="builder">
-                  <section>
+
+                  <div class="guided-panel">
                     <div class="toolbar">
                       <div>
-                        <h3>Recorrido</h3>
-                        <p class="meta">El mapa muestra exactamente qué resultado activa cada paso.</p>
+                        <div class="mini-title">Datos que recibe el proceso</div>
+                        <p class="meta">
+                          Defínelos una vez. Después aparecerán como opciones al conectar servicios y reglas.
+                        </p>
                       </div>
-                      <div class="row">
-                        <span class="view-switch" aria-label="Vista del recorrido">
-                          <button type="button" [class.active]="buildView === 'graph'" (click)="buildView = 'graph'">
-                            <i class="pi pi-share-alt" aria-hidden="true"></i> Mapa
-                          </button>
-                          <button type="button" [class.active]="buildView === 'list'" (click)="buildView = 'list'">
-                            <i class="pi pi-list" aria-hidden="true"></i> Lista
-                          </button>
-                        </span>
-                        <button type="button" (click)="startNewStep()">Agregar paso</button>
-                      </div>
+                      <button type="button" (click)="addFlowInput()">
+                        <i class="pi pi-plus" aria-hidden="true"></i> Agregar dato
+                      </button>
                     </div>
-
-                    @if (buildView === 'graph') {
-                      <app-flow-graph
-                        [steps]="selectedFlow.steps"
-                        [selectedStepId]="stepDraft.id"
-                        [statuses]="timelineStatuses"
-                        (selected)="selectTimelineStep($event)"
-                      ></app-flow-graph>
-                    } @else {
-                      <app-flow-timeline
-                        [steps]="selectedFlow.steps"
-                        [selectedStepId]="stepDraft.id"
-                        [statuses]="timelineStatuses"
-                        (selected)="selectTimelineStep($event)"
-                        (addAfter)="startNewStepAfter($event)"
-                        (testStep)="testTimelineStep($event)"
-                        (duplicateStep)="duplicateTimelineStep($event)"
-                      ></app-flow-timeline>
-                    }
-
-                    <div class="step-editor">
-                      <div class="step-guide">
-                        <app-process-steps
-                          [items]="stepEditorSteps"
-                          [activeKey]="stepEditorPhase"
-                          [compact]="true"
-                          (selected)="goToStepEditorPhase($event)"
-                          ariaLabel="Configuración del paso"
-                        ></app-process-steps>
-                        <app-workflow-guide
-                          [stepLabel]="stepEditorGuide.stepLabel"
-                          [title]="stepEditorGuide.title"
-                          [description]="stepEditorGuide.description"
-                          [tone]="stepEditorGuide.tone"
-                        >
-                          <button type="button" (click)="advanceStepEditor()">
-                            {{ stepEditorGuide.actionLabel }}
-                            <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                          </button>
-                        </app-workflow-guide>
-                      </div>
-                      @if (stepDraftIssues.length) {
-                        <div class="issue-list">
-                          @for (issue of stepDraftIssues; track issue) {
-                            <div class="issue">
-                              <i class="pi pi-info-circle" aria-hidden="true"></i>
-                              <span>{{ issue }}</span>
-                            </div>
-                          }
-                        </div>
-                      }
-                      <div class="guided-panel step-phase" id="flow-step-purpose">
-                        <div>
-                          <div class="mini-title">
-                            {{ stepDraft.id ? 'Edita este paso' : '¿Qué debe ocurrir ahora?' }}
-                          </div>
-                          <p class="meta">
-                            Elige el bloque por su propósito. Solo aparecerán los datos necesarios para configurarlo.
-                          </p>
-                        </div>
-                        <div class="grid">
-                          <label>
-                            Tipo de paso
-                            <select [ngModel]="stepDraft.type" (ngModelChange)="setStepType($event)">
-                              <optgroup label="Operaciones comunes">
-                                <option value="dynamic_service">Ejecutar un servicio</option>
-                                <option value="validation">Validar un dato</option>
-                                <option value="decision">Tomar una decisión</option>
-                                <option value="formula">Calcular un valor</option>
-                                <option value="response">Construir la respuesta</option>
-                              </optgroup>
-                              <optgroup label="Orquestación avanzada">
-                                <option value="parallel">Ejecutar varios servicios a la vez</option>
-                                <option value="foreach">Procesar cada elemento de una lista</option>
-                                <option value="subflow">Ejecutar otro flow</option>
-                                <option value="delay">Esperar antes de continuar</option>
-                                <option value="emit_event">Emitir un evento</option>
-                              </optgroup>
-                            </select>
-                          </label>
-                          <div class="hint">
-                            <strong>{{ stepTypeLabel(stepDraft.type) }}</strong
-                            ><br />
-                            {{ stepTypeSummary(stepDraft.type) }}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="grid">
+                    @for (field of flowInputs; track $index) {
+                      <div class="input-field-row">
+                        <label>
+                          Identificador
+                          <input [(ngModel)]="field.key" (ngModelChange)="onFlowInputsChanged()" placeholder="email" />
+                        </label>
                         <label>
                           Nombre visible
                           <input
-                            [(ngModel)]="stepDraft.name"
-                            (ngModelChange)="syncStepKey()"
-                            placeholder="Validar correo"
+                            [(ngModel)]="field.label"
+                            (ngModelChange)="onFlowInputsChanged()"
+                            placeholder="Correo"
                           />
                         </label>
                         <label>
-                          Guardar resultado como
-                          <input [(ngModel)]="stepDraft.outputKey" placeholder="validacion_correo" />
+                          Tipo
+                          <select [(ngModel)]="field.type" (ngModelChange)="onFlowInputsChanged()">
+                            <option value="text">Texto</option>
+                            <option value="email">Correo</option>
+                            <option value="number">Número</option>
+                            <option value="boolean">Sí / no</option>
+                            <option value="date">Fecha</option>
+                          </select>
                         </label>
-                      </div>
-
-                      <div class="guided-panel step-phase" id="flow-step-configure">
-                        @if (stepDraft.type === 'dynamic_service') {
-                          <div class="grid">
-                            <label>
-                              Servicio publicado
-                              <select [(ngModel)]="stepDraft.serviceKey" (ngModelChange)="onServiceSelected()">
-                                <option value="">Selecciona un servicio</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Timeout ms
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.timeoutMs"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Reintentos
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.retryAttempts"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Backoff ms
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.retryBackoffMs"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Si luego falla, compensar con
-                              <select
-                                [(ngModel)]="stepDraft.compensationServiceKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              >
-                                <option value="">No ejecutar compensación</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">
-                                    {{ service.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
-                          </div>
-                          @if (selectedService; as service) {
-                            <div class="hint">
-                              <strong>{{ service.name }}</strong
-                              ><br />
-                              Necesita:
-                              {{
-                                selectedServiceInputKeys.length
-                                  ? selectedServiceInputKeys.join(', ')
-                                  : 'ningún dato obligatorio detectado'
-                              }}.<br />
-                              Devuelve: {{ serviceResultLabel(service) }}.
-                            </div>
-                          } @else {
-                            <div class="hint">
-                              Selecciona un servicio para ver qué datos necesita y qué resultado entrega.
-                            </div>
-                          }
-                        } @else if (stepDraft.type === 'parallel') {
-                          <div class="section-heading">
-                            <div class="mini-title">Ejecuta varios servicios al mismo tiempo</div>
-                            <p class="meta">
-                              El paso espera todas las respuestas. Continúa solo si todas terminan correctamente.
-                            </p>
-                          </div>
-                          <div class="branch-list">
-                            @for (branch of stepDraft.parallelBranches; track $index; let index = $index) {
-                              <div class="branch-row">
-                                <label>
-                                  Nombre de la rama
-                                  <input
-                                    [(ngModel)]="branch.key"
-                                    (ngModelChange)="syncGuidedStepJson()"
-                                    placeholder="consulta_{{ index + 1 }}"
-                                  />
-                                </label>
-                                <label>
-                                  Servicio publicado
-                                  <select [(ngModel)]="branch.serviceKey" (ngModelChange)="syncGuidedStepJson()">
-                                    <option value="">Selecciona un servicio</option>
-                                    @for (service of publishedServices; track service.id) {
-                                      <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                    }
-                                  </select>
-                                </label>
-                                <button
-                                  type="button"
-                                  title="Quitar rama"
-                                  [disabled]="stepDraft.parallelBranches.length <= 2"
-                                  (click)="removeParallelBranch(index)"
-                                >
-                                  <i class="pi pi-trash" aria-hidden="true"></i>
-                                </button>
-                              </div>
-                            }
-                          </div>
-                          <button type="button" (click)="addParallelBranch()">
-                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar servicio paralelo
-                          </button>
-                        } @else if (stepDraft.type === 'foreach') {
-                          <div class="section-heading">
-                            <div class="mini-title">Repite un servicio por cada elemento</div>
-                            <p class="meta">
-                              Indica dónde está la lista. Cada elemento se entrega al servicio sin mantener conexiones
-                              abiertas.
-                            </p>
-                          </div>
-                          <div class="grid">
-                            <label>
-                              Ruta de la lista
-                              <input
-                                [(ngModel)]="stepDraft.foreachItemsPath"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.items"
-                              />
-                            </label>
-                            <label>
-                              Servicio publicado
-                              <select [(ngModel)]="stepDraft.foreachServiceKey" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="">Selecciona un servicio</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Nombre del elemento
-                              <input
-                                [(ngModel)]="stepDraft.foreachItemInputKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="item"
-                              />
-                            </label>
-                            <label>
-                              Ejecuciones simultáneas
-                              <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                [(ngModel)]="stepDraft.foreachConcurrency"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'subflow') {
-                          <div class="section-heading">
-                            <div class="mini-title">Reutiliza otro flow publicado</div>
-                            <p class="meta">El resultado del flow hijo queda disponible como salida de este paso.</p>
-                          </div>
-                          <label>
-                            Flow publicado
-                            <select [(ngModel)]="stepDraft.subflowKey" (ngModelChange)="syncGuidedStepJson()">
-                              <option value="">Selecciona un flow</option>
-                              @for (flow of publishedSubflows; track flow.id) {
-                                <option [value]="flow.key">{{ flow.name }} · {{ flow.key }}</option>
-                              }
-                            </select>
-                          </label>
-                        } @else if (stepDraft.type === 'delay') {
-                          <div class="section-heading">
-                            <div class="mini-title">Espera antes de continuar</div>
-                            <p class="meta">
-                              Para esperas breves dentro de una ejecución. El límite general se administra en Confisys.
-                            </p>
-                          </div>
-                          <label>
-                            Duración en milisegundos
-                            <input
-                              type="number"
-                              min="0"
-                              max="30000"
-                              [(ngModel)]="stepDraft.delayMs"
-                              (ngModelChange)="syncGuidedStepJson()"
-                            />
-                          </label>
-                        } @else if (stepDraft.type === 'emit_event') {
-                          <div class="section-heading">
-                            <div class="mini-title">Publica un evento durable</div>
-                            <p class="meta">
-                              Otros flows pueden reaccionar después aunque el proceso actual ya haya terminado.
-                            </p>
-                          </div>
-                          <div class="grid">
-                            <label>
-                              Nombre del evento
-                              <input
-                                [(ngModel)]="stepDraft.eventKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="pedido.aprobado"
-                              />
-                            </label>
-                            <label>
-                              Datos del evento
-                              <textarea
-                                [(ngModel)]="stepDraft.eventPayloadText"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              ></textarea>
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'decision') {
-                          <div class="section-heading">
-                            <div class="mini-title">Compara un dato</div>
-                            <p class="meta">Ejemplo: si <code>input.edad</code> es mayor o igual a <code>18</code>.</p>
-                          </div>
-                          <div class="grid">
-                            <label>
-                              Dato a revisar
-                              <input
-                                [(ngModel)]="stepDraft.decisionLeft"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.edad"
-                              />
-                            </label>
-                            <label>
-                              Comparación
-                              <select [(ngModel)]="stepDraft.decisionOperator" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="===">Es igual a</option>
-                                <option value="!==">Es diferente de</option>
-                                <option value=">">Es mayor que</option>
-                                <option value=">=">Es mayor o igual que</option>
-                                <option value="<">Es menor que</option>
-                                <option value="<=">Es menor o igual que</option>
-                                <option value="in">Contiene</option>
-                              </select>
-                            </label>
-                            <label>
-                              Tipo del valor
-                              <select [(ngModel)]="stepDraft.decisionRightType" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="text">Texto</option>
-                                <option value="number">Número</option>
-                                <option value="boolean">Sí / no</option>
-                                <option value="path">Otro dato del proceso</option>
-                              </select>
-                            </label>
-                            <label>
-                              Valor para comparar
-                              <input
-                                [(ngModel)]="stepDraft.decisionRight"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="18"
-                              />
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'formula') {
-                          <div class="section-heading">
-                            <div class="mini-title">Calcula un valor</div>
-                            <p class="meta">Usa rutas como <code>input.total</code> o números directos.</p>
-                          </div>
-                          <div class="grid">
-                            <label>
-                              Primer valor
-                              <input
-                                [(ngModel)]="stepDraft.formulaLeft"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.total"
-                              />
-                            </label>
-                            <label>
-                              Operación
-                              <select [(ngModel)]="stepDraft.formulaOperator" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="+">Sumar</option>
-                                <option value="-">Restar</option>
-                                <option value="*">Multiplicar</option>
-                                <option value="/">Dividir</option>
-                                <option value="%">Residuo</option>
-                              </select>
-                            </label>
-                            <label>
-                              Segundo valor
-                              <input
-                                [(ngModel)]="stepDraft.formulaRight"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="0.19"
-                              />
-                            </label>
-                            <label>
-                              Decimales
-                              <input
-                                type="number"
-                                min="0"
-                                max="10"
-                                [(ngModel)]="stepDraft.formulaPrecision"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'validation') {
-                          <div class="grid">
-                            <label>
-                              Campo
-                              <input
-                                [(ngModel)]="stepDraft.validationField"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.email"
-                              />
-                            </label>
-                            <label>
-                              Operador
-                              <select [(ngModel)]="stepDraft.validationOperator" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="required">Requerido</option>
-                                <option value="equals">Igual a</option>
-                                <option value="not_equals">Diferente de</option>
-                                <option value="not_empty">No vacío</option>
-                                <option value="greater_than">Mínimo</option>
-                                <option value="less_than">Máximo</option>
-                                <option value="contains">Contiene</option>
-                                <option value="email">Correo válido</option>
-                              </select>
-                            </label>
-                            @if (validationNeedsValue) {
-                              <label>
-                                Valor esperado
-                                <input
-                                  [(ngModel)]="stepDraft.validationValue"
-                                  (ngModelChange)="syncGuidedStepJson()"
-                                  placeholder="Valor de comparación"
-                                />
-                              </label>
-                            }
-                            <label>
-                              Mensaje si no cumple
-                              <input
-                                [(ngModel)]="stepDraft.validationMessage"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="El correo es obligatorio"
-                              />
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'response') {
-                          <div class="grid">
-                            <label>
-                              Estado
-                              <select [(ngModel)]="stepDraft.responseStatus" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="success">success</option>
-                                <option value="failed">failed</option>
-                                <option value="partial">partial</option>
-                              </select>
-                            </label>
-                            <label>
-                              Cuerpo de respuesta JSON
-                              <textarea
-                                [(ngModel)]="stepDraft.responseBodyText"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              ></textarea>
-                            </label>
-                          </div>
-                        } @else if (stepDraft.type === 'action') {
-                          <label>
-                            Acción declarativa
-                            <select [(ngModel)]="stepDraft.actionName" (ngModelChange)="syncGuidedStepJson()">
-                              <option value="create_record">create_record</option>
-                              <option value="show_modal">show_modal</option>
-                              <option value="navigate">navigate</option>
-                              <option value="queue_offline">queue_offline</option>
-                              <option value="upload_files">upload_files</option>
-                            </select>
-                          </label>
-                        } @else {
-                          <div class="hint">
-                            {{ stepTypeSummary(stepDraft.type) }}
-                          </div>
-                        }
-                      </div>
-
-                      @if (stepDraft.type === 'dynamic_service' || stepDraft.type === 'action') {
-                        <div class="guided-panel step-phase" id="flow-step-data">
-                          <div class="toolbar">
-                            <div>
-                              <div class="mini-title">Datos que recibe</div>
-                              <p class="meta">
-                                Elige el origen de cada dato. Los resultados de servicios anteriores aparecen
-                                automáticamente.
-                              </p>
-                            </div>
-                          </div>
-                          <app-flow-data-mapper
-                            [rows]="stepDraft.inputRows"
-                            [options]="dataSourceOptions"
-                            (rowsChange)="updateInputRows($event)"
-                          ></app-flow-data-mapper>
-                        </div>
-                      }
-
-                      <div class="guided-panel step-phase" id="flow-step-route">
-                        <div>
-                          <div class="mini-title">¿Qué ocurre después?</div>
-                          <p class="meta">
-                            Estas conexiones son las que usa el runner. Elige un destino explícito cuando no quieras
-                            seguir el orden visual.
-                          </p>
-                        </div>
-                        @if (stepDraft.type === 'decision') {
-                          <div class="grid">
-                            <label>
-                              Si se cumple
-                              <select [(ngModel)]="stepDraft.onTrueStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Si no se cumple
-                              <select [(ngModel)]="stepDraft.onFalseStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
-                          </div>
-                        } @else {
-                          <div class="grid">
-                            <label>
-                              {{
-                                stepDraft.type === 'dynamic_service'
-                                  ? 'Cuando el servicio responde bien'
-                                  : 'Cuando termina correctamente'
-                              }}
-                              <select [(ngModel)]="stepDraft.nextStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
-                            @if (
-                              stepDraft.type === 'validation' ||
-                              stepDraft.type === 'dynamic_service' ||
-                              stepDraft.type === 'parallel' ||
-                              stepDraft.type === 'foreach' ||
-                              stepDraft.type === 'subflow'
-                            ) {
-                              <label>
-                                {{
-                                  stepDraft.type === 'validation'
-                                    ? 'Cuando no cumple'
-                                    : 'Cuando la operación devuelve error'
-                                }}
-                                <select [(ngModel)]="stepDraft.onErrorStepKey">
-                                  <option value="">Detener y mostrar el error</option>
-                                  @for (step of availableTargetSteps; track step.id) {
-                                    <option [value]="step.key">
-                                      {{ step.name }}
-                                    </option>
-                                  }
-                                </select>
-                              </label>
-                            }
-                            @if (stepDraft.type === 'dynamic_service') {
-                              <label>
-                                Cuando supera el tiempo límite
-                                <select [(ngModel)]="stepDraft.onTimeoutStepKey">
-                                  <option value="">Usar la ruta de error o detener</option>
-                                  @for (step of availableTargetSteps; track step.id) {
-                                    <option [value]="step.key">
-                                      {{ step.name }}
-                                    </option>
-                                  }
-                                </select>
-                              </label>
-                            }
-                          </div>
-                        }
-                        <div class="connection-summary">
-                          <strong>{{ currentConnectionSummary }}</strong>
-                          <span class="meta">Guarda el paso para actualizar el mapa de ejecución.</span>
-                        </div>
-                      </div>
-
-                      <details class="guided-panel advanced-panel">
-                        <summary>
-                          Opciones avanzadas
-                          <span class="meta">Identificador, orden y JSON generado. Normalmente no necesitas abrirlo.</span>
-                        </summary>
-                        <div class="toolbar">
-                          <span class="meta">Los cambios manuales reemplazan la configuración generada por la guía.</span>
-                          <label style="display: inline-flex; align-items: center; gap: 6px;">
-                            <input type="checkbox" [(ngModel)]="stepDraft.advancedMode" />
-                            Editar JSON
-                          </label>
-                        </div>
-                        <div class="grid">
-                          <label>
-                            Identificador del paso
-                            <input [(ngModel)]="stepDraft.key" placeholder="validar_correo" />
-                          </label>
-                          <label>
-                            Orden
-                            <input type="number" [(ngModel)]="stepDraft.position" />
-                          </label>
-                        </div>
-                        <div class="grid">
-                          <label>
-                            Config JSON
-                            <textarea
-                              [(ngModel)]="stepDraft.configText"
-                              [disabled]="!stepDraft.advancedMode"
-                            ></textarea>
-                          </label>
-                          <label>
-                            Input map JSON
-                            <textarea
-                              [(ngModel)]="stepDraft.inputMapText"
-                              [disabled]="!stepDraft.advancedMode"
-                            ></textarea>
-                          </label>
-                        </div>
-                      </details>
-
-                      <div class="assistant-actions step-phase" id="flow-step-save">
-                        <span class="meta">
-                          {{
-                            stepHasChanges ? 'Hay cambios sin guardar.' : 'Paso guardado. Puedes probarlo o continuar.'
-                          }}
-                        </span>
-                        @if (stepDraft.id && stepHasChanges) {
-                          <button type="button" (click)="resetStepChanges()">Deshacer cambios</button>
-                        }
-                        <button
-                          type="button"
-                          (click)="saveStep('stay')"
-                          [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          <i class="pi pi-save" aria-hidden="true"></i> Guardar
+                        <label>
+                          Ejemplo
+                          <input
+                            [(ngModel)]="field.example"
+                            (ngModelChange)="onFlowInputsChanged()"
+                            placeholder="persona@example.com"
+                          />
+                        </label>
+                        <label class="inline-check">
+                          <input type="checkbox" [(ngModel)]="field.required" (ngModelChange)="onFlowInputsChanged()" />
+                          Obligatorio
+                        </label>
+                        <button type="button" title="Quitar dato" (click)="removeFlowInput($index)">
+                          <i class="pi pi-trash" aria-hidden="true"></i>
                         </button>
-                        <button
-                          class="primary"
-                          type="button"
-                          (click)="saveStep('test')"
-                          [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          <i class="pi pi-bolt" aria-hidden="true"></i> Guardar y probar
-                        </button>
-                        <button
-                          type="button"
-                          (click)="saveStep('next')"
-                          [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          Guardar y agregar siguiente
-                          <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                        </button>
-                        @if (stepDraft.id) {
-                          <button class="danger" type="button" (click)="deleteStep()" [disabled]="!canUpdate">
-                            Eliminar paso
-                          </button>
-                        }
                       </div>
-                    </div>
-                  </section>
-
-                  <section>
-                    <div class="section-heading">
-                      <h3>Cómo se activa cada paso</h3>
-                      <p class="meta">
-                        El runner empieza por el primer bloque y sigue la conexión producida por cada resultado.
-                      </p>
-                    </div>
-                    <div class="checklist">
-                      <div class="check-item">
-                        <span class="check-mark">1</span>
-                        <div>
-                          <strong>Entrada</strong
-                          ><span class="meta"
-                            >El proceso recibe los datos de prueba o de la pantalla que lo invoque.</span
-                          >
-                        </div>
+                    } @empty {
+                      <div class="hint">
+                        Sin datos definidos. Puedes agregarlos ahora o escribirlos manualmente durante las pruebas.
                       </div>
-                      <div class="check-item">
-                        <span class="check-mark">2</span>
-                        <div>
-                          <strong>Resultado y conexión</strong
-                          ><span class="meta">Éxito, error, timeout, Sí o No seleccionan el siguiente destino.</span>
-                        </div>
-                      </div>
-                      <div class="check-item">
-                        <span class="check-mark">3</span>
-                        <div>
-                          <strong>Respuesta</strong
-                          ><span class="meta"
-                            >El último bloque construye lo que recibirá la pantalla o integración.</span
-                          >
-                        </div>
-                      </div>
-                    </div>
-
-                    <details class="guided-panel">
-                      <summary><strong>Ver definición técnica</strong></summary>
-                      <pre>{{ selectedFlow.definitionPreview | json }}</pre>
-                    </details>
-
-                    <button
-                      type="button"
-                      style="margin-top: 12px;"
-                      (click)="activeStage = 'test'"
-                      [disabled]="selectedFlow.steps.length === 0"
-                    >
-                      Continuar a pruebas
-                    </button>
-                  </section>
-                </div>
-              }
-
-              @if (selectedFlow && activeStage === 'test') {
-                <section>
-                  <div class="section-heading">
-                    <h3>Prueba antes de publicar</h3>
-                    <p class="meta">
-                      Ejecuta el borrador completo o detente después de un paso para revisar qué recibió y qué produjo.
-                    </p>
+                    }
                   </div>
 
-                  <app-process-steps
-                    [items]="flowTestSteps"
-                    activeKey="execute"
-                    [compact]="true"
-                    [interactive]="false"
-                    ariaLabel="Recorrido de prueba"
-                  ></app-process-steps>
-
-                  <div class="grid">
-                    <div class="guided-panel">
-                      <div>
-                        <div class="mini-title">Datos de prueba</div>
-                        <p class="meta">Completa el formulario como lo haría una pantalla real.</p>
-                      </div>
-                      @for (field of flowInputs; track field.key) {
-                        <label>
-                          {{ field.label || field.key }}{{ field.required ? ' *' : '' }}
-                          @if (field.type === 'boolean') {
-                            <select
-                              [ngModel]="testInputValues[field.key]"
-                              (ngModelChange)="setTestInputValue(field, $event)"
-                            >
-                              <option [ngValue]="true">Sí</option>
-                              <option [ngValue]="false">No</option>
-                            </select>
-                          } @else {
-                            <input
-                              [type]="testInputType(field)"
-                              [ngModel]="testInputValues[field.key]"
-                              (ngModelChange)="setTestInputValue(field, $event)"
-                            />
-                          }
-                        </label>
-                      } @empty {
-                        <div class="hint">Este proceso no definió entradas. Puedes usar el JSON avanzado.</div>
-                      }
-                      <details>
-                        <summary><strong>JSON avanzado</strong></summary>
-                        <textarea [(ngModel)]="testInputText" (ngModelChange)="syncTestValuesFromJson()"></textarea>
-                      </details>
-                    </div>
-                    <div>
-                      <label>
-                        Probar hasta
-                        <select [(ngModel)]="previewThroughStepKey">
-                          <option value="">Todo el borrador</option>
-                          @for (step of selectedFlow.steps; track step.id) {
-                            <option [value]="step.key">{{ step.name }}</option>
-                          }
-                        </select>
-                      </label>
-                      <div class="callout" style="margin-top: 10px;">
-                        Esta prueba usa los pasos que estás editando. No necesitas crear ni publicar una versión.
-                      </div>
+                  <div class="row" style="margin-top: 14px;">
+                    @if (selectedFlow) {
+                      <button class="primary" type="button" (click)="saveFlow()" [disabled]="!canUpdate">
+                        Guardar cambios
+                      </button>
+                      <button type="button" (click)="saveFlow('build')">Guardar y continuar</button>
+                    } @else {
                       <button
                         class="primary"
                         type="button"
-                        (click)="previewFlow()"
-                        [disabled]="executing || selectedFlow.steps.length === 0"
+                        (click)="createFlow()"
+                        [disabled]="!canCreate || !canCreateDraft || creatingFlow"
                       >
-                        {{ executing ? 'Probando...' : 'Probar borrador' }}
+                        {{ creatingFlow ? 'Creando proceso...' : 'Crear proceso completo' }}
                       </button>
-                    </div>
+                    }
                   </div>
+                }
 
-                  @if (lastPreview) {
-                    <div class="run-card" style="margin-top: 14px;">
-                      <div class="toolbar">
-                        <strong>{{
-                          lastPreview.status === 'success' ? 'Prueba correcta' : 'La prueba encontró un problema'
-                        }}</strong>
-                        <span
-                          class="badge"
-                          [class.status-success]="lastPreview.status === 'success'"
-                          [class.status-failed]="lastPreview.status === 'failed'"
-                        >
-                          {{ lastPreview.status }}
-                        </span>
-                      </div>
-                      @if (lastPreview.error) {
-                        <div class="message">{{ previewErrorMessage }}</div>
+                @if (selectedFlow && activeStage === 'build') {
+                  @if (designerIssues.length) {
+                    <div class="issue-list">
+                      @for (issue of designerIssues; track issue) {
+                        <div class="issue">
+                          <i class="pi pi-info-circle" aria-hidden="true"></i>
+                          <span>{{ issue }}</span>
+                        </div>
                       }
-                      <div class="steps">
-                        @for (step of lastPreview.steps; track step.stepKey) {
-                          <div class="step-run">
-                            <strong>{{ step.stepName }}</strong>
-                            <span class="meta"
-                              >{{ stepTypeLabel(step.stepType) }} · {{ step.status }} ·
-                              {{ step.durationMs ?? 0 }} ms</span
-                            >
-                            <details>
-                              <summary>Ver entrada y resultado</summary>
-                              <pre>{{
-                                {
-                                  input: step.input,
-                                  output: step.output,
-                                  error: step.error
-                                } | json
-                              }}</pre>
-                            </details>
-                          </div>
-                        }
-                      </div>
-                      <details>
-                        <summary><strong>Resultado final</strong></summary>
-                        <pre>{{ lastPreview.output | json }}</pre>
-                      </details>
-                      <div class="row">
-                        @if (lastPreview.status === 'success') {
-                          <button class="primary" type="button" (click)="continueFromPreview()">
-                            Usar resultado y continuar
-                            <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                          </button>
-                        } @else {
-                          <button type="button" (click)="editFailedPreviewStep()">Corregir paso con error</button>
-                        }
-                      </div>
+                    </div>
+                  } @else {
+                    <div class="callout">
+                      El borrador está completo para probar. Usa “Probar hasta aquí” en cualquier paso o continúa a
+                      Pruebas.
                     </div>
                   }
-
-                  <details class="test-suite-panel" [open]="testCases.length > 0">
-                    <summary>
-                      <span>
-                        <strong>Pruebas repetibles</strong>
-                        <small>Opcional · guarda escenarios para ejecutarlos después de cada cambio</small>
-                      </span>
-                      <span class="badge">{{ testCases.length }}</span>
-                    </summary>
-                    <div class="test-studio">
-                      <section>
-                        <div class="toolbar">
-                          <div>
-                            <h3>Casos guardados</h3>
-                            <p class="meta">{{ testCases.length }} escenarios</p>
-                          </div>
-                          <button type="button" title="Nuevo caso" (click)="startNewTestCase()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                          </button>
+                  <div class="builder">
+                    <section>
+                      <div class="toolbar">
+                        <div>
+                          <h3>Recorrido</h3>
+                          <p class="meta">El mapa muestra exactamente qué resultado activa cada paso.</p>
                         </div>
-                        <div class="test-case-list">
-                          @for (testCase of testCases; track testCase.id) {
-                            <button
-                              class="test-case"
-                              type="button"
-                              [class.active]="testCase.id === testCaseDraft.id"
-                              (click)="selectTestCase(testCase)"
-                            >
-                              <strong>{{ testCase.name }}</strong>
-                              <span class="meta">
-                                {{ testCase.target === 'draft' ? 'Borrador' : 'Publicada' }}
-                                ·
-                                {{ testCase.assertions?.length ?? 0 }} comprobaciones
-                              </span>
-                              @if (testCase.lastResult) {
-                                <span
-                                  class="badge"
-                                  [class.status-success]="testCase.lastResult.passed"
-                                  [class.status-failed]="!testCase.lastResult.passed"
-                                >
-                                  {{ testCase.lastResult.passed ? 'PASÓ' : 'FALLÓ' }}
-                                </span>
-                              }
+                        <div class="row">
+                          <app-segmented-control
+                            [items]="buildViewOptions"
+                            [value]="buildView"
+                            (valueChange)="setBuildView($event)"
+                            ariaLabel="Vista del recorrido"
+                          ></app-segmented-control>
+                          <button type="button" (click)="startNewStep()">Agregar paso</button>
+                        </div>
+                      </div>
+
+                      @if (buildView === 'graph') {
+                        <app-flow-graph
+                          [steps]="selectedFlow.steps"
+                          [selectedStepId]="stepDraft.id"
+                          [statuses]="timelineStatuses"
+                          (selected)="selectTimelineStep($event)"
+                        ></app-flow-graph>
+                      } @else {
+                        <app-flow-timeline
+                          [steps]="selectedFlow.steps"
+                          [selectedStepId]="stepDraft.id"
+                          [statuses]="timelineStatuses"
+                          (selected)="selectTimelineStep($event)"
+                          (addAfter)="startNewStepAfter($event)"
+                          (testStep)="testTimelineStep($event)"
+                          (duplicateStep)="duplicateTimelineStep($event)"
+                        ></app-flow-timeline>
+                      }
+
+                      <div class="step-editor">
+                        <div class="step-guide">
+                          <app-process-steps
+                            [items]="stepEditorSteps"
+                            [activeKey]="stepEditorPhase"
+                            [compact]="true"
+                            (selected)="goToStepEditorPhase($event)"
+                            ariaLabel="Configuración del paso"
+                          ></app-process-steps>
+                          <app-workflow-guide
+                            [stepLabel]="stepEditorGuide.stepLabel"
+                            [title]="stepEditorGuide.title"
+                            [description]="stepEditorGuide.description"
+                            [tone]="stepEditorGuide.tone"
+                          >
+                            <button type="button" (click)="advanceStepEditor()">
+                              {{ stepEditorGuide.actionLabel }}
+                              <i class="pi pi-arrow-right" aria-hidden="true"></i>
                             </button>
-                          } @empty {
-                            <div class="hint">Guarda el primer escenario para repetirlo después de cada cambio.</div>
+                          </app-workflow-guide>
+                        </div>
+                        @if (stepDraftIssues.length) {
+                          <div class="issue-list">
+                            @for (issue of stepDraftIssues; track issue) {
+                              <div class="issue">
+                                <i class="pi pi-info-circle" aria-hidden="true"></i>
+                                <span>{{ issue }}</span>
+                              </div>
+                            }
+                          </div>
+                        }
+                        <div class="guided-panel step-phase" id="flow-step-purpose">
+                          <div>
+                            <div class="mini-title">
+                              {{ stepDraft.id ? 'Edita este paso' : '¿Qué debe ocurrir ahora?' }}
+                            </div>
+                            <p class="meta">
+                              Elige el bloque por su propósito. Solo aparecerán los datos necesarios para configurarlo.
+                            </p>
+                          </div>
+                          <div class="grid">
+                            <label>
+                              Tipo de paso
+                              <select [ngModel]="stepDraft.type" (ngModelChange)="setStepType($event)">
+                                <optgroup label="Operaciones comunes">
+                                  <option value="dynamic_service">Ejecutar un servicio</option>
+                                  <option value="validation">Validar un dato</option>
+                                  <option value="decision">Tomar una decisión</option>
+                                  <option value="formula">Calcular un valor</option>
+                                  <option value="response">Construir la respuesta</option>
+                                </optgroup>
+                                <optgroup label="Orquestación avanzada">
+                                  <option value="parallel">Ejecutar varios servicios a la vez</option>
+                                  <option value="foreach">Procesar cada elemento de una lista</option>
+                                  <option value="subflow">Ejecutar otro flow</option>
+                                  <option value="delay">Esperar antes de continuar</option>
+                                  <option value="emit_event">Emitir un evento</option>
+                                </optgroup>
+                              </select>
+                            </label>
+                            <div class="hint">
+                              <strong>{{ stepTypeLabel(stepDraft.type) }}</strong
+                              ><br />
+                              {{ stepTypeSummary(stepDraft.type) }}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="grid">
+                          <label>
+                            Nombre visible
+                            <input
+                              [(ngModel)]="stepDraft.name"
+                              (ngModelChange)="syncStepKey()"
+                              placeholder="Validar correo"
+                            />
+                          </label>
+                          <label>
+                            Guardar resultado como
+                            <input [(ngModel)]="stepDraft.outputKey" placeholder="validacion_correo" />
+                          </label>
+                        </div>
+
+                        <div class="guided-panel step-phase" id="flow-step-configure">
+                          @if (stepDraft.type === 'dynamic_service') {
+                            <div class="grid">
+                              <label>
+                                Servicio publicado
+                                <select [(ngModel)]="stepDraft.serviceKey" (ngModelChange)="onServiceSelected()">
+                                  <option value="">Selecciona un servicio</option>
+                                  @for (service of publishedServices; track service.id) {
+                                    <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
+                                  }
+                                </select>
+                              </label>
+                              <label>
+                                Timeout ms
+                                <input
+                                  type="number"
+                                  [(ngModel)]="stepDraft.timeoutMs"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                />
+                              </label>
+                              <label>
+                                Reintentos
+                                <input
+                                  type="number"
+                                  [(ngModel)]="stepDraft.retryAttempts"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                />
+                              </label>
+                              <label>
+                                Backoff ms
+                                <input
+                                  type="number"
+                                  [(ngModel)]="stepDraft.retryBackoffMs"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                />
+                              </label>
+                              <label>
+                                Si luego falla, compensar con
+                                <select
+                                  [(ngModel)]="stepDraft.compensationServiceKey"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
+                                  <option value="">No ejecutar compensación</option>
+                                  @for (service of publishedServices; track service.id) {
+                                    <option [value]="service.key">
+                                      {{ service.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                            </div>
+                            @if (selectedService; as service) {
+                              <div class="hint">
+                                <strong>{{ service.name }}</strong
+                                ><br />
+                                Necesita:
+                                {{
+                                  selectedServiceInputKeys.length
+                                    ? selectedServiceInputKeys.join(', ')
+                                    : 'ningún dato obligatorio detectado'
+                                }}.<br />
+                                Devuelve: {{ serviceResultLabel(service) }}.
+                              </div>
+                            } @else {
+                              <div class="hint">
+                                Selecciona un servicio para ver qué datos necesita y qué resultado entrega.
+                              </div>
+                            }
+                          } @else if (stepDraft.type === 'parallel') {
+                            <div class="section-heading">
+                              <div class="mini-title">Ejecuta varios servicios al mismo tiempo</div>
+                              <p class="meta">
+                                El paso espera todas las respuestas. Continúa solo si todas terminan correctamente.
+                              </p>
+                            </div>
+                            <div class="branch-list">
+                              @for (branch of stepDraft.parallelBranches; track $index; let index = $index) {
+                                <div class="branch-row">
+                                  <label>
+                                    Nombre de la rama
+                                    <input
+                                      [(ngModel)]="branch.key"
+                                      (ngModelChange)="syncGuidedStepJson()"
+                                      placeholder="consulta_{{ index + 1 }}"
+                                    />
+                                  </label>
+                                  <label>
+                                    Servicio publicado
+                                    <select [(ngModel)]="branch.serviceKey" (ngModelChange)="syncGuidedStepJson()">
+                                      <option value="">Selecciona un servicio</option>
+                                      @for (service of publishedServices; track service.id) {
+                                        <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
+                                      }
+                                    </select>
+                                  </label>
+                                  <button
+                                    type="button"
+                                    title="Quitar rama"
+                                    [disabled]="stepDraft.parallelBranches.length <= 2"
+                                    (click)="removeParallelBranch(index)"
+                                  >
+                                    <i class="pi pi-trash" aria-hidden="true"></i>
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                            <button type="button" (click)="addParallelBranch()">
+                              <i class="pi pi-plus" aria-hidden="true"></i> Agregar servicio paralelo
+                            </button>
+                          } @else if (stepDraft.type === 'foreach') {
+                            <div class="section-heading">
+                              <div class="mini-title">Repite un servicio por cada elemento</div>
+                              <p class="meta">
+                                Indica dónde está la lista. Cada elemento se entrega al servicio sin mantener conexiones
+                                abiertas.
+                              </p>
+                            </div>
+                            <div class="grid">
+                              <label>
+                                Ruta de la lista
+                                <input
+                                  [(ngModel)]="stepDraft.foreachItemsPath"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="input.items"
+                                />
+                              </label>
+                              <label>
+                                Servicio publicado
+                                <select
+                                  [(ngModel)]="stepDraft.foreachServiceKey"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
+                                  <option value="">Selecciona un servicio</option>
+                                  @for (service of publishedServices; track service.id) {
+                                    <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
+                                  }
+                                </select>
+                              </label>
+                              <label>
+                                Nombre del elemento
+                                <input
+                                  [(ngModel)]="stepDraft.foreachItemInputKey"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="item"
+                                />
+                              </label>
+                              <label>
+                                Ejecuciones simultáneas
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  [(ngModel)]="stepDraft.foreachConcurrency"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                />
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'subflow') {
+                            <div class="section-heading">
+                              <div class="mini-title">Reutiliza otro flow publicado</div>
+                              <p class="meta">El resultado del flow hijo queda disponible como salida de este paso.</p>
+                            </div>
+                            <label>
+                              Flow publicado
+                              <select [(ngModel)]="stepDraft.subflowKey" (ngModelChange)="syncGuidedStepJson()">
+                                <option value="">Selecciona un flow</option>
+                                @for (flow of publishedSubflows; track flow.id) {
+                                  <option [value]="flow.key">{{ flow.name }} · {{ flow.key }}</option>
+                                }
+                              </select>
+                            </label>
+                          } @else if (stepDraft.type === 'delay') {
+                            <div class="section-heading">
+                              <div class="mini-title">Espera antes de continuar</div>
+                              <p class="meta">
+                                Para esperas breves dentro de una ejecución. El límite general se administra en
+                                Confisys.
+                              </p>
+                            </div>
+                            <label>
+                              Duración en milisegundos
+                              <input
+                                type="number"
+                                min="0"
+                                max="30000"
+                                [(ngModel)]="stepDraft.delayMs"
+                                (ngModelChange)="syncGuidedStepJson()"
+                              />
+                            </label>
+                          } @else if (stepDraft.type === 'emit_event') {
+                            <div class="section-heading">
+                              <div class="mini-title">Publica un evento durable</div>
+                              <p class="meta">
+                                Otros flows pueden reaccionar después aunque el proceso actual ya haya terminado.
+                              </p>
+                            </div>
+                            <div class="grid">
+                              <label>
+                                Nombre del evento
+                                <input
+                                  [(ngModel)]="stepDraft.eventKey"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="pedido.aprobado"
+                                />
+                              </label>
+                              <label>
+                                Datos del evento
+                                <textarea
+                                  [(ngModel)]="stepDraft.eventPayloadText"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                ></textarea>
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'decision') {
+                            <div class="section-heading">
+                              <div class="mini-title">Compara un dato</div>
+                              <p class="meta">
+                                Ejemplo: si <code>input.edad</code> es mayor o igual a <code>18</code>.
+                              </p>
+                            </div>
+                            <div class="grid">
+                              <label>
+                                Dato a revisar
+                                <input
+                                  [(ngModel)]="stepDraft.decisionLeft"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="input.edad"
+                                />
+                              </label>
+                              <label>
+                                Comparación
+                                <select [(ngModel)]="stepDraft.decisionOperator" (ngModelChange)="syncGuidedStepJson()">
+                                  <option value="===">Es igual a</option>
+                                  <option value="!==">Es diferente de</option>
+                                  <option value=">">Es mayor que</option>
+                                  <option value=">=">Es mayor o igual que</option>
+                                  <option value="<">Es menor que</option>
+                                  <option value="<=">Es menor o igual que</option>
+                                  <option value="in">Contiene</option>
+                                </select>
+                              </label>
+                              <label>
+                                Tipo del valor
+                                <select
+                                  [(ngModel)]="stepDraft.decisionRightType"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
+                                  <option value="text">Texto</option>
+                                  <option value="number">Número</option>
+                                  <option value="boolean">Sí / no</option>
+                                  <option value="path">Otro dato del proceso</option>
+                                </select>
+                              </label>
+                              <label>
+                                Valor para comparar
+                                <input
+                                  [(ngModel)]="stepDraft.decisionRight"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="18"
+                                />
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'formula') {
+                            <div class="section-heading">
+                              <div class="mini-title">Calcula un valor</div>
+                              <p class="meta">Usa rutas como <code>input.total</code> o números directos.</p>
+                            </div>
+                            <div class="grid">
+                              <label>
+                                Primer valor
+                                <input
+                                  [(ngModel)]="stepDraft.formulaLeft"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="input.total"
+                                />
+                              </label>
+                              <label>
+                                Operación
+                                <select [(ngModel)]="stepDraft.formulaOperator" (ngModelChange)="syncGuidedStepJson()">
+                                  <option value="+">Sumar</option>
+                                  <option value="-">Restar</option>
+                                  <option value="*">Multiplicar</option>
+                                  <option value="/">Dividir</option>
+                                  <option value="%">Residuo</option>
+                                </select>
+                              </label>
+                              <label>
+                                Segundo valor
+                                <input
+                                  [(ngModel)]="stepDraft.formulaRight"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="0.19"
+                                />
+                              </label>
+                              <label>
+                                Decimales
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  [(ngModel)]="stepDraft.formulaPrecision"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                />
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'validation') {
+                            <div class="grid">
+                              <label>
+                                Campo
+                                <input
+                                  [(ngModel)]="stepDraft.validationField"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="input.email"
+                                />
+                              </label>
+                              <label>
+                                Operador
+                                <select
+                                  [(ngModel)]="stepDraft.validationOperator"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
+                                  <option value="required">Requerido</option>
+                                  <option value="equals">Igual a</option>
+                                  <option value="not_equals">Diferente de</option>
+                                  <option value="not_empty">No vacío</option>
+                                  <option value="greater_than">Mínimo</option>
+                                  <option value="less_than">Máximo</option>
+                                  <option value="contains">Contiene</option>
+                                  <option value="email">Correo válido</option>
+                                </select>
+                              </label>
+                              @if (validationNeedsValue) {
+                                <label>
+                                  Valor esperado
+                                  <input
+                                    [(ngModel)]="stepDraft.validationValue"
+                                    (ngModelChange)="syncGuidedStepJson()"
+                                    placeholder="Valor de comparación"
+                                  />
+                                </label>
+                              }
+                              <label>
+                                Mensaje si no cumple
+                                <input
+                                  [(ngModel)]="stepDraft.validationMessage"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                  placeholder="El correo es obligatorio"
+                                />
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'response') {
+                            <div class="grid">
+                              <label>
+                                Estado
+                                <select [(ngModel)]="stepDraft.responseStatus" (ngModelChange)="syncGuidedStepJson()">
+                                  <option value="success">success</option>
+                                  <option value="failed">failed</option>
+                                  <option value="partial">partial</option>
+                                </select>
+                              </label>
+                              <label>
+                                Cuerpo de respuesta JSON
+                                <textarea
+                                  [(ngModel)]="stepDraft.responseBodyText"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                ></textarea>
+                              </label>
+                            </div>
+                          } @else if (stepDraft.type === 'action') {
+                            <label>
+                              Acción declarativa
+                              <select [(ngModel)]="stepDraft.actionName" (ngModelChange)="syncGuidedStepJson()">
+                                <option value="create_record">create_record</option>
+                                <option value="show_modal">show_modal</option>
+                                <option value="navigate">navigate</option>
+                                <option value="queue_offline">queue_offline</option>
+                                <option value="upload_files">upload_files</option>
+                              </select>
+                            </label>
+                          } @else {
+                            <div class="hint">
+                              {{ stepTypeSummary(stepDraft.type) }}
+                            </div>
                           }
+                        </div>
+
+                        @if (stepDraft.type === 'dynamic_service' || stepDraft.type === 'action') {
+                          <div class="guided-panel step-phase" id="flow-step-data">
+                            <div class="toolbar">
+                              <div>
+                                <div class="mini-title">Datos que recibe</div>
+                                <p class="meta">
+                                  Elige el origen de cada dato. Los resultados de servicios anteriores aparecen
+                                  automáticamente.
+                                </p>
+                              </div>
+                            </div>
+                            <app-flow-data-mapper
+                              [rows]="stepDraft.inputRows"
+                              [options]="dataSourceOptions"
+                              (rowsChange)="updateInputRows($event)"
+                            ></app-flow-data-mapper>
+                          </div>
+                        }
+
+                        <div class="guided-panel step-phase" id="flow-step-route">
+                          <div>
+                            <div class="mini-title">¿Qué ocurre después?</div>
+                            <p class="meta">
+                              Estas conexiones son las que usa el runner. Elige un destino explícito cuando no quieras
+                              seguir el orden visual.
+                            </p>
+                          </div>
+                          @if (stepDraft.type === 'decision') {
+                            <div class="grid">
+                              <label>
+                                Si se cumple
+                                <select [(ngModel)]="stepDraft.onTrueStepKey">
+                                  <option value="">Siguiente paso de la lista</option>
+                                  @for (step of availableTargetSteps; track step.id) {
+                                    <option [value]="step.key">
+                                      {{ step.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                              <label>
+                                Si no se cumple
+                                <select [(ngModel)]="stepDraft.onFalseStepKey">
+                                  <option value="">Siguiente paso de la lista</option>
+                                  @for (step of availableTargetSteps; track step.id) {
+                                    <option [value]="step.key">
+                                      {{ step.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                            </div>
+                          } @else {
+                            <div class="grid">
+                              <label>
+                                {{
+                                  stepDraft.type === 'dynamic_service'
+                                    ? 'Cuando el servicio responde bien'
+                                    : 'Cuando termina correctamente'
+                                }}
+                                <select [(ngModel)]="stepDraft.nextStepKey">
+                                  <option value="">Siguiente paso de la lista</option>
+                                  @for (step of availableTargetSteps; track step.id) {
+                                    <option [value]="step.key">
+                                      {{ step.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                              @if (
+                                stepDraft.type === 'validation' ||
+                                stepDraft.type === 'dynamic_service' ||
+                                stepDraft.type === 'parallel' ||
+                                stepDraft.type === 'foreach' ||
+                                stepDraft.type === 'subflow'
+                              ) {
+                                <label>
+                                  {{
+                                    stepDraft.type === 'validation'
+                                      ? 'Cuando no cumple'
+                                      : 'Cuando la operación devuelve error'
+                                  }}
+                                  <select [(ngModel)]="stepDraft.onErrorStepKey">
+                                    <option value="">Detener y mostrar el error</option>
+                                    @for (step of availableTargetSteps; track step.id) {
+                                      <option [value]="step.key">
+                                        {{ step.name }}
+                                      </option>
+                                    }
+                                  </select>
+                                </label>
+                              }
+                              @if (stepDraft.type === 'dynamic_service') {
+                                <label>
+                                  Cuando supera el tiempo límite
+                                  <select [(ngModel)]="stepDraft.onTimeoutStepKey">
+                                    <option value="">Usar la ruta de error o detener</option>
+                                    @for (step of availableTargetSteps; track step.id) {
+                                      <option [value]="step.key">
+                                        {{ step.name }}
+                                      </option>
+                                    }
+                                  </select>
+                                </label>
+                              }
+                            </div>
+                          }
+                          <div class="connection-summary">
+                            <strong>{{ currentConnectionSummary }}</strong>
+                            <span class="meta">Guarda el paso para actualizar el mapa de ejecución.</span>
+                          </div>
+                        </div>
+
+                        <details class="guided-panel advanced-panel">
+                          <summary>
+                            Opciones avanzadas
+                            <span class="meta"
+                              >Identificador, orden y JSON generado. Normalmente no necesitas abrirlo.</span
+                            >
+                          </summary>
+                          <div class="toolbar">
+                            <span class="meta"
+                              >Los cambios manuales reemplazan la configuración generada por la guía.</span
+                            >
+                            <label style="display: inline-flex; align-items: center; gap: 6px;">
+                              <input type="checkbox" [(ngModel)]="stepDraft.advancedMode" />
+                              Editar JSON
+                            </label>
+                          </div>
+                          <div class="grid">
+                            <label>
+                              Identificador del paso
+                              <input [(ngModel)]="stepDraft.key" placeholder="validar_correo" />
+                            </label>
+                            <label>
+                              Orden
+                              <input type="number" [(ngModel)]="stepDraft.position" />
+                            </label>
+                          </div>
+                          <div class="grid">
+                            <label>
+                              Config JSON
+                              <textarea
+                                [(ngModel)]="stepDraft.configText"
+                                [disabled]="!stepDraft.advancedMode"
+                              ></textarea>
+                            </label>
+                            <label>
+                              Input map JSON
+                              <textarea
+                                [(ngModel)]="stepDraft.inputMapText"
+                                [disabled]="!stepDraft.advancedMode"
+                              ></textarea>
+                            </label>
+                          </div>
+                        </details>
+
+                        <div class="assistant-actions step-phase" id="flow-step-save">
+                          <span class="meta">
+                            {{
+                              stepHasChanges
+                                ? 'Hay cambios sin guardar.'
+                                : 'Paso guardado. Puedes probarlo o continuar.'
+                            }}
+                          </span>
+                          @if (stepDraft.id && stepHasChanges) {
+                            <button type="button" (click)="resetStepChanges()">Deshacer cambios</button>
+                          }
+                          <button
+                            type="button"
+                            (click)="saveStep('stay')"
+                            [disabled]="!canUpdate || stepDraftIssues.length > 0"
+                          >
+                            <i class="pi pi-save" aria-hidden="true"></i> Guardar
+                          </button>
+                          <button
+                            class="primary"
+                            type="button"
+                            (click)="saveStep('test')"
+                            [disabled]="!canUpdate || stepDraftIssues.length > 0"
+                          >
+                            <i class="pi pi-bolt" aria-hidden="true"></i> Guardar y probar
+                          </button>
+                          <button
+                            type="button"
+                            (click)="saveStep('next')"
+                            [disabled]="!canUpdate || stepDraftIssues.length > 0"
+                          >
+                            Guardar y agregar siguiente
+                            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                          </button>
+                          @if (stepDraft.id) {
+                            <button class="danger" type="button" (click)="deleteStep()" [disabled]="!canUpdate">
+                              Eliminar paso
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </section>
+
+                    <section>
+                      <div class="section-heading">
+                        <h3>Cómo se activa cada paso</h3>
+                        <p class="meta">
+                          El runner empieza por el primer bloque y sigue la conexión producida por cada resultado.
+                        </p>
+                      </div>
+                      <div class="checklist">
+                        <div class="check-item">
+                          <span class="check-mark">1</span>
+                          <div>
+                            <strong>Entrada</strong
+                            ><span class="meta"
+                              >El proceso recibe los datos de prueba o de la pantalla que lo invoque.</span
+                            >
+                          </div>
+                        </div>
+                        <div class="check-item">
+                          <span class="check-mark">2</span>
+                          <div>
+                            <strong>Resultado y conexión</strong
+                            ><span class="meta">Éxito, error, timeout, Sí o No seleccionan el siguiente destino.</span>
+                          </div>
+                        </div>
+                        <div class="check-item">
+                          <span class="check-mark">3</span>
+                          <div>
+                            <strong>Respuesta</strong
+                            ><span class="meta"
+                              >El último bloque construye lo que recibirá la pantalla o integración.</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+
+                      <details class="guided-panel">
+                        <summary><strong>Ver definición técnica</strong></summary>
+                        <pre>{{ selectedFlow.definitionPreview | json }}</pre>
+                      </details>
+
+                      <button
+                        type="button"
+                        style="margin-top: 12px;"
+                        (click)="activeStage = 'test'"
+                        [disabled]="selectedFlow.steps.length === 0"
+                      >
+                        Continuar a pruebas
+                      </button>
+                    </section>
+                  </div>
+                }
+
+                @if (selectedFlow && activeStage === 'test') {
+                  <section>
+                    <div class="section-heading">
+                      <h3>Prueba antes de publicar</h3>
+                      <p class="meta">
+                        Ejecuta el borrador completo o detente después de un paso para revisar qué recibió y qué
+                        produjo.
+                      </p>
+                    </div>
+
+                    <app-process-steps
+                      [items]="flowTestSteps"
+                      activeKey="execute"
+                      [compact]="true"
+                      [interactive]="false"
+                      ariaLabel="Recorrido de prueba"
+                    ></app-process-steps>
+
+                    <div class="grid">
+                      <div class="guided-panel">
+                        <div>
+                          <div class="mini-title">Datos de prueba</div>
+                          <p class="meta">Completa el formulario como lo haría una pantalla real.</p>
+                        </div>
+                        @for (field of flowInputs; track field.key) {
+                          <label>
+                            {{ field.label || field.key }}{{ field.required ? ' *' : '' }}
+                            @if (field.type === 'boolean') {
+                              <select
+                                [ngModel]="testInputValues[field.key]"
+                                (ngModelChange)="setTestInputValue(field, $event)"
+                              >
+                                <option [ngValue]="true">Sí</option>
+                                <option [ngValue]="false">No</option>
+                              </select>
+                            } @else {
+                              <input
+                                [type]="testInputType(field)"
+                                [ngModel]="testInputValues[field.key]"
+                                (ngModelChange)="setTestInputValue(field, $event)"
+                              />
+                            }
+                          </label>
+                        } @empty {
+                          <div class="hint">Este proceso no definió entradas. Puedes usar el JSON avanzado.</div>
+                        }
+                        <details>
+                          <summary><strong>JSON avanzado</strong></summary>
+                          <textarea [(ngModel)]="testInputText" (ngModelChange)="syncTestValuesFromJson()"></textarea>
+                        </details>
+                      </div>
+                      <div>
+                        <label>
+                          Probar hasta
+                          <select [(ngModel)]="previewThroughStepKey">
+                            <option value="">Todo el borrador</option>
+                            @for (step of selectedFlow.steps; track step.id) {
+                              <option [value]="step.key">{{ step.name }}</option>
+                            }
+                          </select>
+                        </label>
+                        <div class="callout" style="margin-top: 10px;">
+                          Esta prueba usa los pasos que estás editando. No necesitas crear ni publicar una versión.
                         </div>
                         <button
                           class="primary"
                           type="button"
-                          style="margin-top: 10px; width: 100%;"
-                          (click)="runTestSuite()"
-                          [disabled]="runningTests || !testCases.length"
+                          (click)="previewFlow()"
+                          [disabled]="executing || selectedFlow.steps.length === 0"
                         >
-                          <i class="pi pi-play" aria-hidden="true"></i>
-                          {{ runningTests ? 'Ejecutando suite...' : 'Ejecutar todos' }}
+                          {{ executing ? 'Probando...' : 'Probar borrador' }}
                         </button>
-                      </section>
-
-                      <section>
-                        <div class="section-heading">
-                          <h3>
-                            {{ testCaseDraft.id ? 'Editar caso de prueba' : 'Nuevo caso de prueba' }}
-                          </h3>
-                          <p class="meta">
-                            Define la entrada y comprueba campos concretos de la respuesta sin leer todo el JSON.
-                          </p>
-                        </div>
-                        <div class="grid">
-                          <label>
-                            Nombre del escenario
-                            <input [(ngModel)]="testCaseDraft.name" placeholder="Solicitud válida" />
-                          </label>
-                          <label>
-                            Probar
-                            <select [(ngModel)]="testCaseDraft.target">
-                              <option value="draft">Borrador actual</option>
-                              <option value="published">Versión publicada</option>
-                            </select>
-                          </label>
-                          <label>
-                            Resultado esperado
-                            <select [(ngModel)]="testCaseDraft.expectedStatus">
-                              <option value="success">Debe terminar correctamente</option>
-                              <option value="failed">Debe fallar de forma controlada</option>
-                            </select>
-                          </label>
-                          @if (testCaseDraft.target === 'draft') {
-                            <label>
-                              Ejecutar hasta
-                              <select [(ngModel)]="testCaseDraft.throughStepKey">
-                                <option value="">Todo el proceso</option>
-                                @for (step of selectedFlow.steps; track step.id) {
-                                  <option [value]="step.key">{{ step.name }}</option>
-                                }
-                              </select>
-                            </label>
-                          }
-                        </div>
-                        <label style="margin-top: 10px;">
-                          Entrada JSON
-                          <textarea [(ngModel)]="testCaseDraft.inputText"></textarea>
-                        </label>
-
-                        <div class="toolbar" style="margin-top: 12px;">
-                          <div>
-                            <div class="mini-title">Comprobaciones</div>
-                            <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
-                          </div>
-                          <button type="button" (click)="addTestAssertion()">
-                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar
-                          </button>
-                        </div>
-                        @for (assertion of testCaseDraft.assertions; track $index) {
-                          <div class="assertion-row">
-                            <label>
-                              Campo de respuesta
-                              <input [(ngModel)]="assertion.path" placeholder="output.body.ok" />
-                            </label>
-                            <label>
-                              Comprobar
-                              <select [(ngModel)]="assertion.operator">
-                                <option value="equals">Es igual a</option>
-                                <option value="not_equals">Es diferente de</option>
-                                <option value="contains">Contiene</option>
-                                <option value="exists">Existe</option>
-                                <option value="truthy">Es verdadero</option>
-                                <option value="greater_than">Es mayor que</option>
-                                <option value="less_than">Es menor que</option>
-                              </select>
-                            </label>
-                            <label>
-                              Valor esperado
-                              <input
-                                [(ngModel)]="assertion.expectedText"
-                                [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
-                                placeholder="true"
-                              />
-                            </label>
-                            <button type="button" title="Quitar comprobación" (click)="removeTestAssertion($index)">
-                              <i class="pi pi-trash" aria-hidden="true"></i>
-                            </button>
-                          </div>
-                        } @empty {
-                          <div class="hint">
-                            Sin comprobaciones: solo se validará si el proceso termina como esperas.
-                          </div>
-                        }
-
-                        <details class="guided-panel">
-                          <summary>
-                            <strong>Comparar fragmento de salida JSON</strong>
-                          </summary>
-                          <p class="meta">
-                            Opcional. Solo se comparan las propiedades escritas; las propiedades adicionales se ignoran.
-                          </p>
-                          <textarea
-                            [(ngModel)]="testCaseDraft.expectedOutputText"
-                            placeholder='{"body":{"ok":true}}'
-                          ></textarea>
-                        </details>
-
-                        <div class="row" style="margin-top: 12px;">
-                          <button class="primary" type="button" (click)="saveTestCase()" [disabled]="runningTests">
-                            <i class="pi pi-save" aria-hidden="true"></i>
-                            {{ testCaseDraft.id ? 'Guardar caso' : 'Crear caso' }}
-                          </button>
-                          @if (testCaseDraft.id) {
-                            <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
-                              <i class="pi pi-play" aria-hidden="true"></i> Ejecutar caso
-                            </button>
-                            <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
-                              Eliminar
-                            </button>
-                          }
-                        </div>
-
-                        @if (testSuiteResult) {
-                          <div class="test-result-bar" style="margin-top: 12px;">
-                            <div>
-                              <strong>{{ testSuiteResult.total }}</strong
-                              ><span class="meta">Ejecutados</span>
-                            </div>
-                            <div>
-                              <strong>{{ testSuiteResult.passed }}</strong
-                              ><span class="meta">Correctos</span>
-                            </div>
-                            <div>
-                              <strong>{{ testSuiteResult.failed }}</strong
-                              ><span class="meta">Fallidos</span>
-                            </div>
-                          </div>
-                        }
-                        @if (lastTestResult) {
-                          <div class="run-card" style="margin-top: 12px;">
-                            <strong>{{ lastTestResult.passed ? 'Caso correcto' : 'Caso con diferencias' }}</strong>
-                            @for (
-                              assertion of lastTestResult.assertionResults;
-                              track assertion.path + assertion.operator
-                            ) {
-                              <div class="step-run">
-                                <span>{{ assertion.path }} · {{ assertion.operator }}</span>
-                                <span class="meta">{{
-                                  assertion.passed
-                                    ? 'Cumple'
-                                    : 'Esperado: ' +
-                                      (assertion.expected | json) +
-                                      ' · recibido: ' +
-                                      (assertion.actual | json)
-                                }}</span>
-                              </div>
-                            }
-                            <details>
-                              <summary>Ver resultado completo</summary>
-                              <pre>{{ lastTestResult.actual | json }}</pre>
-                            </details>
-                          </div>
-                        }
-                      </section>
-                    </div>
-                  </details>
-
-                  <div class="row" style="margin-top: 14px;">
-                    <button type="button" (click)="activeStage = 'build'">Volver a pasos</button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="activeStage = 'publish'"
-                      [disabled]="lastPreview?.status !== 'success'"
-                    >
-                      Continuar a publicar
-                    </button>
-                  </div>
-                </section>
-              }
-
-              @if (selectedFlow && activeStage === 'publish') {
-                <section>
-                  <div class="section-heading">
-                    <h3>Versiona y publica</h3>
-                    <p class="meta">
-                      Una versión congela el borrador actual. Publicarla la deja disponible para pantallas, eventos e
-                      integraciones.
-                    </p>
-                  </div>
-
-                  <div class="checklist">
-                    <div class="check-item">
-                      <span class="check-mark">{{ designerIssues.length === 0 ? '✓' : '!' }}</span>
-                      <div>
-                        <strong>Configuración completa</strong>
-                        <span class="meta">{{
-                          designerIssues.length === 0
-                            ? selectedFlow.steps.length + ' pasos listos.'
-                            : designerIssues.length + ' puntos necesitan atención.'
-                        }}</span>
                       </div>
                     </div>
-                    <div class="check-item">
-                      <span class="check-mark">{{ lastPreview?.status === 'success' ? '✓' : '!' }}</span>
-                      <div>
-                        <strong>Prueba del borrador</strong
-                        ><span class="meta">{{
-                          lastPreview?.status === 'success'
-                            ? 'La última prueba terminó bien.'
-                            : 'Recomendado: vuelve a Probar antes de publicar.'
-                        }}</span>
-                      </div>
-                    </div>
-                    <div class="check-item">
-                      <span class="check-mark">{{ selectedFlow.latestVersion ? '✓' : '3' }}</span>
-                      <div>
-                        <strong>Versión</strong
-                        ><span class="meta">{{
-                          selectedFlow.latestVersion
-                            ? 'Última versión: v' +
-                              selectedFlow.latestVersion.version +
-                              ' (' +
-                              selectedFlow.latestVersion.status +
-                              ')'
-                            : 'Todavía no has creado una versión.'
-                        }}</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div class="row">
-                    <button
-                      type="button"
-                      (click)="createVersion()"
-                      [disabled]="!canPublish || designerIssues.length > 0"
-                    >
-                      1. Crear versión
-                    </button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="publishLatest()"
-                      [disabled]="
-                        !canPublish || !selectedFlow.latestVersion || selectedFlow.latestVersion.status === 'published'
-                      "
-                    >
-                      2. Publicar versión
-                    </button>
-                    <button
-                      type="button"
-                      (click)="executeFlow()"
-                      [disabled]="executing || !selectedFlow.publishedVersion"
-                    >
-                      Probar versión publicada
-                    </button>
-                  </div>
-
-                  @if (selectedFlow.publishedVersion) {
-                    <div class="message">
-                      Activa: versión {{ selectedFlow.publishedVersion.version }}. Este proceso ya puede llamarse con la
-                      key <code>{{ selectedFlow.key }}</code
-                      >.
-                    </div>
-                  }
-
-                  @if (lastRun) {
-                    <div class="run-card">
-                      <strong>Última ejecución publicada: {{ lastRun.status }}</strong>
-                      <pre>{{ lastRun | json }}</pre>
-                    </div>
-                  }
-
-                  @if (selectedFlow.publishedVersion) {
-                    <div class="runtime-grid">
-                      <section>
+                    @if (lastPreview) {
+                      <div class="run-card" style="margin-top: 14px;">
                         <div class="toolbar">
-                          <div>
-                            <h3>Activadores</h3>
-                            <p class="meta">Define cuándo se encola este proceso.</p>
-                          </div>
-                          <button type="button" title="Nuevo activador" (click)="startNewTrigger()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                          </button>
+                          <strong>{{
+                            lastPreview.status === 'success' ? 'Prueba correcta' : 'La prueba encontró un problema'
+                          }}</strong>
+                          <span
+                            class="badge"
+                            [class.status-success]="lastPreview.status === 'success'"
+                            [class.status-failed]="lastPreview.status === 'failed'"
+                          >
+                            {{ lastPreview.status }}
+                          </span>
                         </div>
-
-                        <div class="runtime-list">
-                          @for (trigger of triggers; track trigger.id) {
-                            <button
-                              class="runtime-item"
-                              type="button"
-                              [class.selected]="trigger.id === triggerDraft.id"
-                              (click)="selectTrigger(trigger)"
-                            >
-                              <span class="toolbar" style="margin: 0;">
-                                <strong>{{ triggerTypeLabel(trigger.type) }}</strong>
-                                <span class="runtime-state" [class.connected]="trigger.active">
-                                  {{ trigger.active ? 'Activo' : 'Pausado' }}
-                                </span>
-                              </span>
-                              <span class="meta">{{ trigger.key }}</span>
-                              @if (trigger.type === 'schedule' && trigger.nextFireAt) {
-                                <span class="meta">Próxima ejecución: {{ trigger.nextFireAt }}</span>
-                              }
-                            </button>
-                          } @empty {
-                            <div class="hint">Sin activadores. El flow solo se ejecuta manualmente.</div>
+                        @if (lastPreview.error) {
+                          <div class="message">{{ previewErrorMessage }}</div>
+                        }
+                        <div class="steps">
+                          @for (step of lastPreview.steps; track step.stepKey) {
+                            <div class="step-run">
+                              <strong>{{ step.stepName }}</strong>
+                              <span class="meta"
+                                >{{ stepTypeLabel(step.stepType) }} · {{ step.status }} ·
+                                {{ step.durationMs ?? 0 }} ms</span
+                              >
+                              <details>
+                                <summary>Ver entrada y resultado</summary>
+                                <pre>{{
+                                  {
+                                    input: step.input,
+                                    output: step.output,
+                                    error: step.error
+                                  } | json
+                                }}</pre>
+                              </details>
+                            </div>
                           }
                         </div>
+                        <details>
+                          <summary><strong>Resultado final</strong></summary>
+                          <pre>{{ lastPreview.output | json }}</pre>
+                        </details>
+                        <div class="row">
+                          @if (lastPreview.status === 'success') {
+                            <button class="primary" type="button" (click)="continueFromPreview()">
+                              Usar resultado y continuar
+                              <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                            </button>
+                          } @else {
+                            <button type="button" (click)="editFailedPreviewStep()">Corregir paso con error</button>
+                          }
+                        </div>
+                      </div>
+                    }
 
-                        <div class="guided-panel">
+                    <details class="test-suite-panel" [open]="testCases.length > 0">
+                      <summary>
+                        <span>
+                          <strong>Pruebas repetibles</strong>
+                          <small>Opcional · guarda escenarios para ejecutarlos después de cada cambio</small>
+                        </span>
+                        <span class="badge">{{ testCases.length }}</span>
+                      </summary>
+                      <div class="test-studio">
+                        <section>
+                          <div class="toolbar">
+                            <div>
+                              <h3>Casos guardados</h3>
+                              <p class="meta">{{ testCases.length }} escenarios</p>
+                            </div>
+                            <button type="button" title="Nuevo caso" (click)="startNewTestCase()">
+                              <i class="pi pi-plus" aria-hidden="true"></i>
+                            </button>
+                          </div>
+                          <div class="test-case-list">
+                            @for (testCase of testCases; track testCase.id) {
+                              <button
+                                class="test-case"
+                                type="button"
+                                [class.active]="testCase.id === testCaseDraft.id"
+                                (click)="selectTestCase(testCase)"
+                              >
+                                <strong>{{ testCase.name }}</strong>
+                                <span class="meta">
+                                  {{ testCase.target === 'draft' ? 'Borrador' : 'Publicada' }}
+                                  ·
+                                  {{ testCase.assertions?.length ?? 0 }} comprobaciones
+                                </span>
+                                @if (testCase.lastResult) {
+                                  <span
+                                    class="badge"
+                                    [class.status-success]="testCase.lastResult.passed"
+                                    [class.status-failed]="!testCase.lastResult.passed"
+                                  >
+                                    {{ testCase.lastResult.passed ? 'PASÓ' : 'FALLÓ' }}
+                                  </span>
+                                }
+                              </button>
+                            } @empty {
+                              <div class="hint">Guarda el primer escenario para repetirlo después de cada cambio.</div>
+                            }
+                          </div>
+                          <button
+                            class="primary"
+                            type="button"
+                            style="margin-top: 10px; width: 100%;"
+                            (click)="runTestSuite()"
+                            [disabled]="runningTests || !testCases.length"
+                          >
+                            <i class="pi pi-play" aria-hidden="true"></i>
+                            {{ runningTests ? 'Ejecutando suite...' : 'Ejecutar todos' }}
+                          </button>
+                        </section>
+
+                        <section>
+                          <div class="section-heading">
+                            <h3>
+                              {{ testCaseDraft.id ? 'Editar caso de prueba' : 'Nuevo caso de prueba' }}
+                            </h3>
+                            <p class="meta">
+                              Define la entrada y comprueba campos concretos de la respuesta sin leer todo el JSON.
+                            </p>
+                          </div>
                           <div class="grid">
                             <label>
-                              Tipo
-                              <select [(ngModel)]="triggerDraft.type" (ngModelChange)="onTriggerTypeChanged()">
-                                <option value="manual">Manual</option>
-                                <option value="http">Webhook HTTP</option>
-                                <option value="record_event">Evento de record</option>
-                                <option value="form_submit">Envío de formulario</option>
-                                <option value="schedule">Programado</option>
+                              Nombre del escenario
+                              <input [(ngModel)]="testCaseDraft.name" placeholder="Solicitud válida" />
+                            </label>
+                            <label>
+                              Probar
+                              <select [(ngModel)]="testCaseDraft.target">
+                                <option value="draft">Borrador actual</option>
+                                <option value="published">Versión publicada</option>
                               </select>
                             </label>
                             <label>
-                              Clave
-                              <input [(ngModel)]="triggerDraft.key" placeholder="record.created" />
+                              Resultado esperado
+                              <select [(ngModel)]="testCaseDraft.expectedStatus">
+                                <option value="success">Debe terminar correctamente</option>
+                                <option value="failed">Debe fallar de forma controlada</option>
+                              </select>
                             </label>
-                            @if (triggerDraft.type === 'http') {
+                            @if (testCaseDraft.target === 'draft') {
                               <label>
-                                {{ triggerDraft.id ? 'Nuevo secreto (opcional)' : 'Secreto del webhook' }}
-                                <input
-                                  type="password"
-                                  minlength="16"
-                                  [(ngModel)]="triggerDraft.secret"
-                                  autocomplete="new-password"
-                                  placeholder="Mínimo 16 caracteres"
-                                />
-                              </label>
-                            }
-                            @if (triggerDraft.type === 'schedule') {
-                              <label>
-                                Ejecutar cada (segundos)
-                                <input type="number" min="10" [(ngModel)]="triggerDraft.intervalSeconds" />
-                              </label>
-                            }
-                            @if (
-                              triggerDraft.type === 'record_event' ||
-                              triggerDraft.type === 'form_submit' ||
-                              triggerDraft.type === 'http'
-                            ) {
-                              <label>
-                                Forma de entrada
-                                <select [(ngModel)]="triggerDraft.inputMode">
-                                  <option value="payload">Usar payload directamente</option>
-                                  <option value="envelope">Conservar sobre del evento</option>
+                                Ejecutar hasta
+                                <select [(ngModel)]="testCaseDraft.throughStepKey">
+                                  <option value="">Todo el proceso</option>
+                                  @for (step of selectedFlow.steps; track step.id) {
+                                    <option [value]="step.key">{{ step.name }}</option>
+                                  }
                                 </select>
                               </label>
                             }
-                            <label class="inline-check">
-                              <input type="checkbox" [(ngModel)]="triggerDraft.active" />
-                              Activador activo
-                            </label>
                           </div>
-                          @if (triggerDraft.type === 'schedule') {
-                            <label>
-                              Entrada programada JSON
-                              <textarea [(ngModel)]="triggerDraft.inputText"></textarea>
-                            </label>
-                          }
-                          @if (triggerDraft.id && triggerDraft.type === 'http') {
-                            <div class="code-line">
-                              {{ webhookUrl(triggerDraft.key) }}
+                          <label style="margin-top: 10px;">
+                            Entrada JSON
+                            <textarea [(ngModel)]="testCaseDraft.inputText"></textarea>
+                          </label>
+
+                          <div class="toolbar" style="margin-top: 12px;">
+                            <div>
+                              <div class="mini-title">Comprobaciones</div>
+                              <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
+                            </div>
+                            <button type="button" (click)="addTestAssertion()">
+                              <i class="pi pi-plus" aria-hidden="true"></i> Agregar
+                            </button>
+                          </div>
+                          @for (assertion of testCaseDraft.assertions; track $index) {
+                            <div class="assertion-row">
+                              <label>
+                                Campo de respuesta
+                                <input [(ngModel)]="assertion.path" placeholder="output.body.ok" />
+                              </label>
+                              <label>
+                                Comprobar
+                                <select [(ngModel)]="assertion.operator">
+                                  <option value="equals">Es igual a</option>
+                                  <option value="not_equals">Es diferente de</option>
+                                  <option value="contains">Contiene</option>
+                                  <option value="exists">Existe</option>
+                                  <option value="truthy">Es verdadero</option>
+                                  <option value="greater_than">Es mayor que</option>
+                                  <option value="less_than">Es menor que</option>
+                                </select>
+                              </label>
+                              <label>
+                                Valor esperado
+                                <input
+                                  [(ngModel)]="assertion.expectedText"
+                                  [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
+                                  placeholder="true"
+                                />
+                              </label>
+                              <button type="button" title="Quitar comprobación" (click)="removeTestAssertion($index)">
+                                <i class="pi pi-trash" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          } @empty {
+                            <div class="hint">
+                              Sin comprobaciones: solo se validará si el proceso termina como esperas.
                             </div>
                           }
-                          <div class="row">
-                            <button class="primary" type="button" (click)="saveTrigger()" [disabled]="savingTrigger">
+
+                          <details class="guided-panel">
+                            <summary>
+                              <strong>Comparar fragmento de salida JSON</strong>
+                            </summary>
+                            <p class="meta">
+                              Opcional. Solo se comparan las propiedades escritas; las propiedades adicionales se
+                              ignoran.
+                            </p>
+                            <textarea
+                              [(ngModel)]="testCaseDraft.expectedOutputText"
+                              placeholder='{"body":{"ok":true}}'
+                            ></textarea>
+                          </details>
+
+                          <div class="row" style="margin-top: 12px;">
+                            <button class="primary" type="button" (click)="saveTestCase()" [disabled]="runningTests">
                               <i class="pi pi-save" aria-hidden="true"></i>
-                              {{ triggerDraft.id ? 'Guardar activador' : 'Crear activador' }}
+                              {{ testCaseDraft.id ? 'Guardar caso' : 'Crear caso' }}
                             </button>
-                            @if (triggerDraft.id && triggerDraft.type === 'manual') {
-                              <button type="button" (click)="fireManualTrigger()" [disabled]="savingTrigger">
-                                <i class="pi pi-play" aria-hidden="true"></i>
-                                Disparar ahora
+                            @if (testCaseDraft.id) {
+                              <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
+                                <i class="pi pi-play" aria-hidden="true"></i> Ejecutar caso
                               </button>
-                            }
-                            @if (triggerDraft.id) {
-                              <button class="danger" type="button" (click)="deleteTrigger()" [disabled]="savingTrigger">
+                              <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
                                 Eliminar
                               </button>
                             }
                           </div>
-                        </div>
-                      </section>
 
-                      <section>
-                        <div class="toolbar">
-                          <div>
-                            <h3>Cola y ejecuciones</h3>
-                            <span class="runtime-state" [class.connected]="flowLive.connected()">
-                              {{ flowLive.connected() ? 'Actualización en vivo' : 'Reconectando' }}
-                            </span>
-                          </div>
-                          <div class="row">
-                            <button type="button" title="Actualizar cola" (click)="loadJobs()">
-                              <i class="pi pi-refresh" aria-hidden="true"></i>
-                            </button>
-                            <button class="primary" type="button" (click)="enqueueFlow()" [disabled]="executing">
-                              <i class="pi pi-send" aria-hidden="true"></i> Encolar prueba
-                            </button>
-                          </div>
-                        </div>
-                        @if (lastLiveEvent) {
-                          <div class="callout">
-                            {{ liveEventLabel(lastLiveEvent) }}
-                          </div>
-                        }
-                        <div class="runtime-list">
-                          @for (job of flowJobs; track job.id) {
-                            <div class="runtime-item">
-                              <div class="toolbar" style="margin: 0;">
-                                <strong>{{ job.triggerKey || job.triggerType }}</strong>
-                                <span
-                                  class="runtime-state"
-                                  [class.success]="job.status === 'success'"
-                                  [class.running]="job.status === 'running'"
-                                  [class.queued]="job.status === 'queued' || job.status === 'waiting'"
-                                  [class.failed]="job.status === 'failed'"
-                                  [class.cancelled]="job.status === 'cancelled'"
-                                  >{{ job.status }}</span
-                                >
+                          @if (testSuiteResult) {
+                            <div class="test-result-bar" style="margin-top: 12px;">
+                              <div>
+                                <strong>{{ testSuiteResult.total }}</strong
+                                ><span class="meta">Ejecutados</span>
                               </div>
-                              <span class="meta">
-                                Intento {{ job.attempts }}/{{ job.maxAttempts }} ·
-                                {{ job.createdAt }}
-                              </span>
-                              @if (job.error) {
-                                <span class="message">{{ job.error }}</span>
-                              }
-                              <div class="row">
-                                @if (job.status === 'queued' || job.status === 'waiting') {
-                                  <button type="button" (click)="cancelJob(job)">Cancelar</button>
-                                }
-                                @if (job.status === 'failed' || job.status === 'cancelled') {
-                                  <button type="button" (click)="retryJob(job)">Reintentar</button>
-                                }
+                              <div>
+                                <strong>{{ testSuiteResult.passed }}</strong
+                                ><span class="meta">Correctos</span>
+                              </div>
+                              <div>
+                                <strong>{{ testSuiteResult.failed }}</strong
+                                ><span class="meta">Fallidos</span>
                               </div>
                             </div>
-                          } @empty {
-                            <div class="hint">La cola está vacía. Encola una prueba o activa un trigger.</div>
                           }
-                        </div>
-                      </section>
+                          @if (lastTestResult) {
+                            <div class="run-card" style="margin-top: 12px;">
+                              <strong>{{ lastTestResult.passed ? 'Caso correcto' : 'Caso con diferencias' }}</strong>
+                              @for (
+                                assertion of lastTestResult.assertionResults;
+                                track assertion.path + assertion.operator
+                              ) {
+                                <div class="step-run">
+                                  <span>{{ assertion.path }} · {{ assertion.operator }}</span>
+                                  <span class="meta">{{
+                                    assertion.passed
+                                      ? 'Cumple'
+                                      : 'Esperado: ' +
+                                        (assertion.expected | json) +
+                                        ' · recibido: ' +
+                                        (assertion.actual | json)
+                                  }}</span>
+                                </div>
+                              }
+                              <details>
+                                <summary>Ver resultado completo</summary>
+                                <pre>{{ lastTestResult.actual | json }}</pre>
+                              </details>
+                            </div>
+                          }
+                        </section>
+                      </div>
+                    </details>
+
+                    <div class="row" style="margin-top: 14px;">
+                      <button type="button" (click)="activeStage = 'build'">Volver a pasos</button>
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="activeStage = 'publish'"
+                        [disabled]="lastPreview?.status !== 'success'"
+                      >
+                        Continuar a publicar
+                      </button>
                     </div>
-                  }
-                </section>
-              }
-            </section>
-          }
-        </ng-container>
-      </app-designer-workspace>
-    </main>
+                  </section>
+                }
+
+                @if (selectedFlow && activeStage === 'publish') {
+                  <section>
+                    <div class="section-heading">
+                      <h3>Versiona y publica</h3>
+                      <p class="meta">
+                        Una versión congela el borrador actual. Publicarla la deja disponible para pantallas, eventos e
+                        integraciones.
+                      </p>
+                    </div>
+
+                    <div class="checklist">
+                      <div class="check-item">
+                        <span class="check-mark">{{ designerIssues.length === 0 ? '✓' : '!' }}</span>
+                        <div>
+                          <strong>Configuración completa</strong>
+                          <span class="meta">{{
+                            designerIssues.length === 0
+                              ? selectedFlow.steps.length + ' pasos listos.'
+                              : designerIssues.length + ' puntos necesitan atención.'
+                          }}</span>
+                        </div>
+                      </div>
+                      <div class="check-item">
+                        <span class="check-mark">{{ lastPreview?.status === 'success' ? '✓' : '!' }}</span>
+                        <div>
+                          <strong>Prueba del borrador</strong
+                          ><span class="meta">{{
+                            lastPreview?.status === 'success'
+                              ? 'La última prueba terminó bien.'
+                              : 'Recomendado: vuelve a Probar antes de publicar.'
+                          }}</span>
+                        </div>
+                      </div>
+                      <div class="check-item">
+                        <span class="check-mark">{{ selectedFlow.latestVersion ? '✓' : '3' }}</span>
+                        <div>
+                          <strong>Versión</strong
+                          ><span class="meta">{{
+                            selectedFlow.latestVersion
+                              ? 'Última versión: v' +
+                                selectedFlow.latestVersion.version +
+                                ' (' +
+                                selectedFlow.latestVersion.status +
+                                ')'
+                              : 'Todavía no has creado una versión.'
+                          }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <button
+                        type="button"
+                        (click)="createVersion()"
+                        [disabled]="!canPublish || designerIssues.length > 0"
+                      >
+                        1. Crear versión
+                      </button>
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="publishLatest()"
+                        [disabled]="
+                          !canPublish ||
+                          !selectedFlow.latestVersion ||
+                          selectedFlow.latestVersion.status === 'published'
+                        "
+                      >
+                        2. Publicar versión
+                      </button>
+                      <button
+                        type="button"
+                        (click)="executeFlow()"
+                        [disabled]="executing || !selectedFlow.publishedVersion"
+                      >
+                        Probar versión publicada
+                      </button>
+                    </div>
+
+                    @if (selectedFlow.publishedVersion) {
+                      <div class="message">
+                        Activa: versión {{ selectedFlow.publishedVersion.version }}. Este proceso ya puede llamarse con
+                        la key <code>{{ selectedFlow.key }}</code
+                        >.
+                      </div>
+                    }
+
+                    @if (lastRun) {
+                      <div class="run-card">
+                        <strong>Última ejecución publicada: {{ lastRun.status }}</strong>
+                        <pre>{{ lastRun | json }}</pre>
+                      </div>
+                    }
+
+                    @if (selectedFlow.publishedVersion) {
+                      <div class="runtime-grid">
+                        <section>
+                          <div class="toolbar">
+                            <div>
+                              <h3>Activadores</h3>
+                              <p class="meta">Define cuándo se encola este proceso.</p>
+                            </div>
+                            <button type="button" title="Nuevo activador" (click)="startNewTrigger()">
+                              <i class="pi pi-plus" aria-hidden="true"></i>
+                            </button>
+                          </div>
+
+                          <div class="runtime-list">
+                            @for (trigger of triggers; track trigger.id) {
+                              <button
+                                class="runtime-item"
+                                type="button"
+                                [class.selected]="trigger.id === triggerDraft.id"
+                                (click)="selectTrigger(trigger)"
+                              >
+                                <span class="toolbar" style="margin: 0;">
+                                  <strong>{{ triggerTypeLabel(trigger.type) }}</strong>
+                                  <span class="runtime-state" [class.connected]="trigger.active">
+                                    {{ trigger.active ? 'Activo' : 'Pausado' }}
+                                  </span>
+                                </span>
+                                <span class="meta">{{ trigger.key }}</span>
+                                @if (trigger.type === 'schedule' && trigger.nextFireAt) {
+                                  <span class="meta">Próxima ejecución: {{ trigger.nextFireAt }}</span>
+                                }
+                              </button>
+                            } @empty {
+                              <div class="hint">Sin activadores. El flow solo se ejecuta manualmente.</div>
+                            }
+                          </div>
+
+                          <div class="guided-panel">
+                            <div class="grid">
+                              <label>
+                                Tipo
+                                <select [(ngModel)]="triggerDraft.type" (ngModelChange)="onTriggerTypeChanged()">
+                                  <option value="manual">Manual</option>
+                                  <option value="http">Webhook HTTP</option>
+                                  <option value="record_event">Evento de record</option>
+                                  <option value="form_submit">Envío de formulario</option>
+                                  <option value="schedule">Programado</option>
+                                </select>
+                              </label>
+                              <label>
+                                Clave
+                                <input [(ngModel)]="triggerDraft.key" placeholder="record.created" />
+                              </label>
+                              @if (triggerDraft.type === 'http') {
+                                <label>
+                                  {{ triggerDraft.id ? 'Nuevo secreto (opcional)' : 'Secreto del webhook' }}
+                                  <input
+                                    type="password"
+                                    minlength="16"
+                                    [(ngModel)]="triggerDraft.secret"
+                                    autocomplete="new-password"
+                                    placeholder="Mínimo 16 caracteres"
+                                  />
+                                </label>
+                              }
+                              @if (triggerDraft.type === 'schedule') {
+                                <label>
+                                  Ejecutar cada (segundos)
+                                  <input type="number" min="10" [(ngModel)]="triggerDraft.intervalSeconds" />
+                                </label>
+                              }
+                              @if (
+                                triggerDraft.type === 'record_event' ||
+                                triggerDraft.type === 'form_submit' ||
+                                triggerDraft.type === 'http'
+                              ) {
+                                <label>
+                                  Forma de entrada
+                                  <select [(ngModel)]="triggerDraft.inputMode">
+                                    <option value="payload">Usar payload directamente</option>
+                                    <option value="envelope">Conservar sobre del evento</option>
+                                  </select>
+                                </label>
+                              }
+                              <label class="inline-check">
+                                <input type="checkbox" [(ngModel)]="triggerDraft.active" />
+                                Activador activo
+                              </label>
+                            </div>
+                            @if (triggerDraft.type === 'schedule') {
+                              <label>
+                                Entrada programada JSON
+                                <textarea [(ngModel)]="triggerDraft.inputText"></textarea>
+                              </label>
+                            }
+                            @if (triggerDraft.id && triggerDraft.type === 'http') {
+                              <div class="code-line">
+                                {{ webhookUrl(triggerDraft.key) }}
+                              </div>
+                            }
+                            <div class="row">
+                              <button class="primary" type="button" (click)="saveTrigger()" [disabled]="savingTrigger">
+                                <i class="pi pi-save" aria-hidden="true"></i>
+                                {{ triggerDraft.id ? 'Guardar activador' : 'Crear activador' }}
+                              </button>
+                              @if (triggerDraft.id && triggerDraft.type === 'manual') {
+                                <button type="button" (click)="fireManualTrigger()" [disabled]="savingTrigger">
+                                  <i class="pi pi-play" aria-hidden="true"></i>
+                                  Disparar ahora
+                                </button>
+                              }
+                              @if (triggerDraft.id) {
+                                <button
+                                  class="danger"
+                                  type="button"
+                                  (click)="deleteTrigger()"
+                                  [disabled]="savingTrigger"
+                                >
+                                  Eliminar
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        </section>
+
+                        <section>
+                          <div class="toolbar">
+                            <div>
+                              <h3>Cola y ejecuciones</h3>
+                              <span class="runtime-state" [class.connected]="flowLive.connected()">
+                                {{ flowLive.connected() ? 'Actualización en vivo' : 'Reconectando' }}
+                              </span>
+                            </div>
+                            <div class="row">
+                              <button type="button" title="Actualizar cola" (click)="loadJobs()">
+                                <i class="pi pi-refresh" aria-hidden="true"></i>
+                              </button>
+                              <button class="primary" type="button" (click)="enqueueFlow()" [disabled]="executing">
+                                <i class="pi pi-send" aria-hidden="true"></i> Encolar prueba
+                              </button>
+                            </div>
+                          </div>
+                          @if (lastLiveEvent) {
+                            <div class="callout">
+                              {{ liveEventLabel(lastLiveEvent) }}
+                            </div>
+                          }
+                          <div class="runtime-list">
+                            @for (job of flowJobs; track job.id) {
+                              <div class="runtime-item">
+                                <div class="toolbar" style="margin: 0;">
+                                  <strong>{{ job.triggerKey || job.triggerType }}</strong>
+                                  <span
+                                    class="runtime-state"
+                                    [class.success]="job.status === 'success'"
+                                    [class.running]="job.status === 'running'"
+                                    [class.queued]="job.status === 'queued' || job.status === 'waiting'"
+                                    [class.failed]="job.status === 'failed'"
+                                    [class.cancelled]="job.status === 'cancelled'"
+                                    >{{ job.status }}</span
+                                  >
+                                </div>
+                                <span class="meta">
+                                  Intento {{ job.attempts }}/{{ job.maxAttempts }} ·
+                                  {{ job.createdAt }}
+                                </span>
+                                @if (job.error) {
+                                  <span class="message">{{ job.error }}</span>
+                                }
+                                <div class="row">
+                                  @if (job.status === 'queued' || job.status === 'waiting') {
+                                    <button type="button" (click)="cancelJob(job)">Cancelar</button>
+                                  }
+                                  @if (job.status === 'failed' || job.status === 'cancelled') {
+                                    <button type="button" (click)="retryJob(job)">Reintentar</button>
+                                  }
+                                </div>
+                              </div>
+                            } @empty {
+                              <div class="hint">La cola está vacía. Encola una prueba o activa un trigger.</div>
+                            }
+                          </div>
+                        </section>
+                      </div>
+                    }
+                  </section>
+                }
+              </section>
+            }
+          </ng-container>
+        </app-designer-workspace>
+      </main>
+    </ion-content>
   `
 })
 export class FlowsPageComponent implements OnInit, OnDestroy {
@@ -2769,31 +2782,37 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     key: FlowStarter;
     label: string;
     summary: string;
+    icon: string;
   }> = [
     {
       key: 'validate',
       label: 'Validar datos',
-      summary: 'Comprueba campos y decide si puede continuar.'
+      summary: 'Comprueba campos y decide si puede continuar.',
+      icon: 'pi pi-check-circle'
     },
     {
       key: 'service',
       label: 'Usar un servicio',
-      summary: 'Consulta o modifica datos mediante un servicio publicado.'
+      summary: 'Consulta o modifica datos mediante un servicio publicado.',
+      icon: 'pi pi-bolt'
     },
     {
       key: 'multi_service',
       label: 'Encadenar servicios',
-      summary: 'Conecta tantos servicios como necesite el proceso.'
+      summary: 'Conecta tantos servicios como necesite el proceso.',
+      icon: 'pi pi-share-alt'
     },
     {
       key: 'calculate',
       label: 'Calcular un valor',
-      summary: 'Realiza operaciones matemáticas con los datos recibidos.'
+      summary: 'Realiza operaciones matemáticas con los datos recibidos.',
+      icon: 'pi pi-calculator'
     },
     {
       key: 'blank',
       label: 'Comenzar vacío',
-      summary: 'Construye el recorrido sin una sugerencia inicial.'
+      summary: 'Construye el recorrido sin una sugerencia inicial.',
+      icon: 'pi pi-plus'
     }
   ];
   flows: FlowItem[] = [];
@@ -2808,6 +2827,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
   activeStage: FlowStage = 'describe';
   stepEditorPhase: StepEditorPhase = 'purpose';
   buildView: 'graph' | 'list' = 'graph';
+  readonly buildViewOptions: SegmentedControlItem[] = [
+    { key: 'graph', label: 'Mapa', icon: 'pi pi-share-alt' },
+    { key: 'list', label: 'Lista', icon: 'pi pi-list' }
+  ];
   viewingTrash = false;
   selectedStarter: FlowStarter = 'validate';
   starterServiceKeys = ['', ''];
@@ -3713,6 +3736,12 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.activeStage = stage;
     if (stage === 'build' && !this.stepDraft.id && this.selectedFlow?.steps.length) {
       this.selectStep(this.selectedFlow.steps[0]);
+    }
+  }
+
+  setBuildView(value: string) {
+    if (value === 'graph' || value === 'list') {
+      this.buildView = value;
     }
   }
 

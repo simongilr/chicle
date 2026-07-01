@@ -6,7 +6,16 @@ import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
+import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
+import {
+  SegmentedControlComponent,
+  SegmentedControlItem
+} from '../../shared/segmented-control/segmented-control.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 
 type TableScope = 'tenant' | 'current_tenant' | 'global';
 type TableSource = 'entity' | 'schema';
@@ -101,7 +110,20 @@ interface SchemaHistoryResponse {
 @Component({
   selector: 'app-database-page',
   standalone: true,
-  imports: [DialogModule, FormsModule, IonContent, JsonPipe, MainNavComponent, TableModule],
+  imports: [
+    DialogModule,
+    FormsModule,
+    IonContent,
+    JsonPipe,
+    MainNavComponent,
+    TableModule,
+    ModuleHeaderComponent,
+    CatalogHeaderComponent,
+    CatalogItemComponent,
+    SectionHeaderComponent,
+    SegmentedControlComponent,
+    StatusNoticeComponent
+  ],
   styles: [
     `
       ion-content {
@@ -117,7 +139,6 @@ interface SchemaHistoryResponse {
       }
 
       .panel,
-      .intro,
       .browser {
         border: 1px solid #d9e2ec;
         border-radius: 8px;
@@ -125,16 +146,8 @@ interface SchemaHistoryResponse {
         box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
       }
 
-      .intro,
       .panel {
         padding: 18px;
-      }
-
-      .intro {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
       }
 
       h1,
@@ -177,7 +190,6 @@ interface SchemaHistoryResponse {
         white-space: nowrap;
       }
 
-      .mode-tabs,
       .toolbar,
       .modal-actions,
       .designer-actions {
@@ -185,12 +197,6 @@ interface SchemaHistoryResponse {
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
-      }
-
-      .mode-tabs button.active {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
       }
 
       .browser {
@@ -209,48 +215,6 @@ interface SchemaHistoryResponse {
         border-right: 1px solid #d9e2ec;
         background: #fbfcfe;
         padding: 14px;
-      }
-
-      .table-button {
-        display: grid;
-        gap: 6px;
-        align-content: center;
-        width: 100%;
-        min-height: 64px;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        background: transparent;
-        color: #173b5f;
-        padding: 11px 12px;
-        text-align: left;
-        font: inherit;
-        line-height: 1.25;
-        cursor: pointer;
-      }
-
-      .table-button:focus {
-        outline: none;
-      }
-
-      .table-button:focus-visible {
-        outline: 2px solid #1554a2;
-        outline-offset: 2px;
-      }
-
-      .table-button.active {
-        border-color: #b7cce2;
-        background: #eaf3fc;
-      }
-
-      .table-button strong,
-      .table-button .meta {
-        display: block;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .table-button .meta {
-        line-height: 1.35;
       }
 
       .workspace {
@@ -510,13 +474,11 @@ interface SchemaHistoryResponse {
       <app-main-nav contextLabel="Base de datos" />
 
       <main class="shell">
-        <section class="intro">
-          <div>
-            <h1>Base de datos</h1>
-            <p>Visor de datos y diseñador controlado para tablas custom. Sin SQL libre ni cambios sobre tablas core.</p>
-          </div>
-          <span class="badge">Owner/Admin</span>
-        </section>
+        <app-module-header
+          title="Base de datos"
+          description="Visor de datos y diseñador controlado para tablas custom. Sin SQL libre ni cambios sobre tablas core."
+          badge="Owner/Admin"
+        ></app-module-header>
 
         @if (!auth.state.isOwnerOrAdmin) {
           <section class="panel">
@@ -524,42 +486,41 @@ interface SchemaHistoryResponse {
             <p>Este módulo solo está disponible para usuarios owner o admin.</p>
           </section>
         } @else {
-          <nav class="mode-tabs" aria-label="Modos de base de datos">
-            <button type="button" [class.active]="mode === 'data'" (click)="mode = 'data'">Datos</button>
-            <button type="button" [class.active]="mode === 'designer'" (click)="mode = 'designer'">Diseñador</button>
-            <button type="button" [class.active]="mode === 'history'" (click)="openHistory()">Historial</button>
-          </nav>
+          <app-segmented-control
+            [items]="modeOptions"
+            [value]="mode"
+            (valueChange)="setMode($event)"
+            ariaLabel="Modos de base de datos"
+          ></app-segmented-control>
 
           @if (mode === 'data') {
             <section class="browser">
               <aside class="tables">
-                <h2>Tablas</h2>
+                <app-catalog-header
+                  title="Tablas"
+                  [summary]="tables.length + (tables.length === 1 ? ' tabla' : ' tablas')"
+                ></app-catalog-header>
                 @if (loadingTables) {
                   <p class="meta">Cargando tablas...</p>
                 } @else if (tablesError) {
-                  <div class="notice error">
-                    <strong>No se pudieron cargar las tablas</strong>
+                  <app-status-notice title="No se pudieron cargar las tablas" tone="error">
                     <span>{{ tablesError }}</span>
-                    <button type="button" (click)="loadTables()">Reintentar</button>
-                  </div>
+                    <button notice-action type="button" (click)="loadTables()">Reintentar</button>
+                  </app-status-notice>
                 } @else if (!tables.length) {
-                  <div class="notice">
-                    <strong>No hay tablas visibles</strong>
+                  <app-status-notice title="No hay tablas visibles">
                     <span>El backend respondió correctamente, pero no encontró tablas habilitadas.</span>
-                  </div>
+                  </app-status-notice>
                 }
                 @for (table of tables; track table.name) {
-                  <button
-                    class="table-button"
-                    type="button"
-                    [class.active]="selectedTable?.name === table.name"
-                    (click)="selectTable(table)"
-                  >
-                    <strong>{{ table.name }}</strong>
-                    <span class="meta">
-                      {{ table.source === 'schema' ? 'custom' : table.scope }} · {{ table.columns.length }} columnas
-                    </span>
-                  </button>
+                  <app-catalog-item
+                    [title]="table.name"
+                    [meta]="
+                      (table.source === 'schema' ? 'custom' : table.scope) + ' · ' + table.columns.length + ' columnas'
+                    "
+                    [active]="selectedTable?.name === table.name"
+                    (selected)="selectTable(table)"
+                  ></app-catalog-item>
                 }
               </aside>
 
@@ -649,12 +610,11 @@ interface SchemaHistoryResponse {
           @if (mode === 'designer') {
             <section class="panel designer-grid">
               <div class="form-grid">
-                <div>
-                  <h2>Diseñador de tablas</h2>
-                  <p class="meta">
-                    Solo administra tablas <code>custom_*</code>. Cada operación genera SQL, historial y migración TypeORM.
-                  </p>
-                </div>
+                <app-section-header
+                  title="Diseñador de tablas"
+                  description="Solo administra tablas custom_*. Cada operación genera SQL, historial y migración TypeORM."
+                  stepLabel="Esquema controlado"
+                ></app-section-header>
 
                 <div class="form-row">
                   <label for="operation">Operación</label>
@@ -681,7 +641,11 @@ interface SchemaHistoryResponse {
                     <h3>Campos iniciales</h3>
                     @for (column of createColumns; track $index; let index = $index) {
                       <div class="schema-column">
-                        <input [(ngModel)]="createColumns[index].name" placeholder="name" (ngModelChange)="resetPreview()" />
+                        <input
+                          [(ngModel)]="createColumns[index].name"
+                          placeholder="name"
+                          (ngModelChange)="resetPreview()"
+                        />
                         <select [(ngModel)]="createColumns[index].type" (ngModelChange)="resetPreview()">
                           @for (type of columnTypes; track type) {
                             <option [value]="type">{{ type }}</option>
@@ -693,12 +657,24 @@ interface SchemaHistoryResponse {
                           [disabled]="createColumns[index].type !== 'string'"
                           aria-label="Longitud"
                         />
-                        <input [(ngModel)]="createColumns[index].defaultValue" placeholder="default" (ngModelChange)="resetPreview()" />
+                        <input
+                          [(ngModel)]="createColumns[index].defaultValue"
+                          placeholder="default"
+                          (ngModelChange)="resetPreview()"
+                        />
                         <label class="check">
-                          <input type="checkbox" [(ngModel)]="createColumns[index].nullable" (ngModelChange)="resetPreview()" />
+                          <input
+                            type="checkbox"
+                            [(ngModel)]="createColumns[index].nullable"
+                            (ngModelChange)="resetPreview()"
+                          />
                           nullable
                         </label>
-                        <button type="button" (click)="removeCreateColumn(index)" [disabled]="createColumns.length <= 1">
+                        <button
+                          type="button"
+                          (click)="removeCreateColumn(index)"
+                          [disabled]="createColumns.length <= 1"
+                        >
                           Quitar
                         </button>
                       </div>
@@ -718,7 +694,11 @@ interface SchemaHistoryResponse {
 
                   @if (schemaOperation !== 'drop_column') {
                     <div class="schema-column">
-                      <input [(ngModel)]="singleColumn.name" placeholder="new_status" (ngModelChange)="resetPreview()" />
+                      <input
+                        [(ngModel)]="singleColumn.name"
+                        placeholder="new_status"
+                        (ngModelChange)="resetPreview()"
+                      />
                       <select [(ngModel)]="singleColumn.type" (ngModelChange)="resetPreview()">
                         @for (type of columnTypes; track type) {
                           <option [value]="type">{{ type }}</option>
@@ -730,7 +710,11 @@ interface SchemaHistoryResponse {
                         [disabled]="singleColumn.type !== 'string'"
                         aria-label="Longitud"
                       />
-                      <input [(ngModel)]="singleColumn.defaultValue" placeholder="default" (ngModelChange)="resetPreview()" />
+                      <input
+                        [(ngModel)]="singleColumn.defaultValue"
+                        placeholder="default"
+                        (ngModelChange)="resetPreview()"
+                      />
                       <label class="check">
                         <input type="checkbox" [(ngModel)]="singleColumn.nullable" (ngModelChange)="resetPreview()" />
                         nullable
@@ -740,7 +724,9 @@ interface SchemaHistoryResponse {
                     <div class="form-row">
                       <label for="confirmation">Confirmación</label>
                       <input id="confirmation" [(ngModel)]="dropConfirmation" [placeholder]="dropPhrase" />
-                      <p class="meta">Escribe exactamente: <code>{{ dropPhrase }}</code></p>
+                      <p class="meta">
+                        Escribe exactamente: <code>{{ dropPhrase }}</code>
+                      </p>
                     </div>
                   }
                 }
@@ -760,7 +746,12 @@ interface SchemaHistoryResponse {
 
                 <div class="designer-actions">
                   <button type="button" (click)="previewSchema()" [disabled]="schemaLoading">Previsualizar</button>
-                  <button class="primary" type="button" (click)="applySchema()" [disabled]="schemaLoading || !schemaPreview">
+                  <button
+                    class="primary"
+                    type="button"
+                    (click)="applySchema()"
+                    [disabled]="schemaLoading || !schemaPreview"
+                  >
                     {{ schemaLoading ? 'Procesando...' : 'Aplicar cambio' }}
                   </button>
                 </div>
@@ -793,13 +784,13 @@ interface SchemaHistoryResponse {
 
           @if (mode === 'history') {
             <section class="panel history-list">
-              <div class="designer-actions">
-                <div>
-                  <h2>Historial de cambios</h2>
-                  <p class="meta">Últimos cambios generados desde el diseñador visual.</p>
-                </div>
+              <app-section-header
+                title="Historial de cambios"
+                description="Últimos cambios generados desde el diseñador visual."
+                stepLabel="Auditoría de esquema"
+              >
                 <button type="button" (click)="loadHistory()">Refrescar</button>
-              </div>
+              </app-section-header>
 
               @if (historyError) {
                 <div class="notice error">{{ historyError }}</div>
@@ -810,9 +801,7 @@ interface SchemaHistoryResponse {
               @for (change of schemaChanges; track change.id) {
                 <article class="notice" [class.error]="change.status === 'failed'">
                   <strong>#{{ change.sequence }} · {{ change.operation }} · {{ change.tableName }}</strong>
-                  <span class="meta">
-                    {{ change.createdAt }} · {{ change.status }} · {{ change.migrationName }}
-                  </span>
+                  <span class="meta"> {{ change.createdAt }} · {{ change.status }} · {{ change.migrationName }} </span>
                   @if (change.migrationPath) {
                     <span class="meta">Archivo: {{ change.migrationPath }}</span>
                   }
@@ -841,7 +830,11 @@ interface SchemaHistoryResponse {
                 <div class="notice" [class.error]="saveError">
                   <strong>{{ selectedTable.name }}</strong>
                   <span>
-                    {{ selectedTable.editable ? 'Edita los campos habilitados y guarda los cambios.' : 'Esta tabla es solo lectura en el visor.' }}
+                    {{
+                      selectedTable.editable
+                        ? 'Edita los campos habilitados y guarda los cambios.'
+                        : 'Esta tabla es solo lectura en el visor.'
+                    }}
                   </span>
                   @if (saveError) {
                     <span>{{ saveError }}</span>
@@ -854,7 +847,8 @@ interface SchemaHistoryResponse {
                       <div class="field-label">
                         <span>{{ column.name }}</span>
                         <small>
-                          {{ column.type }}{{ column.primary ? ' · primary' : '' }}{{ column.nullable ? ' · nullable' : '' }}
+                          {{ column.type }}{{ column.primary ? ' · primary' : ''
+                          }}{{ column.nullable ? ' · nullable' : '' }}
                         </small>
                       </div>
 
@@ -907,9 +901,24 @@ export class DatabasePageComponent implements OnInit {
   readonly auth = inject(AuthService);
   @ViewChild('workspacePanel') private workspacePanel?: ElementRef<HTMLElement>;
 
-  readonly columnTypes: SchemaColumnType[] = ['string', 'text', 'integer', 'decimal', 'boolean', 'date', 'datetime', 'json', 'uuid'];
+  readonly columnTypes: SchemaColumnType[] = [
+    'string',
+    'text',
+    'integer',
+    'decimal',
+    'boolean',
+    'date',
+    'datetime',
+    'json',
+    'uuid'
+  ];
 
   mode: PageMode = 'data';
+  readonly modeOptions: SegmentedControlItem[] = [
+    { key: 'data', label: 'Datos', icon: 'pi pi-table' },
+    { key: 'designer', label: 'Diseñador', icon: 'pi pi-wrench' },
+    { key: 'history', label: 'Historial', icon: 'pi pi-history' }
+  ];
   tables: DatabaseTable[] = [];
   selectedTable?: DatabaseTable;
   rows: Record<string, unknown>[] = [];
@@ -1005,7 +1014,9 @@ export class DatabasePageComponent implements OnInit {
     this.loadingRows = true;
     this.rowsError = '';
     this.api
-      .get<DatabaseRowsResponse>(`database/tables/${encodeURIComponent(this.selectedTable.name)}?page=${page}&pageSize=${this.pageSize}`)
+      .get<DatabaseRowsResponse>(
+        `database/tables/${encodeURIComponent(this.selectedTable.name)}?page=${page}&pageSize=${this.pageSize}`
+      )
       .subscribe({
         next: (response) => {
           this.selectedTable = response.table;
@@ -1148,6 +1159,16 @@ export class DatabasePageComponent implements OnInit {
   openHistory() {
     this.mode = 'history';
     this.loadHistory();
+  }
+
+  setMode(value: string) {
+    if (value === 'history') {
+      this.openHistory();
+      return;
+    }
+    if (value === 'data' || value === 'designer') {
+      this.mode = value;
+    }
   }
 
   loadHistory() {

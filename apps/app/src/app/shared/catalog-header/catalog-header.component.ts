@@ -41,6 +41,12 @@ import { Component, Input } from '@angular/core';
         gap: 8px;
         align-items: center;
       }
+
+      :host ::ng-deep .actions button {
+        width: auto;
+        min-width: 0;
+        flex: 0 0 auto;
+      }
     `
   ],
   template: `

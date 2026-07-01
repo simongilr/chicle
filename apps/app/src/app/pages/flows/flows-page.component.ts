@@ -417,7 +417,7 @@ interface FlowJobItem {
 
       .starter-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 9px;
         margin: 14px 0 18px;
       }
@@ -984,13 +984,28 @@ interface FlowJobItem {
         .branch-row,
         .input-field-row,
         .test-result-bar,
-        .assertion-row,
-        .starter-grid {
+        .assertion-row {
           grid-template-columns: 1fr;
         }
 
         h1 {
           font-size: 1.8rem;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .starter-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .page {
+          padding-inline: 12px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .starter-grid {
+          grid-template-columns: 1fr;
         }
       }
     `
@@ -1010,13 +1025,11 @@ interface FlowJobItem {
       }
 
       @if (!viewingTrash) {
-        @if (selectedFlow) {
-          <app-process-steps
-            [items]="flowProcessSteps"
-            [activeKey]="activeStage"
-            (selected)="goToStage($event)"
-          ></app-process-steps>
-        }
+        <app-process-steps
+          [items]="flowProcessSteps"
+          [activeKey]="activeStage"
+          (selected)="goToStage($event)"
+        ></app-process-steps>
 
         <app-workflow-guide
           [stepLabel]="currentGuide.stepLabel"
@@ -2824,7 +2837,8 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     return this.stages.map((stage) => ({
       ...stage,
       summary: this.flowStageSummary(stage.key),
-      state: stage.key === this.activeStage ? 'active' : this.isStageDone(stage.key) ? 'complete' : 'pending'
+      state: stage.key === this.activeStage ? 'active' : this.isStageDone(stage.key) ? 'complete' : 'pending',
+      disabled: !this.selectedFlow && stage.key !== 'describe'
     }));
   }
 

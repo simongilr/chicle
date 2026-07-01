@@ -51,6 +51,10 @@ export type StatusNoticeTone = 'neutral' | 'info' | 'success' | 'warning' | 'err
       .actions:empty {
         display: none;
       }
+
+      :host ::ng-deep .actions > button {
+        width: auto;
+      }
     `
   ],
   template: `

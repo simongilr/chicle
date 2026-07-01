@@ -55,6 +55,12 @@ import { Component, Input } from '@angular/core';
       .actions:empty {
         display: none;
       }
+
+      :host ::ng-deep .actions button {
+        width: auto;
+        min-width: 0;
+        flex: 0 0 auto;
+      }
     `
   ],
   template: `

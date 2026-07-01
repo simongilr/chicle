@@ -135,7 +135,7 @@ interface SchemaHistoryResponse {
         gap: 18px;
         max-width: 1260px;
         margin: 0 auto;
-        padding: 24px 0 54px;
+        padding: 24px 20px 54px;
       }
 
       .panel,
@@ -466,11 +466,15 @@ interface SchemaHistoryResponse {
         .schema-column {
           grid-template-columns: 1fr;
         }
+
+        .shell {
+          padding-inline: 12px;
+        }
       }
     `
   ],
   template: `
-    <ion-content class="ion-padding">
+    <ion-content>
       <app-main-nav contextLabel="Base de datos" />
 
       <main class="shell">

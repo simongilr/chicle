@@ -7,6 +7,8 @@ import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import { FlowDataMapperComponent, FlowDataOption, FlowMapRow } from './flow-data-mapper.component';
 import { FlowGraphComponent } from './flow-graph.component';
 import { FlowTimelineComponent, FlowTimelineStatus, FlowTimelineStep } from './flow-timeline.component';
@@ -27,6 +29,14 @@ type FlowStepType =
   | 'end';
 type FlowStage = 'describe' | 'build' | 'test' | 'publish';
 type FlowStarter = 'validate' | 'service' | 'multi_service' | 'calculate' | 'blank';
+
+interface FlowGuideState {
+  stepLabel: string;
+  title: string;
+  description: string;
+  tone: 'info' | 'success' | 'warning';
+  actionLabel?: string;
+}
 
 interface FlowStep {
   id: string;
@@ -320,6 +330,8 @@ interface FlowJobItem {
     FormsModule,
     JsonPipe,
     MainNavComponent,
+    ProcessStepsComponent,
+    WorkflowGuideComponent,
     FlowTimelineComponent,
     FlowGraphComponent,
     FlowDataMapperComponent
@@ -381,54 +393,10 @@ interface FlowJobItem {
         box-shadow: 0 16px 36px rgba(30, 80, 130, 0.08);
       }
 
-      .stage-nav {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin: 4px 0 18px;
-      }
-
-      .stage-button {
-        display: grid;
-        grid-template-columns: 30px minmax(0, 1fr);
-        gap: 9px;
-        align-items: center;
-        text-align: left;
-        min-height: 54px;
-      }
-
-      .stage-button.active {
-        border-color: #1f5ca8;
-        background: #eaf3ff;
-      }
-
-      .stage-button > span:last-child {
-        display: grid;
-        gap: 2px;
-        min-width: 0;
-      }
-
-      .stage-button strong,
-      .stage-button .meta {
+      app-process-steps,
+      app-workflow-guide {
         display: block;
-        overflow-wrap: anywhere;
-      }
-
-      .stage-number {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #e6edf5;
-        color: #12365a;
-      }
-
-      .stage-button.active .stage-number,
-      .stage-button.done .stage-number {
-        background: #1f5ca8;
-        color: #fff;
+        margin-bottom: 14px;
       }
 
       .starter-grid {
@@ -801,9 +769,37 @@ interface FlowJobItem {
         display: grid;
         grid-template-columns: minmax(220px, 0.72fr) minmax(340px, 1.28fr);
         gap: 14px;
+        margin-top: 14px;
+      }
+
+      .test-suite-panel {
         margin-top: 18px;
-        padding-top: 18px;
         border-top: 1px solid #d7e5f2;
+        padding-top: 14px;
+      }
+
+      .test-suite-panel > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .test-suite-panel > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .test-suite-panel > summary > span:first-child {
+        display: grid;
+        gap: 3px;
+      }
+
+      .test-suite-panel > summary small {
+        color: #526a82;
+        font-size: 0.8rem;
+        font-weight: 500;
       }
 
       .test-case-list {
@@ -966,14 +962,6 @@ interface FlowJobItem {
           grid-template-columns: 1fr;
         }
 
-        .stage-nav {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .stage-button {
-          min-height: 62px;
-        }
-
         .hero {
           display: grid;
         }
@@ -1046,24 +1034,26 @@ interface FlowJobItem {
           </div>
 
           @if (selectedFlow) {
-            <nav class="stage-nav" aria-label="Etapas del proceso">
-              @for (stage of stages; track stage.key; let index = $index) {
-                <button
-                  class="stage-button"
-                  type="button"
-                  [class.active]="activeStage === stage.key"
-                  [class.done]="isStageDone(stage.key)"
-                  (click)="goToStage(stage.key)"
-                >
-                  <span class="stage-number">{{ index + 1 }}</span>
-                  <span>
-                    <strong>{{ stage.label }}</strong>
-                    <span class="meta">{{ stage.summary }}</span>
-                  </span>
-                </button>
-              }
-            </nav>
+            <app-process-steps
+              [items]="flowProcessSteps"
+              [activeKey]="activeStage"
+              (selected)="goToStage($event)"
+            ></app-process-steps>
           }
+
+          <app-workflow-guide
+            [stepLabel]="currentGuide.stepLabel"
+            [title]="currentGuide.title"
+            [description]="currentGuide.description"
+            [tone]="currentGuide.tone"
+          >
+            @if (selectedFlow && currentGuide.actionLabel) {
+              <button type="button" (click)="runGuideAction()">
+                {{ currentGuide.actionLabel }}
+                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+              </button>
+            }
+          </app-workflow-guide>
 
           @if (!selectedFlow || activeStage === 'describe') {
             <div class="section-heading">
@@ -1333,22 +1323,35 @@ interface FlowJobItem {
                       <div class="mini-title">
                         {{ stepDraft.id ? 'Edita este paso' : '¿Qué debe ocurrir ahora?' }}
                       </div>
-                      <p class="meta">Elige una acción. Solo aparecerán los datos necesarios para configurarla.</p>
+                      <p class="meta">
+                        Elige el bloque por su propósito. Solo aparecerán los datos necesarios para configurarlo.
+                      </p>
                     </div>
-                    <div class="type-grid">
-                      @for (type of stepTypes; track type) {
-                        <button
-                          class="type-button"
-                          type="button"
-                          [class.active]="stepDraft.type === type"
-                          (click)="setStepType(type)"
-                        >
-                          <span>
-                            <strong>{{ stepTypeLabel(type) }}</strong>
-                            <span class="meta">{{ stepTypeSummary(type) }}</span>
-                          </span>
-                        </button>
-                      }
+                    <div class="grid">
+                      <label>
+                        Tipo de paso
+                        <select [ngModel]="stepDraft.type" (ngModelChange)="setStepType($event)">
+                          <optgroup label="Operaciones comunes">
+                            <option value="dynamic_service">Ejecutar un servicio</option>
+                            <option value="validation">Validar un dato</option>
+                            <option value="decision">Tomar una decisión</option>
+                            <option value="formula">Calcular un valor</option>
+                            <option value="response">Construir la respuesta</option>
+                          </optgroup>
+                          <optgroup label="Orquestación avanzada">
+                            <option value="parallel">Ejecutar varios servicios a la vez</option>
+                            <option value="foreach">Procesar cada elemento de una lista</option>
+                            <option value="subflow">Ejecutar otro flow</option>
+                            <option value="delay">Esperar antes de continuar</option>
+                            <option value="emit_event">Emitir un evento</option>
+                          </optgroup>
+                        </select>
+                      </label>
+                      <div class="hint">
+                        <strong>{{ stepTypeLabel(stepDraft.type) }}</strong
+                        ><br />
+                        {{ stepTypeSummary(stepDraft.type) }}
+                      </div>
                     </div>
                   </div>
 
@@ -1980,6 +1983,14 @@ interface FlowJobItem {
                 </p>
               </div>
 
+              <app-process-steps
+                [items]="flowTestSteps"
+                activeKey="execute"
+                [compact]="true"
+                [interactive]="false"
+                ariaLabel="Recorrido de prueba"
+              ></app-process-steps>
+
               <div class="grid">
                 <div class="guided-panel">
                   <div>
@@ -2091,210 +2102,222 @@ interface FlowJobItem {
                 </div>
               }
 
-              <div class="test-studio">
-                <section>
-                  <div class="toolbar">
-                    <div>
-                      <h3>Casos guardados</h3>
-                      <p class="meta">{{ testCases.length }} escenarios</p>
+              <details class="test-suite-panel" [open]="testCases.length > 0">
+                <summary>
+                  <span>
+                    <strong>Pruebas repetibles</strong>
+                    <small>Opcional · guarda escenarios para ejecutarlos después de cada cambio</small>
+                  </span>
+                  <span class="badge">{{ testCases.length }}</span>
+                </summary>
+                <div class="test-studio">
+                  <section>
+                    <div class="toolbar">
+                      <div>
+                        <h3>Casos guardados</h3>
+                        <p class="meta">{{ testCases.length }} escenarios</p>
+                      </div>
+                      <button type="button" title="Nuevo caso" (click)="startNewTestCase()">
+                        <i class="pi pi-plus" aria-hidden="true"></i>
+                      </button>
                     </div>
-                    <button type="button" title="Nuevo caso" (click)="startNewTestCase()">
-                      <i class="pi pi-plus" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                  <div class="test-case-list">
-                    @for (testCase of testCases; track testCase.id) {
-                      <button
-                        class="test-case"
-                        type="button"
-                        [class.active]="testCase.id === testCaseDraft.id"
-                        (click)="selectTestCase(testCase)"
-                      >
-                        <strong>{{ testCase.name }}</strong>
-                        <span class="meta">
-                          {{ testCase.target === 'draft' ? 'Borrador' : 'Publicada' }}
-                          ·
-                          {{ testCase.assertions?.length ?? 0 }} comprobaciones
-                        </span>
-                        @if (testCase.lastResult) {
-                          <span
-                            class="badge"
-                            [class.status-success]="testCase.lastResult.passed"
-                            [class.status-failed]="!testCase.lastResult.passed"
-                          >
-                            {{ testCase.lastResult.passed ? 'PASÓ' : 'FALLÓ' }}
+                    <div class="test-case-list">
+                      @for (testCase of testCases; track testCase.id) {
+                        <button
+                          class="test-case"
+                          type="button"
+                          [class.active]="testCase.id === testCaseDraft.id"
+                          (click)="selectTestCase(testCase)"
+                        >
+                          <strong>{{ testCase.name }}</strong>
+                          <span class="meta">
+                            {{ testCase.target === 'draft' ? 'Borrador' : 'Publicada' }}
+                            ·
+                            {{ testCase.assertions?.length ?? 0 }} comprobaciones
                           </span>
-                        }
-                      </button>
-                    } @empty {
-                      <div class="hint">Guarda el primer escenario para repetirlo después de cada cambio.</div>
-                    }
-                  </div>
-                  <button
-                    class="primary"
-                    type="button"
-                    style="margin-top: 10px; width: 100%;"
-                    (click)="runTestSuite()"
-                    [disabled]="runningTests || !testCases.length"
-                  >
-                    <i class="pi pi-play" aria-hidden="true"></i>
-                    {{ runningTests ? 'Ejecutando suite...' : 'Ejecutar todos' }}
-                  </button>
-                </section>
-
-                <section>
-                  <div class="section-heading">
-                    <h3>
-                      {{ testCaseDraft.id ? 'Editar caso de prueba' : 'Nuevo caso de prueba' }}
-                    </h3>
-                    <p class="meta">
-                      Define la entrada y comprueba campos concretos de la respuesta sin leer todo el JSON.
-                    </p>
-                  </div>
-                  <div class="grid">
-                    <label>
-                      Nombre del escenario
-                      <input [(ngModel)]="testCaseDraft.name" placeholder="Solicitud válida" />
-                    </label>
-                    <label>
-                      Probar
-                      <select [(ngModel)]="testCaseDraft.target">
-                        <option value="draft">Borrador actual</option>
-                        <option value="published">Versión publicada</option>
-                      </select>
-                    </label>
-                    <label>
-                      Resultado esperado
-                      <select [(ngModel)]="testCaseDraft.expectedStatus">
-                        <option value="success">Debe terminar correctamente</option>
-                        <option value="failed">Debe fallar de forma controlada</option>
-                      </select>
-                    </label>
-                    @if (testCaseDraft.target === 'draft') {
-                      <label>
-                        Ejecutar hasta
-                        <select [(ngModel)]="testCaseDraft.throughStepKey">
-                          <option value="">Todo el proceso</option>
-                          @for (step of selectedFlow.steps; track step.id) {
-                            <option [value]="step.key">{{ step.name }}</option>
+                          @if (testCase.lastResult) {
+                            <span
+                              class="badge"
+                              [class.status-success]="testCase.lastResult.passed"
+                              [class.status-failed]="!testCase.lastResult.passed"
+                            >
+                              {{ testCase.lastResult.passed ? 'PASÓ' : 'FALLÓ' }}
+                            </span>
                           }
-                        </select>
-                      </label>
-                    }
-                  </div>
-                  <label style="margin-top: 10px;">
-                    Entrada JSON
-                    <textarea [(ngModel)]="testCaseDraft.inputText"></textarea>
-                  </label>
-
-                  <div class="toolbar" style="margin-top: 12px;">
-                    <div>
-                      <div class="mini-title">Comprobaciones</div>
-                      <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
-                    </div>
-                    <button type="button" (click)="addTestAssertion()">
-                      <i class="pi pi-plus" aria-hidden="true"></i> Agregar
-                    </button>
-                  </div>
-                  @for (assertion of testCaseDraft.assertions; track $index) {
-                    <div class="assertion-row">
-                      <label>
-                        Campo de respuesta
-                        <input [(ngModel)]="assertion.path" placeholder="output.body.ok" />
-                      </label>
-                      <label>
-                        Comprobar
-                        <select [(ngModel)]="assertion.operator">
-                          <option value="equals">Es igual a</option>
-                          <option value="not_equals">Es diferente de</option>
-                          <option value="contains">Contiene</option>
-                          <option value="exists">Existe</option>
-                          <option value="truthy">Es verdadero</option>
-                          <option value="greater_than">Es mayor que</option>
-                          <option value="less_than">Es menor que</option>
-                        </select>
-                      </label>
-                      <label>
-                        Valor esperado
-                        <input
-                          [(ngModel)]="assertion.expectedText"
-                          [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
-                          placeholder="true"
-                        />
-                      </label>
-                      <button type="button" title="Quitar comprobación" (click)="removeTestAssertion($index)">
-                        <i class="pi pi-trash" aria-hidden="true"></i>
-                      </button>
-                    </div>
-                  } @empty {
-                    <div class="hint">Sin comprobaciones: solo se validará si el proceso termina como esperas.</div>
-                  }
-
-                  <details class="guided-panel">
-                    <summary>
-                      <strong>Comparar fragmento de salida JSON</strong>
-                    </summary>
-                    <p class="meta">
-                      Opcional. Solo se comparan las propiedades escritas; las propiedades adicionales se ignoran.
-                    </p>
-                    <textarea
-                      [(ngModel)]="testCaseDraft.expectedOutputText"
-                      placeholder='{"body":{"ok":true}}'
-                    ></textarea>
-                  </details>
-
-                  <div class="row" style="margin-top: 12px;">
-                    <button class="primary" type="button" (click)="saveTestCase()" [disabled]="runningTests">
-                      <i class="pi pi-save" aria-hidden="true"></i>
-                      {{ testCaseDraft.id ? 'Guardar caso' : 'Crear caso' }}
-                    </button>
-                    @if (testCaseDraft.id) {
-                      <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
-                        <i class="pi pi-play" aria-hidden="true"></i> Ejecutar caso
-                      </button>
-                      <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
-                        Eliminar
-                      </button>
-                    }
-                  </div>
-
-                  @if (testSuiteResult) {
-                    <div class="test-result-bar" style="margin-top: 12px;">
-                      <div>
-                        <strong>{{ testSuiteResult.total }}</strong
-                        ><span class="meta">Ejecutados</span>
-                      </div>
-                      <div>
-                        <strong>{{ testSuiteResult.passed }}</strong
-                        ><span class="meta">Correctos</span>
-                      </div>
-                      <div>
-                        <strong>{{ testSuiteResult.failed }}</strong
-                        ><span class="meta">Fallidos</span>
-                      </div>
-                    </div>
-                  }
-                  @if (lastTestResult) {
-                    <div class="run-card" style="margin-top: 12px;">
-                      <strong>{{ lastTestResult.passed ? 'Caso correcto' : 'Caso con diferencias' }}</strong>
-                      @for (assertion of lastTestResult.assertionResults; track assertion.path + assertion.operator) {
-                        <div class="step-run">
-                          <span>{{ assertion.path }} · {{ assertion.operator }}</span>
-                          <span class="meta">{{
-                            assertion.passed
-                              ? 'Cumple'
-                              : 'Esperado: ' + (assertion.expected | json) + ' · recibido: ' + (assertion.actual | json)
-                          }}</span>
-                        </div>
+                        </button>
+                      } @empty {
+                        <div class="hint">Guarda el primer escenario para repetirlo después de cada cambio.</div>
                       }
-                      <details>
-                        <summary>Ver resultado completo</summary>
-                        <pre>{{ lastTestResult.actual | json }}</pre>
-                      </details>
                     </div>
-                  }
-                </section>
-              </div>
+                    <button
+                      class="primary"
+                      type="button"
+                      style="margin-top: 10px; width: 100%;"
+                      (click)="runTestSuite()"
+                      [disabled]="runningTests || !testCases.length"
+                    >
+                      <i class="pi pi-play" aria-hidden="true"></i>
+                      {{ runningTests ? 'Ejecutando suite...' : 'Ejecutar todos' }}
+                    </button>
+                  </section>
+
+                  <section>
+                    <div class="section-heading">
+                      <h3>
+                        {{ testCaseDraft.id ? 'Editar caso de prueba' : 'Nuevo caso de prueba' }}
+                      </h3>
+                      <p class="meta">
+                        Define la entrada y comprueba campos concretos de la respuesta sin leer todo el JSON.
+                      </p>
+                    </div>
+                    <div class="grid">
+                      <label>
+                        Nombre del escenario
+                        <input [(ngModel)]="testCaseDraft.name" placeholder="Solicitud válida" />
+                      </label>
+                      <label>
+                        Probar
+                        <select [(ngModel)]="testCaseDraft.target">
+                          <option value="draft">Borrador actual</option>
+                          <option value="published">Versión publicada</option>
+                        </select>
+                      </label>
+                      <label>
+                        Resultado esperado
+                        <select [(ngModel)]="testCaseDraft.expectedStatus">
+                          <option value="success">Debe terminar correctamente</option>
+                          <option value="failed">Debe fallar de forma controlada</option>
+                        </select>
+                      </label>
+                      @if (testCaseDraft.target === 'draft') {
+                        <label>
+                          Ejecutar hasta
+                          <select [(ngModel)]="testCaseDraft.throughStepKey">
+                            <option value="">Todo el proceso</option>
+                            @for (step of selectedFlow.steps; track step.id) {
+                              <option [value]="step.key">{{ step.name }}</option>
+                            }
+                          </select>
+                        </label>
+                      }
+                    </div>
+                    <label style="margin-top: 10px;">
+                      Entrada JSON
+                      <textarea [(ngModel)]="testCaseDraft.inputText"></textarea>
+                    </label>
+
+                    <div class="toolbar" style="margin-top: 12px;">
+                      <div>
+                        <div class="mini-title">Comprobaciones</div>
+                        <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
+                      </div>
+                      <button type="button" (click)="addTestAssertion()">
+                        <i class="pi pi-plus" aria-hidden="true"></i> Agregar
+                      </button>
+                    </div>
+                    @for (assertion of testCaseDraft.assertions; track $index) {
+                      <div class="assertion-row">
+                        <label>
+                          Campo de respuesta
+                          <input [(ngModel)]="assertion.path" placeholder="output.body.ok" />
+                        </label>
+                        <label>
+                          Comprobar
+                          <select [(ngModel)]="assertion.operator">
+                            <option value="equals">Es igual a</option>
+                            <option value="not_equals">Es diferente de</option>
+                            <option value="contains">Contiene</option>
+                            <option value="exists">Existe</option>
+                            <option value="truthy">Es verdadero</option>
+                            <option value="greater_than">Es mayor que</option>
+                            <option value="less_than">Es menor que</option>
+                          </select>
+                        </label>
+                        <label>
+                          Valor esperado
+                          <input
+                            [(ngModel)]="assertion.expectedText"
+                            [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
+                            placeholder="true"
+                          />
+                        </label>
+                        <button type="button" title="Quitar comprobación" (click)="removeTestAssertion($index)">
+                          <i class="pi pi-trash" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    } @empty {
+                      <div class="hint">Sin comprobaciones: solo se validará si el proceso termina como esperas.</div>
+                    }
+
+                    <details class="guided-panel">
+                      <summary>
+                        <strong>Comparar fragmento de salida JSON</strong>
+                      </summary>
+                      <p class="meta">
+                        Opcional. Solo se comparan las propiedades escritas; las propiedades adicionales se ignoran.
+                      </p>
+                      <textarea
+                        [(ngModel)]="testCaseDraft.expectedOutputText"
+                        placeholder='{"body":{"ok":true}}'
+                      ></textarea>
+                    </details>
+
+                    <div class="row" style="margin-top: 12px;">
+                      <button class="primary" type="button" (click)="saveTestCase()" [disabled]="runningTests">
+                        <i class="pi pi-save" aria-hidden="true"></i>
+                        {{ testCaseDraft.id ? 'Guardar caso' : 'Crear caso' }}
+                      </button>
+                      @if (testCaseDraft.id) {
+                        <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
+                          <i class="pi pi-play" aria-hidden="true"></i> Ejecutar caso
+                        </button>
+                        <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
+                          Eliminar
+                        </button>
+                      }
+                    </div>
+
+                    @if (testSuiteResult) {
+                      <div class="test-result-bar" style="margin-top: 12px;">
+                        <div>
+                          <strong>{{ testSuiteResult.total }}</strong
+                          ><span class="meta">Ejecutados</span>
+                        </div>
+                        <div>
+                          <strong>{{ testSuiteResult.passed }}</strong
+                          ><span class="meta">Correctos</span>
+                        </div>
+                        <div>
+                          <strong>{{ testSuiteResult.failed }}</strong
+                          ><span class="meta">Fallidos</span>
+                        </div>
+                      </div>
+                    }
+                    @if (lastTestResult) {
+                      <div class="run-card" style="margin-top: 12px;">
+                        <strong>{{ lastTestResult.passed ? 'Caso correcto' : 'Caso con diferencias' }}</strong>
+                        @for (assertion of lastTestResult.assertionResults; track assertion.path + assertion.operator) {
+                          <div class="step-run">
+                            <span>{{ assertion.path }} · {{ assertion.operator }}</span>
+                            <span class="meta">{{
+                              assertion.passed
+                                ? 'Cumple'
+                                : 'Esperado: ' +
+                                  (assertion.expected | json) +
+                                  ' · recibido: ' +
+                                  (assertion.actual | json)
+                            }}</span>
+                          </div>
+                        }
+                        <details>
+                          <summary>Ver resultado completo</summary>
+                          <pre>{{ lastTestResult.actual | json }}</pre>
+                        </details>
+                      </div>
+                    }
+                  </section>
+                </div>
+              </details>
 
               <div class="row" style="margin-top: 14px;">
                 <button type="button" (click)="activeStage = 'build'">Volver a pasos</button>
@@ -2672,6 +2695,126 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     return this.flows.find((flow) => flow.id === this.selectedFlowId);
   }
 
+  get flowProcessSteps(): ProcessStepItem[] {
+    return this.stages.map((stage) => ({
+      ...stage,
+      summary: this.flowStageSummary(stage.key),
+      state: stage.key === this.activeStage ? 'active' : this.isStageDone(stage.key) ? 'complete' : 'pending'
+    }));
+  }
+
+  get flowTestSteps(): ProcessStepItem[] {
+    const previewStatus = this.lastPreview?.status;
+    return [
+      {
+        key: 'input',
+        label: 'Preparar entrada',
+        summary: this.flowInputs.length ? `${this.flowInputs.length} datos definidos` : 'Sin datos obligatorios',
+        state: 'complete'
+      },
+      {
+        key: 'execute',
+        label: 'Ejecutar borrador',
+        summary: previewStatus ? 'Prueba ejecutada' : 'Prueba pendiente',
+        state: previewStatus ? 'complete' : 'active'
+      },
+      {
+        key: 'review',
+        label: 'Revisar resultado',
+        summary:
+          previewStatus === 'success'
+            ? 'Todos los pasos respondieron'
+            : previewStatus === 'failed'
+              ? 'Hay un paso por corregir'
+              : 'Aún no hay resultado',
+        state: previewStatus === 'success' ? 'complete' : previewStatus === 'failed' ? 'warning' : 'pending'
+      }
+    ];
+  }
+
+  get currentGuide(): FlowGuideState {
+    const flow = this.selectedFlow;
+    if (!flow) {
+      return {
+        stepLabel: 'Inicio',
+        title: 'Elige una plantilla y describe el resultado que necesitas',
+        description: 'El asistente creará un recorrido inicial. Después podrás probar cada paso antes de publicar.',
+        tone: 'info'
+      };
+    }
+    if (this.activeStage === 'describe') {
+      return {
+        stepLabel: 'Etapa 1 de 4',
+        title: 'Define qué recibe y qué debe resolver el flow',
+        description: 'Guarda un nombre entendible y los datos de entrada. Todavía no ejecutamos ninguna operación.',
+        tone: this.isStageDone('describe') ? 'success' : 'info',
+        actionLabel: 'Guardar y construir'
+      };
+    }
+    if (this.activeStage === 'build') {
+      if (this.designerIssues.length) {
+        return {
+          stepLabel: 'Etapa 2 de 4',
+          title: 'Completa el recorrido antes de probar',
+          description: this.designerIssues[0],
+          tone: 'warning'
+        };
+      }
+      return {
+        stepLabel: 'Etapa 2 de 4',
+        title: `Recorrido listo con ${flow.steps.length} pasos`,
+        description:
+          'El mapa indica qué activa cada paso. Ahora ejecútalo con datos de ejemplo para comprobar el resultado.',
+        tone: 'success',
+        actionLabel: 'Ir a probar'
+      };
+    }
+    if (this.activeStage === 'test') {
+      if (this.lastPreview?.status === 'success') {
+        return {
+          stepLabel: 'Etapa 3 de 4',
+          title: 'El borrador respondió correctamente',
+          description:
+            'Revisa las entradas y salidas observadas. Puedes guardar escenarios repetibles o continuar a publicación.',
+          tone: 'success',
+          actionLabel: 'Continuar a publicar'
+        };
+      }
+      if (this.lastPreview?.status === 'failed') {
+        return {
+          stepLabel: 'Etapa 3 de 4',
+          title: 'La prueba encontró un paso por corregir',
+          description: this.previewErrorMessage,
+          tone: 'warning',
+          actionLabel: 'Corregir paso'
+        };
+      }
+      return {
+        stepLabel: 'Etapa 3 de 4',
+        title: 'Prueba el borrador antes de crear una versión',
+        description:
+          'Completa los datos como lo haría una pantalla real y ejecuta todo el proceso o solo hasta un paso.',
+        tone: 'info',
+        actionLabel: 'Ejecutar prueba'
+      };
+    }
+    if (flow.publishedVersion) {
+      return {
+        stepLabel: 'Etapa 4 de 4',
+        title: `Versión ${flow.publishedVersion.version} activa`,
+        description: 'El flow ya puede ser llamado por su key, por un activador o desde una pantalla dinámica.',
+        tone: 'success'
+      };
+    }
+    return {
+      stepLabel: 'Etapa 4 de 4',
+      title: 'Congela el borrador y publícalo',
+      description: 'Crear versión guarda una fotografía inmutable. Publicar la convierte en la versión ejecutable.',
+      tone: 'info',
+      actionLabel: flow.latestVersion ? 'Publicar última' : 'Crear versión'
+    };
+  }
+
   get publishedServices() {
     return this.services.filter((service) => service.active && service.publishedVersion);
   }
@@ -2759,12 +2902,58 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       issues.push('Cada paso debe guardar su resultado con un nombre diferente.');
     }
 
+    const validTargets = new Set(['start', 'end', ...flow.steps.map((step) => step.key)]);
     for (const step of flow.steps) {
+      const targets = [
+        step.nextStepKey,
+        step.onTrueStepKey,
+        step.onFalseStepKey,
+        step.onErrorStepKey,
+        step.onTimeoutStepKey
+      ].filter((target): target is string => Boolean(target));
+      const missingTarget = targets.find((target) => !validTargets.has(target));
+      if (missingTarget) {
+        issues.push(`El paso “${step.name}” apunta a “${missingTarget}”, pero ese destino ya no existe.`);
+      }
       if (step.type === 'dynamic_service') {
         const serviceKey = this.asString((step.config ?? {})['serviceKey']);
         if (!this.publishedServices.some((service) => service.key === serviceKey)) {
           issues.push(`El paso “${step.name}” necesita un servicio activo y publicado.`);
         }
+      }
+      if (step.type === 'parallel') {
+        const branches = Array.isArray((step.config ?? {})['branches'])
+          ? ((step.config ?? {})['branches'] as unknown[])
+          : [];
+        if (branches.length < 2) {
+          issues.push(`El paso paralelo “${step.name}” necesita al menos dos servicios.`);
+        } else {
+          const unavailable = branches
+            .map((branch) => this.asString(this.asRecord(branch)['serviceKey']))
+            .find((key) => !this.publishedServices.some((service) => service.key === key));
+          if (unavailable !== undefined) {
+            issues.push(`El paso paralelo “${step.name}” contiene un servicio sin publicar.`);
+          }
+        }
+      }
+      if (step.type === 'foreach') {
+        const config = step.config ?? {};
+        const serviceKey = this.asString(config['serviceKey']);
+        if (!this.asString(config['itemsPath'])) {
+          issues.push(`El paso “${step.name}” necesita la ruta de la lista que va a recorrer.`);
+        }
+        if (!this.publishedServices.some((service) => service.key === serviceKey)) {
+          issues.push(`El paso “${step.name}” necesita un servicio publicado para cada elemento.`);
+        }
+      }
+      if (step.type === 'subflow') {
+        const flowKey = this.asString((step.config ?? {})['flowKey']);
+        if (!this.publishedSubflows.some((candidate) => candidate.key === flowKey)) {
+          issues.push(`El paso “${step.name}” necesita otro flow activo y publicado.`);
+        }
+      }
+      if (step.type === 'emit_event' && !this.asString((step.config ?? {})['eventKey'])) {
+        issues.push(`El paso “${step.name}” necesita el nombre del evento que va a emitir.`);
       }
       if (
         step.type === 'decision' &&
@@ -2880,6 +3069,24 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
         return this.lastPreview?.status === 'success';
       case 'publish':
         return Boolean(flow.publishedVersion);
+    }
+  }
+
+  private flowStageSummary(stage: FlowStage) {
+    const flow = this.selectedFlow;
+    switch (stage) {
+      case 'describe':
+        return this.isStageDone(stage) ? `${this.flowInputs.length} datos de entrada` : 'Propósito y entradas';
+      case 'build':
+        return this.isStageDone(stage) ? `${flow?.steps.length ?? 0} pasos` : 'Agrega el recorrido';
+      case 'test':
+        return this.lastPreview?.status === 'success'
+          ? 'Borrador verificado'
+          : this.lastPreview?.status === 'failed'
+            ? 'Necesita corrección'
+            : 'Ejecuta con ejemplos';
+      case 'publish':
+        return flow?.publishedVersion ? `v${flow.publishedVersion.version} activa` : 'Crea y publica versión';
     }
   }
 
@@ -3190,7 +3397,11 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  goToStage(stage: FlowStage) {
+  goToStage(value: FlowStage | string) {
+    if (!this.stages.some((stage) => stage.key === value)) {
+      return;
+    }
+    const stage = value as FlowStage;
     if (this.activeStage === 'describe' && stage !== 'describe') {
       this.saveFlow(stage);
       return;
@@ -3198,6 +3409,33 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.activeStage = stage;
     if (stage === 'build' && !this.stepDraft.id && this.selectedFlow?.steps.length) {
       this.selectStep(this.selectedFlow.steps[0]);
+    }
+  }
+
+  runGuideAction() {
+    switch (this.activeStage) {
+      case 'describe':
+        this.saveFlow('build');
+        break;
+      case 'build':
+        this.goToStage('test');
+        break;
+      case 'test':
+        if (this.lastPreview?.status === 'success') {
+          this.goToStage('publish');
+        } else if (this.lastPreview?.status === 'failed') {
+          this.editFailedPreviewStep();
+        } else {
+          this.previewFlow();
+        }
+        break;
+      case 'publish':
+        if (this.selectedFlow?.latestVersion) {
+          this.publishLatest();
+        } else {
+          this.createVersion();
+        }
+        break;
     }
   }
 

@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { IonContent } from '@ionic/angular/standalone';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
 interface CommandStep {
   title: string;
@@ -19,7 +21,7 @@ interface DocSection {
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [IonContent, MainNavComponent],
+  imports: [IonContent, MainNavComponent, ProcessStepsComponent, WorkflowGuideComponent],
   styles: [
     `
       ion-content {
@@ -213,6 +215,12 @@ interface DocSection {
 
       .section-header .section-lead {
         max-width: 760px;
+      }
+
+      app-process-steps,
+      app-workflow-guide {
+        display: block;
+        margin-bottom: 14px;
       }
 
       .steps {
@@ -793,6 +801,18 @@ interface DocSection {
                   los límites de seguridad.
                 </p>
               </div>
+              <app-process-steps
+                [items]="docsFlowSteps"
+                activeKey="build"
+                [compact]="true"
+                [interactive]="false"
+                ariaLabel="Ejemplo del ciclo de un flow"
+              ></app-process-steps>
+              <app-workflow-guide
+                stepLabel="Patrón compartido"
+                title="Cada diseñador indica qué haces, qué falta y cómo comprobarlo"
+                description="Servicios y Flows usan estos mismos componentes. La lógica cambia; la forma de aprender y avanzar permanece."
+              ></app-workflow-guide>
               <div class="steps">
                 @for (step of flowEngineSteps; track step.title) {
                   <article class="step">
@@ -1044,6 +1064,33 @@ interface DocSection {
   `
 })
 export class DocsPageComponent {
+  readonly docsFlowSteps: ProcessStepItem[] = [
+    {
+      key: 'describe',
+      label: 'Definir',
+      summary: 'Propósito y entradas',
+      state: 'complete'
+    },
+    {
+      key: 'build',
+      label: 'Construir',
+      summary: 'Pasos y conexiones',
+      state: 'active'
+    },
+    {
+      key: 'test',
+      label: 'Probar',
+      summary: 'Ejecutar borrador',
+      state: 'pending'
+    },
+    {
+      key: 'publish',
+      label: 'Publicar',
+      summary: 'Activar versión',
+      state: 'pending'
+    }
+  ];
+
   readonly sections: DocSection[] = [
     {
       id: 'reglas',
@@ -1452,7 +1499,7 @@ export class DocsPageComponent {
     },
     {
       title: 'Prueba paso a paso',
-      ui: 'En /flows abre la etapa Probar. Selecciona Todo el borrador o un paso específico en Probar hasta. La pantalla muestra input, output, duración, estado y error de cada bloque.',
+      ui: 'En /flows: 1. Construye y pulsa Guardar y probar en el paso actual. 2. Completa los Datos de prueba. 3. Elige Todo el borrador o un paso en Probar hasta. 4. Pulsa Probar borrador. 5. Revisa cada entrada, salida, duración y error. Si queda verde, continúa a Publicar. Las Pruebas repetibles son opcionales.',
       swagger:
         'En /api/docs usa POST /flows/{flowId}/preview con input y throughStepKey opcional. Esta ruta prueba el borrador sin crear ni publicar una versión.',
       command:
@@ -1513,12 +1560,12 @@ export class DocsPageComponent {
     },
     {
       title: 'Flow Designer V3 visual',
-      ui: 'La etapa Construir muestra una línea visual desde Datos de entrada hasta Fin. Los botones + insertan pasos, cada bloque permite Probar hasta aquí y los estados correcto/error quedan visibles sobre el recorrido.',
+      ui: 'Servicios y Flows comparten el mismo indicador de etapas y la misma guía contextual. En Flow, Construir muestra el recorrido desde Datos de entrada hasta Fin; cada bloque puede guardarse, probarse y conectarse al siguiente.',
       swagger:
         'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:
         'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
-      note: 'Para encadenar servicios: guarda el primero, agrega otro con el botón +, selecciónalo y usa “Tomar el valor de” para elegir una salida del paso anterior.'
+      note: 'El camino principal es guiado. JSON avanzado y pruebas repetibles están disponibles de forma progresiva cuando realmente se necesitan.'
     },
     {
       title: 'Flow Assistant V3.1',

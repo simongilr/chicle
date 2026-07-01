@@ -6,6 +6,8 @@ import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
 type DynamicServiceStatus = 'draft' | 'published' | 'archived';
 type ServiceIntent = 'query' | 'get_one' | 'create' | 'update' | 'delete' | 'validate' | 'sync' | 'notify' | 'custom';
@@ -13,9 +15,23 @@ type ServiceSource = 'external_api' | 'internal_table' | 'dynamic_record' | 'fut
 type ServiceResultKind = 'none' | 'single' | 'list' | 'paginated_list' | 'boolean' | 'file';
 type ServiceEffect = 'none' | 'show_response' | 'update_record' | 'update_custom_table' | 'emit_event';
 type ServiceQueryMode = 'single_table' | 'multi_table' | 'advanced_read_model';
-type ServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
+type ServiceFilterOperator =
+  | 'equals'
+  | 'contains'
+  | 'starts_with'
+  | 'greater_than'
+  | 'greater_or_equal'
+  | 'less_than'
+  | 'less_or_equal';
 type ServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
 type ServiceFilterMatchMode = 'all' | 'any';
+
+interface ServiceGuideState {
+  stepLabel: string;
+  title: string;
+  description: string;
+  tone: 'info' | 'success' | 'warning';
+}
 
 interface NoteOption {
   label: string;
@@ -151,7 +167,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 @Component({
   selector: 'app-services-page',
   standalone: true,
-  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent, NgFor],
+  imports: [FormsModule, IonContent, JsonPipe, MainNavComponent, NgFor, ProcessStepsComponent, WorkflowGuideComponent],
   styles: [
     `
       ion-content {
@@ -396,8 +412,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
       .code {
         min-height: 270px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
         font-size: 0.86rem;
         line-height: 1.45;
       }
@@ -472,32 +487,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         gap: 10px;
       }
 
-      .status-flow {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .status-step {
-        display: grid;
-        gap: 5px;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #f8fbfe;
-        color: #254057;
-        padding: 10px;
-      }
-
-      .status-step.ready {
-        border-color: #a9ddb7;
-        background: #f4fbf6;
-        color: #17643a;
-      }
-
-      .status-step strong {
-        color: inherit;
-      }
-
       .run-item {
         display: grid;
         gap: 8px;
@@ -524,8 +513,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         .guide-grid,
         .table-grid,
         .notes-grid,
-        .filter-row,
-        .status-flow {
+        .filter-row {
           grid-template-columns: 1fr;
         }
 
@@ -551,12 +539,26 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
           <div>
             <h1>Servicios dinámicos</h1>
             <p>
-              Diseña servicios configurables por organización, publica versiones y prueba respuestas
-              desde backend con límites de seguridad.
+              Diseña servicios configurables por organización, publica versiones y prueba respuestas desde backend con
+              límites de seguridad.
             </p>
           </div>
           <span class="badge">Tenant services</span>
         </section>
+
+        @if (canRead) {
+          <app-process-steps
+            [items]="serviceProcessSteps"
+            [activeKey]="serviceActiveStep"
+            (selected)="goToServiceStep($event)"
+          ></app-process-steps>
+          <app-workflow-guide
+            [stepLabel]="serviceGuide.stepLabel"
+            [title]="serviceGuide.title"
+            [description]="serviceGuide.description"
+            [tone]="serviceGuide.tone"
+          ></app-workflow-guide>
+        }
 
         @if (!canRead) {
           <section class="panel">
@@ -587,7 +589,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
               } @else if (!services.length) {
                 <div class="notice">
                   <strong>{{ viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía' }}</strong>
-                  <span>{{ viewingTrash ? 'Los servicios enviados a papelera aparecerán aquí.' : 'Crea el primer servicio dinámico de esta organización.' }}</span>
+                  <span>{{
+                    viewingTrash
+                      ? 'Los servicios enviados a papelera aparecerán aquí.'
+                      : 'Crea el primer servicio dinámico de esta organización.'
+                  }}</span>
                 </div>
               }
 
@@ -612,7 +618,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
             </aside>
 
             <div class="workspace">
-              <section class="panel">
+              <section class="panel" id="service-data">
                 <div class="section-head">
                   <div>
                     <h2>{{ selected ? 'Editar servicio' : 'Crear servicio' }}</h2>
@@ -621,7 +627,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   <div class="actions">
                     <button type="button" (click)="load()">Refrescar</button>
                     @if (selected?.trashedAt) {
-                      <button class="primary" type="button" (click)="restoreService()" [disabled]="!canManage || saving">
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="restoreService()"
+                        [disabled]="!canManage || saving"
+                      >
                         Restaurar
                       </button>
                     } @else {
@@ -630,7 +641,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           Enviar a papelera
                         </button>
                       }
-                      <button class="primary" type="button" (click)="saveService()" [disabled]="!canManage || saving || !serviceMetadataChanged">
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="saveService()"
+                        [disabled]="!canManage || saving || !serviceMetadataChanged"
+                      >
                         Guardar datos
                       </button>
                     }
@@ -649,7 +665,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </div>
                 <div class="field">
                   <label for="service-description">Descripción</label>
-                  <input id="service-description" [(ngModel)]="draft.description" placeholder="Qué hace este servicio" />
+                  <input
+                    id="service-description"
+                    [(ngModel)]="draft.description"
+                    placeholder="Qué hace este servicio"
+                  />
                 </div>
                 <label class="meta">
                   <input type="checkbox" [(ngModel)]="draft.active" [disabled]="!!selected?.trashedAt" />
@@ -657,18 +677,20 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 </label>
                 @if (selected && !serviceMetadataChanged) {
                   <div class="notice">
-                    Los datos base no tienen cambios. Si editaste filtros, tablas o respuesta, continúa en Crear versión.
+                    Los datos base no tienen cambios. Si editaste filtros, tablas o respuesta, continúa en Crear
+                    versión.
                   </div>
                 }
               </section>
 
               @if (selected) {
-                <section class="panel">
+                <section class="panel" id="service-design">
                   <div class="section-head">
                     <div>
                       <h2>Qué hace este servicio</h2>
                       <p class="meta">
-                        Paso 2. Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión y publicarla.
+                        Paso 2. Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión
+                        y publicarla.
                       </p>
                     </div>
                     <button type="button" (click)="syncGuideToDefinition()">Actualizar JSON</button>
@@ -700,7 +722,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     </div>
                     <div class="field">
                       <label for="service-result">Qué devuelve</label>
-                      <select id="service-result" [(ngModel)]="guide.resultKind" (ngModelChange)="syncGuideToDefinition()">
+                      <select
+                        id="service-result"
+                        [(ngModel)]="guide.resultKind"
+                        (ngModelChange)="syncGuideToDefinition()"
+                      >
                         <option value="none">Nada</option>
                         <option value="single">Un registro</option>
                         <option value="list">Lista</option>
@@ -725,19 +751,35 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     <div class="grid">
                       <div class="field">
                         <label for="page-param">Parámetro página</label>
-                        <input id="page-param" [(ngModel)]="guide.pageParam" (ngModelChange)="syncGuideToDefinition()" />
+                        <input
+                          id="page-param"
+                          [(ngModel)]="guide.pageParam"
+                          (ngModelChange)="syncGuideToDefinition()"
+                        />
                       </div>
                       <div class="field">
                         <label for="page-size-param">Parámetro tamaño</label>
-                        <input id="page-size-param" [(ngModel)]="guide.pageSizeParam" (ngModelChange)="syncGuideToDefinition()" />
+                        <input
+                          id="page-size-param"
+                          [(ngModel)]="guide.pageSizeParam"
+                          (ngModelChange)="syncGuideToDefinition()"
+                        />
                       </div>
                       <div class="field">
                         <label for="items-path">Ruta items</label>
-                        <input id="items-path" [(ngModel)]="guide.itemsPath" (ngModelChange)="syncGuideToDefinition()" />
+                        <input
+                          id="items-path"
+                          [(ngModel)]="guide.itemsPath"
+                          (ngModelChange)="syncGuideToDefinition()"
+                        />
                       </div>
                       <div class="field">
                         <label for="total-path">Ruta total</label>
-                        <input id="total-path" [(ngModel)]="guide.totalPath" (ngModelChange)="syncGuideToDefinition()" />
+                        <input
+                          id="total-path"
+                          [(ngModel)]="guide.totalPath"
+                          (ngModelChange)="syncGuideToDefinition()"
+                        />
                       </div>
                     </div>
                   }
@@ -754,9 +796,16 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       </div>
                       <div class="field">
                         <label for="primary-table">Tabla principal</label>
-                        <select id="primary-table" [(ngModel)]="guide.primaryTable" (ngModelChange)="onPrimaryTableChange()">
+                        <select
+                          id="primary-table"
+                          [(ngModel)]="guide.primaryTable"
+                          (ngModelChange)="onPrimaryTableChange()"
+                        >
                           <option value="">Selecciona una tabla</option>
-                          <option *ngFor="let table of tableSelectOptions; trackBy: trackTableName" [value]="table.name">
+                          <option
+                            *ngFor="let table of tableSelectOptions; trackBy: trackTableName"
+                            [value]="table.name"
+                          >
                             {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
                           </option>
                         </select>
@@ -775,7 +824,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           [(ngModel)]="guide.involvedTableList"
                           (ngModelChange)="syncGuideToDefinition()"
                         >
-                          <option *ngFor="let table of tableSelectOptions; trackBy: trackTableName" [value]="table.name">
+                          <option
+                            *ngFor="let table of tableSelectOptions; trackBy: trackTableName"
+                            [value]="table.name"
+                          >
                             {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
                           </option>
                         </select>
@@ -787,7 +839,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <div class="grid notes-grid">
                         <div class="field">
                           <label for="filter-match-mode">Cómo combinar filtros</label>
-                          <select id="filter-match-mode" [(ngModel)]="guide.matchMode" (ngModelChange)="syncGuideToDefinition()">
+                          <select
+                            id="filter-match-mode"
+                            [(ngModel)]="guide.matchMode"
+                            (ngModelChange)="syncGuideToDefinition()"
+                          >
                             <option value="all">Todos deben coincidir</option>
                             <option value="any">Cualquiera puede coincidir</option>
                           </select>
@@ -868,15 +924,29 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                                   />
                                 } @else {
                                   <label>Origen</label>
-                                  <div class="notice">{{ filter.valueSource === 'tenant' ? 'Usa el tenant actual.' : 'Usa el usuario autenticado.' }}</div>
+                                  <div class="notice">
+                                    {{
+                                      filter.valueSource === 'tenant'
+                                        ? 'Usa el tenant actual.'
+                                        : 'Usa el usuario autenticado.'
+                                    }}
+                                  </div>
                                 }
                               </div>
                               <div class="filter-actions">
                                 <label class="checkline">
-                                  <input type="checkbox" [(ngModel)]="filter.required" (ngModelChange)="syncGuideToDefinition()" />
+                                  <input
+                                    type="checkbox"
+                                    [(ngModel)]="filter.required"
+                                    (ngModelChange)="syncGuideToDefinition()"
+                                  />
                                   Obligatorio
                                 </label>
-                                <button type="button" (click)="removeGuideFilter(index)" [disabled]="guide.filters.length === 1">
+                                <button
+                                  type="button"
+                                  (click)="removeGuideFilter(index)"
+                                  [disabled]="guide.filters.length === 1"
+                                >
                                   Quitar
                                 </button>
                               </div>
@@ -973,11 +1043,14 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   }
                 </section>
 
-                <section class="panel">
+                <section class="panel" id="service-version">
                   <div class="section-head">
                     <div>
                       <h2>Versión ejecutable</h2>
-                      <p class="meta">Paso 3. Guarda la lógica como versión. Paso 4. Publícala para que el front, workflows y acciones la usen.</p>
+                      <p class="meta">
+                        Paso 3. Guarda la lógica como versión. Paso 4. Publícala para que el front, workflows y acciones
+                        la usen.
+                      </p>
                     </div>
                     <div class="actions">
                       <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
@@ -987,7 +1060,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <button
                         type="button"
                         (click)="publishLatest()"
-                        [disabled]="!canEditSelected || !selected.latestVersion || selected.latestVersion.status === 'published' || saving"
+                        [disabled]="
+                          !canEditSelected ||
+                          !selected.latestVersion ||
+                          selected.latestVersion.status === 'published' ||
+                          saving
+                        "
                       >
                         Publicar última
                       </button>
@@ -1010,31 +1088,26 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   }
                 </section>
 
-                <section class="panel">
+                <section class="panel" id="service-test">
                   <div class="section-head">
                     <div>
                       <h2>Prueba en vivo</h2>
-                      <p class="meta">El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos.</p>
+                      <p class="meta">
+                        El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos.
+                      </p>
                     </div>
                     <button class="primary" type="button" (click)="testService()" [disabled]="!canTest">
                       Probar servicio
                     </button>
                   </div>
 
-                  <div class="status-flow">
-                    <div class="status-step ready">
-                      <strong>1. Servicio</strong>
-                      <span>Guardado</span>
-                    </div>
-                    <div class="status-step" [class.ready]="!!selected.latestVersion">
-                      <strong>2. Versión</strong>
-                      <span>{{ selected.latestVersion ? 'v' + selected.latestVersion.version : 'Pendiente' }}</span>
-                    </div>
-                    <div class="status-step" [class.ready]="!!selected.publishedVersion">
-                      <strong>3. Publicación</strong>
-                      <span>{{ selected.publishedVersion ? 'Lista para probar' : 'Publica una versión' }}</span>
-                    </div>
-                  </div>
+                  <app-process-steps
+                    [items]="serviceReadinessSteps"
+                    activeKey="publication"
+                    [compact]="true"
+                    [interactive]="false"
+                    ariaLabel="Preparación de la prueba"
+                  ></app-process-steps>
 
                   <div class="grid">
                     <div class="block">
@@ -1056,7 +1129,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   </div>
                 </section>
 
-                <section class="panel">
+                <section class="panel" id="service-history">
                   <div class="section-head">
                     <div>
                       <h2>Historial</h2>
@@ -1252,11 +1325,151 @@ export class ServicesPageComponent implements OnInit {
     return this.canManage && !this.selected?.trashedAt;
   }
 
+  get serviceActiveStep() {
+    if (!this.selected || this.serviceMetadataChanged) {
+      return 'data';
+    }
+    if (this.guideWarnings.length) {
+      return 'design';
+    }
+    if (!this.selected.latestVersion) {
+      return 'version';
+    }
+    if (!this.selected.publishedVersion) {
+      return 'publication';
+    }
+    return 'test';
+  }
+
+  get serviceProcessSteps(): ProcessStepItem[] {
+    const selected = this.selected;
+    return [
+      {
+        key: 'data',
+        label: 'Datos',
+        summary: selected && !this.serviceMetadataChanged ? 'Guardados' : 'Nombre y estado',
+        state: this.serviceActiveStep === 'data' ? 'active' : selected ? 'complete' : 'pending'
+      },
+      {
+        key: 'design',
+        label: 'Diseñar',
+        summary: this.guideWarnings.length ? `${this.guideWarnings.length} puntos pendientes` : 'Lógica guiada',
+        state:
+          this.serviceActiveStep === 'design'
+            ? 'active'
+            : selected && !this.guideWarnings.length
+              ? 'complete'
+              : 'pending',
+        disabled: !selected
+      },
+      {
+        key: 'version',
+        label: 'Versionar',
+        summary: selected?.latestVersion ? `v${selected.latestVersion.version}` : 'Crear snapshot',
+        state: this.serviceActiveStep === 'version' ? 'active' : selected?.latestVersion ? 'complete' : 'pending',
+        disabled: !selected
+      },
+      {
+        key: 'publication',
+        label: 'Publicar',
+        summary: selected?.publishedVersion ? `v${selected.publishedVersion.version} activa` : 'Habilitar consumo',
+        state:
+          this.serviceActiveStep === 'publication' ? 'active' : selected?.publishedVersion ? 'complete' : 'pending',
+        disabled: !selected
+      },
+      {
+        key: 'test',
+        label: 'Probar',
+        summary: this.lastRun ? `Última: ${this.lastRun.status}` : 'Ejecutar y revisar',
+        state: this.serviceActiveStep === 'test' ? 'active' : this.lastRun ? 'complete' : 'pending',
+        disabled: !selected?.publishedVersion
+      }
+    ];
+  }
+
+  get serviceReadinessSteps(): ProcessStepItem[] {
+    return [
+      {
+        key: 'service',
+        label: 'Servicio',
+        summary: this.selected ? 'Guardado' : 'Pendiente',
+        state: this.selected ? 'complete' : 'active'
+      },
+      {
+        key: 'version',
+        label: 'Versión',
+        summary: this.selected?.latestVersion ? `v${this.selected.latestVersion.version}` : 'Pendiente',
+        state: this.selected?.latestVersion ? 'complete' : 'pending'
+      },
+      {
+        key: 'publication',
+        label: 'Publicación',
+        summary: this.selected?.publishedVersion ? 'Lista para probar' : 'Publica una versión',
+        state: this.selected?.publishedVersion ? 'complete' : 'active'
+      }
+    ];
+  }
+
+  get serviceGuide(): ServiceGuideState {
+    switch (this.serviceActiveStep) {
+      case 'data':
+        return {
+          stepLabel: 'Paso 1 de 5',
+          title: this.selected ? 'Guarda los cambios básicos del servicio' : 'Crea el servicio para comenzar',
+          description:
+            'Aquí solo defines su identidad. La operación, filtros y respuesta se configuran en el siguiente paso.',
+          tone: 'info'
+        };
+      case 'design':
+        return {
+          stepLabel: 'Paso 2 de 5',
+          title: 'Describe la operación con opciones guiadas',
+          description: this.guideWarnings[0] ?? 'Define qué hace, dónde opera y qué devuelve sin escribir código.',
+          tone: this.guideWarnings.length ? 'warning' : 'success'
+        };
+      case 'version':
+        return {
+          stepLabel: 'Paso 3 de 5',
+          title: 'Crea una versión ejecutable',
+          description:
+            'La versión congela la lógica actual. Puedes seguir editando el servicio sin alterar lo que ya está publicado.',
+          tone: 'info'
+        };
+      case 'publication':
+        return {
+          stepLabel: 'Paso 4 de 5',
+          title: 'Publica la versión que debe consumir el sistema',
+          description: 'Solo una versión publicada puede ser llamada desde pantallas, flows o integraciones.',
+          tone: 'info'
+        };
+      case 'test':
+        return {
+          stepLabel: 'Paso 5 de 5',
+          title: this.lastRun ? 'Revisa la respuesta observada' : 'Ejecuta el servicio con datos de ejemplo',
+          description:
+            'La prueba pasa por el backend real y registra request, response, duración y error sin exponer secretos.',
+          tone: this.lastRun?.status === 'success' ? 'success' : 'info'
+        };
+    }
+  }
+
   get serviceMetadataChanged() {
     if (!this.selected) {
       return Boolean(this.draft.key.trim() || this.draft.name.trim() || this.draft.description.trim());
     }
     return this.savedDraftSnapshot !== this.draftSnapshot();
+  }
+
+  goToServiceStep(stepKey: string) {
+    const targetByStep: Record<string, string> = {
+      data: 'service-data',
+      design: 'service-design',
+      version: 'service-version',
+      publication: 'service-version',
+      test: 'service-test'
+    };
+    const target = document.getElementById(targetByStep[stepKey] ?? '');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   get definitionChanged() {
@@ -1280,7 +1493,9 @@ export class ServicesPageComponent implements OnInit {
   }
 
   get filterColumnOptions() {
-    return (this.selectedPrimaryTable?.columns ?? []).filter((column) => !/password|token|secret|hash/i.test(column.name));
+    return (this.selectedPrimaryTable?.columns ?? []).filter(
+      (column) => !/password|token|secret|hash/i.test(column.name)
+    );
   }
 
   get selectedGuideFilters() {
@@ -1573,19 +1788,17 @@ export class ServicesPageComponent implements OnInit {
 
     this.saving = true;
     this.formError = '';
-    this.api
-      .post<DynamicServiceVersion>(`dynamic-services/${this.selected.id}/versions`, { definition })
-      .subscribe({
-        next: () => {
-          this.saving = false;
-          this.message = 'Versión draft creada.';
-          this.load();
-        },
-        error: (error) => {
-          this.saving = false;
-          this.formError = this.errorMessage(error);
-        }
-      });
+    this.api.post<DynamicServiceVersion>(`dynamic-services/${this.selected.id}/versions`, { definition }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.message = 'Versión draft creada.';
+        this.load();
+      },
+      error: (error) => {
+        this.saving = false;
+        this.formError = this.errorMessage(error);
+      }
+    });
   }
 
   publishLatest() {
@@ -1751,7 +1964,9 @@ export class ServicesPageComponent implements OnInit {
   }
 
   columnSummary(table: DatabaseTable) {
-    return table.columns.length ? table.columns.map((column) => column.name).join(', ') : 'Columnas pendientes de cargar.';
+    return table.columns.length
+      ? table.columns.map((column) => column.name).join(', ')
+      : 'Columnas pendientes de cargar.';
   }
 
   private draftSnapshot() {
@@ -1774,7 +1989,9 @@ export class ServicesPageComponent implements OnInit {
   addGuideFilter() {
     const used = new Set(this.guide.filters.map((filter) => this.guideFilterField(filter)).filter(Boolean));
     const preferred =
-      this.filterColumnOptions.find((column) => !used.has(column.name) && ['email', 'name', 'key', 'slug', 'id'].includes(column.name)) ??
+      this.filterColumnOptions.find(
+        (column) => !used.has(column.name) && ['email', 'name', 'key', 'slug', 'id'].includes(column.name)
+      ) ??
       this.filterColumnOptions.find((column) => !used.has(column.name)) ??
       this.filterColumnOptions[0];
     this.guide.filters = [...this.guide.filters, this.createGuideFilter(preferred?.name ?? '')];
@@ -1818,8 +2035,9 @@ export class ServicesPageComponent implements OnInit {
       return;
     }
 
-    const currentIsValid = this.guide.filters.some((filter) =>
-      filter.field === CUSTOM_NOTE_VALUE || this.filterColumnOptions.some((column) => column.name === filter.field)
+    const currentIsValid = this.guide.filters.some(
+      (filter) =>
+        filter.field === CUSTOM_NOTE_VALUE || this.filterColumnOptions.some((column) => column.name === filter.field)
     );
     if (!force && currentIsValid) {
       return;
@@ -2087,7 +2305,11 @@ export class ServicesPageComponent implements OnInit {
     }
   }
 
-  private collectInputTemplateKeys(value: unknown, proposal: Record<string, unknown>, current: Record<string, unknown>) {
+  private collectInputTemplateKeys(
+    value: unknown,
+    proposal: Record<string, unknown>,
+    current: Record<string, unknown>
+  ) {
     if (typeof value === 'string') {
       const matches = value.matchAll(/\{\{\s*input\.([a-zA-Z0-9_]+)\s*\}\}/g);
       for (const match of matches) {
@@ -2103,7 +2325,9 @@ export class ServicesPageComponent implements OnInit {
     }
 
     if (value && typeof value === 'object') {
-      Object.values(value as Record<string, unknown>).forEach((item) => this.collectInputTemplateKeys(item, proposal, current));
+      Object.values(value as Record<string, unknown>).forEach((item) =>
+        this.collectInputTemplateKeys(item, proposal, current)
+      );
     }
   }
 
@@ -2166,9 +2390,7 @@ export class ServicesPageComponent implements OnInit {
     const mode = this.queryModeLabels[this.guide.queryMode];
     const involved = this.guide.involvedTableList;
     const involvedText =
-      this.guide.queryMode !== 'single_table' && involved.length
-        ? ` e involucra ${involved.join(', ')}`
-        : '';
+      this.guide.queryMode !== 'single_table' && involved.length ? ` e involucra ${involved.join(', ')}` : '';
     const filterSummary = this.filterSummary();
     const filterText = this.guide.queryMode === 'single_table' && filterSummary ? `; filtros ${filterSummary}` : '';
     return ` en ${mode}; tabla principal ${table}${involvedText}${filterText}`;
@@ -2183,8 +2405,7 @@ export class ServicesPageComponent implements OnInit {
         'Primero crea una versión y publícala antes de probar el servicio.',
       'Publish a service version before executing it':
         'Primero crea una versión y publícala antes de ejecutar el servicio.',
-      'At least one filter value is required':
-        'Envía al menos un valor de filtro para ejecutar la consulta.',
+      'At least one filter value is required': 'Envía al menos un valor de filtro para ejecutar la consulta.',
       'Service is inactive': 'El servicio está inactivo.',
       'Dynamic service not found': 'No se encontró el servicio dinámico.',
       'Definition is required': 'La definición del servicio es obligatoria.',
@@ -2192,8 +2413,7 @@ export class ServicesPageComponent implements OnInit {
       'URL is required': 'La URL del servicio es obligatoria.',
       'Service URL is invalid': 'La URL del servicio no es válida.',
       'Only HTTP and HTTPS URLs are allowed': 'Solo se permiten URLs HTTP o HTTPS.',
-      'Private hosts are blocked for dynamic services':
-        'Los hosts privados están bloqueados para servicios dinámicos.',
+      'Private hosts are blocked for dynamic services': 'Los hosts privados están bloqueados para servicios dinámicos.',
       'Private network targets are blocked for dynamic services':
         'Las redes privadas están bloqueadas para servicios dinámicos.'
     };

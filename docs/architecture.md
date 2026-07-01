@@ -83,7 +83,7 @@ The app does not contain pages named after business operations. It contains gene
 Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
 
 ```ts
-dynamicServices.execute("buscar_usuario", { name: "simon" });
+dynamicServices.execute('buscar_usuario', { name: 'simon' });
 ```
 
 The API resolves the published definition behind `POST /api/dynamic-services/by-key/:serviceKey/execute`, applies tenant scope and permissions, runs the service, and records the execution in `dynamic_service_runs`.
@@ -104,6 +104,13 @@ Flows use declarative workflow orchestration. The database stores tenant-owned r
 Decisions and formulas use JSON Logic as a serializable abstract syntax tree. Validations use a controlled operator catalog. The runtime never evaluates JavaScript stored in the database.
 
 The UI follows four explicit stages: define, build, test and publish. Start and end nodes are synthesized when omitted, so common processes do not require technical plumbing.
+
+Operational designers share the same reusable interface language:
+
+- `ProcessStepsComponent` renders progress, readiness and navigation for both Dynamic Services and Flows.
+- `WorkflowGuideComponent` explains the current objective, the blocking condition and the next recommended action.
+- Advanced JSON and reusable test suites stay behind progressive disclosure; the first path remains guided and visual.
+- Frontend validation mirrors publish-time constraints so missing services, broken routes, subflows and event keys are visible before version creation.
 
 Flow Designer V3 treats data contracts as first-class configuration:
 

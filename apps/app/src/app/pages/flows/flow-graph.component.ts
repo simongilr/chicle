@@ -222,7 +222,8 @@ interface FlowGraphConnection {
                   [class.success]="status === 'success'"
                   [class.failed]="status === 'failed'"
                   [class.timeout]="status === 'timeout'"
-                >{{ status }}</span>
+                  >{{ status }}</span
+                >
               }
             </span>
             <span class="connections">
@@ -233,7 +234,8 @@ interface FlowGraphConnection {
                     [class.success]="connection.tone === 'success'"
                     [class.danger]="connection.tone === 'danger'"
                     [class.warning]="connection.tone === 'warning'"
-                  >{{ connection.label }}</span>
+                    >{{ connection.label }}</span
+                  >
                   <span class="connection-target">
                     <i class="pi pi-arrow-right" aria-hidden="true"></i>
                     <span>{{ targetLabel(connection.target) }}</span>
@@ -296,7 +298,13 @@ export class FlowGraphComponent {
         explicit: Boolean(step.onSuccessStepKey || step.nextStepKey)
       }
     ];
-    if (step.type === 'dynamic_service' || step.type === 'validation') {
+    if (
+      step.type === 'dynamic_service' ||
+      step.type === 'validation' ||
+      step.type === 'parallel' ||
+      step.type === 'foreach' ||
+      step.type === 'subflow'
+    ) {
       connections.push({
         label: 'Error',
         target: step.onErrorStepKey || 'stop',
@@ -329,6 +337,11 @@ export class FlowGraphComponent {
     const labels: Record<string, string> = {
       start: 'Inicio',
       dynamic_service: 'Servicio',
+      parallel: 'En paralelo',
+      foreach: 'Por cada elemento',
+      subflow: 'Otro flow',
+      delay: 'Espera',
+      emit_event: 'Evento',
       formula: 'Fórmula',
       validation: 'Validación',
       decision: 'Decisión',

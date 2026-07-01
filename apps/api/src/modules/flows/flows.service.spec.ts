@@ -59,23 +59,15 @@ describe('FlowsService input contract', () => {
     };
 
     expect(
-      service.evaluateTestAssertion(
-        { path: 'output.body.role', operator: 'equals', expected: 'owner' },
-        actual
-      ).passed
+      service.evaluateTestAssertion({ path: 'output.body.role', operator: 'equals', expected: 'owner' }, actual).passed
     ).toBe(true);
     expect(
-      service.evaluateTestAssertion(
-        { path: 'output.body.total', operator: 'greater_than', expected: 100 },
-        actual
-      ).passed
+      service.evaluateTestAssertion({ path: 'output.body.total', operator: 'greater_than', expected: 100 }, actual)
+        .passed
     ).toBe(true);
-    expect(
-      service.evaluateTestAssertion(
-        { path: 'output.body.missing', operator: 'exists' },
-        actual
-      ).passed
-    ).toBe(false);
+    expect(service.evaluateTestAssertion({ path: 'output.body.missing', operator: 'exists' }, actual).passed).toBe(
+      false
+    );
   });
 
   it('matches expected output as a partial object', () => {
@@ -85,11 +77,26 @@ describe('FlowsService input contract', () => {
         { body: { ok: true, role: 'owner' } }
       )
     ).toBe(true);
-    expect(
-      service.deepContains(
-        { status: 'success', body: { ok: false } },
-        { body: { ok: true } }
-      )
-    ).toBe(false);
+    expect(service.deepContains({ status: 'success', body: { ok: false } }, { body: { ok: true } })).toBe(false);
+  });
+
+  it('hashes webhook secrets and never returns the hash to the client', () => {
+    const config = service.cleanTriggerConfig('http', {
+      secret: 'super-secret-value',
+      inputMode: 'payload'
+    });
+    expect(config.secret).toBeUndefined();
+    expect(config.secretHash).toHaveLength(64);
+
+    const publicTrigger = service.publicTrigger({
+      type: 'http',
+      config
+    });
+    expect(publicTrigger.config.secretHash).toBeUndefined();
+    expect(publicTrigger.secretConfigured).toBe(true);
+  });
+
+  it('rejects weak webhook secrets', () => {
+    expect(() => service.cleanTriggerConfig('http', { secret: 'short-secret' })).toThrow(BadRequestException);
   });
 });

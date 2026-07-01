@@ -191,7 +191,8 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     value: false,
     valueType: 'boolean',
     category: 'services',
-    description: 'Permite llamar localhost o redes privadas desde servicios dinámicos. Debe permanecer apagado salvo desarrollo controlado.'
+    description:
+      'Permite llamar localhost o redes privadas desde servicios dinámicos. Debe permanecer apagado salvo desarrollo controlado.'
   },
   {
     key: 'flow.enabled',
@@ -255,6 +256,83 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     valueType: 'number',
     category: 'flow',
     description: 'Longitud máxima para expresiones declarativas del Flow Engine.'
+  },
+  {
+    key: 'flow.worker.enabled',
+    value: true,
+    valueType: 'boolean',
+    category: 'flow',
+    description: 'Activa el worker interno que procesa outbox, schedules y jobs de flows.'
+  },
+  {
+    key: 'flow.worker.pollMs',
+    value: 1000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Intervalo de revisión de la cola durable de flows.'
+  },
+  {
+    key: 'flow.worker.batchSize',
+    value: 10,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Cantidad máxima de eventos o jobs reclamados por ciclo.'
+  },
+  {
+    key: 'flow.worker.maxJobAttempts',
+    value: 3,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Intentos por defecto de una ejecución asíncrona.'
+  },
+  {
+    key: 'flow.worker.retryBackoffMs',
+    value: 1000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Backoff exponencial base para reintentos de jobs y outbox.'
+  },
+  {
+    key: 'flow.worker.staleLockMs',
+    value: 300000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Tiempo para recuperar un job bloqueado por un worker interrumpido.'
+  },
+  {
+    key: 'flow.outbox.maxAttempts',
+    value: 10,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Máximo de intentos al despachar un evento durable.'
+  },
+  {
+    key: 'flow.maxDelayMs',
+    value: 30000,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Espera síncrona máxima permitida dentro de un paso de flow.'
+  },
+  {
+    key: 'flow.foreach.maxItems',
+    value: 100,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Cantidad máxima de elementos procesados por un paso para cada elemento.'
+  },
+  {
+    key: 'flow.foreach.maxConcurrency',
+    value: 10,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Concurrencia máxima permitida en un paso para cada elemento.'
+  },
+  {
+    key: 'flow.subflow.maxDepth',
+    value: 5,
+    valueType: 'number',
+    category: 'flow',
+    description: 'Profundidad máxima de llamadas entre flows publicados.'
   }
 ];
 

@@ -31,6 +31,15 @@ export class FlowTrigger {
   @Column({ default: true })
   active!: boolean;
 
+  @Column({ type: 'datetime', nullable: true })
+  nextFireAt?: Date | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastFiredAt?: Date | null;
+
+  @Column({ type: 'varchar', length: 180, nullable: true })
+  createdByUserId?: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

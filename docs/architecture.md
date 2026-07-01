@@ -83,7 +83,7 @@ The app does not contain pages named after business operations. It contains gene
 Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
 
 ```ts
-dynamicServices.execute('buscar_usuario', { name: 'simon' });
+dynamicServices.execute("buscar_usuario", { name: "simon" });
 ```
 
 The API resolves the published definition behind `POST /api/dynamic-services/by-key/:serviceKey/execute`, applies tenant scope and permissions, runs the service, and records the execution in `dynamic_service_runs`.
@@ -114,7 +114,7 @@ Flow Designer V3 treats data contracts as first-class configuration:
 - Dynamic service `responseMap` aliases are materialized under `response.mapped`.
 - Preview results enrich the mapper with fields observed during a real test.
 
-The visual timeline and data mapper are standalone Angular components. Parallel branches, loops and subflows remain runner capabilities rather than frontend-only decorations.
+The visual timeline and data mapper are standalone Angular components. Parallel branches, loops, subflows, delays and durable events use the same persisted step contract shown by the designer.
 
 Flow Assistant V3.1 adds a progressive authoring loop:
 
@@ -135,7 +135,17 @@ Flow Designer V3.2 makes execution routing and regression tests explicit:
 - Timeout routes are honored by both draft preview and published execution.
 - The Docker smoke test chains three services and validates draft preview, assertions, test suite, publication and execution.
 
-The current runner is a synchronous deterministic state machine, not yet an asynchronous event-driven runtime. `flow_triggers` reserves the trigger contract, while queue workers, transactional outbox, schedules and WebSocket progress remain the next execution layer.
+Flow Runtime V4 adds the asynchronous execution layer around the deterministic runner:
+
+- `flow_triggers` activates a published flow manually, by signed HTTP hook, record event, form submit or interval schedule.
+- `flow_jobs` is a durable MariaDB queue. Workers claim jobs conditionally, recover stale locks and retry with bounded exponential backoff.
+- `flow_outbox_events` implements the transactional outbox pattern. Records and their events are persisted in the same transaction.
+- Socket.IO and the authenticated SSE endpoint publish live progress; the database remains the source of truth.
+- Idempotency keys prevent duplicate jobs and duplicate outbox events.
+- Published runs support parallel service branches, bounded `foreach`, nested published subflows, short controlled delays and durable event emission.
+- Successful service steps may register a compensation service. If a later step fails, compensations execute in reverse order and are included in the run error.
+
+The internal worker is suitable for the initial deployment and multiple API replicas coordinate through database claims. A dedicated worker process can later reuse the same queue contract without changing flow definitions.
 
 ## Declarative Actions
 

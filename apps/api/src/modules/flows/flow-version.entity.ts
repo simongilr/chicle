@@ -2,7 +2,20 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Update
 import { FlowRuntimeConfig } from './flow.entity';
 
 export type FlowVersionStatus = 'draft' | 'published' | 'archived';
-export type FlowStepType = 'start' | 'dynamic_service' | 'formula' | 'validation' | 'decision' | 'action' | 'response' | 'end';
+export type FlowStepType =
+  | 'start'
+  | 'dynamic_service'
+  | 'parallel'
+  | 'foreach'
+  | 'subflow'
+  | 'delay'
+  | 'emit_event'
+  | 'formula'
+  | 'validation'
+  | 'decision'
+  | 'action'
+  | 'response'
+  | 'end';
 export type FlowExpressionLanguage = 'chicle_expr' | 'json_logic';
 
 export interface FlowDefinitionStep {

@@ -211,7 +211,8 @@ export interface FlowTimelineStatus {
             <span class="meta">{{ typeLabel(step.type) }} · guarda en {{ step.outputKey || step.key }}</span>
             @if (step.type === 'decision') {
               <span class="branch">
-                Sí → {{ step.onTrueStepKey || 'siguiente' }} · No → {{ step.onFalseStepKey || 'siguiente' }}
+                Sí → {{ step.onTrueStepKey || 'siguiente' }} · No →
+                {{ step.onFalseStepKey || 'siguiente' }}
               </span>
             } @else if (step.onErrorStepKey) {
               <span class="branch">Si falla → {{ step.onErrorStepKey }}</span>
@@ -272,6 +273,11 @@ export class FlowTimelineComponent {
   typeLabel(type: string) {
     const labels: Record<string, string> = {
       dynamic_service: 'Servicio',
+      parallel: 'En paralelo',
+      foreach: 'Por cada elemento',
+      subflow: 'Otro flow',
+      delay: 'Espera',
+      emit_event: 'Evento',
       validation: 'Validación',
       decision: 'Decisión',
       formula: 'Fórmula',
@@ -284,6 +290,11 @@ export class FlowTimelineComponent {
   iconClass(type: string) {
     const icons: Record<string, string> = {
       dynamic_service: 'pi pi-cloud',
+      parallel: 'pi pi-sitemap',
+      foreach: 'pi pi-replay',
+      subflow: 'pi pi-directions-alt',
+      delay: 'pi pi-clock',
+      emit_event: 'pi pi-bell',
       validation: 'pi pi-check-circle',
       decision: 'pi pi-share-alt',
       formula: 'pi pi-calculator',

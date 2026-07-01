@@ -290,8 +290,7 @@ interface DocSection {
 
       code,
       pre {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-          "Courier New", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
       }
 
       code {
@@ -416,8 +415,8 @@ interface DocSection {
         <header class="intro">
           <h1>Primeros pasos de Chicle Engine</h1>
           <p>
-            Esta página guarda las instrucciones operativas del proyecto para que no dependamos
-            de recordar comandos sueltos. La iremos enriqueciendo conforme avance el producto.
+            Esta página guarda las instrucciones operativas del proyecto para que no dependamos de recordar comandos
+            sueltos. La iremos enriqueciendo conforme avance el producto.
           </p>
         </header>
 
@@ -456,9 +455,9 @@ interface DocSection {
                 </p>
               </div>
               <p class="section-lead">
-                Siempre dejamos un valor por defecto para que el proyecto arranque sin configuración
-                extra. Si existe un valor en <code>infra/docker/.env.example</code> o en la terminal,
-                ese valor reemplaza el default.
+                Siempre dejamos un valor por defecto para que el proyecto arranque sin configuración extra. Si existe un
+                valor en
+                <code>infra/docker/.env.example</code> o en la terminal, ese valor reemplaza el default.
               </p>
             </section>
 
@@ -466,14 +465,16 @@ interface DocSection {
               <div class="section-header">
                 <h2>Primer uso</h2>
                 <p class="section-lead">
-                  Este es el camino recomendado para levantar la app, verificar el estado del sistema
-                  y crear el primer tenant desde la pantalla web.
+                  Este es el camino recomendado para levantar la app, verificar el estado del sistema y crear el primer
+                  tenant desde la pantalla web.
                 </p>
               </div>
               <div class="steps">
                 @for (step of firstRunSteps; track step.title; let index = $index) {
                   <article class="step">
-                    <h3><span>{{ index + 1 }}.</span>{{ step.title }}</h3>
+                    <h3>
+                      <span>{{ index + 1 }}.</span>{{ step.title }}
+                    </h3>
                     <div class="meta">
                       <span>{{ step.note }}</span>
                     </div>
@@ -506,9 +507,9 @@ interface DocSection {
               <div class="section-header">
                 <h2>Estado del sistema</h2>
                 <p class="section-lead">
-                  La app decide qué mostrar usando <code>/api/setup/status</code>. Si responde
-                  <code>not_created</code>, el backend está vivo y falta crear el sistema. Si no responde,
-                  el problema es conexión, API o base de datos.
+                  La app decide qué mostrar usando
+                  <code>/api/setup/status</code>. Si responde <code>not_created</code>, el backend está vivo y falta
+                  crear el sistema. Si no responde, el problema es conexión, API o base de datos.
                 </p>
               </div>
               <div class="steps">
@@ -546,9 +547,7 @@ interface DocSection {
             <section id="arranque" class="doc-section" data-tone="ops">
               <div class="section-header">
                 <h2>Arranque recomendado</h2>
-                <p class="section-lead">
-                  Comandos base para desarrollo local, Docker, compilación y pruebas rápidas.
-                </p>
+                <p class="section-lead">Comandos base para desarrollo local, Docker, compilación y pruebas rápidas.</p>
               </div>
               <div class="steps">
                 @for (step of startupSteps; track step.title) {
@@ -586,8 +585,9 @@ interface DocSection {
               <div class="section-header">
                 <h2>Cambiar puertos</h2>
                 <p class="section-lead">
-                  Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a
-                  ejecutar el comando. Ubicación: <code>infra/docker/.env.example</code>.
+                  Si otro proyecto ya usa un puerto, cambia el valor correspondiente y vuelve a ejecutar el comando.
+                  Ubicación:
+                  <code>infra/docker/.env.example</code>.
                 </p>
               </div>
               <div class="steps">
@@ -626,9 +626,9 @@ interface DocSection {
               <div class="section-header">
                 <h2>Confisys</h2>
                 <p class="section-lead">
-                  <code>confisys</code> es la tabla paramétrica del sistema. La API crea una semilla
-                  mínima si faltan valores, carga todos los parámetros en memoria al iniciar y trabaja
-                  con esa caché hasta el siguiente reinicio.
+                  <code>confisys</code> es la tabla paramétrica del sistema. La API crea una semilla mínima si faltan
+                  valores, carga todos los parámetros en memoria al iniciar y trabaja con esa caché hasta el siguiente
+                  reinicio.
                 </p>
               </div>
               <div class="steps">
@@ -668,8 +668,8 @@ interface DocSection {
                 <h2>Base de datos y migraciones</h2>
                 <p class="section-lead">
                   El visor DB permite revisar datos y el diseñador permite crear tablas
-                  <code>custom_*</code> con preview SQL, historial y migración TypeORM generada.
-                  Las tablas core del sistema no se modifican desde aquí.
+                  <code>custom_*</code> con preview SQL, historial y migración TypeORM generada. Las tablas core del
+                  sistema no se modifican desde aquí.
                 </p>
               </div>
               <div class="steps">
@@ -708,9 +708,8 @@ interface DocSection {
               <div class="section-header">
                 <h2>Modelo SaaS multi-industria</h2>
                 <p class="section-lead">
-                  Chicle Engine separa identidad, tenant, membresía y datos de negocio para poder
-                  atender eventos, inmobiliaria, tickets, servicios, minijuegos y comercios sin
-                  convertir el core en un producto rígido.
+                  Chicle Engine separa identidad, tenant, membresía y datos de negocio para poder atender eventos,
+                  inmobiliaria, tickets, servicios, minijuegos y comercios sin convertir el core en un producto rígido.
                 </p>
               </div>
               <div class="steps">
@@ -749,9 +748,8 @@ interface DocSection {
               <div class="section-header">
                 <h2>Servicios dinámicos</h2>
                 <p class="section-lead">
-                  Los servicios son objetos configurables del tenant. Una plantilla de negocio puede
-                  instalarlos como semilla y la organización puede administrarlos desde la pantalla
-                  web sin escribir código core.
+                  Los servicios son objetos configurables del tenant. Una plantilla de negocio puede instalarlos como
+                  semilla y la organización puede administrarlos desde la pantalla web sin escribir código core.
                 </p>
               </div>
               <div class="steps">
@@ -790,9 +788,9 @@ interface DocSection {
               <div class="section-header">
                 <h2>Chicle Flow Engine</h2>
                 <p class="section-lead">
-                  El Flow Engine será el motor declarativo para reglas, validaciones, fórmulas,
-                  decisiones y orquestación de servicios dinámicos. La DB guarda recetas versionadas;
-                  el backend conserva las acciones reales y los límites de seguridad.
+                  El Flow Engine es el motor declarativo para reglas, validaciones, fórmulas, decisiones y orquestación
+                  de servicios dinámicos. La DB guarda recetas versionadas; el backend conserva las acciones reales y
+                  los límites de seguridad.
                 </p>
               </div>
               <div class="steps">
@@ -832,8 +830,8 @@ interface DocSection {
                 <h2>Seguridad modular</h2>
                 <p class="section-lead">
                   La seguridad se configura por organización. La pantalla de login lee
-                  <code>/api/auth/config</code> y muestra solo los métodos activos para web, móvil o
-                  dispositivo. El backend sigue siendo la autoridad real para permisos y acceso.
+                  <code>/api/auth/config</code> y muestra solo los métodos activos para web, móvil o dispositivo. El
+                  backend sigue siendo la autoridad real para permisos y acceso.
                 </p>
               </div>
               <div class="steps">
@@ -872,8 +870,8 @@ interface DocSection {
               <div class="section-header">
                 <h2>Guía de seguridad</h2>
                 <p class="section-lead">
-                  La seguridad de Chicle Engine se diseña por capas: autenticación, sesión, tenant,
-                  roles, permisos, auditoría y configuración por organización.
+                  La seguridad de Chicle Engine se diseña por capas: autenticación, sesión, tenant, roles, permisos,
+                  auditoría y configuración por organización.
                 </p>
               </div>
               <div class="steps">
@@ -912,8 +910,8 @@ interface DocSection {
               <div class="section-header">
                 <h2>Swagger / API Docs</h2>
                 <p class="section-lead">
-                  La API expone documentación interactiva con ejemplos para setup, auth, usuarios,
-                  roles, permisos, auditoría y confisys.
+                  La API expone documentación interactiva con ejemplos para setup, auth, usuarios, roles, permisos,
+                  auditoría y confisys.
                 </p>
               </div>
               <div class="steps">
@@ -955,9 +953,9 @@ interface DocSection {
               <div class="section-header">
                 <h2>Reset local seguro</h2>
                 <p class="section-lead">
-                  Para repetir pruebas de creación del sistema existe un reset solo para desarrollo.
-                  Está desactivado por defecto, exige llave de entorno, frase exacta y queda bloqueado
-                  si <code>NODE_ENV=production</code>.
+                  Para repetir pruebas de creación del sistema existe un reset solo para desarrollo. Está desactivado
+                  por defecto, exige llave de entorno, frase exacta y queda bloqueado si
+                  <code>NODE_ENV=production</code>.
                 </p>
               </div>
               <div class="steps">
@@ -998,17 +996,16 @@ interface DocSection {
               </div>
               <ul class="notes">
                 <li>
-                  El primer usuario real es el admin creado desde setup. No usamos una contraseña
-                  default quemada en el código.
+                  El primer usuario real es el admin creado desde setup. No usamos una contraseña default quemada en el
+                  código.
                 </li>
                 <li>
-                  La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y
-                  usuario admin inicial con rol <code>owner</code>. Roles y permisos finos se suman
-                  en la siguiente iteración.
+                  La semilla base inicia con perfil <code>blank</code>: tenant, settings mínimos y usuario admin inicial
+                  con rol <code>owner</code>. Roles y permisos finos se suman en la siguiente iteración.
                 </li>
                 <li>
-                  Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una
-                  seed no debe romper el core.
+                  Los usuarios de demo o plantillas de negocio vivirán en seeds opcionales. Borrar una seed no debe
+                  romper el core.
                 </li>
               </ul>
             </section>
@@ -1019,24 +1016,24 @@ interface DocSection {
               </div>
               <ul class="notes">
                 <li>
-                  Si <code>ionic serve</code> dice que no es un proyecto Ionic, usa
-                  <code>npm run start</code> dentro de <code>apps/app</code>.
+                  Si <code>ionic serve</code> dice que no es un proyecto Ionic, usa <code>npm run start</code> dentro de
+                  <code>apps/app</code>.
                 </li>
                 <li>
                   Si <code>npm run dev:app</code> falla con “Missing script”, probablemente estás en
                   <code>apps/app</code>. Ese comando se ejecuta desde la raíz del monorepo.
                 </li>
                 <li>
-                  Si la API no arranca por base de datos, abre Docker Desktop y levanta MariaDB con
-                  el comando de base de datos.
+                  Si la API no arranca por base de datos, abre Docker Desktop y levanta MariaDB con el comando de base
+                  de datos.
                 </li>
                 <li>
-                  Si <code>/api/setup/status</code> responde <code>not_created</code>, no está caído:
-                  toca ejecutar el setup inicial.
+                  Si <code>/api/setup/status</code> responde <code>not_created</code>, no está caído: toca ejecutar el
+                  setup inicial.
                 </li>
                 <li>
-                  Si el error dice que el puerto está ocupado, cambia <code>APP_PORT</code>,
-                  <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
+                  Si el error dice que el puerto está ocupado, cambia
+                  <code>APP_PORT</code>, <code>API_PORT</code> o <code>DB_PORT</code> según el servicio afectado.
                 </li>
               </ul>
             </section>
@@ -1048,22 +1045,86 @@ interface DocSection {
 })
 export class DocsPageComponent {
   readonly sections: DocSection[] = [
-    { id: 'reglas', label: 'Reglas rápidas', summary: 'Dónde correr comandos y cómo funcionan los env.' },
-    { id: 'primer-uso', label: 'Primer uso', summary: 'Crear el sistema por primera vez.' },
-    { id: 'estado', label: 'Estado', summary: 'Diferenciar setup pendiente de caída real.' },
-    { id: 'arranque', label: 'Arranque', summary: 'Node, app, API, Docker y build.' },
-    { id: 'puertos', label: 'Puertos', summary: 'Cambios desde env y pruebas locales.' },
-    { id: 'confisys', label: 'Confisys', summary: 'Parámetros del sistema en base de datos.' },
-    { id: 'base-datos', label: 'Base de datos', summary: 'Visor, diseñador y migraciones.' },
-    { id: 'modelo-saas', label: 'Modelo SaaS', summary: 'Tenants, usuarios, membresías y necesidades.' },
-    { id: 'servicios-dinamicos', label: 'Servicios', summary: 'Objetos ejecutables, pruebas y runs.' },
-    { id: 'flow-engine', label: 'Flow Engine', summary: 'Reglas, fórmulas, workflows y pruebas paso a paso.' },
-    { id: 'seguridad', label: 'Seguridad', summary: 'Auth, roles, permisos y auditoría.' },
-    { id: 'guia-seguridad', label: 'Guía de seguridad', summary: 'Capas, reglas y pendientes de seguridad.' },
-    { id: 'swagger', label: 'Swagger', summary: 'API interactiva con ejemplos.' },
-    { id: 'reset', label: 'Reset local', summary: 'Repetir pruebas de creación sin abrir huecos.' },
-    { id: 'semillas', label: 'Semillas', summary: 'Datos iniciales y perfiles base.' },
-    { id: 'errores', label: 'Errores comunes', summary: 'Qué hacer cuando algo no arranca.' }
+    {
+      id: 'reglas',
+      label: 'Reglas rápidas',
+      summary: 'Dónde correr comandos y cómo funcionan los env.'
+    },
+    {
+      id: 'primer-uso',
+      label: 'Primer uso',
+      summary: 'Crear el sistema por primera vez.'
+    },
+    {
+      id: 'estado',
+      label: 'Estado',
+      summary: 'Diferenciar setup pendiente de caída real.'
+    },
+    {
+      id: 'arranque',
+      label: 'Arranque',
+      summary: 'Node, app, API, Docker y build.'
+    },
+    {
+      id: 'puertos',
+      label: 'Puertos',
+      summary: 'Cambios desde env y pruebas locales.'
+    },
+    {
+      id: 'confisys',
+      label: 'Confisys',
+      summary: 'Parámetros del sistema en base de datos.'
+    },
+    {
+      id: 'base-datos',
+      label: 'Base de datos',
+      summary: 'Visor, diseñador y migraciones.'
+    },
+    {
+      id: 'modelo-saas',
+      label: 'Modelo SaaS',
+      summary: 'Tenants, usuarios, membresías y necesidades.'
+    },
+    {
+      id: 'servicios-dinamicos',
+      label: 'Servicios',
+      summary: 'Objetos ejecutables, pruebas y runs.'
+    },
+    {
+      id: 'flow-engine',
+      label: 'Flow Engine',
+      summary: 'Reglas, fórmulas, workflows y pruebas paso a paso.'
+    },
+    {
+      id: 'seguridad',
+      label: 'Seguridad',
+      summary: 'Auth, roles, permisos y auditoría.'
+    },
+    {
+      id: 'guia-seguridad',
+      label: 'Guía de seguridad',
+      summary: 'Capas, reglas y pendientes de seguridad.'
+    },
+    {
+      id: 'swagger',
+      label: 'Swagger',
+      summary: 'API interactiva con ejemplos.'
+    },
+    {
+      id: 'reset',
+      label: 'Reset local',
+      summary: 'Repetir pruebas de creación sin abrir huecos.'
+    },
+    {
+      id: 'semillas',
+      label: 'Semillas',
+      summary: 'Datos iniciales y perfiles base.'
+    },
+    {
+      id: 'errores',
+      label: 'Errores comunes',
+      summary: 'Qué hacer cuando algo no arranca.'
+    }
   ];
 
   scrollTo(sectionId: string) {
@@ -1125,14 +1186,12 @@ export class DocsPageComponent {
   readonly systemStateSteps: CommandStep[] = [
     {
       title: 'Sistema no creado',
-      command:
-        '{"state":"not_created","initialized":false,"canRunSetup":true,"requiredAction":"run_setup"}',
+      command: '{"state":"not_created","initialized":false,"canRunSetup":true,"requiredAction":"run_setup"}',
       note: 'La API y la DB están arriba. La app debe mostrar setup inicial.'
     },
     {
       title: 'Sistema listo',
-      command:
-        '{"state":"ready","initialized":true,"canRunSetup":false,"requiredAction":"login"}',
+      command: '{"state":"ready","initialized":true,"canRunSetup":false,"requiredAction":"login"}',
       note: 'Ya existe al menos un tenant. La app debe enviar a login.'
     },
     {
@@ -1152,7 +1211,8 @@ export class DocsPageComponent {
     {
       title: 'Recrear API con la llave',
       ui: 'Desde Docker Desktop puedes confirmar que el contenedor API se recreó después de cambiar el env.',
-      command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up -d --build api',
+      command:
+        'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up -d --build api',
       note: 'La API lee la bandera y la llave al iniciar.'
     },
     {
@@ -1257,7 +1317,8 @@ export class DocsPageComponent {
     {
       title: 'Flujo recomendado',
       ui: 'En Servicios toca Nuevo, guarda key/nombre, completa Qué hace este servicio, revisa el JSON, crea versión, publica y prueba.',
-      swagger: 'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish, POST /test y POST /by-key/{serviceKey}/execute.',
+      swagger:
+        'En /api/docs usa Dynamic Services: POST /dynamic-services, POST /versions, POST /publish, POST /test y POST /by-key/{serviceKey}/execute.',
       command:
         '1. Crear dynamic_service\n2. Definir intención: consultar, crear, editar, borrar, validar, sincronizar o notificar\n3. Definir fuente: API externa, tabla interna, records o conector futuro\n4. Definir resultado: uno, lista, lista paginada, booleano, archivo o nada\n5. Crear dynamic_service_version draft\n6. Publicar versión\n7. Probar desde backend\n8. Consumir por key desde frontend, workflow o action\n9. Guardar dynamic_service_run',
       note: 'La ejecución productiva siempre debe usar una versión publicada, nunca una definición suelta del navegador.'
@@ -1265,7 +1326,8 @@ export class DocsPageComponent {
     {
       title: 'Consumo dinámico desde frontend',
       ui: 'Cuando una pantalla necesite usar un servicio publicado, solo llama el key del servicio y envía el contexto. No se crea un endpoint ni un método HTTP nuevo por cada caso.',
-      swagger: 'En /api/docs ejecuta POST /api/dynamic-services/by-key/{serviceKey}/execute con body { "context": { ... } }.',
+      swagger:
+        'En /api/docs ejecuta POST /api/dynamic-services/by-key/{serviceKey}/execute con body { "context": { ... } }.',
       command:
         'this.dynamicServices.execute<boolean>("buscar_usuario", {\n  name: "simon"\n});\n\nRequisitos:\n  servicio activo\n  version publicada\n  permiso services.execute\n\nRespuesta:\n  ok: true/false\n  result: dato normalizado\n  run: historial tecnico completo',
       note: 'Este es el contrato que usará el futuro diseñador de pantallas: los componentes llaman servicios por key y el backend resuelve la implementación guardada en DB.'
@@ -1279,7 +1341,8 @@ export class DocsPageComponent {
     {
       title: 'Consultas internas y varias tablas',
       ui: 'Cuando eliges Tabla interna o Records, el diseñador carga /api/dynamic-services/catalog/tables y usa selects para tabla principal e involucradas.',
-      swagger: 'En /api/docs usa Dynamic Services -> GET /api/dynamic-services/catalog/tables para ver el catálogo que alimenta los selects.',
+      swagger:
+        'En /api/docs usa Dynamic Services -> GET /api/dynamic-services/catalog/tables para ver el catálogo que alimenta los selects.',
       command:
         'Consulta simple:\n  dataTarget.queryMode: single_table\n  dataTarget.primaryTable: custom_clients\n\nConsulta compleja:\n  dataTarget.queryMode: multi_table\n  dataTarget.primaryTable: custom_orders\n  dataTarget.involvedTables: [custom_clients, records, users]\n  dataTarget.relationNotes: custom_orders.clientId = custom_clients.id\n  dataTarget.filterNotes: tenant actual, estado activo, rango de fechas',
       note: 'No usamos SQL libre desde la UI. Las consultas complejas se describen como plan seguro para que luego un runner controlado las ejecute.'
@@ -1326,7 +1389,7 @@ export class DocsPageComponent {
       title: 'Relación con event-driven',
       command:
         'record.created\n  -> workflow selecciona servicio\n  -> dynamic_service_run queued/running\n  -> dynamic_service.executed o dynamic_service.failed\n  -> websocket notifica progreso\n  -> actions mapean respuesta al record',
-      note: 'Hoy ya tenemos prueba síncrona y consumo frontend por key. La siguiente evolución natural es cola interna, retries, eventos y websockets.'
+      note: 'La cola durable, el outbox, los retries y WebSocket ya forman parte del Flow Runtime. La DB conserva la verdad aunque un cliente se desconecte.'
     },
     {
       title: 'Mapa de evolución',
@@ -1353,13 +1416,13 @@ export class DocsPageComponent {
     {
       title: 'Estándares de referencia',
       command:
-        'BPMN-inspired:\n  start, task, gateway/decision, event, end\n\nDMN-inspired:\n  decision tables, reglas de negocio, expresiones controladas\n\nServerless Workflow-inspired:\n  definiciones JSON versionadas y ejecutables\n\nEvent-driven / Outbox futuro:\n  eventos confiables, async, retries y websockets',
+        'BPMN-inspired:\n  start, task, gateway/decision, event, end\n\nDMN-inspired:\n  decision tables, reglas de negocio, expresiones controladas\n\nServerless Workflow-inspired:\n  definiciones JSON versionadas y ejecutables\n\nEvent-driven + Transactional Outbox:\n  eventos confiables, cola durable, retries y progreso en vivo',
       note: 'No implementamos BPMN/DMN completo desde el día uno; usamos sus ideas para mantener el motor liviano y entendible.'
     },
     {
       title: 'Objetos principales en DB',
       command:
-        'flows\n  objeto administrable del tenant\n\nflow_versions\n  snapshot publicado que se ejecuta\n\nflow_steps\n  pasos editables o versionados para el diseñador\n\nflow_runs\n  ejecución completa\n\nflow_step_runs\n  resultado de cada paso\n\nflow_test_cases\n  casos de prueba reutilizables',
+        'flows\n  objeto administrable del tenant\n\nflow_versions\n  snapshot publicado que se ejecuta\n\nflow_steps\n  pasos editables o versionados para el diseñador\n\nflow_runs / flow_step_runs\n  ejecución y trazabilidad por paso\n\nflow_test_cases\n  casos de prueba reutilizables\n\nflow_jobs\n  cola durable y reintentos\n\nflow_outbox_events\n  eventos persistidos de forma confiable\n\nflow_triggers\n  activadores del flow publicado',
       note: 'Estos objetos forman la base mínima para construir, publicar, ejecutar y depurar flows.'
     },
     {
@@ -1378,19 +1441,20 @@ export class DocsPageComponent {
       title: 'Confisys base',
       ui: 'En /confisys aparecerá la categoría flow cuando se sincronicen defaults. Ahí se ajustan límites generales del motor.',
       command:
-        'flow.enabled = true\nflow.maxSteps = 50\nflow.maxDurationMs = 30000\nflow.defaultStepTimeoutMs = 8000\nflow.maxStepTimeoutMs = 60000\nflow.maxRetryAttempts = 5\nflow.logs.retentionDays = 30\nflow.expression.maxDepth = 10\nflow.expression.maxLength = 2000',
+        'flow.enabled = true\nflow.maxSteps = 50\nflow.maxDurationMs = 30000\nflow.defaultStepTimeoutMs = 8000\nflow.maxStepTimeoutMs = 60000\nflow.maxRetryAttempts = 5\nflow.maxDelayMs = 30000\nflow.foreach.maxItems = 100\nflow.foreach.maxConcurrency = 10\nflow.subflow.maxDepth = 5\nflow.worker.enabled = true\nflow.worker.pollMs = 1000\nflow.worker.batchSize = 10',
       note: 'Confisys define defaults y límites máximos. Cada flow o paso puede pedir menos o más, pero nunca romper el máximo seguro.'
     },
     {
-      title: 'Tipos de paso V1',
+      title: 'Tipos de paso disponibles',
       command:
-        'start\n  entrada del flujo\n\ndynamic_service\n  ejecuta un servicio publicado por key\n\nformula\n  calcula valores\n\nvalidation\n  valida campos o contexto\n\ndecision\n  decide siguiente camino\n\nresponse\n  construye respuesta final\n\nend\n  termina ejecución',
-      note: 'Empezamos con pocos bloques muy claros. Luego sumamos records, eventos, notificaciones, reportes, async y tareas humanas.'
+        'dynamic_service\n  ejecuta un servicio y puede registrar compensación\n\nparallel\n  ejecuta 2 a 20 servicios simultáneamente\n\nforeach\n  repite un servicio sobre una lista con concurrencia limitada\n\nsubflow\n  invoca otro flow publicado\n\ndelay\n  espera breve con límite Confisys\n\nemit_event\n  guarda un evento durable\n\nvalidation / decision / formula\n  valida, decide y calcula sin JavaScript libre\n\nresponse\n  construye la respuesta final',
+      note: 'Inicio y fin se sintetizan automáticamente. Todos los bloques se configuran de forma guiada y conservan JSON avanzado para diagnóstico.'
     },
     {
       title: 'Prueba paso a paso',
       ui: 'En /flows abre la etapa Probar. Selecciona Todo el borrador o un paso específico en Probar hasta. La pantalla muestra input, output, duración, estado y error de cada bloque.',
-      swagger: 'En /api/docs usa POST /flows/{flowId}/preview con input y throughStepKey opcional. Esta ruta prueba el borrador sin crear ni publicar una versión.',
+      swagger:
+        'En /api/docs usa POST /flows/{flowId}/preview con input y throughStepKey opcional. Esta ruta prueba el borrador sin crear ni publicar una versión.',
       command:
         'POST /api/flows/{flowId}/preview\n{\n  "input": { "email": "persona@example.com" },\n  "throughStepKey": "validar_correo"\n}\n\nNiveles disponibles:\n  desde inicio hasta un paso\n  borrador completo\n  versión publicada completa',
       note: 'La prueba del borrador no crea historial persistente. La ejecución de una versión publicada sí guarda flow_runs y flow_step_runs.'
@@ -1403,31 +1467,41 @@ export class DocsPageComponent {
     },
     {
       title: 'Permisos',
-      command:
-        'flows.read\nflows.create\nflows.update\nflows.publish\nflows.execute\nflows.manage\nflows.audit',
+      command: 'flows.read\nflows.create\nflows.update\nflows.publish\nflows.execute\nflows.manage\nflows.audit',
       note: 'Owner tiene todo. Admin recibe permisos de gestión. Más adelante podremos separar diseñador, operador y auditor.'
     },
     {
       title: 'Ruta de implementación',
       command:
-        'Completado:\n  tablas, entidades, permisos y confisys\n  CRUD, pasos, versiones y publicación\n  asistente Definir -> Construir -> Probar -> Publicar\n  ejecución de servicios, respuestas y cierre\n  preview del borrador hasta un paso\n  JSON Logic para decisiones y fórmulas\n  validaciones reales y seguras\n  grafo de conexiones explícitas\n  casos de prueba y suite persistente\n\nSiguiente:\n  catálogo de acciones ejecutables\n  decision tables reusables\n  triggers, eventos, async, colas y websockets',
+        'Completado:\n  CRUD, pasos, versiones y publicación\n  asistente Definir -> Construir -> Probar -> Publicar\n  grafo y conexiones explícitas\n  Test Studio y suite persistente\n  triggers manual, HTTP firmado, evento, formulario y horario\n  cola durable, outbox, idempotencia, retries y progreso en vivo\n  paralelo, foreach, subflows, espera breve y emisión de eventos\n  compensación de servicios en orden inverso\n\nReservado para evolución:\n  editor de action catalog\n  editor de decision tables\n  tareas humanas y esperas largas reanudables',
       note: 'Vamos igual que con servicios dinámicos: cada bloque que agreguemos debe poder probarse de forma visual.'
     },
     {
       title: 'Asistente visual disponible',
       ui: 'Abre /flows. El recorrido tiene cuatro etapas: Definir, Construir, Probar y Publicar. Para empezar puedes elegir Validar datos, Usar un servicio, Calcular un valor o Comenzar vacío.',
-      swagger: 'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/preview, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
+      swagger:
+        'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/preview, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
       command:
         'Recorrido gráfico:\n  1. Definir nombre, propósito y categoría\n  2. Construir validaciones, servicios, decisiones, fórmulas, respuestas o acciones\n  3. Probar el borrador completo o hasta un paso\n  4. Crear versión\n  5. Publicar versión\n  6. Consumir el flow por key\n\nInicio y fin se agregan automáticamente.\nEl JSON queda en Opciones avanzadas.',
       note: 'No es necesario escribir expresiones ni conexiones manuales para los casos comunes.'
     },
     {
-      title: 'Flow Runner V1 disponible',
+      title: 'Flow Runtime V4 disponible',
       ui: 'En /flows selecciona un flow publicado. En Prueba en vivo escribe un input JSON y pulsa Probar flow. La pantalla muestra última respuesta e historial con pasos.',
-      swagger: 'En /api/docs usa POST /flows/{flowId}/execute o POST /flows/by-key/{flowKey}/execute. Consulta historial con GET /flows/{flowId}/runs.',
+      swagger:
+        'En /api/docs usa POST /flows/{flowId}/execute o POST /flows/by-key/{flowKey}/execute. Consulta historial con GET /flows/{flowId}/runs.',
       command:
         'POST /api/flows/by-key/validar_usuario_reporte/execute\n{\n  "input": {\n    "email": "admin@example.com"\n  },\n  "triggerType": "test"\n}\n\nRespuesta:\n  flow_run\n  steps[]\n  output\n  error si aplica',
-      note: 'La ejecución publicada guarda flow_runs y flow_step_runs. Inicio, servicio, fórmula, validación, decisión, respuesta y fin ya producen una salida controlada. El catálogo de acciones ejecutables es el siguiente bloque.'
+      note: 'La ejecución publicada guarda runs y pasos. La cola, los triggers y los eventos usan las mismas versiones inmutables que la ejecución directa.'
+    },
+    {
+      title: 'Activadores y cola durable',
+      ui: 'En Publicar abre Activadores. Elige Manual, HTTP firmado, Evento de record, Envío de formulario o Horario. Debajo puedes encolar una ejecución, revisar su estado, cancelarla o reintentarla.',
+      swagger:
+        'Usa /flows/{flowId}/triggers para administrar activadores, /flows/{flowId}/jobs para encolar y /flows/jobs para consultar la cola. El webhook público vive en /flow-hooks/{tenantSlug}/{triggerKey}.',
+      command:
+        'Manual\n  se ejecuta desde la administración\n\nHTTP firmado\n  requiere x-chicle-hook-secret\n  acepta x-idempotency-key\n\nEvento / formulario\n  consume flow_outbox_events\n\nHorario\n  encola por intervalSeconds\n\nEstado durable\n  queued -> running -> success | failed | cancelled',
+      note: 'Socket.IO y SSE notifican progreso, pero flow_jobs, flow_runs y flow_step_runs son la fuente de verdad.'
     },
     {
       title: 'Expression Engine V1',
@@ -1440,7 +1514,8 @@ export class DocsPageComponent {
     {
       title: 'Flow Designer V3 visual',
       ui: 'La etapa Construir muestra una línea visual desde Datos de entrada hasta Fin. Los botones + insertan pasos, cada bloque permite Probar hasta aquí y los estados correcto/error quedan visibles sobre el recorrido.',
-      swagger: 'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
+      swagger:
+        'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:
         'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
       note: 'Para encadenar servicios: guarda el primero, agrega otro con el botón +, selecciónalo y usa “Tomar el valor de” para elegir una salida del paso anterior.'
@@ -1462,17 +1537,18 @@ export class DocsPageComponent {
     {
       title: 'Flow Test Studio',
       ui: 'En Probar crea escenarios con entrada, destino borrador/publicada, resultado esperado y comprobaciones por ruta. Ejecuta un caso o toda la suite.',
-      swagger: 'Usa GET/POST /flows/{flowId}/test-cases, POST /flows/{flowId}/test-cases/{testCaseId}/run y POST /flows/{flowId}/test-suite/run.',
+      swagger:
+        'Usa GET/POST /flows/{flowId}/test-cases, POST /flows/{flowId}/test-cases/{testCaseId}/run y POST /flows/{flowId}/test-suite/run.',
       command:
         'Assertion:\n{\n  "path": "output.body.role",\n  "operator": "equals",\n  "expected": "owner"\n}\n\nOperadores:\n  equals\n  not_equals\n  contains\n  exists\n  truthy\n  greater_than\n  less_than',
       note: 'Cada caso guarda su último resultado. La suite ejecuta todos los casos activos y resume aprobados y fallidos.'
     },
     {
       title: 'Smoke test de flows en Docker',
-      ui: 'No modifica usuarios ni contraseñas. Crea datos temporales, ejecuta tres servicios internos encadenados, corre dos casos y elimina todo al terminar.',
+      ui: 'No modifica usuarios ni contraseñas. Crea servicios y flows temporales, ejecuta todos los escenarios y elimina todo al terminar.',
       command:
         'npm run build --workspace @chicle/api\n\ndocker compose -f infra/docker/docker-compose.yml up -d --build api\n\ndocker compose -f infra/docker/docker-compose.yml exec -T api \\\n  node dist/scripts/smoke-flow-assistant.js',
-      note: 'La prueba valida preview, tres servicios, responseMap, assertions, suite, versión, publicación, ejecución e historial.'
+      note: 'Valida encadenamiento, triggers, idempotencia, suite, paralelo, foreach, subflow, evento durable y compensación.'
     },
     {
       title: 'Ejemplo: dos servicios',
@@ -1482,10 +1558,10 @@ export class DocsPageComponent {
       note: 'La ruta técnica se conserva en el JSON, pero el usuario normal la selecciona por nombre.'
     },
     {
-      title: 'Después de V3',
+      title: 'Runtime reactivo y nodos avanzados',
       command:
-        'Runner V2:\n  servicios paralelos\n  foreach sobre listas\n  subflows\n  esperas y reanudación\n  compensaciones\n\nOperación:\n  comparación y rollback de versiones\n  métricas y alertas\n  triggers por evento, schedule y webhook\n  outbox, colas y websockets',
-      note: 'Estas capacidades cambian el modelo de ejecución; no se presentan como controles visuales hasta que el runner pueda ejecutarlas de forma segura.'
+        'Disponible:\n  servicios paralelos\n  foreach limitado sobre listas\n  subflows publicados\n  espera breve controlada\n  eventos durables\n  compensaciones\n  triggers por evento, formulario, horario y webhook firmado\n  outbox, cola, retries, SSE y WebSocket\n\nSiguiente evolución:\n  esperas largas reanudables\n  tareas humanas\n  métricas y alertas\n  rollback asistido de versiones',
+      note: 'El diseñador solo muestra controles que el runner ejecuta y que el smoke test verifica dentro de Docker.'
     }
   ];
 
@@ -1557,7 +1633,8 @@ export class DocsPageComponent {
     {
       title: 'Clientes con login vs clientes de negocio',
       ui: 'Si el cliente entra a la app, créalo como usuario de acceso y asígnale el rol Cliente app. Si es un cliente/contacto sin login, debe ir al futuro módulo Directorio/Clientes.',
-      swagger: 'En /api/docs crea el usuario con POST /api/users y roles: ["client"]. Para resetear clave usa PATCH /api/users/{userId}.',
+      swagger:
+        'En /api/docs crea el usuario con POST /api/users y roles: ["client"]. Para resetear clave usa PATCH /api/users/{userId}.',
       command:
         'Usuario con login:\n  users + tenant_memberships + rol client\n\nCliente/contacto sin login:\n  futuro directorio: parties / party_roles / contacts\n\nOperaciones disponibles:\n  activar/desactivar acceso\n  editar nombre visible\n  resetear contraseña\n  asignar roles',
       note: 'El rol Cliente app se instala con Sincronizar seguridad. Tiene permisos limitados para usar la app sin administrar el tenant.'
@@ -1580,7 +1657,8 @@ export class DocsPageComponent {
     {
       title: 'Usuarios y roles por API',
       ui: 'En /security usa el panel de usuarios para buscar por email/nombre, filtrar por estado o rol, avanzar página y editar el usuario seleccionado. Usa el panel de roles para crear, editar o eliminar perfiles custom.',
-      swagger: 'En /api/docs prueba GET /api/users?page=1&pageSize=25&search=simon&role=owner, GET /api/roles y PATCH /api/roles/{roleId}.',
+      swagger:
+        'En /api/docs prueba GET /api/users?page=1&pageSize=25&search=simon&role=owner, GET /api/roles y PATCH /api/roles/{roleId}.',
       command:
         'curl "http://127.0.0.1:3000/api/users?page=1&pageSize=25&search=simon&status=all&role=owner" \\\n  -H "Authorization: Bearer TOKEN"\n\ncurl http://127.0.0.1:3000/api/roles \\\n  -H "Authorization: Bearer TOKEN"',
       note: 'Usuarios requiere users.read. Roles requiere roles.read. Crear, editar o eliminar roles requiere roles.manage.'
@@ -1700,7 +1778,8 @@ export class DocsPageComponent {
     {
       title: 'Probar flujo desde Swagger',
       ui: 'Swagger abre una pantalla gráfica con grupos de endpoints. Usa Try it out para probar cada operación.',
-      command: '1. GET /api/setup/status\n2. POST /api/setup si state es not_created\n3. POST /api/auth/login\n4. Copiar accessToken\n5. Authorize -> Bearer TOKEN',
+      command:
+        '1. GET /api/setup/status\n2. POST /api/setup si state es not_created\n3. POST /api/auth/login\n4. Copiar accessToken\n5. Authorize -> Bearer TOKEN',
       note: 'Después de Authorize puedes probar /users, /roles, /permissions, /audit y /confisys.'
     },
     {
@@ -1715,7 +1794,8 @@ export class DocsPageComponent {
     },
     {
       title: 'Protección en producción',
-      command: 'CHICLE_SWAGGER_ENABLED=true\nCHICLE_SWAGGER_USER=admin-docs\nCHICLE_SWAGGER_PASSWORD=usa-una-clave-larga',
+      command:
+        'CHICLE_SWAGGER_ENABLED=true\nCHICLE_SWAGGER_USER=admin-docs\nCHICLE_SWAGGER_PASSWORD=usa-una-clave-larga',
       note: 'En production no arranca Swagger habilitado si faltan CHICLE_SWAGGER_USER o CHICLE_SWAGGER_PASSWORD.'
     }
   ];
@@ -1866,36 +1946,33 @@ export class DocsPageComponent {
       title: 'Agregar o editar campo',
       ui: 'En Diseñador elige Agregar campo o Editar campo. Revisa el SQL y la migración antes de aplicar.',
       swagger: 'Usa POST /api/database/schema/preview para revisar y POST /api/database/schema/apply para aplicar.',
-      command:
-        'operation: add_column\noperation: alter_column\nSolo tablas custom_* y columnas no protegidas.',
+      command: 'operation: add_column\noperation: alter_column\nSolo tablas custom_* y columnas no protegidas.',
       note: 'Agregar un campo NOT NULL exige default o nullable=true para evitar romper filas existentes.'
     },
     {
       title: 'Eliminar campo',
       ui: 'En Diseñador elige Eliminar campo y escribe la frase exacta de confirmación que muestra la pantalla.',
       swagger: 'POST /api/database/schema/apply exige confirmation: "DROP custom_tabla.campo".',
-      command: '{"operation":"drop_column","tableName":"custom_clients","currentColumnName":"phone","confirmation":"DROP custom_clients.phone"}',
+      command:
+        '{"operation":"drop_column","tableName":"custom_clients","currentColumnName":"phone","confirmation":"DROP custom_clients.phone"}',
       note: 'Borrar una columna elimina datos. Por eso requiere confirmación exacta.'
     },
     {
       title: 'Cómo se respeta la secuencia',
       ui: 'En la pestaña Historial verás el número de secuencia, SQL, estado y nombre de migración de cada cambio.',
-      command:
-        'schema_changes guarda:\nsequence\noperation\ntableName\nsql\nmigrationName\nmigrationSource\nstatus',
+      command: 'schema_changes guarda:\nsequence\noperation\ntableName\nsql\nmigrationName\nmigrationSource\nstatus',
       note: 'Nunca se edita una migración vieja. Cada cambio crea una nueva migración ordenada.'
     },
     {
       title: 'Archivos de migración',
       ui: 'Aunque el contenedor no pueda escribir archivos, la migración completa queda guardada en Historial.',
-      command:
-        'CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES=false\nCHICLE_SCHEMA_MIGRATIONS_DIR=src/database/migrations',
+      command: 'CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES=false\nCHICLE_SCHEMA_MIGRATIONS_DIR=src/database/migrations',
       note: 'Activa WRITE_FILES=true solo en desarrollo local cuando la API tenga permiso de escribir en el repo.'
     },
     {
       title: 'Comandos TypeORM',
       ui: 'El uso normal del diseñador es gráfico. Estos comandos quedan para mantenimiento técnico.',
-      command:
-        'npm run migration:run\nnpm run migration:revert\nnpm run migration:create\nnpm run migration:generate',
+      command: 'npm run migration:run\nnpm run migration:revert\nnpm run migration:create\nnpm run migration:generate',
       note: 'Ejecuta desde la raíz del monorepo. La configuración vive en apps/api/src/database/data-source.ts.'
     }
   ];

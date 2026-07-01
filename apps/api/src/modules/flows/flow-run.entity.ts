@@ -20,6 +20,12 @@ export class FlowRun {
   @Column('uuid')
   versionId!: string;
 
+  @Column('uuid', { nullable: true })
+  parentRunId?: string | null;
+
+  @Column('uuid', { nullable: true })
+  rootRunId?: string | null;
+
   @Column({ type: 'varchar', length: 24, default: 'manual' })
   triggerType!: FlowRunTriggerType;
 

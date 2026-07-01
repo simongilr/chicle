@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Sse, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -10,16 +10,26 @@ import {
   FlowPreviewRequest,
   FlowStepRequest,
   FlowTestCaseRequest,
+  FlowTriggerRequest,
   FlowUpsertRequest,
   FlowsService
 } from './flows.service';
+import {
+  EmitFlowEventRequest,
+  FireFlowTriggerRequest,
+  FlowRuntimeService,
+  QueueFlowRequest
+} from './flow-runtime.service';
 
 @Controller('flows')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiTags('Flows')
 @ApiBearerAuth('access-token')
 export class FlowsController {
-  constructor(private readonly flows: FlowsService) {}
+  constructor(
+    private readonly flows: FlowsService,
+    private readonly runtime: FlowRuntimeService
+  ) {}
 
   @Get()
   @RequirePermissions('flows.read')
@@ -50,6 +60,61 @@ export class FlowsController {
   })
   create(@CurrentAuth() auth: AuthContext, @Body() body: FlowUpsertRequest) {
     return this.flows.create(auth, body);
+  }
+
+  @Get('jobs')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar trabajos asíncronos recientes del tenant' })
+  jobs(@CurrentAuth() auth: AuthContext) {
+    return this.runtime.listJobs(auth);
+  }
+
+  @Get('jobs/:jobId')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Consultar estado de un trabajo asíncrono' })
+  job(@CurrentAuth() auth: AuthContext, @Param('jobId') jobId: string) {
+    return this.runtime.getJob(auth, jobId);
+  }
+
+  @Post('jobs/:jobId/cancel')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Cancelar un trabajo pendiente' })
+  cancelJob(@CurrentAuth() auth: AuthContext, @Param('jobId') jobId: string) {
+    return this.runtime.cancelJob(auth, jobId);
+  }
+
+  @Post('jobs/:jobId/retry')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Reintentar un trabajo fallido o cancelado' })
+  retryJob(@CurrentAuth() auth: AuthContext, @Param('jobId') jobId: string) {
+    return this.runtime.retryJob(auth, jobId);
+  }
+
+  @Post('events/:eventKey')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({
+    summary: 'Guardar un evento durable en el outbox del tenant'
+  })
+  emitEvent(@CurrentAuth() auth: AuthContext, @Param('eventKey') eventKey: string, @Body() body: EmitFlowEventRequest) {
+    return this.runtime.emitEvent(auth, eventKey, body);
+  }
+
+  @Post('triggers/manual/:triggerKey/fire')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Disparar manualmente un trigger activo' })
+  fireManualTrigger(
+    @CurrentAuth() auth: AuthContext,
+    @Param('triggerKey') triggerKey: string,
+    @Body() body: FireFlowTriggerRequest
+  ) {
+    return this.runtime.fireTrigger(auth, 'manual', triggerKey, body);
+  }
+
+  @Sse('live')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Recibir progreso de jobs del tenant mediante SSE' })
+  live(@CurrentAuth() auth: AuthContext) {
+    return this.runtime.liveStream(auth);
   }
 
   @Post('by-key/:flowKey/execute')
@@ -85,6 +150,59 @@ export class FlowsController {
     return this.flows.listRuns(auth, flowId);
   }
 
+  @Get(':flowId/jobs')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar trabajos asíncronos de un flow' })
+  flowJobs(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
+    return this.runtime.listJobs(auth, flowId);
+  }
+
+  @Post(':flowId/enqueue')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({ summary: 'Encolar una ejecución durable del flow publicado' })
+  enqueue(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: QueueFlowRequest) {
+    return this.runtime.enqueue(auth, flowId, body);
+  }
+
+  @Get(':flowId/triggers')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar triggers configurados para un flow' })
+  triggers(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
+    return this.flows.listTriggers(auth, flowId);
+  }
+
+  @Post(':flowId/triggers')
+  @RequirePermissions('flows.update')
+  @ApiOperation({
+    summary: 'Crear trigger manual, HTTP, evento, formulario o schedule'
+  })
+  createTrigger(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowTriggerRequest) {
+    return this.flows.createTrigger(auth, flowId, body);
+  }
+
+  @Patch(':flowId/triggers/:triggerId')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Actualizar trigger de un flow' })
+  updateTrigger(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('triggerId') triggerId: string,
+    @Body() body: FlowTriggerRequest
+  ) {
+    return this.flows.updateTrigger(auth, flowId, triggerId, body);
+  }
+
+  @Delete(':flowId/triggers/:triggerId')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Eliminar trigger de un flow' })
+  deleteTrigger(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('triggerId') triggerId: string
+  ) {
+    return this.flows.deleteTrigger(auth, flowId, triggerId);
+  }
+
   @Get(':flowId/test-cases')
   @RequirePermissions('flows.read')
   @ApiOperation({ summary: 'Listar casos de prueba persistentes de un flow' })
@@ -109,11 +227,7 @@ export class FlowsController {
       }
     }
   })
-  createTestCase(
-    @CurrentAuth() auth: AuthContext,
-    @Param('flowId') flowId: string,
-    @Body() body: FlowTestCaseRequest
-  ) {
+  createTestCase(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowTestCaseRequest) {
     return this.flows.createTestCase(auth, flowId, body);
   }
 
@@ -142,7 +256,9 @@ export class FlowsController {
 
   @Post(':flowId/test-cases/:testCaseId/run')
   @RequirePermissions('flows.execute')
-  @ApiOperation({ summary: 'Ejecutar un caso de prueba y evaluar sus assertions' })
+  @ApiOperation({
+    summary: 'Ejecutar un caso de prueba y evaluar sus assertions'
+  })
   runTestCase(
     @CurrentAuth() auth: AuthContext,
     @Param('flowId') flowId: string,
@@ -153,7 +269,9 @@ export class FlowsController {
 
   @Post(':flowId/test-suite/run')
   @RequirePermissions('flows.execute')
-  @ApiOperation({ summary: 'Ejecutar todos los casos de prueba activos del flow' })
+  @ApiOperation({
+    summary: 'Ejecutar todos los casos de prueba activos del flow'
+  })
   runTestSuite(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
     return this.flows.runTestSuite(auth, flowId);
   }
@@ -177,7 +295,9 @@ export class FlowsController {
 
   @Post(':flowId/preview')
   @RequirePermissions('flows.execute')
-  @ApiOperation({ summary: 'Probar el borrador completo o hasta un paso sin publicarlo' })
+  @ApiOperation({
+    summary: 'Probar el borrador completo o hasta un paso sin publicarlo'
+  })
   @ApiParam({ name: 'flowId', example: 'flow-id' })
   @ApiBody({
     schema: {
@@ -217,7 +337,9 @@ export class FlowsController {
 
   @Get(':flowId/definition')
   @RequirePermissions('flows.read')
-  @ApiOperation({ summary: 'Generar preview JSON de definición desde pasos draft' })
+  @ApiOperation({
+    summary: 'Generar preview JSON de definición desde pasos draft'
+  })
   @ApiParam({ name: 'flowId', example: 'flow-id' })
   definition(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
     return this.flows.definition(auth, flowId);

@@ -173,51 +173,70 @@ async function run() {
     });
     createdFlowIds.push(flow.id);
 
-    await flows.createStep(auth, flow.id, {
-      key: 'buscar_usuario',
-      name: 'Buscar usuario',
-      type: 'dynamic_service',
-      position: 10,
-      outputKey: 'usuario',
-      nextStepKey: 'buscar_membresia',
-      config: { serviceKey: userService.key, timeoutMs: 8000 },
-      inputMap: { email: '{{input.email}}' }
-    });
-    await flows.createStep(auth, flow.id, {
-      key: 'buscar_membresia',
-      name: 'Buscar membresía',
-      type: 'dynamic_service',
-      position: 20,
-      outputKey: 'membresia',
-      nextStepKey: 'buscar_tenant',
-      config: { serviceKey: membershipService.key, timeoutMs: 8000 },
-      inputMap: { userId: '{{steps.usuario.response.mapped.userId}}' }
-    });
-    await flows.createStep(auth, flow.id, {
-      key: 'buscar_tenant',
-      name: 'Buscar organización',
-      type: 'dynamic_service',
-      position: 30,
-      outputKey: 'tenant',
-      nextStepKey: 'respuesta',
-      config: { serviceKey: tenantService.key, timeoutMs: 8000 },
-      inputMap: { tenantId: '{{steps.membresia.response.mapped.tenantId}}' }
-    });
-    await flows.createStep(auth, flow.id, {
-      key: 'respuesta',
-      name: 'Construir respuesta',
-      type: 'response',
-      position: 40,
-      outputKey: 'respuesta',
-      config: {
-        status: 'success',
-        body: {
-          ok: true,
-          email: '{{input.email}}',
-          userId: '{{steps.usuario.response.mapped.userId}}',
-          role: '{{steps.membresia.response.mapped.role}}',
-          tenantName: '{{steps.tenant.response.mapped.tenantName}}'
+    await flows.replaceDefinition(auth, flow.id, {
+      flow: {
+        name: flow.name,
+        description: flow.description,
+        category: flow.category
+      },
+      entry: {
+        mode: 'direct',
+        key: 'direct',
+        config: {}
+      },
+      inputFields: flow.metadata?.['inputFields'] as unknown[],
+      steps: [
+        {
+          key: 'buscar_usuario',
+          name: 'Buscar usuario',
+          type: 'dynamic_service',
+          position: 10,
+          outputKey: 'usuario',
+          nextStepKey: 'buscar_membresia',
+          config: { serviceKey: userService.key, timeoutMs: 8000 },
+          inputMap: { email: '{{input.email}}' }
+        },
+        {
+          key: 'buscar_membresia',
+          name: 'Buscar membresía',
+          type: 'dynamic_service',
+          position: 20,
+          outputKey: 'membresia',
+          nextStepKey: 'buscar_tenant',
+          config: { serviceKey: membershipService.key, timeoutMs: 8000 },
+          inputMap: { userId: '{{steps.usuario.response.mapped.userId}}' }
+        },
+        {
+          key: 'buscar_tenant',
+          name: 'Buscar organización',
+          type: 'dynamic_service',
+          position: 30,
+          outputKey: 'tenant',
+          nextStepKey: 'respuesta',
+          config: { serviceKey: tenantService.key, timeoutMs: 8000 },
+          inputMap: { tenantId: '{{steps.membresia.response.mapped.tenantId}}' }
+        },
+        {
+          key: 'respuesta',
+          name: 'Construir respuesta',
+          type: 'response',
+          position: 40,
+          outputKey: 'respuesta',
+          config: {
+            status: 'success',
+            body: {
+              ok: true,
+              email: '{{input.email}}',
+              userId: '{{steps.usuario.response.mapped.userId}}',
+              role: '{{steps.membresia.response.mapped.role}}',
+              tenantName: '{{steps.tenant.response.mapped.tenantName}}'
+            }
+          }
         }
+      ],
+      output: {
+        stepKey: 'respuesta',
+        responseTo: 'caller'
       }
     });
 
@@ -533,6 +552,7 @@ async function run() {
     console.log(
       JSON.stringify({
         ok: true,
+        authoringJson: 'success',
         previewSteps: preview.steps.length,
         chainedServices: 3,
         reactiveRuntime: {

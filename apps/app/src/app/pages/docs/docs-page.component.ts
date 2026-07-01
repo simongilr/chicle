@@ -1560,12 +1560,12 @@ export class DocsPageComponent {
     },
     {
       title: 'Flow Designer V3 visual',
-      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores de vista y workspace responsive. Dentro de Construir, cada bloque avanza por Propósito, Configurar, Conectar datos, Continuación y Guardar y probar.',
+      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores de vista y workspace responsive. Flow muestra desde Definir el contrato Entrada -> Proceso -> Response y su JSON editable.',
       swagger:
         'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:
         'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
-      note: 'El camino principal es guiado y la papelera permite restaurar procesos. JSON avanzado y pruebas repetibles aparecen solo cuando realmente se necesitan.'
+      note: 'El trigger indica quién inicia; el primer paso indica qué se ejecuta; response controla lo que vuelve al front. Guardar JSON reemplaza el borrador de forma transaccional.'
     },
     {
       title: 'Flow Assistant V3.1',

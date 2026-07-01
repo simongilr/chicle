@@ -105,6 +105,14 @@ Decisions and formulas use JSON Logic as a serializable abstract syntax tree. Va
 
 The UI follows four explicit stages: define, build, test and publish. Start and end nodes are synthesized when omitted, so common processes do not require technical plumbing.
 
+Flow authoring separates three contracts:
+
+- Entry determines who starts the flow: direct API/front call, manual action, signed webhook, event, form submit or schedule.
+- The first persisted step determines what the process does first. It may call a dynamic service, validate, calculate or branch; it is not the trigger.
+- A `response` step defines the output returned under the run `output` to the calling front or integration.
+
+The Define stage exposes a versioned authoring JSON document from the beginning. `PUT /api/flows/:flowId/definition` validates keys, routes and the response target, then replaces flow metadata and draft steps in one database transaction. Webhook secrets are deliberately excluded from this document and remain in the protected trigger workflow.
+
 Operational designers share the same reusable interface language:
 
 - `ProcessStepsComponent` renders progress, readiness and navigation for both Dynamic Services and Flows.

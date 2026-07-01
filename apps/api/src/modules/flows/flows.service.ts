@@ -70,6 +70,21 @@ export interface FlowStepRequest {
   ui?: Record<string, unknown> | null;
 }
 
+export interface FlowDefinitionReplaceRequest {
+  flow?: FlowUpsertRequest;
+  entry?: {
+    mode?: 'direct' | FlowTriggerType;
+    key?: string;
+    config?: Record<string, unknown> | null;
+  };
+  inputFields?: unknown[];
+  steps?: FlowStepRequest[];
+  output?: {
+    stepKey?: string | null;
+    responseTo?: 'caller';
+  };
+}
+
 export interface FlowExecuteRequest {
   input?: Record<string, unknown>;
   triggerType?: FlowRunTriggerType;
@@ -376,6 +391,88 @@ export class FlowsService {
     const flow = await this.requireFlow(auth, flowId);
     const steps = await this.listDraftSteps(auth, flow.id);
     return this.buildDefinition(flow, steps);
+  }
+
+  async replaceDefinition(auth: AuthContext, flowId: string, request: FlowDefinitionReplaceRequest) {
+    const flow = await this.requireFlow(auth, flowId);
+    const draftSteps = this.cleanAuthoringSteps(request.steps);
+    const flowRequest = request.flow ?? {};
+    const requestedEntryMode = request.entry?.mode ?? 'direct';
+    const entryModes = ['direct', 'http', 'form_submit', 'record_event', 'schedule', 'manual'];
+    if (!entryModes.includes(requestedEntryMode)) {
+      throw new BadRequestException('Invalid authoring entry mode');
+    }
+    const entryMode = requestedEntryMode;
+    const entryKey = entryMode === 'direct' ? 'direct' : this.cleanTriggerKey(request.entry?.key);
+    const outputStepKey = request.output?.stepKey?.trim() || null;
+    if (outputStepKey) {
+      const outputStep = draftSteps.find((step) => step.key === outputStepKey);
+      if (!outputStep || outputStep.type !== 'response') {
+        throw new BadRequestException('Flow output must reference a response step');
+      }
+    }
+    const { secret: _secret, secretHash: _secretHash, ...entryConfig } = request.entry?.config ?? {};
+    const metadata = this.cleanMetadata({
+      ...(flow.metadata ?? {}),
+      inputFields: request.inputFields ?? flow.metadata?.['inputFields'] ?? [],
+      authoringEntry: {
+        mode: entryMode,
+        key: entryKey,
+        config: entryConfig
+      },
+      authoringOutput: {
+        stepKey: outputStepKey,
+        responseTo: 'caller'
+      }
+    });
+
+    await this.flows.manager.transaction(async (manager) => {
+      await manager.save(
+        Flow,
+        manager.merge(Flow, flow, {
+          name: flowRequest.name ? this.cleanName(flowRequest.name) : flow.name,
+          description:
+            flowRequest.description !== undefined ? flowRequest.description?.trim() || null : flow.description,
+          category: flowRequest.category !== undefined ? flowRequest.category?.trim() || null : flow.category,
+          runtimeConfig:
+            flowRequest.runtimeConfig !== undefined ? flowRequest.runtimeConfig : (flow.runtimeConfig ?? null),
+          tags: flowRequest.tags !== undefined ? this.cleanTags(flowRequest.tags) : (flow.tags ?? null),
+          metadata
+        })
+      );
+      await manager.delete(FlowStep, {
+        tenantId: auth.tenant.id,
+        flowId: flow.id,
+        versionId: IsNull()
+      });
+      if (draftSteps.length) {
+        await manager.save(
+          FlowStep,
+          draftSteps.map((step) =>
+            manager.create(FlowStep, {
+              tenantId: auth.tenant.id,
+              flowId: flow.id,
+              versionId: null,
+              ...step
+            })
+          )
+        );
+      }
+    });
+
+    await this.audit.record({
+      auth,
+      action: 'flow.definition.replaced',
+      resourceType: 'flow',
+      resourceId: flow.id,
+      metadata: {
+        steps: draftSteps.length,
+        entryMode,
+        outputStepKey: request.output?.stepKey ?? null
+      }
+    });
+
+    return this.get(auth, flow.id);
   }
 
   async listVersions(auth: AuthContext, flowId: string) {
@@ -2131,6 +2228,51 @@ export class FlowsService {
   private cleanPosition(value?: number) {
     const position = Number(value ?? 0);
     return Number.isFinite(position) && position >= 0 ? Math.floor(position) : 0;
+  }
+
+  private cleanAuthoringSteps(steps?: FlowStepRequest[]) {
+    if (steps === undefined) {
+      return [];
+    }
+    if (!Array.isArray(steps) || steps.length > 200) {
+      throw new BadRequestException('Flow definition steps must be an array with at most 200 items');
+    }
+    const cleaned = steps.map((step, index) => ({
+      key: this.normalizeKey(step.key),
+      name: this.cleanName(step.name ?? step.key),
+      type: this.cleanStepType(step.type),
+      position: this.cleanPosition(step.position ?? (index + 1) * 10),
+      config: step.config ?? null,
+      inputMap: step.inputMap ?? null,
+      outputKey: step.outputKey?.trim() || null,
+      nextStepKey: step.nextStepKey?.trim() || null,
+      onSuccessStepKey: step.onSuccessStepKey?.trim() || null,
+      onErrorStepKey: step.onErrorStepKey?.trim() || null,
+      onTimeoutStepKey: step.onTimeoutStepKey?.trim() || null,
+      onTrueStepKey: step.onTrueStepKey?.trim() || null,
+      onFalseStepKey: step.onFalseStepKey?.trim() || null,
+      runtimeConfig: step.runtimeConfig ?? null,
+      ui: step.ui ?? null
+    }));
+    const keys = cleaned.map((step) => step.key);
+    if (new Set(keys).size !== keys.length) {
+      throw new BadRequestException('Flow definition step keys must be unique');
+    }
+    const targets = new Set([...keys, 'end']);
+    for (const step of cleaned) {
+      const invalidTarget = [
+        step.nextStepKey,
+        step.onSuccessStepKey,
+        step.onErrorStepKey,
+        step.onTimeoutStepKey,
+        step.onTrueStepKey,
+        step.onFalseStepKey
+      ].find((target) => target && !targets.has(target));
+      if (invalidTarget) {
+        throw new BadRequestException(`Flow step ${step.key} references missing target ${invalidTarget}`);
+      }
+    }
+    return cleaned;
   }
 
   private cleanTestExpectedStatus(value?: FlowTestExpectedStatus): FlowTestExpectedStatus {

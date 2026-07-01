@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Sse, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Sse, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
   FlowExecuteRequest,
+  FlowDefinitionReplaceRequest,
   FlowPreviewRequest,
   FlowStepRequest,
   FlowTestCaseRequest,
@@ -343,6 +344,17 @@ export class FlowsController {
   @ApiParam({ name: 'flowId', example: 'flow-id' })
   definition(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
     return this.flows.definition(auth, flowId);
+  }
+
+  @Put(':flowId/definition')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Reemplazar atómicamente el borrador desde el documento JSON de autoría' })
+  replaceDefinition(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Body() body: FlowDefinitionReplaceRequest
+  ) {
+    return this.flows.replaceDefinition(auth, flowId, body);
   }
 
   @Post(':flowId/steps')

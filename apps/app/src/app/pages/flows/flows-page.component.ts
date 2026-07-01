@@ -40,6 +40,7 @@ type FlowStepType =
 type FlowStage = 'describe' | 'build' | 'test' | 'publish';
 type FlowStarter = 'validate' | 'service' | 'multi_service' | 'calculate' | 'blank';
 type StepEditorPhase = 'purpose' | 'configure' | 'data' | 'route' | 'save';
+type FlowEntryMode = 'direct' | FlowTriggerType;
 
 interface FlowGuideState {
   stepLabel: string;
@@ -116,6 +117,22 @@ interface FlowDraft {
   name: string;
   description: string;
   category: string;
+}
+
+interface FlowAuthoringDocument {
+  schemaVersion: 1;
+  flow: FlowDraft;
+  entry: {
+    mode: FlowEntryMode;
+    key: string;
+    config: Record<string, unknown>;
+  };
+  inputFields: FlowInputField[];
+  steps: Array<Record<string, unknown>>;
+  output: {
+    stepKey: string | null;
+    responseTo: 'caller';
+  };
 }
 
 type FlowInputType = 'text' | 'number' | 'boolean' | 'email' | 'date';
@@ -438,6 +455,57 @@ interface FlowJobItem {
       .starter.active {
         border-color: #1554a2;
         background: #eaf3fc;
+      }
+
+      .authoring-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 0.72fr) minmax(360px, 1.28fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .contract-column,
+      .json-column {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        min-width: 0;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        padding: 14px;
+      }
+
+      .contract-card {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .contract-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #1554a2;
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 900;
+      }
+
+      .contract-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      .authoring-code {
+        min-height: 430px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.82rem;
+        line-height: 1.45;
       }
 
       .section-heading {
@@ -973,7 +1041,8 @@ interface FlowJobItem {
       @media (max-width: 1120px) {
         .builder,
         .test-studio,
-        .runtime-grid {
+        .runtime-grid,
+        .authoring-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -1123,6 +1192,95 @@ interface FlowJobItem {
               </app-section-header>
 
               @if (!selectedFlow || activeStage === 'describe') {
+                <div class="authoring-grid">
+                  <section class="contract-column">
+                    <div class="section-heading">
+                      <h3>Contrato de ejecución</h3>
+                      <p class="meta">Define quién lo inicia, qué procesa y qué recibe quien hizo la llamada.</p>
+                    </div>
+
+                    <div class="contract-card">
+                      <span class="contract-number">1</span>
+                      <div class="contract-copy">
+                        <strong>Entrada</strong>
+                        <span class="meta">El disparador entrega datos al contexto <code>input</code>.</span>
+                        <label>
+                          Canal de entrada
+                          <select [(ngModel)]="entryMode" (ngModelChange)="onEntryModeChanged()">
+                            @for (option of entryModeOptions; track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                          </select>
+                        </label>
+                        @if (entryMode !== 'direct') {
+                          <label>
+                            Clave del disparador
+                            <input [(ngModel)]="entryKey" (ngModelChange)="refreshAuthoringDefinition()" />
+                          </label>
+                        }
+                        <span class="meta">{{ selectedEntrySummary }}</span>
+                        @if (entryMode === 'direct') {
+                          <code>POST /api/flows/by-key/{{ flowDraft.key || 'flow_key' }}/execute</code>
+                        } @else {
+                          <span class="meta">
+                            El JSON declara este canal. Se activa después de publicar desde Activadores
+                            {{ entryMode === 'http' ? 'y el secreto se configura allí, nunca en el JSON' : '' }}.
+                          </span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="contract-card">
+                      <span class="contract-number">2</span>
+                      <div class="contract-copy">
+                        <strong>Proceso</strong>
+                        <span class="meta">
+                          El primer paso puede ejecutar un servicio, validar, calcular o decidir. No es el disparador.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="contract-card">
+                      <span class="contract-number">3</span>
+                      <div class="contract-copy">
+                        <strong>Salida al front</strong>
+                        <span class="meta">
+                          Un paso <code>response</code> define estado y body. Ese resultado vuelve al caller.
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="json-column">
+                    <app-section-header
+                      title="Definición JSON editable"
+                      description="Edita entrada, datos, pasos, conexiones y salida desde el comienzo."
+                      stepLabel="Fuente de configuración"
+                    >
+                      <button type="button" (click)="refreshAuthoringDefinition()">Regenerar</button>
+                      <button
+                        class="primary"
+                        type="button"
+                        (click)="applyAuthoringDefinition(!!selectedFlow)"
+                        [disabled]="applyingDefinition"
+                      >
+                        {{ selectedFlow ? 'Guardar JSON' : 'Aplicar JSON' }}
+                      </button>
+                    </app-section-header>
+                    <textarea
+                      class="authoring-code"
+                      [(ngModel)]="authoringDefinitionText"
+                      spellcheck="false"
+                      aria-label="Definición JSON editable del flow"
+                    ></textarea>
+                    @if (authoringDefinitionError) {
+                      <app-status-notice tone="error" title="No se puede aplicar">
+                        {{ authoringDefinitionError }}
+                      </app-status-notice>
+                    }
+                  </section>
+                </div>
+
                 <div class="section-heading">
                   <h3>
                     {{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}
@@ -1225,17 +1383,21 @@ interface FlowJobItem {
                     Nombre del proceso
                     <input
                       [(ngModel)]="flowDraft.name"
-                      (ngModelChange)="syncFlowKey(true)"
+                      (ngModelChange)="onFlowIdentityChanged(true)"
                       placeholder="Validar una solicitud"
                     />
                   </label>
                   <label>
                     ¿Qué resultado esperas?
-                    <input [(ngModel)]="flowDraft.description" placeholder="Aceptar solicitudes con datos completos" />
+                    <input
+                      [(ngModel)]="flowDraft.description"
+                      (ngModelChange)="onFlowIdentityChanged()"
+                      placeholder="Aceptar solicitudes con datos completos"
+                    />
                   </label>
                   <label>
                     Categoría
-                    <select [(ngModel)]="flowDraft.category">
+                    <select [(ngModel)]="flowDraft.category" (ngModelChange)="onFlowIdentityChanged()">
                       <option value="operaciones">Operaciones</option>
                       <option value="ventas">Ventas</option>
                       <option value="seguridad">Seguridad</option>
@@ -1246,7 +1408,12 @@ interface FlowJobItem {
                   </label>
                   <label>
                     Identificador técnico
-                    <input [(ngModel)]="flowDraft.key" placeholder="validar_solicitud" [disabled]="!!selectedFlow" />
+                    <input
+                      [(ngModel)]="flowDraft.key"
+                      (ngModelChange)="onFlowIdentityChanged()"
+                      placeholder="validar_solicitud"
+                      [disabled]="!!selectedFlow"
+                    />
                   </label>
                 </div>
 
@@ -2807,7 +2974,24 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     { key: 'graph', label: 'Mapa', icon: 'pi pi-share-alt' },
     { key: 'list', label: 'Lista', icon: 'pi pi-list' }
   ];
+  readonly entryModeOptions: Array<{ value: FlowEntryMode; label: string; summary: string }> = [
+    {
+      value: 'direct',
+      label: 'Llamada directa',
+      summary: 'Una pantalla o integración ejecuta el flow por su key y espera la respuesta.'
+    },
+    { value: 'manual', label: 'Manual', summary: 'Un operador lo dispara desde administración.' },
+    { value: 'http', label: 'Webhook HTTP', summary: 'Un sistema externo llama una URL firmada.' },
+    { value: 'record_event', label: 'Evento', summary: 'Reacciona a un evento durable del sistema.' },
+    { value: 'form_submit', label: 'Formulario', summary: 'Se dispara cuando se envía un formulario.' },
+    { value: 'schedule', label: 'Horario', summary: 'Se encola periódicamente después de publicarlo.' }
+  ];
   viewingTrash = false;
+  entryMode: FlowEntryMode = 'direct';
+  entryKey = 'direct';
+  authoringDefinitionText = '';
+  authoringDefinitionError = '';
+  applyingDefinition = false;
   selectedStarter: FlowStarter = 'validate';
   starterServiceKeys = ['', ''];
   previewThroughStepKey = '';
@@ -3457,6 +3641,9 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.selectedFlowId = '';
     this.activeStage = 'describe';
     this.stepEditorPhase = 'purpose';
+    this.entryMode = 'direct';
+    this.entryKey = 'direct';
+    this.authoringDefinitionError = '';
     this.flowDraft = this.emptyFlowDraft();
     this.selectedStarter = 'validate';
     this.flowInputs = [];
@@ -3472,6 +3659,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.flowJobs = [];
     this.triggerDraft = this.emptyTriggerDraft();
     this.lastLiveEvent = undefined;
+    this.refreshAuthoringDefinition();
   }
 
   selectFlow(flow: FlowItem, resetStage = true) {
@@ -3486,6 +3674,9 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       category: flow.category ?? ''
     };
     this.flowInputs = this.flowInputsFromMetadata(flow.metadata);
+    const authoringEntry = this.asRecord(flow.metadata?.['authoringEntry']);
+    this.entryMode = this.flowEntryMode(authoringEntry['mode']);
+    this.entryKey = this.asString(authoringEntry['key']) || (this.entryMode === 'direct' ? 'direct' : flow.key);
     if (resetStage) {
       this.syncTestInputFromFields();
     }
@@ -3501,6 +3692,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.loadTestCases(flow.id);
     this.loadTriggers(flow.id);
     this.loadJobs(flow.id);
+    this.refreshAuthoringDefinition();
   }
 
   chooseStarter(starter: FlowStarter) {
@@ -3579,6 +3771,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.flowInputs = starterInputs[starter].map((field) => ({ ...field }));
     this.syncFlowKey(true);
     this.syncTestInputFromFields();
+    this.refreshAuthoringDefinition();
   }
 
   syncFlowKey(force = false) {
@@ -3604,10 +3797,12 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
         }
     );
     this.syncTestInputFromFields();
+    this.refreshAuthoringDefinition();
   }
 
   addStarterService() {
     this.starterServiceKeys = [...this.starterServiceKeys, ''];
+    this.refreshAuthoringDefinition();
   }
 
   removeStarterService(index: number) {
@@ -3629,15 +3824,84 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
         example: ''
       }
     ];
+    this.refreshAuthoringDefinition();
   }
 
   removeFlowInput(index: number) {
     this.flowInputs = this.flowInputs.filter((_, fieldIndex) => fieldIndex !== index);
     this.syncTestInputFromFields();
+    this.refreshAuthoringDefinition();
   }
 
   onFlowInputsChanged() {
     this.syncTestInputFromFields();
+    this.refreshAuthoringDefinition();
+  }
+
+  onFlowIdentityChanged(syncKey = false) {
+    if (syncKey) {
+      this.syncFlowKey(true);
+    }
+    this.refreshAuthoringDefinition();
+  }
+
+  onEntryModeChanged() {
+    const defaults: Record<FlowEntryMode, string> = {
+      direct: 'direct',
+      manual: 'ejecutar_manual',
+      http: 'webhook_entrada',
+      record_event: 'record.created',
+      form_submit: 'form.submitted',
+      schedule: 'ejecucion_programada'
+    };
+    this.entryKey = defaults[this.entryMode];
+    this.refreshAuthoringDefinition();
+  }
+
+  refreshAuthoringDefinition() {
+    this.authoringDefinitionError = '';
+    this.authoringDefinitionText = JSON.stringify(this.authoringDocument(), null, 2);
+  }
+
+  applyAuthoringDefinition(save = false) {
+    let document: FlowAuthoringDocument;
+    try {
+      document = this.readAuthoringDocument();
+    } catch (error) {
+      this.authoringDefinitionError = error instanceof Error ? error.message : 'El JSON del flow no es válido.';
+      return;
+    }
+    this.flowDraft = { ...document.flow };
+    this.entryMode = document.entry.mode;
+    this.entryKey = document.entry.key;
+    this.flowInputs = document.inputFields.map((field) => ({ ...field }));
+    this.syncTestInputFromFields();
+    this.authoringDefinitionError = '';
+
+    if (!save || !this.selectedFlow) {
+      this.message = 'JSON aplicado al asistente. Revisa el resumen y crea el flow.';
+      this.authoringDefinitionText = JSON.stringify(document, null, 2);
+      return;
+    }
+
+    this.applyingDefinition = true;
+    this.api.put<FlowItem>(`flows/${this.selectedFlow.id}/definition`, document).subscribe({
+      next: (updated) => {
+        this.applyingDefinition = false;
+        this.message = 'Definición JSON aplicada al borrador de forma atómica.';
+        this.replaceFlow(updated);
+        this.activeStage = 'build';
+      },
+      error: () => {
+        this.applyingDefinition = false;
+        this.authoringDefinitionError =
+          'No se pudo aplicar la definición. Revisa claves, rutas y que la salida apunte a un paso response.';
+      }
+    });
+  }
+
+  get selectedEntrySummary() {
+    return this.entryModeOptions.find((option) => option.value === this.entryMode)?.summary ?? '';
   }
 
   testInputType(field: FlowInputField) {
@@ -3674,15 +3938,28 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       this.message = 'Completa el nombre y los servicios requeridos para crear el proceso.';
       return;
     }
+    let definition: FlowAuthoringDocument;
+    try {
+      definition = this.readAuthoringDocument();
+    } catch (error) {
+      this.authoringDefinitionError = error instanceof Error ? error.message : 'El JSON del flow no es válido.';
+      return;
+    }
     this.creatingFlow = true;
     this.message = 'Creando el proceso y sus pasos iniciales...';
     let flow: FlowItem | undefined;
     try {
-      flow = await firstValueFrom(this.api.post<FlowItem>('flows', this.flowPayload()));
-      let updated = flow;
-      for (const step of this.starterSteps()) {
-        updated = await firstValueFrom(this.api.post<FlowItem>(`flows/${flow.id}/steps`, step));
-      }
+      flow = await firstValueFrom(
+        this.api.post<FlowItem>('flows', {
+          ...definition.flow,
+          metadata: {
+            inputFields: definition.inputFields,
+            authoringEntry: definition.entry,
+            authoringOutput: definition.output
+          }
+        })
+      );
+      const updated = await firstValueFrom(this.api.put<FlowItem>(`flows/${flow.id}/definition`, definition));
       this.flows = [updated, ...this.flows.filter((item) => item.id !== updated.id)];
       this.selectFlow(updated);
       this.activeStage = updated.steps.length ? 'test' : 'build';
@@ -4388,6 +4665,11 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.api.get<FlowTriggerItem[]>(`flows/${flowId}/triggers`).subscribe({
       next: (triggers) => {
         this.triggers = triggers;
+        if (triggers[0]) {
+          this.entryMode = triggers[0].type;
+          this.entryKey = triggers[0].key;
+          this.refreshAuthoringDefinition();
+        }
         const selected = triggers.find((trigger) => trigger.id === selectId);
         if (selected) {
           this.selectTrigger(selected);
@@ -4759,6 +5041,104 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
   private replaceFlow(flow: FlowItem) {
     this.flows = this.flows.map((item) => (item.id === flow.id ? flow : item));
     this.selectFlow(flow, false);
+  }
+
+  private authoringDocument(): FlowAuthoringDocument {
+    const metadataEntry = this.asRecord(this.selectedFlow?.metadata?.['authoringEntry']);
+    const steps = this.selectedFlow
+      ? this.selectedFlow.steps.map((step) => ({
+          key: step.key,
+          name: step.name,
+          type: step.type,
+          position: step.position,
+          config: step.config ?? {},
+          inputMap: step.inputMap ?? {},
+          outputKey: step.outputKey ?? null,
+          nextStepKey: step.nextStepKey ?? null,
+          onTrueStepKey: step.onTrueStepKey ?? null,
+          onFalseStepKey: step.onFalseStepKey ?? null,
+          onErrorStepKey: step.onErrorStepKey ?? null,
+          onTimeoutStepKey: step.onTimeoutStepKey ?? null
+        }))
+      : this.starterSteps();
+    const responseStep = [...steps].reverse().find((step) => step['type'] === 'response');
+    return {
+      schemaVersion: 1,
+      flow: { ...this.flowDraft },
+      entry: {
+        mode: this.entryMode,
+        key: this.entryKey || (this.entryMode === 'direct' ? 'direct' : this.flowDraft.key),
+        config: this.asRecord(metadataEntry['config'])
+      },
+      inputFields: this.flowInputs.map((field) => ({ ...field })),
+      steps,
+      output: {
+        stepKey: typeof responseStep?.['key'] === 'string' ? responseStep['key'] : null,
+        responseTo: 'caller'
+      }
+    };
+  }
+
+  private readAuthoringDocument(): FlowAuthoringDocument {
+    const parsed = JSON.parse(this.authoringDefinitionText) as unknown;
+    const document = this.asRecord(parsed);
+    if (document['schemaVersion'] !== 1) {
+      throw new Error('schemaVersion debe ser 1.');
+    }
+    const flow = this.asRecord(document['flow']);
+    const key = this.asString(flow['key']).trim();
+    const name = this.asString(flow['name']).trim();
+    if (!/^[a-z][a-z0-9_]{2,119}$/.test(key) || name.length < 3) {
+      throw new Error('El flow necesita key snake_case y un nombre de al menos 3 caracteres.');
+    }
+    const entry = this.asRecord(document['entry']);
+    const mode = this.flowEntryMode(entry['mode'], true);
+    const entryKey = this.asString(entry['key']).trim() || (mode === 'direct' ? 'direct' : key);
+    const rawFields = Array.isArray(document['inputFields']) ? document['inputFields'] : [];
+    const inputFields = rawFields.map((value) => {
+      const field = this.asRecord(value);
+      return {
+        key: this.asString(field['key']).trim(),
+        label: this.asString(field['label']).trim(),
+        type: this.flowInputType(field['type']),
+        required: field['required'] === true,
+        example: field['example'] === undefined || field['example'] === null ? '' : String(field['example'])
+      };
+    });
+    const steps = Array.isArray(document['steps']) ? document['steps'].map((step) => ({ ...this.asRecord(step) })) : [];
+    const output = this.asRecord(document['output']);
+    return {
+      schemaVersion: 1,
+      flow: {
+        key,
+        name,
+        description: this.asString(flow['description']),
+        category: this.asString(flow['category']) || 'operaciones'
+      },
+      entry: {
+        mode,
+        key: entryKey,
+        config: this.asRecord(entry['config'])
+      },
+      inputFields,
+      steps,
+      output: {
+        stepKey: this.asString(output['stepKey']) || null,
+        responseTo: 'caller'
+      }
+    };
+  }
+
+  private flowEntryMode(value: unknown, strict = false): FlowEntryMode {
+    const modes: FlowEntryMode[] = ['direct', 'manual', 'http', 'record_event', 'form_submit', 'schedule'];
+    const mode = String(value || 'direct') as FlowEntryMode;
+    if (modes.includes(mode)) {
+      return mode;
+    }
+    if (strict) {
+      throw new Error('El modo de entrada no es válido.');
+    }
+    return 'direct';
   }
 
   private flowPayload() {

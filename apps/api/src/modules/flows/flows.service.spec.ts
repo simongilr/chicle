@@ -99,4 +99,33 @@ describe('FlowsService input contract', () => {
   it('rejects weak webhook secrets', () => {
     expect(() => service.cleanTriggerConfig('http', { secret: 'short-secret' })).toThrow(BadRequestException);
   });
+
+  it('validates an editable authoring definition before replacing draft steps', () => {
+    expect(
+      service.cleanAuthoringSteps([
+        {
+          key: 'consultar_usuario',
+          name: 'Consultar usuario',
+          type: 'dynamic_service',
+          nextStepKey: 'respuesta'
+        },
+        {
+          key: 'respuesta',
+          name: 'Responder al front',
+          type: 'response'
+        }
+      ])
+    ).toHaveLength(2);
+
+    expect(() =>
+      service.cleanAuthoringSteps([
+        {
+          key: 'consultar_usuario',
+          name: 'Consultar usuario',
+          type: 'dynamic_service',
+          nextStepKey: 'paso_inexistente'
+        }
+      ])
+    ).toThrow(BadRequestException);
+  });
 });

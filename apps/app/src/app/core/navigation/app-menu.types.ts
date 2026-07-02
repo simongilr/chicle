@@ -7,6 +7,6 @@ export interface AppMenuItem {
   roles?: string[];
   sortOrder?: number;
   group?: string | null;
-  placement?: 'primary' | 'admin' | 'more' | 'drawer' | 'bottom' | null;
+  placement?: 'primary' | 'admin' | 'build' | 'more' | 'drawer' | 'bottom' | null;
   priority?: number | null;
 }

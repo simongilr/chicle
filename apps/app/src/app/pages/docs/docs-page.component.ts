@@ -18,6 +18,13 @@ interface DocSection {
   summary: string;
 }
 
+interface UiInventoryGroup {
+  family: string;
+  status: string;
+  purpose: string;
+  components: string[];
+}
+
 @Component({
   selector: 'app-docs-page',
   standalone: true,
@@ -845,6 +852,75 @@ interface DocSection {
               </div>
             </section>
 
+            <section id="componentes-ui" class="doc-section" data-tone="setup">
+              <div class="section-header">
+                <h2>Inventario de componentes visuales</h2>
+                <p class="section-lead">
+                  Esta es la base reutilizable para Formularios y Pantallas. Las páginas coordinan datos; los
+                  componentes compartidos resuelven presentación, estados e interacción sin conocer APIs de negocio.
+                </p>
+              </div>
+              <div class="steps">
+                @for (group of uiInventoryGroups; track group.family) {
+                  <article class="step">
+                    <h3>{{ group.family }}</h3>
+                    <div class="meta">
+                      <span>{{ group.status }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      <div class="guide-block">
+                        <span class="guide-label">Responsabilidad</span>
+                        <div class="guide-text">{{ group.purpose }}</div>
+                      </div>
+                      <div class="guide-block">
+                        <span class="guide-label">Componentes</span>
+                        <pre>{{ group.components.join('\n') }}</pre>
+                      </div>
+                    </div>
+                  </article>
+                }
+                <article class="step">
+                  <h3>Siguiente kit para Formularios y Pantallas</h3>
+                  <div class="meta">
+                    <span>Prioridad P0 antes de crecer los nuevos diseñadores.</span>
+                  </div>
+                  <div class="guide-blocks">
+                    <div class="guide-block">
+                      <span class="guide-label">Componentes por construir</span>
+                      <pre>{{ uiBuilderBacklog.join('\n') }}</pre>
+                    </div>
+                    <div class="guide-block">
+                      <span class="guide-label">Regla de arquitectura</span>
+                      <div class="guide-text">
+                        Un componente en shared no llama APIs de negocio. Recibe datos tipados, emite eventos y debe
+                        cubrir loading, vacío, error, disabled, readonly, teclado y 390 px sin overflow.
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="step">
+                  <h3>Estado de librerías visuales</h3>
+                  <div class="meta">
+                    <span>Decisión pendiente antes del primer renderer productivo.</span>
+                  </div>
+                  <div class="guide-blocks">
+                    <div class="guide-block">
+                      <span class="guide-label">Situación actual</span>
+                      <div class="guide-text">
+                        Ionic se usa como shell en varias pantallas y PrimeIcons aporta iconos. PrimeNG está instalado,
+                        pero todavía no existe una capa compartida de controles PrimeNG; la mayoría de formularios usan
+                        controles HTML nativos.
+                      </div>
+                    </div>
+                    <div class="guide-block">
+                      <span class="guide-label">Inventario técnico completo</span>
+                      <pre>docs/ui-component-inventory.md</pre>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
             <section id="seguridad" class="doc-section" data-tone="security">
               <div class="section-header">
                 <h2>Seguridad modular</h2>
@@ -1091,6 +1167,84 @@ export class DocsPageComponent {
     }
   ];
 
+  readonly uiInventoryGroups: UiInventoryGroup[] = [
+    {
+      family: 'Navegación y estructura',
+      status: 'Compartidos y estables',
+      purpose: 'Mantienen navegación, encabezados y espacios de trabajo consistentes entre módulos.',
+      components: [
+        'MainNavComponent',
+        'ModuleHeaderComponent',
+        'DesignerWorkspaceComponent',
+        'CatalogHeaderComponent',
+        'CatalogItemComponent',
+        'SectionHeaderComponent'
+      ]
+    },
+    {
+      family: 'Guía y estados',
+      status: 'Compartidos y listos para adoptar',
+      purpose: 'Explican el proceso, muestran avance y unifican estados informativos o de error.',
+      components: [
+        'ProcessStepsComponent',
+        'WorkflowGuideComponent',
+        'ContextAssistantComponent',
+        'StatusNoticeComponent'
+      ]
+    },
+    {
+      family: 'Selección de vistas',
+      status: 'Compartido y estable',
+      purpose: 'Cambia entre modos compactos sin alterar la estructura del diseñador.',
+      components: ['SegmentedControlComponent']
+    },
+    {
+      family: 'Visuales especializados de Flow',
+      status: 'Funcionan, pero siguen dentro del dominio Flow',
+      purpose: 'Representan conexiones, pasos y mapeos. Solo el mapeador debe generalizarse para otros diseñadores.',
+      components: ['FlowDataMapperComponent', 'FlowGraphComponent', 'FlowTimelineComponent']
+    },
+    {
+      family: 'Pantallas contenedoras',
+      status: 'Funcionales; varias requieren descomposición',
+      purpose: 'Coordinan rutas, permisos, API y estado. No deben convertirse en la biblioteca visual.',
+      components: [
+        'HomePageComponent',
+        'SetupPageComponent',
+        'LoginPageComponent',
+        'DocsPageComponent',
+        'ConfisysPageComponent',
+        'DatabasePageComponent',
+        'ServicesPageComponent',
+        'FlowsPageComponent',
+        'SecurityPageComponent'
+      ]
+    },
+    {
+      family: 'Formularios dinámicos',
+      status: 'Placeholder',
+      purpose: 'Existe ruta y runtime inicial, pero todavía no hay renderer productivo ni diseñador.',
+      components: ['DynamicFormPageComponent', 'FormRuntimeService', 'ActionRunnerService']
+    }
+  ];
+
+  readonly uiBuilderBacklog = [
+    'FieldShellComponent',
+    'DynamicFieldControlComponent',
+    'FieldPaletteComponent',
+    'ComponentTreeComponent',
+    'PropertyInspectorComponent',
+    'SchemaFieldEditorComponent',
+    'DataBindingEditorComponent',
+    'ActionBindingEditorComponent',
+    'JsonEditorPanelComponent',
+    'PreviewViewportComponent',
+    'VersionLifecyclePanelComponent',
+    'TestWorkbenchComponent',
+    'EntityTableComponent',
+    'ConfirmActionComponent'
+  ];
+
   readonly sections: DocSection[] = [
     {
       id: 'reglas',
@@ -1141,6 +1295,11 @@ export class DocsPageComponent {
       id: 'flow-engine',
       label: 'Flow Engine',
       summary: 'Reglas, fórmulas, workflows y pruebas paso a paso.'
+    },
+    {
+      id: 'componentes-ui',
+      label: 'Componentes UI',
+      summary: 'Inventario reutilizable y kit pendiente para nuevos diseñadores.'
     },
     {
       id: 'seguridad',

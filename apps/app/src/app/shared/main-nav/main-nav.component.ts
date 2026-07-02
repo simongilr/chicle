@@ -298,21 +298,21 @@ interface NavGroup {
             </div>
           }
 
-          @if (moreItems().length) {
+          @if (buildItems().length) {
             <div class="dropdown">
               <button
                 class="dropdown-button"
                 type="button"
-                [class.active]="activeDropdown() === 'more'"
-                [attr.aria-expanded]="activeDropdown() === 'more'"
-                (click)="toggleDropdown('more')"
+                [class.active]="activeDropdown() === 'build'"
+                [attr.aria-expanded]="activeDropdown() === 'build'"
+                (click)="toggleDropdown('build')"
               >
-                <i class="pi pi-ellipsis-h" aria-hidden="true"></i>
-                <span>Más</span>
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                <span>Construcción</span>
               </button>
-              @if (activeDropdown() === 'more') {
+              @if (activeDropdown() === 'build') {
                 <div class="dropdown-panel">
-                  @for (item of moreItems(); track item.key) {
+                  @for (item of buildItems(); track item.key) {
                     <a class="nav-link" [routerLink]="item.route" routerLinkActive="active" (click)="closeMenus()">
                       @if (item.icon) {
                         <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
@@ -400,11 +400,11 @@ export class MainNavComponent implements OnInit {
   readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
   readonly drawerOpen = signal(false);
-  readonly activeDropdown = signal<'admin' | 'more' | null>(null);
+  readonly activeDropdown = signal<'admin' | 'build' | null>(null);
 
   readonly primaryItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'primary'));
   readonly adminItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'admin'));
-  readonly moreItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'more'));
+  readonly buildItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'build'));
   readonly drawerGroups = computed<NavGroup[]>(() => {
     const groups = new Map<string, AppMenuItem[]>();
     for (const item of this.menu.items()) {
@@ -425,7 +425,7 @@ export class MainNavComponent implements OnInit {
     this.activeDropdown.set(null);
   }
 
-  toggleDropdown(dropdown: 'admin' | 'more') {
+  toggleDropdown(dropdown: 'admin' | 'build') {
     this.drawerOpen.set(false);
     this.activeDropdown.set(this.activeDropdown() === dropdown ? null : dropdown);
   }
@@ -440,9 +440,13 @@ export class MainNavComponent implements OnInit {
     return `nav-icon ${icon ?? ''}`.trim();
   }
 
-  private placementFor(item: AppMenuItem): 'primary' | 'admin' | 'more' {
-    if (item.placement === 'primary' || item.placement === 'admin' || item.placement === 'more') {
+  private placementFor(item: AppMenuItem): 'primary' | 'admin' | 'build' {
+    if (item.placement === 'primary' || item.placement === 'admin' || item.placement === 'build') {
       return item.placement;
+    }
+
+    if (item.placement === 'more') {
+      return 'build';
     }
 
     if (['home', 'docs', 'setup', 'login'].includes(item.key)) {
@@ -453,7 +457,7 @@ export class MainNavComponent implements OnInit {
       return 'admin';
     }
 
-    return 'more';
+    return 'build';
   }
 
   private drawerGroupFor(item: AppMenuItem) {
@@ -466,6 +470,6 @@ export class MainNavComponent implements OnInit {
       return item.group || 'Administración';
     }
 
-    return item.group || 'Más opciones';
+    return item.group || 'Construcción';
   }
 }

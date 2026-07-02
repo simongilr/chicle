@@ -47,7 +47,10 @@ apps/api/src/
 
 ## App
 
-The app is one Ionic Angular application. It uses Ionic for mobile/field experiences and PrimeNG for desktop/admin experiences. Business screens are rendered from configuration.
+The app is one Ionic Angular application. Ionic provides the application shell on several pages. PrimeNG is installed
+for desktop/admin experiences, but the current shared UI layer still uses native controls plus PrimeIcons. PrimeNG
+controls must be adopted through reusable wrappers instead of being mixed into pages ad hoc. Business screens will be
+rendered from configuration.
 
 ```txt
 apps/app/src/app/
@@ -65,6 +68,13 @@ apps/app/src/app/
 Shared UI must live in reusable components instead of being copied into pages. The main navigation starts with `app-main-nav`, which reads menu options from the API when a session exists and falls back to local defaults while the database-driven menu is not available.
 
 Menus are tenant data. Default menu rows are seeded during first setup, then `/api/menus/current` returns only the options visible for the current user's permissions.
+
+Navigation uses three product groups: Principal for daily entry points, Construcción for Services, Flows, Forms,
+Screens, Templates and Automations, and Administración for configuration, database and security.
+
+The maintained component catalog, maturity map and extraction backlog live in
+`docs/ui-component-inventory.md`. Dynamic Forms and Screen Designer must build the P0 component kit there before adding
+new authoring behavior directly to page containers.
 
 ## Dynamic Runtime
 

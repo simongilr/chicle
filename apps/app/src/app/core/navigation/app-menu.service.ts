@@ -38,8 +38,8 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/services',
     icon: 'pi pi-bolt',
     permissions: ['services.read'],
-    group: 'Administración',
-    placement: 'admin',
+    group: 'Construcción',
+    placement: 'build',
     sortOrder: 38
   },
   {
@@ -48,8 +48,8 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/flows',
     icon: 'pi pi-sitemap',
     permissions: ['flows.read'],
-    group: 'Administración',
-    placement: 'admin',
+    group: 'Construcción',
+    placement: 'build',
     sortOrder: 39
   },
   {

@@ -105,6 +105,8 @@ const READONLY_TABLES = new Set([
   'flows',
   'permissions',
   'role_permissions',
+  'role_resource_grants',
+  'role_resource_policies',
   'schema_changes',
   'tenant_memberships',
   'user_roles'

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { ConfisysModule } from '../confisys/confisys.module';
+import { RbacModule } from '../rbac/rbac.module';
 import { DynamicService } from './dynamic-service.entity';
 import { DynamicServiceRun } from './dynamic-service-run.entity';
 import { DynamicServiceVersion } from './dynamic-service-version.entity';
@@ -12,7 +13,8 @@ import { DynamicServicesService } from './dynamic-services.service';
   imports: [
     TypeOrmModule.forFeature([DynamicService, DynamicServiceVersion, DynamicServiceRun]),
     ConfisysModule,
-    AuditModule
+    AuditModule,
+    RbacModule
   ],
   controllers: [DynamicServicesController],
   providers: [DynamicServicesService],

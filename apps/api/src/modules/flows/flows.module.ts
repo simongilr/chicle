@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { ConfisysModule } from '../confisys/confisys.module';
 import { DynamicServicesModule } from '../dynamic-services/dynamic-services.module';
+import { RbacModule } from '../rbac/rbac.module';
 import { TenantMembership } from '../tenants/tenant-membership.entity';
 import { Tenant } from '../tenants/tenant.entity';
 import { User } from '../users/user.entity';
@@ -31,6 +32,7 @@ import { FlowsService } from './flows.service';
     AuditModule,
     ConfisysModule,
     DynamicServicesModule,
+    RbacModule,
     TypeOrmModule.forFeature([
       Flow,
       FlowVersion,

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
 import { IsNull, Repository } from 'typeorm';
@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
 import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
+import { RbacService } from '../rbac/rbac.service';
 import { FlowLiveEventsService } from './flow-live-events.service';
 import { FlowOutboxEvent } from './flow-outbox-event.entity';
 import { FlowRun, FlowRunTriggerType } from './flow-run.entity';
@@ -161,7 +162,8 @@ export class FlowsService {
     private readonly expressions: FlowExpressionEngine,
     private readonly confisys: ConfisysService,
     private readonly audit: AuditService,
-    private readonly live: FlowLiveEventsService
+    private readonly live: FlowLiveEventsService,
+    private readonly rbac: RbacService
   ) {}
 
   async list(auth: AuthContext) {
@@ -170,6 +172,35 @@ export class FlowsService {
       order: { updatedAt: 'DESC' }
     });
     return this.withDetails(auth, flows);
+  }
+
+  async listAvailable(auth: AuthContext) {
+    const flows = await this.flows.find({
+      where: {
+        tenantId: auth.tenant.id,
+        status: 'active',
+        trashedAt: IsNull()
+      },
+      order: { name: 'ASC' }
+    });
+    const published = flows.filter((flow) => Boolean(flow.publishedVersionId));
+    const allowedIds = new Set(
+      await this.rbac.filterAccessibleResourceIds(
+        auth,
+        'flow',
+        published.map((flow) => flow.id)
+      )
+    );
+    return published
+      .filter((flow) => allowedIds.has(flow.id))
+      .map((flow) => ({
+        id: flow.id,
+        key: flow.key,
+        name: flow.name,
+        description: flow.description,
+        category: flow.category,
+        publishedVersionId: flow.publishedVersionId
+      }));
   }
 
   async listTrashed(auth: AuthContext) {
@@ -668,6 +699,7 @@ export class FlowsService {
 
   async runTestCase(auth: AuthContext, flowId: string, testCaseId: string) {
     const flow = await this.requireFlow(auth, flowId);
+    await this.assertResourceAccess(auth, flow.id);
     const testCase = await this.requireTestCase(auth, flow.id, testCaseId);
     const result = await this.executeTestCase(auth, flow, testCase);
     await this.testCases.update(
@@ -679,6 +711,7 @@ export class FlowsService {
 
   async runTestSuite(auth: AuthContext, flowId: string) {
     const flow = await this.requireFlow(auth, flowId);
+    await this.assertResourceAccess(auth, flow.id);
     const testCases = await this.testCases.find({
       where: { tenantId: auth.tenant.id, flowId: flow.id, active: true },
       order: { createdAt: 'ASC' }
@@ -808,17 +841,33 @@ export class FlowsService {
 
   async executeByKey(auth: AuthContext, flowKey: string, request: FlowExecuteRequest) {
     const flow = await this.requireFlowByKey(auth, this.normalizeKey(flowKey));
+    await this.assertResourceAccess(auth, flow.id);
     return this.executePublishedFlow(auth, flow, request);
   }
 
-  async execute(auth: AuthContext, flowId: string, request: FlowExecuteRequest) {
+  async assertCanExecute(auth: AuthContext, flowId: string) {
     const flow = await this.requireFlow(auth, flowId);
+    await this.assertResourceAccess(auth, flow.id);
+    return flow;
+  }
+
+  async execute(
+    auth: AuthContext,
+    flowId: string,
+    request: FlowExecuteRequest,
+    options: { skipResourceAccess?: boolean } = {}
+  ) {
+    const flow = await this.requireFlow(auth, flowId);
+    if (!options.skipResourceAccess) {
+      await this.assertResourceAccess(auth, flow.id);
+    }
     return this.executePublishedFlow(auth, flow, request);
   }
 
   async preview(auth: AuthContext, flowId: string, request: FlowPreviewRequest) {
     this.assertFlowEnabled();
     const flow = await this.requireFlow(auth, flowId);
+    await this.assertResourceAccess(auth, flow.id);
     const draftSteps = await this.listDraftSteps(auth, flow.id);
     if (!draftSteps.length) {
       throw new BadRequestException('Add at least one step before testing the draft');
@@ -2502,7 +2551,7 @@ export class FlowsService {
 
     for (let attempt = 0; attempt <= attempts; attempt += 1) {
       lastRun = await this.withTimeout(
-        this.dynamicServices.executeByKey(auth, serviceKey, { context: input }),
+        this.dynamicServices.executeByKey(auth, serviceKey, { context: input }, { skipResourceAccess: true }),
         timeoutMs,
         `Service ${serviceKey} exceeded ${timeoutMs} ms`
       );
@@ -2515,6 +2564,12 @@ export class FlowsService {
     }
 
     return lastRun!;
+  }
+
+  private async assertResourceAccess(auth: AuthContext, flowId: string) {
+    if (!(await this.rbac.canAccessResource(auth, 'flow', flowId))) {
+      throw new ForbiddenException('This role cannot execute the requested flow');
+    }
   }
 
   private async withTimeout<T>(operation: Promise<T>, timeoutMs: number, message: string): Promise<T> {

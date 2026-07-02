@@ -11,6 +11,7 @@ import { DataSource, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
+import { RbacService } from '../rbac/rbac.service';
 import { DynamicService } from './dynamic-service.entity';
 import {
   DynamicServiceDefinition,
@@ -113,6 +114,8 @@ const SERVICE_CATALOG_BLOCKED_TABLES = new Set([
   'flows',
   'migrations',
   'role_permissions',
+  'role_resource_grants',
+  'role_resource_policies',
   'schema_changes',
   'user_roles'
 ]);
@@ -128,7 +131,8 @@ export class DynamicServicesService {
     private readonly runs: Repository<DynamicServiceRun>,
     private readonly dataSource: DataSource,
     private readonly confisys: ConfisysService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly rbac: RbacService
   ) {}
 
   async tableCatalog() {
@@ -175,6 +179,32 @@ export class DynamicServicesService {
       order: { key: 'ASC' }
     });
     return this.withVersions(auth, services);
+  }
+
+  async listAvailable(auth: AuthContext) {
+    const services = await this.services.find({
+      where: { tenantId: auth.tenant.id, active: true, trashedAt: IsNull() },
+      order: { name: 'ASC' }
+    });
+    const withVersions = await this.withVersions(auth, services);
+    const executable = withVersions.filter((service) => Boolean(service.publishedVersion));
+    const allowedIds = new Set(
+      await this.rbac.filterAccessibleResourceIds(
+        auth,
+        'dynamic_service',
+        executable.map((service) => service.id)
+      )
+    );
+    return executable
+      .filter((service) => allowedIds.has(service.id))
+      .map((service) => ({
+        id: service.id,
+        key: service.key,
+        name: service.name,
+        description: service.description,
+        type: service.type,
+        version: service.publishedVersion?.version ?? null
+      }));
   }
 
   async listTrashed(auth: AuthContext) {
@@ -371,12 +401,27 @@ export class DynamicServicesService {
 
   async test(auth: AuthContext, serviceId: string, request: DynamicServiceTestRequest) {
     const service = await this.requireService(auth, serviceId);
+    await this.assertResourceAccess(auth, service.id);
     return this.executePublished(auth, service, request.context ?? {}, 'manual_test');
   }
 
-  async executeByKey(auth: AuthContext, serviceKey: string, request: DynamicServiceExecuteRequest) {
+  async executeByKey(
+    auth: AuthContext,
+    serviceKey: string,
+    request: DynamicServiceExecuteRequest,
+    options: { skipResourceAccess?: boolean } = {}
+  ) {
     const service = await this.requireServiceByKey(auth, this.normalizeKey(serviceKey));
+    if (!options.skipResourceAccess) {
+      await this.assertResourceAccess(auth, service.id);
+    }
     return this.executePublished(auth, service, request.context ?? {}, 'frontend');
+  }
+
+  private async assertResourceAccess(auth: AuthContext, serviceId: string) {
+    if (!(await this.rbac.canAccessResource(auth, 'dynamic_service', serviceId))) {
+      throw new ForbiddenException('This role cannot execute the requested service');
+    }
   }
 
   private async executePublished(

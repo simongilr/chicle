@@ -84,7 +84,15 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
     }
   }
 
-  async enqueue(auth: AuthContext, flowId: string, request: QueueFlowRequest = {}) {
+  async enqueue(
+    auth: AuthContext,
+    flowId: string,
+    request: QueueFlowRequest = {},
+    options: { skipResourceAccess?: boolean } = {}
+  ) {
+    if (!options.skipResourceAccess) {
+      await this.flows.assertCanExecute(auth, flowId);
+    }
     const flow = await this.flows.get(auth, flowId);
     if (!flow.publishedVersion || flow.status !== 'active') {
       throw new BadRequestException('Publish and activate the flow before queueing it');
@@ -205,13 +213,18 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
       throw new NotFoundException('Webhook not found');
     }
     const auth = await this.systemAuth(tenant.id, trigger.createdByUserId);
-    return this.enqueue(auth, trigger.flowId, {
-      input: this.directTriggerInput(trigger, this.asRecord(request.input)),
-      triggerType: 'http',
-      triggerKey: trigger.key,
-      triggerId: trigger.id,
-      idempotencyKey: request.idempotencyKey ?? randomUUID()
-    });
+    return this.enqueue(
+      auth,
+      trigger.flowId,
+      {
+        input: this.directTriggerInput(trigger, this.asRecord(request.input)),
+        triggerType: 'http',
+        triggerKey: trigger.key,
+        triggerId: trigger.id,
+        idempotencyKey: request.idempotencyKey ?? randomUUID()
+      },
+      { skipResourceAccess: true }
+    );
   }
 
   async listJobs(auth: AuthContext, flowId?: string) {
@@ -241,6 +254,7 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
 
   async cancelJob(auth: AuthContext, jobId: string) {
     const job = await this.getJob(auth, jobId);
+    await this.flows.assertCanExecute(auth, job.flowId);
     if (!['queued', 'waiting'].includes(job.status)) {
       throw new BadRequestException('Only queued or waiting jobs can be cancelled');
     }
@@ -259,6 +273,7 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
 
   async retryJob(auth: AuthContext, jobId: string) {
     const job = await this.getJob(auth, jobId);
+    await this.flows.assertCanExecute(auth, job.flowId);
     if (!['failed', 'cancelled'].includes(job.status)) {
       throw new BadRequestException('Only failed or cancelled jobs can be retried');
     }
@@ -318,13 +333,18 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
         continue;
       }
       const auth = await this.systemAuth(trigger.tenantId, trigger.createdByUserId);
-      await this.enqueue(auth, trigger.flowId, {
-        input: this.asRecord((trigger.config ?? {})['input']),
-        triggerType: 'schedule',
-        triggerKey: trigger.key,
-        triggerId: trigger.id,
-        idempotencyKey: `schedule:${trigger.id}:${scheduledAt.toISOString()}`
-      });
+      await this.enqueue(
+        auth,
+        trigger.flowId,
+        {
+          input: this.asRecord((trigger.config ?? {})['input']),
+          triggerType: 'schedule',
+          triggerKey: trigger.key,
+          triggerId: trigger.id,
+          idempotencyKey: `schedule:${trigger.id}:${scheduledAt.toISOString()}`
+        },
+        { skipResourceAccess: true }
+      );
     }
   }
 
@@ -370,13 +390,18 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
         });
         for (const trigger of matching) {
           const auth = await this.systemAuth(event.tenantId, event.createdByUserId ?? trigger.createdByUserId);
-          await this.enqueue(auth, trigger.flowId, {
-            input: this.eventInput(trigger, event),
-            triggerType: trigger.type === 'form_submit' ? 'form' : 'event',
-            triggerKey: trigger.key,
-            triggerId: trigger.id,
-            idempotencyKey: `event:${event.id}:trigger:${trigger.id}`
-          });
+          await this.enqueue(
+            auth,
+            trigger.flowId,
+            {
+              input: this.eventInput(trigger, event),
+              triggerType: trigger.type === 'form_submit' ? 'form' : 'event',
+              triggerKey: trigger.key,
+              triggerId: trigger.id,
+              idempotencyKey: `event:${event.id}:trigger:${trigger.id}`
+            },
+            { skipResourceAccess: true }
+          );
         }
         await this.outbox.update({ id: event.id }, { status: 'published', processedAt: new Date(), error: null });
         this.live.emit({
@@ -441,11 +466,16 @@ export class FlowRuntimeService implements OnApplicationBootstrap, OnModuleDestr
     });
     try {
       const auth = await this.systemAuth(job.tenantId, job.createdByUserId);
-      const run = await this.flows.execute(auth, job.flowId, {
-        input: job.input,
-        triggerType: job.triggerType,
-        triggerKey: job.triggerKey
-      });
+      const run = await this.flows.execute(
+        auth,
+        job.flowId,
+        {
+          input: job.input,
+          triggerType: job.triggerType,
+          triggerKey: job.triggerKey
+        },
+        { skipResourceAccess: true }
+      );
       if (run.status !== 'success') {
         const error = this.asRecord(run.error);
         throw new Error(typeof error['message'] === 'string' ? error['message'] : 'Flow execution failed');

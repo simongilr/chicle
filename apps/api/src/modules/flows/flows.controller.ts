@@ -39,6 +39,17 @@ export class FlowsController {
     return this.flows.list(auth);
   }
 
+  @Get('available')
+  @RequirePermissions('flows.execute')
+  @ApiOperation({
+    summary: 'Listar flows publicados disponibles para el usuario',
+    description:
+      'Catálogo para pantallas y componentes dinámicos. Aplica permiso general y asignaciones de recursos por rol.'
+  })
+  listAvailable(@CurrentAuth() auth: AuthContext) {
+    return this.flows.listAvailable(auth);
+  }
+
   @Get('trash')
   @RequirePermissions('flows.read')
   @ApiOperation({ summary: 'Listar flows en papelera' })

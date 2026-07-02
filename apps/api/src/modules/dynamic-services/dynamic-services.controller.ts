@@ -30,6 +30,17 @@ export class DynamicServicesController {
     return this.dynamicServices.list(auth);
   }
 
+  @Get('available')
+  @RequirePermissions('services.execute')
+  @ApiOperation({
+    summary: 'Listar servicios publicados disponibles para el usuario',
+    description:
+      'Catálogo estable para componentes dinámicos del frontend. Aplica permiso general y asignaciones por rol.'
+  })
+  listAvailable(@CurrentAuth() auth: AuthContext) {
+    return this.dynamicServices.listAvailable(auth);
+  }
+
   @Get('trash')
   @RequirePermissions('services.read')
   @ApiOperation({

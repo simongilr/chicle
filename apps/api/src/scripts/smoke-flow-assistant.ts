@@ -6,6 +6,7 @@ import { DynamicServicesService } from '../modules/dynamic-services/dynamic-serv
 import { FlowJob } from '../modules/flows/flow-job.entity';
 import { FlowRuntimeService } from '../modules/flows/flow-runtime.service';
 import { FlowsService } from '../modules/flows/flows.service';
+import { RbacService } from '../modules/rbac/rbac.service';
 import { TenantMembership } from '../modules/tenants/tenant-membership.entity';
 import { Tenant } from '../modules/tenants/tenant.entity';
 import { User } from '../modules/users/user.entity';
@@ -18,9 +19,11 @@ async function run() {
   const flows = app.get(FlowsService);
   const runtime = app.get(FlowRuntimeService);
   const services = app.get(DynamicServicesService);
+  const rbac = app.get(RbacService);
   const suffix = Date.now().toString(36);
   const createdServiceIds: string[] = [];
   const createdFlowIds: string[] = [];
+  let createdRoleId = '';
 
   try {
     const membershipRows = (await dataSource.query(
@@ -380,6 +383,66 @@ async function run() {
       throw new Error(`Published execution returned an unexpected result: ${JSON.stringify(execution.output)}`);
     }
 
+    const role = await rbac.createRole(tenant.id, {
+      key: `smoke_role_${suffix}`,
+      name: 'Smoke resource access',
+      permissions: ['services.execute', 'flows.execute']
+    });
+    createdRoleId = role.id;
+    await rbac.setRoleResourceAccess(tenant.id, role.id, 'dynamic_service', {
+      mode: 'selected',
+      resourceIds: [userService.id]
+    });
+    await rbac.setRoleResourceAccess(tenant.id, role.id, 'flow', {
+      mode: 'selected',
+      resourceIds: [flow.id]
+    });
+    const roleAuth: AuthContext = {
+      ...auth,
+      roles: [{ key: role.key, name: role.name }],
+      permissions: ['services.execute', 'flows.execute']
+    };
+    const availableServices = await services.listAvailable(roleAuth);
+    const availableFlows = await flows.listAvailable(roleAuth);
+    const allowedServiceRun = await services.executeByKey(roleAuth, userService.key, {
+      context: { email: user.email }
+    });
+    const allowedFlowRun = await flows.executeByKey(roleAuth, flow.key, {
+      input: { email: user.email },
+      triggerType: 'test',
+      triggerKey: 'resource-access-smoke'
+    });
+    let deniedService = false;
+    try {
+      await services.executeByKey(roleAuth, membershipService.key, {
+        context: { userId: user.id }
+      });
+    } catch {
+      deniedService = true;
+    }
+    await rbac.setRoleResourceAccess(tenant.id, role.id, 'flow', { mode: 'none' });
+    let deniedFlow = false;
+    try {
+      await flows.executeByKey(roleAuth, flow.key, {
+        input: { email: user.email },
+        triggerType: 'test',
+        triggerKey: 'resource-access-denied-smoke'
+      });
+    } catch {
+      deniedFlow = true;
+    }
+    if (
+      availableServices.length !== 1 ||
+      availableServices[0]?.id !== userService.id ||
+      !availableFlows.some((item) => item.id === flow.id) ||
+      allowedServiceRun.status !== 'success' ||
+      allowedFlowRun.status !== 'success' ||
+      !deniedService ||
+      !deniedFlow
+    ) {
+      throw new Error('Role resource access smoke test failed');
+    }
+
     const childFlow = await flows.create(auth, {
       key: `smoke_child_${suffix}`,
       name: 'Smoke subflow',
@@ -563,6 +626,12 @@ async function run() {
           idempotent: queuedManual.id === duplicateManual.id
         },
         testSuite: { passed: suite.passed, failed: suite.failed },
+        resourceAccess: {
+          catalogFiltered: true,
+          directServiceDenied: deniedService,
+          directFlowDenied: deniedFlow,
+          flowInternalServices: allowedFlowRun.status
+        },
         publishedRunStatus: execution.status,
         advancedRuntime: {
           previewSteps: advancedPreview.steps.length,
@@ -576,6 +645,12 @@ async function run() {
       })
     );
   } finally {
+    if (createdRoleId) {
+      await dataSource.query('DELETE FROM role_resource_grants WHERE roleId = ?', [createdRoleId]);
+      await dataSource.query('DELETE FROM role_resource_policies WHERE roleId = ?', [createdRoleId]);
+      await dataSource.query('DELETE FROM role_permissions WHERE roleId = ?', [createdRoleId]);
+      await dataSource.query('DELETE FROM roles WHERE id = ?', [createdRoleId]);
+    }
     for (const flowId of [...createdFlowIds].reverse()) {
       await dataSource.query('DELETE FROM flow_test_cases WHERE flowId = ?', [flowId]);
       await dataSource.query('DELETE FROM flow_jobs WHERE flowId = ?', [flowId]);

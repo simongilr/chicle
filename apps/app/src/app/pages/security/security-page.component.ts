@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
+import { forkJoin } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
@@ -36,6 +37,23 @@ interface SecurityPermission {
   key: string;
   category: string;
   description?: string | null;
+}
+
+type RoleResourceMode = 'all' | 'selected' | 'none';
+type RoleResourceType = 'dynamic_service' | 'flow';
+
+interface RoleResourceItem {
+  id: string;
+  key: string;
+  name: string;
+  active: boolean;
+  published: boolean;
+}
+
+interface RoleResourceAccessResponse {
+  role: { id: string; key: string; name: string };
+  policies: Record<RoleResourceType, { mode: RoleResourceMode; resourceIds: string[] }>;
+  resources: Record<RoleResourceType, RoleResourceItem[]>;
 }
 
 interface AuditEvent {
@@ -382,6 +400,61 @@ type RolePanelMode = 'create' | 'edit';
         font-size: 0.86rem;
       }
 
+      .resource-access-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .resource-access {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        padding: 12px;
+      }
+
+      .resource-list {
+        display: grid;
+        gap: 7px;
+        max-height: 280px;
+        overflow: auto;
+      }
+
+      .resource-option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid #d9e2ec;
+        border-radius: 7px;
+        background: #ffffff;
+        padding: 9px;
+      }
+
+      .resource-option span {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .resource-option small {
+        color: #526577;
+        overflow-wrap: anywhere;
+      }
+
+      .resource-state {
+        color: #17643a;
+        font-size: 0.74rem;
+        font-weight: 850;
+      }
+
+      .resource-state.inactive {
+        color: #84531b;
+      }
+
       .audit {
         display: grid;
         gap: 8px;
@@ -413,6 +486,7 @@ type RolePanelMode = 'create' | 'edit';
         .form-grid,
         .filter-grid,
         .security-layout,
+        .resource-access-grid,
         .overview {
           grid-template-columns: 1fr;
         }
@@ -746,6 +820,87 @@ type RolePanelMode = 'create' | 'edit';
                     </label>
                   }
                 </div>
+                <div class="section-title">
+                  <h3>Servicios y flows disponibles</h3>
+                  <p class="meta">
+                    El permiso general permite ejecutar; esta selección limita cuáles recursos concretos puede usar el
+                    rol.
+                  </p>
+                </div>
+                @if (roleResourceAccess) {
+                  <div class="resource-access-grid">
+                    @for (resourceType of resourceTypes; track resourceType.key) {
+                      <section class="resource-access">
+                        <div class="section-title">
+                          <h3>{{ resourceType.label }}</h3>
+                          <p class="meta">{{ resourceType.description }}</p>
+                        </div>
+                        @if (!selectedRole.permissions.includes(resourcePermission(resourceType.key))) {
+                          <div class="message">
+                            Activa primero el permiso <strong>{{ resourcePermission(resourceType.key) }}</strong
+                            >. La selección por sí sola no concede ejecución.
+                          </div>
+                        }
+                        <label>
+                          Alcance
+                          <select
+                            [(ngModel)]="roleResourceAccess.policies[resourceType.key].mode"
+                            [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                          >
+                            <option value="all">Todos los actuales y futuros</option>
+                            <option value="selected">Solo seleccionados</option>
+                            <option value="none">Ninguno</option>
+                          </select>
+                        </label>
+                        @if (roleResourceAccess.policies[resourceType.key].mode === 'selected') {
+                          <div class="resource-list">
+                            @for (resource of roleResourceAccess.resources[resourceType.key]; track resource.id) {
+                              <label class="resource-option">
+                                <input
+                                  type="checkbox"
+                                  [checked]="
+                                    roleResourceAccess.policies[resourceType.key].resourceIds.includes(resource.id)
+                                  "
+                                  [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                                  (change)="toggleRoleResource(resourceType.key, resource.id)"
+                                />
+                                <span>
+                                  <strong>{{ resource.name }}</strong>
+                                  <small>{{ resource.key }}</small>
+                                </span>
+                                <small
+                                  class="resource-state"
+                                  [class.inactive]="!resource.active || !resource.published"
+                                >
+                                  {{ resource.active && resource.published ? 'Disponible' : 'No publicado' }}
+                                </small>
+                              </label>
+                            } @empty {
+                              <div class="message">Todavía no hay recursos de este tipo.</div>
+                            }
+                          </div>
+                        } @else {
+                          <div class="message">
+                            {{
+                              roleResourceAccess.policies[resourceType.key].mode === 'all'
+                                ? 'El rol podrá usar recursos actuales y los que se publiquen después.'
+                                : 'El rol no podrá ejecutar ningún recurso de este tipo.'
+                            }}
+                          </div>
+                        }
+                      </section>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    [disabled]="!canManageRoles || selectedRole.key === 'owner' || savingRoleResources"
+                    (click)="saveRoleResources()"
+                  >
+                    {{ savingRoleResources ? 'Guardando acceso...' : 'Guardar acceso a servicios y flows' }}
+                  </button>
+                } @else {
+                  <div class="message">Cargando recursos asignados al rol...</div>
+                }
                 <button
                   class="primary"
                   type="button"
@@ -794,6 +949,24 @@ export class SecurityPageComponent implements OnInit {
   roles: SecurityRole[] = [];
   permissions: SecurityPermission[] = [];
   audit: AuditEvent[] = [];
+  roleResourceAccess?: RoleResourceAccessResponse;
+  savingRoleResources = false;
+  readonly resourceTypes: Array<{
+    key: RoleResourceType;
+    label: string;
+    description: string;
+  }> = [
+    {
+      key: 'dynamic_service',
+      label: 'Servicios dinámicos',
+      description: 'Llamadas directas disponibles para pantallas y componentes.'
+    },
+    {
+      key: 'flow',
+      label: 'Flows publicados',
+      description: 'Procesos completos que este rol puede iniciar.'
+    }
+  ];
   securityTab: SecurityTab = 'users';
   userStatusFilter: UserStatusFilter = 'all';
   userPanelMode: UserPanelMode = 'create';
@@ -1022,17 +1195,77 @@ export class SecurityPageComponent implements OnInit {
   startCreateRole() {
     this.rolePanelMode = 'create';
     this.selectedRoleId = '';
+    this.roleResourceAccess = undefined;
     this.roleDraft = { key: '', name: '', description: '' };
   }
 
   selectRole(role: SecurityRole) {
     this.rolePanelMode = 'edit';
     this.selectedRoleId = role.id;
+    this.roleResourceAccess = undefined;
     this.roleDraft = {
       key: role.key,
       name: role.name,
       description: role.description ?? ''
     };
+    this.loadRoleResources(role.id);
+  }
+
+  loadRoleResources(roleId: string) {
+    this.api.get<RoleResourceAccessResponse>(`roles/${roleId}/resources`).subscribe({
+      next: (access) => {
+        if (this.selectedRoleId === roleId) {
+          this.roleResourceAccess = access;
+        }
+      },
+      error: () => {
+        if (this.selectedRoleId === roleId) {
+          this.message = 'No se pudieron cargar los servicios y flows asignados al rol.';
+        }
+      }
+    });
+  }
+
+  toggleRoleResource(resourceType: RoleResourceType, resourceId: string) {
+    const policy = this.roleResourceAccess?.policies[resourceType];
+    if (!policy) {
+      return;
+    }
+    policy.resourceIds = policy.resourceIds.includes(resourceId)
+      ? policy.resourceIds.filter((id) => id !== resourceId)
+      : [...policy.resourceIds, resourceId];
+  }
+
+  resourcePermission(resourceType: RoleResourceType) {
+    return resourceType === 'dynamic_service' ? 'services.execute' : 'flows.execute';
+  }
+
+  saveRoleResources() {
+    const role = this.selectedRole;
+    const access = this.roleResourceAccess;
+    if (!role || !access || role.key === 'owner') {
+      return;
+    }
+    this.savingRoleResources = true;
+    forkJoin({
+      services: this.api.put<RoleResourceAccessResponse>(`roles/${role.id}/resources/dynamic_service`, {
+        ...access.policies.dynamic_service
+      }),
+      flows: this.api.put<RoleResourceAccessResponse>(`roles/${role.id}/resources/flow`, {
+        ...access.policies.flow
+      })
+    }).subscribe({
+      next: () => {
+        this.savingRoleResources = false;
+        this.message = 'Acceso a servicios y flows actualizado.';
+        this.loadRoleResources(role.id);
+        this.reloadAudit();
+      },
+      error: () => {
+        this.savingRoleResources = false;
+        this.message = 'No se pudo guardar el acceso a servicios y flows.';
+      }
+    });
   }
 
   createRole() {

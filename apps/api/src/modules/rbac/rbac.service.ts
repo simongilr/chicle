@@ -1,9 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, IsNull, Repository } from 'typeorm';
+import { AuthContext } from '../auth/auth.types';
+import { DynamicService } from '../dynamic-services/dynamic-service.entity';
+import { DynamicServiceVersion } from '../dynamic-services/dynamic-service-version.entity';
+import { Flow } from '../flows/flow.entity';
 import { Permission } from './permission.entity';
 import { BASE_PERMISSIONS, BASE_ROLES } from './rbac.seed';
 import { RolePermission } from './role-permission.entity';
+import { RoleResourceGrant } from './role-resource-grant.entity';
+import {
+  RoleResourceMode,
+  RoleResourcePolicy,
+  RoleResourceType
+} from './role-resource-policy.entity';
 import { Role } from './role.entity';
 import { UserRole } from './user-role.entity';
 
@@ -33,6 +43,11 @@ export interface RbacSyncResult {
   rolePermissionsAdded: number;
 }
 
+export interface SetRoleResourceAccessRequest {
+  mode?: RoleResourceMode;
+  resourceIds?: string[];
+}
+
 @Injectable()
 export class RbacService {
   constructor(
@@ -42,8 +57,18 @@ export class RbacService {
     private readonly roles: Repository<Role>,
     @InjectRepository(RolePermission)
     private readonly rolePermissions: Repository<RolePermission>,
+    @InjectRepository(RoleResourcePolicy)
+    private readonly roleResourcePolicies: Repository<RoleResourcePolicy>,
+    @InjectRepository(RoleResourceGrant)
+    private readonly roleResourceGrants: Repository<RoleResourceGrant>,
     @InjectRepository(UserRole)
-    private readonly userRoles: Repository<UserRole>
+    private readonly userRoles: Repository<UserRole>,
+    @InjectRepository(DynamicService)
+    private readonly dynamicServices: Repository<DynamicService>,
+    @InjectRepository(DynamicServiceVersion)
+    private readonly dynamicServiceVersions: Repository<DynamicServiceVersion>,
+    @InjectRepository(Flow)
+    private readonly flows: Repository<Flow>
   ) {}
 
   async ensureTenantDefaults(tenantId: string, manager?: EntityManager) {
@@ -267,6 +292,163 @@ export class RbacService {
     return { ...role, permissions: selected.map((permission) => permission.key).sort() };
   }
 
+  async getRoleResourceAccess(tenantId: string, roleId: string) {
+    const role = await this.requireRole(tenantId, roleId);
+    const [policies, grants, services, flows, publishedServiceRows] = await Promise.all([
+      this.roleResourcePolicies.find({ where: { tenantId, roleId } }),
+      this.roleResourceGrants.find({ where: { tenantId, roleId } }),
+      this.dynamicServices.find({
+        where: { tenantId, trashedAt: IsNull() },
+        order: { name: 'ASC' }
+      }),
+      this.flows.find({
+        where: { tenantId, trashedAt: IsNull() },
+        order: { name: 'ASC' }
+      }),
+      this.dynamicServiceVersions
+        .createQueryBuilder('version')
+        .where('version.tenantId = :tenantId', { tenantId })
+        .andWhere('version.status = :status', { status: 'published' })
+        .select('version.serviceId', 'serviceId')
+        .distinct(true)
+        .getRawMany<{ serviceId: string }>()
+    ]);
+
+    const publishedServiceIds = new Set(publishedServiceRows.map((item) => item.serviceId));
+    const policyFor = (resourceType: RoleResourceType) => {
+      if (role.key === 'owner') {
+        return { mode: 'all' as RoleResourceMode, resourceIds: [] as string[] };
+      }
+      const policy = policies.find((item) => item.resourceType === resourceType);
+      return {
+        mode: policy?.mode ?? ('all' as RoleResourceMode),
+        resourceIds: grants
+          .filter((item) => item.resourceType === resourceType)
+          .map((item) => item.resourceId)
+          .sort()
+      };
+    };
+
+    return {
+      role: { id: role.id, key: role.key, name: role.name },
+      policies: {
+        dynamic_service: policyFor('dynamic_service'),
+        flow: policyFor('flow')
+      },
+      resources: {
+        dynamic_service: services.map((service) => ({
+          id: service.id,
+          key: service.key,
+          name: service.name,
+          active: service.active,
+          published: publishedServiceIds.has(service.id)
+        })),
+        flow: flows.map((flow) => ({
+          id: flow.id,
+          key: flow.key,
+          name: flow.name,
+          active: flow.status === 'active',
+          published: Boolean(flow.publishedVersionId)
+        }))
+      }
+    };
+  }
+
+  async setRoleResourceAccess(
+    tenantId: string,
+    roleId: string,
+    resourceTypeValue: string,
+    request: SetRoleResourceAccessRequest
+  ) {
+    const role = await this.requireRole(tenantId, roleId);
+    const resourceType = this.cleanResourceType(resourceTypeValue);
+    const mode = role.key === 'owner' ? 'all' : this.cleanResourceMode(request.mode);
+    const requestedIds = mode === 'selected' ? [...new Set(request.resourceIds ?? [])] : [];
+    const validIds = await this.validResourceIds(tenantId, resourceType, requestedIds);
+
+    if (validIds.length !== requestedIds.length) {
+      throw new BadRequestException('Resource selection contains items outside the tenant');
+    }
+
+    await this.roleResourcePolicies.manager.transaction(async (manager) => {
+      const policies = manager.getRepository(RoleResourcePolicy);
+      const grants = manager.getRepository(RoleResourceGrant);
+      let policy = await policies.findOne({ where: { tenantId, roleId, resourceType } });
+      policy = policies.create({
+        ...policy,
+        tenantId,
+        roleId,
+        resourceType,
+        mode
+      });
+      await policies.save(policy);
+      await grants.delete({ tenantId, roleId, resourceType });
+      if (validIds.length) {
+        await grants.save(
+          validIds.map((resourceId) =>
+            grants.create({
+              tenantId,
+              roleId,
+              resourceType,
+              resourceId
+            })
+          )
+        );
+      }
+    });
+
+    return this.getRoleResourceAccess(tenantId, roleId);
+  }
+
+  async canAccessResource(auth: AuthContext, resourceTypeValue: string, resourceId: string) {
+    const resourceType = this.cleanResourceType(resourceTypeValue);
+    const allowed = await this.filterAccessibleResourceIds(auth, resourceType, [resourceId]);
+    return allowed.includes(resourceId);
+  }
+
+  async filterAccessibleResourceIds(auth: AuthContext, resourceType: RoleResourceType, resourceIds: string[]) {
+    const uniqueIds = [...new Set(resourceIds)];
+    if (!uniqueIds.length) {
+      return [];
+    }
+    if (auth.roles.some((role) => role.key === 'owner')) {
+      return uniqueIds;
+    }
+    const roleKeys = [...new Set(auth.roles.map((role) => role.key))];
+    if (!roleKeys.length) {
+      return [];
+    }
+    const roles = await this.roles.find({
+      where: { tenantId: auth.tenant.id, key: In(roleKeys) }
+    });
+    if (!roles.length) {
+      return [];
+    }
+    const roleIds = roles.map((role) => role.id);
+    const policies = await this.roleResourcePolicies.find({
+      where: { tenantId: auth.tenant.id, roleId: In(roleIds), resourceType }
+    });
+    const policyByRole = new Map(policies.map((policy) => [policy.roleId, policy]));
+
+    if (roles.some((role) => !policyByRole.has(role.id) || policyByRole.get(role.id)?.mode === 'all')) {
+      return uniqueIds;
+    }
+    const selectedRoleIds = policies.filter((policy) => policy.mode === 'selected').map((policy) => policy.roleId);
+    if (!selectedRoleIds.length) {
+      return [];
+    }
+    const grants = await this.roleResourceGrants.find({
+      where: {
+        tenantId: auth.tenant.id,
+        roleId: In(selectedRoleIds),
+        resourceType,
+        resourceId: In(uniqueIds)
+      }
+    });
+    const grantedIds = new Set(grants.map((grant) => grant.resourceId));
+    return uniqueIds.filter((resourceId) => grantedIds.has(resourceId));
+  }
+
   async createRole(tenantId: string, request: CreateRoleRequest) {
     const key = this.normalizeRoleKey(request.key);
     const name = this.cleanRoleName(request.name);
@@ -285,7 +467,10 @@ export class RbacService {
       })
     );
 
-    return this.setRolePermissions(tenantId, role.id, request.permissions ?? []);
+    const result = await this.setRolePermissions(tenantId, role.id, request.permissions ?? []);
+    await this.setRoleResourceAccess(tenantId, role.id, 'dynamic_service', { mode: 'none' });
+    await this.setRoleResourceAccess(tenantId, role.id, 'flow', { mode: 'none' });
+    return result;
   }
 
   async updateRole(tenantId: string, roleId: string, request: UpdateRoleRequest) {
@@ -328,6 +513,8 @@ export class RbacService {
     }
 
     await this.rolePermissions.delete({ roleId });
+    await this.roleResourceGrants.delete({ tenantId, roleId });
+    await this.roleResourcePolicies.delete({ tenantId, roleId });
     await this.roles.delete({ id: roleId, tenantId });
     return { ok: true };
   }
@@ -398,6 +585,45 @@ export class RbacService {
     }
 
     return { map, created, updated };
+  }
+
+  private async requireRole(tenantId: string, roleId: string) {
+    const role = await this.roles.findOne({ where: { id: roleId, tenantId } });
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+    return role;
+  }
+
+  private cleanResourceType(value: string): RoleResourceType {
+    if (value === 'dynamic_service' || value === 'flow') {
+      return value;
+    }
+    throw new BadRequestException('Resource type must be dynamic_service or flow');
+  }
+
+  private cleanResourceMode(value?: RoleResourceMode): RoleResourceMode {
+    if (value === 'all' || value === 'selected' || value === 'none') {
+      return value;
+    }
+    throw new BadRequestException('Resource mode must be all, selected or none');
+  }
+
+  private async validResourceIds(tenantId: string, resourceType: RoleResourceType, resourceIds: string[]) {
+    if (!resourceIds.length) {
+      return [];
+    }
+    const rows =
+      resourceType === 'dynamic_service'
+        ? await this.dynamicServices.find({
+            where: { tenantId, id: In(resourceIds), trashedAt: IsNull() },
+            select: { id: true }
+          })
+        : await this.flows.find({
+            where: { tenantId, id: In(resourceIds), trashedAt: IsNull() },
+            select: { id: true }
+          });
+    return rows.map((row) => row.id);
   }
 
   private normalizeRoleKey(value?: string) {

@@ -1376,7 +1376,7 @@ export class DocsPageComponent {
       swagger:
         'En /api/docs ejecuta POST /api/dynamic-services/by-key/{serviceKey}/execute con body { "context": { ... } }.',
       command:
-        'this.dynamicServices.execute<boolean>("buscar_usuario", {\n  name: "simon"\n});\n\nRequisitos:\n  servicio activo\n  version publicada\n  permiso services.execute\n\nRespuesta:\n  ok: true/false\n  result: dato normalizado\n  run: historial tecnico completo',
+        'this.dynamicServices.available();\n\nthis.dynamicServices.execute<boolean>("buscar_usuario", {\n  name: "simon"\n});\n\nRequisitos:\n  servicio activo\n  version publicada\n  permiso services.execute\n  servicio permitido para alguno de los roles\n\nRespuesta:\n  ok: true/false\n  result: dato normalizado\n  run: historial tecnico completo',
       note: 'Este es el contrato que usará el futuro diseñador de pantallas: los componentes llaman servicios por key y el backend resuelve la implementación guardada en DB.'
     },
     {
@@ -1538,8 +1538,8 @@ export class DocsPageComponent {
       swagger:
         'En /api/docs usa POST /flows/{flowId}/execute o POST /flows/by-key/{flowKey}/execute. Consulta historial con GET /flows/{flowId}/runs.',
       command:
-        'POST /api/flows/by-key/validar_usuario_reporte/execute\n{\n  "input": {\n    "email": "admin@example.com"\n  },\n  "triggerType": "test"\n}\n\nRespuesta:\n  flow_run\n  steps[]\n  output\n  error si aplica',
-      note: 'La ejecución publicada guarda runs y pasos. La cola, los triggers y los eventos usan las mismas versiones inmutables que la ejecución directa.'
+        'this.dynamicFlows.available();\n\nthis.dynamicFlows.execute("validar_usuario_reporte", {\n  email: "admin@example.com"\n});\n\nPOST /api/flows/by-key/validar_usuario_reporte/execute\n{\n  "input": { "email": "admin@example.com" }\n}',
+      note: 'Publicar deja el flow disponible por key automáticamente. El catálogo y la ejecución filtran según flows.execute y los flows permitidos para los roles actuales.'
     },
     {
       title: 'Activadores y cola durable',
@@ -1700,6 +1700,15 @@ export class DocsPageComponent {
       command:
         'Crear rol:\nPOST /api/roles\n\nEditar rol:\nPATCH /api/roles/{roleId}\n\nEliminar rol custom no asignado:\nDELETE /api/roles/{roleId}',
       note: 'Los roles built-in quedan protegidos para no romper setup, ownership ni permisos mínimos del sistema.'
+    },
+    {
+      title: 'Servicios y flows por rol',
+      ui: 'En /security abre Roles y permisos, selecciona un rol y baja a Servicios y flows disponibles. Para cada tipo elige Todos, Solo seleccionados o Ninguno.',
+      swagger:
+        'Usa GET /api/roles/{roleId}/resources y PUT /api/roles/{roleId}/resources/{resourceType}. Los catálogos de consumo viven en GET /api/dynamic-services/available y GET /api/flows/available.',
+      command:
+        'PUT /api/roles/{roleId}/resources/dynamic_service\n{\n  "mode": "selected",\n  "resourceIds": ["service-id"]\n}\n\nPUT /api/roles/{roleId}/resources/flow\n{\n  "mode": "selected",\n  "resourceIds": ["flow-id"]\n}',
+      note: 'El permiso general sigue siendo obligatorio. Los roles se suman: basta con que uno permita el recurso. Owner conserva acceso total para evitar bloquear la administración.'
     },
     {
       title: 'Sincronizar seguridad base',

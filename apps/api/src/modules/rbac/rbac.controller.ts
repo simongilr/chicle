@@ -8,7 +8,12 @@ import { RequirePermissions } from '../auth/decorators/require-permissions.decor
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { MenusService } from '../menus/menus.service';
-import { CreateRoleRequest, RbacService, UpdateRoleRequest } from './rbac.service';
+import {
+  CreateRoleRequest,
+  RbacService,
+  SetRoleResourceAccessRequest,
+  UpdateRoleRequest
+} from './rbac.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -154,6 +159,56 @@ export class RbacController {
       metadata: { permissions: role.permissions }
     });
     return role;
+  }
+
+  @Get('roles/:roleId/resources')
+  @RequirePermissions('roles.read')
+  @ApiOperation({
+    summary: 'Consultar servicios y flows habilitados para un rol',
+    description:
+      'Devuelve el catálogo del tenant y las políticas all, selected o none para servicios dinámicos y flows.'
+  })
+  @ApiParam({ name: 'roleId', example: 'role-id' })
+  getRoleResources(@CurrentAuth() auth: AuthContext, @Param('roleId') roleId: string) {
+    return this.rbac.getRoleResourceAccess(auth.tenant.id, roleId);
+  }
+
+  @Put('roles/:roleId/resources/:resourceType')
+  @RequirePermissions('roles.manage')
+  @ApiOperation({
+    summary: 'Actualizar acceso de un rol a servicios o flows',
+    description:
+      'El permiso general services.execute o flows.execute sigue siendo obligatorio. Esta política limita los recursos concretos.'
+  })
+  @ApiParam({ name: 'roleId', example: 'role-id' })
+  @ApiParam({ name: 'resourceType', example: 'dynamic_service' })
+  @ApiBody({
+    schema: {
+      example: {
+        mode: 'selected',
+        resourceIds: ['resource-id']
+      }
+    }
+  })
+  async setRoleResources(
+    @CurrentAuth() auth: AuthContext,
+    @Param('roleId') roleId: string,
+    @Param('resourceType') resourceType: string,
+    @Body() body: SetRoleResourceAccessRequest
+  ) {
+    const result = await this.rbac.setRoleResourceAccess(auth.tenant.id, roleId, resourceType, body);
+    await this.audit.record({
+      auth,
+      action: 'role.resources.updated',
+      resourceType: 'role',
+      resourceId: roleId,
+      metadata: {
+        resourceType,
+        mode: body.mode,
+        resourceIds: body.resourceIds ?? []
+      }
+    });
+    return result;
   }
 
   @Post('security/sync')

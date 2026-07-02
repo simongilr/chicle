@@ -22,9 +22,22 @@ export interface DynamicServiceExecution<T = unknown> {
   error?: string | null;
 }
 
+export interface AvailableDynamicService {
+  id: string;
+  key: string;
+  name: string;
+  description?: string | null;
+  type: string;
+  version: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DynamicServiceClientService {
   private readonly api = inject(ApiClientService);
+
+  available() {
+    return this.api.get<AvailableDynamicService[]>('dynamic-services/available');
+  }
 
   executeRaw(serviceKey: string, context: Record<string, unknown> = {}) {
     return this.api.post<DynamicServiceRunResponse>(

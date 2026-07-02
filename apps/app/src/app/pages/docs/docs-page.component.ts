@@ -1495,7 +1495,7 @@ export class DocsPageComponent {
       title: 'Tipos de paso disponibles',
       command:
         'dynamic_service\n  ejecuta un servicio y puede registrar compensación\n\nparallel\n  ejecuta 2 a 20 servicios simultáneamente\n\nforeach\n  repite un servicio sobre una lista con concurrencia limitada\n\nsubflow\n  invoca otro flow publicado\n\ndelay\n  espera breve con límite Confisys\n\nemit_event\n  guarda un evento durable\n\nvalidation / decision / formula\n  valida, decide y calcula sin JavaScript libre\n\nresponse\n  construye la respuesta final',
-      note: 'Inicio y fin se sintetizan automáticamente. Todos los bloques se configuran de forma guiada y conservan JSON avanzado para diagnóstico.'
+      note: 'Inicio y fin se sintetizan automáticamente. Todos los bloques se configuran de forma guiada y muestran debajo los objetos JSON que ejecutará el backend.'
     },
     {
       title: 'Prueba paso a paso',
@@ -1510,7 +1510,7 @@ export class DocsPageComponent {
       title: 'Ejemplo de definición',
       command:
         '{\n  "key": "validar_usuario_reporte",\n  "steps": [\n    { "key": "start", "type": "start", "next": "consultar_usuario" },\n    {\n      "key": "consultar_usuario",\n      "type": "dynamic_service",\n      "serviceKey": "buscar_usuario",\n      "inputMap": { "email": "{{input.email}}" },\n      "outputKey": "user",\n      "next": "validar_edad"\n    },\n    {\n      "key": "validar_edad",\n      "type": "decision",\n      "condition": "steps.user.age >= 18",\n      "onTrue": "respuesta_ok",\n      "onFalse": "respuesta_rechazo"\n    }\n  ]\n}',
-      note: 'El JSON técnico existe como preview avanzado; el usuario normal debe construirlo con selects, bloques y validaciones guiadas.'
+      note: 'El JSON técnico permanece visible y editable, pero el usuario normal puede generarlo con selects, bloques y validaciones guiadas.'
     },
     {
       title: 'Permisos',
@@ -1525,12 +1525,12 @@ export class DocsPageComponent {
     },
     {
       title: 'Asistente visual disponible',
-      ui: 'Abre /flows. El recorrido tiene cuatro etapas: Definir, Construir, Probar y Publicar. Para empezar puedes elegir Validar datos, Usar un servicio, Calcular un valor o Comenzar vacío.',
+      ui: 'Abre /flows. El recorrido tiene cuatro etapas: Definir, Construir, Probar y Publicar. En Definir completa propósito, entrada y datos; debajo puedes revisar o editar el JSON completo generado.',
       swagger:
         'En /api/docs usa Flows: GET /flows, POST /flows, POST /flows/{flowId}/steps, POST /flows/{flowId}/preview, POST /flows/{flowId}/versions y POST /flows/{flowId}/versions/{versionId}/publish.',
       command:
-        'Recorrido gráfico:\n  1. Definir nombre, propósito y categoría\n  2. Construir validaciones, servicios, decisiones, fórmulas, respuestas o acciones\n  3. Probar el borrador completo o hasta un paso\n  4. Crear versión\n  5. Publicar versión\n  6. Consumir el flow por key\n\nInicio y fin se agregan automáticamente.\nEl JSON queda en Opciones avanzadas.',
-      note: 'No es necesario escribir expresiones ni conexiones manuales para los casos comunes.'
+        'Recorrido gráfico:\n  1. Definir propósito y plantilla\n  2. Elegir llamada directa, webhook, evento, formulario, horario o manual\n  3. Definir datos de entrada\n  4. Revisar el JSON generado\n  5. Construir y probar cada paso\n  6. Probar el borrador completo\n  7. Crear y publicar una versión\n  8. Consumir el flow por key\n\nInicio y fin se agregan automáticamente.',
+      note: 'La configuración guiada siempre aparece antes del JSON. El usuario puede revisar el objeto técnico sin necesitar escribirlo.'
     },
     {
       title: 'Flow Runtime V4 disponible',
@@ -1560,19 +1560,26 @@ export class DocsPageComponent {
     },
     {
       title: 'Flow Designer V3 visual',
-      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores de vista y workspace responsive. Flow muestra desde Definir el contrato Entrada -> Proceso -> Response y su JSON editable.',
+      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores y workspace responsive. Flow sigue el mismo orden de Servicios: configuración guiada arriba, resumen Entrada -> Proceso -> Respuesta y JSON editable debajo.',
       swagger:
         'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:
         'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
-      note: 'El trigger indica quién inicia; el primer paso indica qué se ejecuta; response controla lo que vuelve al front. Guardar JSON reemplaza el borrador de forma transaccional.'
+      note: 'El trigger indica quién inicia; el primer paso indica qué se ejecuta; response controla lo que vuelve al front. Cada paso también muestra su JSON generado debajo de los controles.'
     },
     {
       title: 'Flow Assistant V3.1',
-      ui: 'Las plantillas crean procesos completos. Después de editar un paso usa Guardar y probar; si funciona, pulsa Usar resultado y continuar para configurar el siguiente con las salidas observadas.',
+      ui: 'Las plantillas crean procesos completos. Cada paso se configura de arriba hacia abajo: propósito, operación, datos, continuación y JSON generado. Después usa Guardar y probar.',
       command:
         'Ciclo guiado:\n  1. Elegir plantilla\n  2. Elegir todos los servicios en orden cuando aplica\n  3. Crear todos los pasos iniciales\n  4. Completar datos de prueba en formulario\n  5. Guardar y probar el paso\n  6. Revisar entrada y salida\n  7. Usar resultado y continuar\n  8. Probar borrador completo\n  9. Crear versión y publicar\n\nPlantillas:\n  validar datos\n  usar un servicio\n  encadenar cualquier cantidad de servicios\n  calcular un valor\n  comenzar vacío',
-      note: 'El JSON sigue disponible como modo avanzado, pero ya no es el camino principal.'
+      note: 'El JSON permanece visible como confirmación. La edición manual se activa de forma explícita para no estorbar el recorrido de usuarios no técnicos.'
+    },
+    {
+      title: 'Alcance real del motor',
+      ui: 'En Definir abre Qué puede construir este motor. La pantalla separa Disponible en Flow, Se configura en Servicios y Aún no disponible.',
+      command:
+        'Disponible en Flow:\n  validaciones, decisiones, fórmulas y response\n  servicios secuenciales o paralelos\n  foreach limitado y subflows\n  timeout, retries, compensación y eventos\n  entrada directa, manual, HTTP, formulario, evento y horario\n\nMediante Servicios:\n  tablas y records\n  REST y transformaciones\n  futuros SOAP, WebSocket y conectores\n  credenciales y políticas de integración\n\nAún no disponible:\n  tareas humanas y esperas de días\n  scripts o código libre\n  while arbitrario\n  importación BPMN\n  transacciones distribuidas',
+      note: 'Flow coordina. Servicios ejecuta operaciones técnicas. Esta separación mantiene el diseñador comprensible sin reducir la capacidad de integración.'
     },
     {
       title: 'Mapa de conexiones V3.2',

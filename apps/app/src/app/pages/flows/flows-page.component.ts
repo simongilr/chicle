@@ -459,16 +459,15 @@ interface FlowJobItem {
 
       .authoring-grid {
         display: grid;
-        grid-template-columns: minmax(240px, 0.72fr) minmax(360px, 1.28fr);
-        gap: 14px;
-        align-items: stretch;
+        gap: 16px;
+        align-content: start;
+        min-width: 0;
       }
 
       .contract-column,
       .json-column {
         display: grid;
         gap: 12px;
-        align-content: start;
         min-width: 0;
         border: 1px solid #d9e2ec;
         border-radius: 8px;
@@ -476,11 +475,21 @@ interface FlowJobItem {
         padding: 14px;
       }
 
+      .contract-flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
       .contract-card {
         display: grid;
         grid-template-columns: 30px minmax(0, 1fr);
         gap: 10px;
         align-items: start;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px;
       }
 
       .contract-number {
@@ -502,10 +511,47 @@ interface FlowJobItem {
       }
 
       .authoring-code {
-        min-height: 430px;
+        min-height: 360px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 0.82rem;
         line-height: 1.45;
+      }
+
+      .configuration-section {
+        display: grid;
+        gap: 14px;
+        border-bottom: 1px solid #d9e2ec;
+        padding-bottom: 18px;
+      }
+
+      .configuration-section:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .configuration-title {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .configuration-title > span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e8f1fb;
+        color: #1554a2;
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .configuration-title div {
+        display: grid;
+        gap: 3px;
       }
 
       .section-heading {
@@ -579,9 +625,33 @@ interface FlowJobItem {
 
       .builder {
         display: grid;
-        grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
-        gap: 14px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
         margin-top: 14px;
+      }
+
+      .step-configuration {
+        display: grid;
+        gap: 16px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 16px;
+      }
+
+      .step-json {
+        display: grid;
+        gap: 12px;
+        border-top: 1px solid #d9e2ec;
+        padding-top: 16px;
+      }
+
+      .step-json .grid {
+        align-items: stretch;
+      }
+
+      .step-json textarea {
+        min-height: 190px;
       }
 
       .connection-summary {
@@ -750,10 +820,53 @@ interface FlowJobItem {
 
       .step-editor {
         display: grid;
-        gap: 12px;
+        gap: 16px;
         margin-top: 14px;
         padding-top: 14px;
         border-top: 1px solid #d9e2ec;
+      }
+
+      .capability-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .capability-group {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 12px;
+      }
+
+      .capability-group.supported {
+        border-top: 3px solid #238152;
+      }
+
+      .capability-group.delegated {
+        border-top: 3px solid #1554a2;
+      }
+
+      .capability-group.pending {
+        border-top: 3px solid #b87515;
+      }
+
+      .capability-item {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 7px;
+        align-items: start;
+        color: #52677a;
+        font-size: 0.84rem;
+        line-height: 1.4;
+      }
+
+      .capability-item i {
+        margin-top: 2px;
+        color: #1554a2;
       }
 
       .map-row {
@@ -1041,8 +1154,7 @@ interface FlowJobItem {
       @media (max-width: 1120px) {
         .builder,
         .test-studio,
-        .runtime-grid,
-        .authoring-grid {
+        .runtime-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -1053,7 +1165,9 @@ interface FlowJobItem {
         .branch-row,
         .input-field-row,
         .test-result-bar,
-        .assertion-row {
+        .assertion-row,
+        .contract-flow,
+        .capability-grid {
           grid-template-columns: 1fr;
         }
 
@@ -1192,145 +1306,85 @@ interface FlowJobItem {
               </app-section-header>
 
               @if (!selectedFlow || activeStage === 'describe') {
-                <div class="authoring-grid">
-                  <section class="contract-column">
-                    <div class="section-heading">
-                      <h3>Contrato de ejecución</h3>
-                      <p class="meta">Define quién lo inicia, qué procesa y qué recibe quien hizo la llamada.</p>
+                <section class="configuration-section">
+                  <div class="configuration-title">
+                    <span>1</span>
+                    <div>
+                      <h3>{{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}</h3>
+                      <p class="meta">
+                        {{
+                          selectedFlow
+                            ? 'Estos datos ayudan a encontrar y entender el proceso.'
+                            : 'Elige el punto de partida más parecido. Después podrás cambiar cada paso.'
+                        }}
+                      </p>
                     </div>
-
-                    <div class="contract-card">
-                      <span class="contract-number">1</span>
-                      <div class="contract-copy">
-                        <strong>Entrada</strong>
-                        <span class="meta">El disparador entrega datos al contexto <code>input</code>.</span>
-                        <label>
-                          Canal de entrada
-                          <select [(ngModel)]="entryMode" (ngModelChange)="onEntryModeChanged()">
-                            @for (option of entryModeOptions; track option.value) {
-                              <option [value]="option.value">{{ option.label }}</option>
-                            }
-                          </select>
-                        </label>
-                        @if (entryMode !== 'direct') {
-                          <label>
-                            Clave del disparador
-                            <input [(ngModel)]="entryKey" (ngModelChange)="refreshAuthoringDefinition()" />
-                          </label>
-                        }
-                        <span class="meta">{{ selectedEntrySummary }}</span>
-                        @if (entryMode === 'direct') {
-                          <code>POST /api/flows/by-key/{{ flowDraft.key || 'flow_key' }}/execute</code>
-                        } @else {
-                          <span class="meta">
-                            El JSON declara este canal. Se activa después de publicar desde Activadores
-                            {{ entryMode === 'http' ? 'y el secreto se configura allí, nunca en el JSON' : '' }}.
-                          </span>
-                        }
-                      </div>
-                    </div>
-
-                    <div class="contract-card">
-                      <span class="contract-number">2</span>
-                      <div class="contract-copy">
-                        <strong>Proceso</strong>
-                        <span class="meta">
-                          El primer paso puede ejecutar un servicio, validar, calcular o decidir. No es el disparador.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="contract-card">
-                      <span class="contract-number">3</span>
-                      <div class="contract-copy">
-                        <strong>Salida al front</strong>
-                        <span class="meta">
-                          Un paso <code>response</code> define estado y body. Ese resultado vuelve al caller.
-                        </span>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="json-column">
-                    <app-section-header
-                      title="Definición JSON editable"
-                      description="Edita entrada, datos, pasos, conexiones y salida desde el comienzo."
-                      stepLabel="Fuente de configuración"
-                    >
-                      <button type="button" (click)="refreshAuthoringDefinition()">Regenerar</button>
-                      <button
-                        class="primary"
-                        type="button"
-                        (click)="applyAuthoringDefinition(!!selectedFlow)"
-                        [disabled]="applyingDefinition"
-                      >
-                        {{ selectedFlow ? 'Guardar JSON' : 'Aplicar JSON' }}
-                      </button>
-                    </app-section-header>
-                    <textarea
-                      class="authoring-code"
-                      [(ngModel)]="authoringDefinitionText"
-                      spellcheck="false"
-                      aria-label="Definición JSON editable del flow"
-                    ></textarea>
-                    @if (authoringDefinitionError) {
-                      <app-status-notice tone="error" title="No se puede aplicar">
-                        {{ authoringDefinitionError }}
-                      </app-status-notice>
-                    }
-                  </section>
-                </div>
-
-                <div class="section-heading">
-                  <h3>
-                    {{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}
-                  </h3>
-                  <p class="meta">
-                    {{
-                      selectedFlow
-                        ? 'Estos datos ayudan a encontrar y entender el proceso.'
-                        : 'Elige el punto de partida más parecido. Después podrás cambiar cada paso.'
-                    }}
-                  </p>
-                </div>
-
-                @if (!selectedFlow) {
-                  <div class="starter-grid">
-                    @for (starter of starters; track starter.key) {
-                      <button
-                        class="starter"
-                        type="button"
-                        [class.active]="selectedStarter === starter.key"
-                        (click)="chooseStarter(starter.key)"
-                      >
-                        <i [class]="starter.icon" aria-hidden="true"></i>
-                        <strong>{{ starter.label }}</strong>
-                        <span class="meta">{{ starter.summary }}</span>
-                      </button>
-                    }
                   </div>
 
-                  @if (selectedStarter === 'service' || selectedStarter === 'multi_service') {
-                    <div class="guided-panel">
-                      <div>
-                        <div class="mini-title">
-                          {{
-                            selectedStarter === 'multi_service'
-                              ? 'Elige todos los servicios en el orden de ejecución'
-                              : 'Elige el servicio principal'
-                          }}
+                  @if (!selectedFlow) {
+                    <div class="starter-grid">
+                      @for (starter of starters; track starter.key) {
+                        <button
+                          class="starter"
+                          type="button"
+                          [class.active]="selectedStarter === starter.key"
+                          (click)="chooseStarter(starter.key)"
+                        >
+                          <i [class]="starter.icon" aria-hidden="true"></i>
+                          <strong>{{ starter.label }}</strong>
+                          <span class="meta">{{ starter.summary }}</span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (selectedStarter === 'service' || selectedStarter === 'multi_service') {
+                      <div class="guided-panel">
+                        <div>
+                          <div class="mini-title">
+                            {{
+                              selectedStarter === 'multi_service'
+                                ? 'Elige todos los servicios en el orden de ejecución'
+                                : 'Elige el servicio principal'
+                            }}
+                          </div>
+                          <p class="meta">Solo aparecen servicios activos con una versión publicada.</p>
                         </div>
-                        <p class="meta">Solo aparecen servicios activos con una versión publicada.</p>
-                      </div>
-                      @if (selectedStarter === 'multi_service') {
-                        @for (serviceKey of starterServiceKeys; track $index) {
-                          <div class="map-row">
-                            <label>
-                              Servicio {{ $index + 1 }}
-                              <select
-                                [(ngModel)]="starterServiceKeys[$index]"
-                                (ngModelChange)="onStarterServicesChanged()"
+                        @if (selectedStarter === 'multi_service') {
+                          @for (serviceKey of starterServiceKeys; track $index) {
+                            <div class="map-row">
+                              <label>
+                                Servicio {{ $index + 1 }}
+                                <select
+                                  [(ngModel)]="starterServiceKeys[$index]"
+                                  (ngModelChange)="onStarterServicesChanged()"
+                                >
+                                  <option value="">Selecciona un servicio</option>
+                                  @for (service of publishedServices; track service.id) {
+                                    <option [value]="service.key">
+                                      {{ service.name }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                              <span class="meta">Se ejecuta después del servicio {{ $index || 'de entrada' }}.</span>
+                              <button
+                                type="button"
+                                title="Quitar servicio"
+                                (click)="removeStarterService($index)"
+                                [disabled]="starterServiceKeys.length <= 2"
                               >
+                                <i class="pi pi-trash" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          }
+                          <button type="button" (click)="addStarterService()">
+                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar otro servicio
+                          </button>
+                        } @else {
+                          <div class="grid">
+                            <label>
+                              Servicio
+                              <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
                                 <option value="">Selecciona un servicio</option>
                                 @for (service of publishedServices; track service.id) {
                                   <option [value]="service.key">
@@ -1339,91 +1393,104 @@ interface FlowJobItem {
                                 }
                               </select>
                             </label>
-                            <span class="meta">Se ejecuta después del servicio {{ $index || 'de entrada' }}.</span>
-                            <button
-                              type="button"
-                              title="Quitar servicio"
-                              (click)="removeStarterService($index)"
-                              [disabled]="starterServiceKeys.length <= 2"
-                            >
-                              <i class="pi pi-trash" aria-hidden="true"></i>
-                            </button>
                           </div>
                         }
-                        <button type="button" (click)="addStarterService()">
-                          <i class="pi pi-plus" aria-hidden="true"></i> Agregar otro servicio
-                        </button>
-                      } @else {
-                        <div class="grid">
-                          <label>
-                            Servicio
-                            <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
-                              <option value="">Selecciona un servicio</option>
-                              @for (service of publishedServices; track service.id) {
-                                <option [value]="service.key">
-                                  {{ service.name }}
-                                </option>
-                              }
-                            </select>
-                          </label>
-                        </div>
-                      }
-                      @if (!publishedServices.length) {
-                        <div class="issue">
-                          <i class="pi pi-info-circle" aria-hidden="true"></i>
-                          <span>Primero crea y publica al menos un servicio desde Administración → Servicios.</span>
-                        </div>
-                      }
-                    </div>
+                        @if (!publishedServices.length) {
+                          <div class="issue">
+                            <i class="pi pi-info-circle" aria-hidden="true"></i>
+                            <span>Primero crea y publica al menos un servicio desde Administración → Servicios.</span>
+                          </div>
+                        }
+                      </div>
+                    }
                   }
-                }
 
-                <div class="grid">
-                  <label>
-                    Nombre del proceso
-                    <input
-                      [(ngModel)]="flowDraft.name"
-                      (ngModelChange)="onFlowIdentityChanged(true)"
-                      placeholder="Validar una solicitud"
-                    />
-                  </label>
-                  <label>
-                    ¿Qué resultado esperas?
-                    <input
-                      [(ngModel)]="flowDraft.description"
-                      (ngModelChange)="onFlowIdentityChanged()"
-                      placeholder="Aceptar solicitudes con datos completos"
-                    />
-                  </label>
-                  <label>
-                    Categoría
-                    <select [(ngModel)]="flowDraft.category" (ngModelChange)="onFlowIdentityChanged()">
-                      <option value="operaciones">Operaciones</option>
-                      <option value="ventas">Ventas</option>
-                      <option value="seguridad">Seguridad</option>
-                      <option value="integraciones">Integraciones</option>
-                      <option value="experiencia">Experiencia de usuario</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  </label>
-                  <label>
-                    Identificador técnico
-                    <input
-                      [(ngModel)]="flowDraft.key"
-                      (ngModelChange)="onFlowIdentityChanged()"
-                      placeholder="validar_solicitud"
-                      [disabled]="!!selectedFlow"
-                    />
-                  </label>
-                </div>
+                  <div class="grid">
+                    <label>
+                      Nombre del proceso
+                      <input
+                        [(ngModel)]="flowDraft.name"
+                        (ngModelChange)="onFlowIdentityChanged(true)"
+                        placeholder="Validar una solicitud"
+                      />
+                    </label>
+                    <label>
+                      ¿Qué resultado esperas?
+                      <input
+                        [(ngModel)]="flowDraft.description"
+                        (ngModelChange)="onFlowIdentityChanged()"
+                        placeholder="Aceptar solicitudes con datos completos"
+                      />
+                    </label>
+                    <label>
+                      Categoría
+                      <select [(ngModel)]="flowDraft.category" (ngModelChange)="onFlowIdentityChanged()">
+                        <option value="operaciones">Operaciones</option>
+                        <option value="ventas">Ventas</option>
+                        <option value="seguridad">Seguridad</option>
+                        <option value="integraciones">Integraciones</option>
+                        <option value="experiencia">Experiencia de usuario</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </label>
+                    <label>
+                      Identificador técnico
+                      <input
+                        [(ngModel)]="flowDraft.key"
+                        (ngModelChange)="onFlowIdentityChanged()"
+                        placeholder="validar_solicitud"
+                        [disabled]="!!selectedFlow"
+                      />
+                    </label>
+                  </div>
+                </section>
 
-                <div class="guided-panel">
-                  <div class="toolbar">
+                <section class="configuration-section">
+                  <div class="configuration-title">
+                    <span>2</span>
                     <div>
-                      <div class="mini-title">Datos que recibe el proceso</div>
-                      <p class="meta">
-                        Defínelos una vez. Después aparecerán como opciones al conectar servicios y reglas.
-                      </p>
+                      <h3>¿Qué inicia el proceso?</h3>
+                      <p class="meta">La entrada entrega los datos; el primer servicio se ejecuta después.</p>
+                    </div>
+                  </div>
+                  <div class="grid">
+                    <label>
+                      Canal de entrada
+                      <select [(ngModel)]="entryMode" (ngModelChange)="onEntryModeChanged()">
+                        @for (option of entryModeOptions; track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                    </label>
+                    @if (entryMode !== 'direct') {
+                      <label>
+                        Clave del activador
+                        <input [(ngModel)]="entryKey" (ngModelChange)="refreshAuthoringDefinition()" />
+                      </label>
+                    }
+                  </div>
+                  <div class="hint">
+                    <strong>{{ selectedEntrySummary }}</strong><br />
+                    @if (entryMode === 'direct') {
+                      La pantalla espera la respuesta de
+                      <code>POST /api/flows/by-key/{{ flowDraft.key || 'flow_key' }}/execute</code>.
+                    } @else {
+                      Se configura y activa después de publicar desde Activadores.
+                      {{ entryMode === 'http' ? 'El secreto se guarda protegido y nunca aparece en el JSON.' : '' }}
+                    }
+                  </div>
+                </section>
+
+                <section class="configuration-section">
+                  <div class="toolbar">
+                    <div class="configuration-title">
+                      <span>3</span>
+                      <div>
+                        <h3>¿Qué datos recibe?</h3>
+                        <p class="meta">
+                          Aparecerán como opciones al conectar servicios, reglas y respuestas.
+                        </p>
+                      </div>
                     </div>
                     <button type="button" (click)="addFlowInput()">
                       <i class="pi pi-plus" aria-hidden="true"></i> Agregar dato
@@ -1470,7 +1537,103 @@ interface FlowJobItem {
                       Sin datos definidos. Puedes agregarlos ahora o escribirlos manualmente durante las pruebas.
                     </div>
                   }
-                </div>
+                </section>
+
+                <section class="configuration-section">
+                  <div class="configuration-title">
+                    <span>4</span>
+                    <div>
+                      <h3>Revisa el recorrido completo</h3>
+                      <p class="meta">Esta es la lectura sencilla de lo que quedará guardado en el JSON.</p>
+                    </div>
+                  </div>
+                  <div class="contract-flow">
+                    <div class="contract-card">
+                      <span class="contract-number">1</span>
+                      <div class="contract-copy">
+                        <strong>Entrada</strong>
+                        <span class="meta">{{ selectedEntrySummary }}</span>
+                      </div>
+                    </div>
+                    <div class="contract-card">
+                      <span class="contract-number">2</span>
+                      <div class="contract-copy">
+                        <strong>Proceso</strong>
+                        <span class="meta">
+                          {{ selectedFlow?.steps?.length || starterStepCount }} pasos procesan, validan o deciden.
+                        </span>
+                      </div>
+                    </div>
+                    <div class="contract-card">
+                      <span class="contract-number">3</span>
+                      <div class="contract-copy">
+                        <strong>Respuesta</strong>
+                        <span class="meta">
+                          El paso de respuesta entrega el resultado a la pantalla o sistema que inició el flow.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="json-column">
+                  <app-section-header
+                    title="JSON generado del flow"
+                    description="La configuración anterior actualiza esta definición. También puedes editarla directamente."
+                    stepLabel="Configuración técnica"
+                  >
+                    <button type="button" (click)="refreshAuthoringDefinition()">Deshacer edición JSON</button>
+                    <button
+                      class="primary"
+                      type="button"
+                      (click)="applyAuthoringDefinition(!!selectedFlow)"
+                      [disabled]="applyingDefinition"
+                    >
+                      {{ selectedFlow ? 'Aplicar y guardar JSON' : 'Aplicar JSON' }}
+                    </button>
+                  </app-section-header>
+                  <textarea
+                    class="authoring-code"
+                    [(ngModel)]="authoringDefinitionText"
+                    spellcheck="false"
+                    aria-label="Definición JSON editable del flow"
+                  ></textarea>
+                  @if (authoringDefinitionError) {
+                    <app-status-notice tone="error" title="Revisa la definición">
+                      {{ authoringDefinitionError }}
+                    </app-status-notice>
+                  } @else {
+                    <div class="hint">
+                      Puedes trabajar solo con la guía. El JSON queda visible para copiar, revisar o configurar casos
+                      avanzados sin perder la validación del diseñador.
+                    </div>
+                  }
+                </section>
+
+                <details class="guided-panel">
+                  <summary><strong>Qué puede construir este motor</strong></summary>
+                  <p class="meta">
+                    El Flow coordina lógica y servicios. Las conexiones técnicas específicas se resuelven en Servicios.
+                  </p>
+                  <div class="capability-grid">
+                    @for (group of capabilityGroups; track group.title) {
+                      <section
+                        class="capability-group"
+                        [class.supported]="group.tone === 'supported'"
+                        [class.delegated]="group.tone === 'delegated'"
+                        [class.pending]="group.tone === 'pending'"
+                      >
+                        <h3>{{ group.title }}</h3>
+                        @for (item of group.items; track item) {
+                          <div class="capability-item">
+                            <i [class]="group.icon" aria-hidden="true"></i>
+                            <span>{{ item }}</span>
+                          </div>
+                        }
+                      </section>
+                    }
+                  </div>
+                </details>
 
                 <div class="row" style="margin-top: 14px;">
                   @if (selectedFlow) {
@@ -1545,26 +1708,11 @@ interface FlowJobItem {
                     }
 
                     <div class="step-editor">
-                      <div class="step-guide">
-                        <app-process-steps
-                          [items]="stepEditorSteps"
-                          [activeKey]="stepEditorPhase"
-                          [compact]="true"
-                          (selected)="goToStepEditorPhase($event)"
-                          ariaLabel="Configuración del paso"
-                        ></app-process-steps>
-                        <app-workflow-guide
-                          [stepLabel]="stepEditorGuide.stepLabel"
-                          [title]="stepEditorGuide.title"
-                          [description]="stepEditorGuide.description"
-                          [tone]="stepEditorGuide.tone"
-                        >
-                          <button type="button" (click)="advanceStepEditor()">
-                            {{ stepEditorGuide.actionLabel }}
-                            <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                          </button>
-                        </app-workflow-guide>
-                      </div>
+                      <app-section-header
+                        [title]="stepDraft.id ? 'Configurar: ' + stepDraft.name : 'Agregar un paso'"
+                        description="Completa la operación de arriba hacia abajo. El JSON resultante aparece al final."
+                        [stepLabel]="stepDraft.id ? 'Paso seleccionado' : 'Nuevo paso'"
+                      ></app-section-header>
                       @if (stepDraftIssues.length) {
                         <div class="issue-list">
                           @for (issue of stepDraftIssues; track issue) {
@@ -1575,7 +1723,9 @@ interface FlowJobItem {
                           }
                         </div>
                       }
-                      <div class="guided-panel step-phase" id="flow-step-purpose">
+                      <section class="step-configuration">
+                      <div class="configuration-title step-phase" id="flow-step-purpose">
+                        <span>1</span>
                         <div>
                           <div class="mini-title">
                             {{ stepDraft.id ? 'Edita este paso' : '¿Qué debe ocurrir ahora?' }}
@@ -1584,7 +1734,8 @@ interface FlowJobItem {
                             Elige el bloque por su propósito. Solo aparecerán los datos necesarios para configurarlo.
                           </p>
                         </div>
-                        <div class="grid">
+                      </div>
+                      <div class="grid">
                           <label>
                             Tipo de paso
                             <select [ngModel]="stepDraft.type" (ngModelChange)="setStepType($event)">
@@ -1610,7 +1761,6 @@ interface FlowJobItem {
                             {{ stepTypeSummary(stepDraft.type) }}
                           </div>
                         </div>
-                      </div>
 
                       <div class="grid">
                         <label>
@@ -1627,7 +1777,14 @@ interface FlowJobItem {
                         </label>
                       </div>
 
-                      <div class="guided-panel step-phase" id="flow-step-configure">
+                      <div class="configuration-title step-phase" id="flow-step-configure">
+                        <span>2</span>
+                        <div>
+                          <div class="mini-title">Configura la operación</div>
+                          <p class="meta">{{ stepTypeSummary(stepDraft.type) }}</p>
+                        </div>
+                      </div>
+                      <div class="guided-panel">
                         @if (stepDraft.type === 'dynamic_service') {
                           <div class="grid">
                             <label>
@@ -2002,13 +2159,19 @@ interface FlowJobItem {
                       </div>
 
                       @if (stepDraft.type === 'dynamic_service' || stepDraft.type === 'action') {
-                        <div class="guided-panel step-phase" id="flow-step-data">
+                        <div class="configuration-title step-phase" id="flow-step-data">
+                          <span>3</span>
+                          <div>
+                            <div class="mini-title">Conecta los datos</div>
+                            <p class="meta">Selecciona el origen de cada valor sin escribir expresiones.</p>
+                          </div>
+                        </div>
+                        <div class="guided-panel">
                           <div class="toolbar">
                             <div>
-                              <div class="mini-title">Datos que recibe</div>
+                              <div class="mini-title">Datos que recibe la operación</div>
                               <p class="meta">
-                                Elige el origen de cada dato. Los resultados de servicios anteriores aparecen
-                                automáticamente.
+                                Los datos del formulario y los resultados anteriores aparecen como opciones.
                               </p>
                             </div>
                           </div>
@@ -2020,12 +2183,18 @@ interface FlowJobItem {
                         </div>
                       }
 
-                      <div class="guided-panel step-phase" id="flow-step-route">
+                      <div class="configuration-title step-phase" id="flow-step-route">
+                        <span>{{ stepUsesDataMap ? '4' : '3' }}</span>
                         <div>
-                          <div class="mini-title">¿Qué ocurre después?</div>
+                          <div class="mini-title">Define qué ocurre después</div>
+                          <p class="meta">Conecta el resultado correcto, el error y el timeout cuando aplique.</p>
+                        </div>
+                      </div>
+                      <div class="guided-panel">
+                        <div>
+                          <div class="mini-title">Rutas del resultado</div>
                           <p class="meta">
-                            Estas conexiones son las que usa el runner. Elige un destino explícito cuando no quieras
-                            seguir el orden visual.
+                            Si no eliges un destino explícito, el runner continúa con el siguiente paso de la lista.
                           </p>
                         </div>
                         @if (stepDraft.type === 'decision') {
@@ -2114,49 +2283,53 @@ interface FlowJobItem {
                         </div>
                       </div>
 
-                      <details class="guided-panel advanced-panel">
-                        <summary>
-                          Opciones avanzadas
-                          <span class="meta"
-                            >Identificador, orden y JSON generado. Normalmente no necesitas abrirlo.</span
-                          >
-                        </summary>
+                      <section class="step-json">
                         <div class="toolbar">
-                          <span class="meta"
-                            >Los cambios manuales reemplazan la configuración generada por la guía.</span
-                          >
-                          <label style="display: inline-flex; align-items: center; gap: 6px;">
+                          <div>
+                            <div class="mini-title">JSON generado del paso</div>
+                            <p class="meta">
+                              La guía mantiene estos objetos sincronizados. Activa la edición solo para un caso avanzado.
+                            </p>
+                          </div>
+                          <label class="inline-check">
                             <input type="checkbox" [(ngModel)]="stepDraft.advancedMode" />
                             Editar JSON
                           </label>
                         </div>
                         <div class="grid">
                           <label>
-                            Identificador del paso
-                            <input [(ngModel)]="stepDraft.key" placeholder="validar_correo" />
-                          </label>
-                          <label>
-                            Orden
-                            <input type="number" [(ngModel)]="stepDraft.position" />
-                          </label>
-                        </div>
-                        <div class="grid">
-                          <label>
-                            Config JSON
+                            Configuración JSON
                             <textarea
                               [(ngModel)]="stepDraft.configText"
                               [disabled]="!stepDraft.advancedMode"
                             ></textarea>
                           </label>
                           <label>
-                            Input map JSON
+                            Mapa de datos JSON
                             <textarea
                               [(ngModel)]="stepDraft.inputMapText"
                               [disabled]="!stepDraft.advancedMode"
                             ></textarea>
                           </label>
                         </div>
-                      </details>
+                        <details class="advanced-panel">
+                          <summary>
+                            Identidad y orden técnico
+                            <span class="meta">Normalmente se generan automáticamente.</span>
+                          </summary>
+                          <div class="grid">
+                            <label>
+                              Identificador del paso
+                              <input [(ngModel)]="stepDraft.key" placeholder="validar_correo" />
+                            </label>
+                            <label>
+                              Orden
+                              <input type="number" [(ngModel)]="stepDraft.position" />
+                            </label>
+                          </div>
+                        </details>
+                      </section>
+                      </section>
 
                       <div class="assistant-actions step-phase" id="flow-step-save">
                         <span class="meta">
@@ -2986,6 +3159,43 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     { value: 'form_submit', label: 'Formulario', summary: 'Se dispara cuando se envía un formulario.' },
     { value: 'schedule', label: 'Horario', summary: 'Se encola periódicamente después de publicarlo.' }
   ];
+  readonly capabilityGroups = [
+    {
+      title: 'Disponible en Flow',
+      tone: 'supported',
+      icon: 'pi pi-check-circle',
+      items: [
+        'Validar, decidir, calcular y construir respuestas.',
+        'Encadenar servicios sin límite fijo de dos pasos.',
+        'Ejecutar en paralelo, recorrer listas y llamar subflows.',
+        'Reintentos, timeout, compensación, eventos y pruebas.',
+        'Entrada directa, manual, HTTP, formulario, evento u horario.'
+      ]
+    },
+    {
+      title: 'Se configura en Servicios',
+      tone: 'delegated',
+      icon: 'pi pi-arrow-right',
+      items: [
+        'Consultar o modificar tablas y records.',
+        'Consumir REST y transformar request/response.',
+        'SOAP, WebSocket y conectores cuando estén disponibles.',
+        'Credenciales, secretos y políticas propias de integración.'
+      ]
+    },
+    {
+      title: 'Aún no disponible',
+      tone: 'pending',
+      icon: 'pi pi-clock',
+      items: [
+        'Esperas humanas o procesos pausados durante días.',
+        'Código libre o scripts personalizados dentro del flow.',
+        'Importar o exportar diagramas BPMN.',
+        'Transacciones distribuidas; se usa idempotencia y compensación.',
+        'Bucles while arbitrarios; hoy se recorren listas con Para cada.'
+      ]
+    }
+  ];
   viewingTrash = false;
   entryMode: FlowEntryMode = 'direct';
   entryKey = 'direct';
@@ -3015,6 +3225,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
 
   get selectedFlow() {
     return this.flows.find((flow) => flow.id === this.selectedFlowId);
+  }
+
+  get starterStepCount() {
+    return this.starterSteps().length;
   }
 
   get flowProcessSteps(): ProcessStepItem[] {

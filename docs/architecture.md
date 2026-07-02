@@ -122,7 +122,7 @@ Operational designers share the same reusable interface language:
 - `StatusNoticeComponent` centralizes empty, information, success, warning and error states.
 - `SegmentedControlComponent` provides the same compact view selector for Database modes and Flow map/list views.
 - Active, trash and new states use the same navigation contract. A trashed object opens a restore-only workspace instead of its editor.
-- Advanced JSON and reusable test suites stay behind progressive disclosure; the first path remains guided and visual.
+- The guided configuration is always presented before its generated JSON. The complete flow JSON and each step JSON remain visible for review, while manual editing is an explicit advanced action.
 - Frontend validation mirrors publish-time constraints so missing services, broken routes, subflows and event keys are visible before version creation.
 
 Flow Designer V3 treats data contracts as first-class configuration:
@@ -145,7 +145,7 @@ Flow Assistant V3.1 adds a progressive authoring loop:
 5. Test inputs render as typed form controls, while raw JSON remains advanced mode.
 6. The container smoke test builds temporary internal services, chains them in a flow, previews, publishes, executes and cleans up.
 
-Each step has its own authoring sequence: purpose, operation configuration, data mapping when needed, execution routes, then save and test. This nested guide uses the same shared progress and contextual-guide components as the top-level flow.
+Each step follows one vertical authoring sequence: purpose, operation configuration, data mapping when needed, execution routes, generated JSON, then save and test. The step editor deliberately avoids nesting another workflow assistant inside the top-level assistant.
 
 Flow Designer V3.2 makes execution routing and regression tests explicit:
 
@@ -168,6 +168,24 @@ Flow Runtime V4 adds the asynchronous execution layer around the deterministic r
 - Successful service steps may register a compensation service. If a later step fails, compensations execute in reverse order and are included in the run error.
 
 The internal worker is suitable for the initial deployment and multiple API replicas coordinate through database claims. A dedicated worker process can later reuse the same queue contract without changing flow definitions.
+
+### Flow capability boundary
+
+Flow Engine currently owns orchestration:
+
+- validation, decisions, formulas and caller responses;
+- sequential services, parallel branches, bounded `foreach` and published subflows;
+- short delays, durable event emission, retries, timeout routes and compensation;
+- direct, manual, signed HTTP, form, record-event and schedule entry channels;
+- draft previews, persisted regression cases, immutable versions and execution history.
+
+Dynamic Services own technical operations:
+
+- reads and writes against internal tables and records;
+- REST request/response mapping and future SOAP, WebSocket or connector implementations;
+- integration credentials, secrets and transport-specific policies.
+
+The current engine does not claim support for human tasks, multi-day durable waits, arbitrary `while` loops, free-form code, BPMN import/export or distributed ACID transactions. Long-running orchestration will require resumable workflow state; cross-system consistency currently uses idempotency, retries and compensation.
 
 ## Declarative Actions
 

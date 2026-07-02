@@ -1560,12 +1560,12 @@ export class DocsPageComponent {
     },
     {
       title: 'Flow Designer V3 visual',
-      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores y workspace responsive. Flow sigue el mismo orden de Servicios: configuración guiada arriba, resumen Entrada -> Proceso -> Respuesta y JSON editable debajo.',
+      ui: 'Base de datos, Servicios y Flows comparten encabezados, catálogos, avisos, selectores y workspace responsive. Flow sigue el mismo orden de Servicios: configuración guiada arriba, resumen Entrada -> Proceso -> Respuesta y JSON editable debajo. Cada recuadro incluye un asistente con ejemplo, estado y siguiente acción.',
       swagger:
         'Los endpoints no cambian: la V3 usa el CRUD de pasos, POST /flows/{flowId}/preview y el catálogo de servicios publicados.',
       command:
         'Capacidades V3:\n  recorrido visual reutilizable\n  inserción de pasos con botones +\n  datos de entrada tipados\n  contrato inputSchema versionado\n  selector de servicios publicados\n  detección automática de inputs del servicio\n  mapeador visual sin escribir {{steps...}}\n  salidas inferidas y salidas observadas después de probar\n  responseMap real bajo response.mapped\n  ramas Sí / No / Error visibles\n  prueba directa hasta cualquier paso\n  revisión de problemas antes de versionar\n  plantilla Encadenar servicios',
-      note: 'El trigger indica quién inicia; el primer paso indica qué se ejecuta; response controla lo que vuelve al front. Cada paso también muestra su JSON generado debajo de los controles.'
+      note: 'El trigger indica quién inicia; el primer paso indica qué se ejecuta; response controla lo que vuelve al front. El asistente cambia a verde cuando cada parte está lista y advierte JSON o rutas incompletas.'
     },
     {
       title: 'Flow Assistant V3.1',

@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
@@ -361,6 +362,7 @@ interface FlowJobItem {
     ModuleHeaderComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
+    ContextAssistantComponent,
     SectionHeaderComponent,
     SegmentedControlComponent,
     StatusNoticeComponent,
@@ -1320,6 +1322,19 @@ interface FlowJobItem {
                       </p>
                     </div>
                   </div>
+                  <app-context-assistant
+                    [title]="flowPurposeReady ? 'El propósito ya se entiende' : 'Describe el resultado, no la tecnología'"
+                    [description]="
+                      flowPurposeReady
+                        ? 'Nombre, resultado esperado e identificador están completos.'
+                        : 'Escribe qué debe conseguir el proceso con palabras que entienda una persona del negocio.'
+                    "
+                    example="Validar una solicitud y devolver si puede aprobarse."
+                    [nextAction]="flowPurposeReady ? 'Define quién inicia el proceso.' : 'Completa nombre, resultado e identificador.'"
+                    [stateLabel]="flowPurposeReady ? 'Listo' : 'Por completar'"
+                    [tone]="flowPurposeReady ? 'success' : 'warning'"
+                    [icon]="flowPurposeReady ? 'pi pi-check' : 'pi pi-lightbulb'"
+                  ></app-context-assistant>
 
                   @if (!selectedFlow) {
                     <div class="starter-grid">
@@ -1453,6 +1468,19 @@ interface FlowJobItem {
                       <p class="meta">La entrada entrega los datos; el primer servicio se ejecuta después.</p>
                     </div>
                   </div>
+                  <app-context-assistant
+                    [title]="flowEntryReady ? 'La entrada está definida' : 'Falta identificar el activador'"
+                    [description]="selectedEntrySummary"
+                    example="Llamada directa para un botón del front; Evento para reaccionar a un registro creado."
+                    [nextAction]="
+                      flowEntryReady
+                        ? 'Define los datos que recibirá esta entrada.'
+                        : 'Escribe una clave estable para reconocer el activador.'
+                    "
+                    [stateLabel]="flowEntryReady ? 'Listo' : 'Requiere clave'"
+                    [tone]="flowEntryReady ? 'success' : 'warning'"
+                    [icon]="flowEntryReady ? 'pi pi-check' : 'pi pi-bolt'"
+                  ></app-context-assistant>
                   <div class="grid">
                     <label>
                       Canal de entrada
@@ -1496,6 +1524,23 @@ interface FlowJobItem {
                       <i class="pi pi-plus" aria-hidden="true"></i> Agregar dato
                     </button>
                   </div>
+                  <app-context-assistant
+                    title="Define solo los datos que llegan desde afuera"
+                    [description]="
+                      flowInputs.length
+                        ? 'Estos nombres estarán disponibles en validaciones, servicios, fórmulas y respuestas.'
+                        : 'Puedes continuar sin entradas cuando el proceso use únicamente tenant, usuario o valores fijos.'
+                    "
+                    example="email, total, fecha_evento o id_cliente."
+                    [nextAction]="
+                      flowInputsReady
+                        ? 'Revisa el recorrido que se generará.'
+                        : 'Corrige identificadores repetidos o que no estén en snake_case.'
+                    "
+                    [stateLabel]="flowInputs.length ? (flowInputsReady ? 'Datos válidos' : 'Revisar datos') : 'Opcional'"
+                    [tone]="flowInputsReady ? 'success' : 'warning'"
+                    [icon]="flowInputsReady ? 'pi pi-check' : 'pi pi-info-circle'"
+                  ></app-context-assistant>
                   @for (field of flowInputs; track $index) {
                     <div class="input-field-row">
                       <label>
@@ -1547,6 +1592,15 @@ interface FlowJobItem {
                       <p class="meta">Esta es la lectura sencilla de lo que quedará guardado en el JSON.</p>
                     </div>
                   </div>
+                  <app-context-assistant
+                    title="Comprueba la historia completa de izquierda a derecha"
+                    description="Alguien inicia el flow, los pasos transforman los datos y Response entrega el resultado."
+                    example="Botón Guardar → validar → consultar servicio → responder al formulario."
+                    nextAction="Revisa el JSON generado y crea o guarda el proceso."
+                    stateLabel="Revisión final"
+                    tone="info"
+                    icon="pi pi-share-alt"
+                  ></app-context-assistant>
                   <div class="contract-flow">
                     <div class="contract-card">
                       <span class="contract-number">1</span>
@@ -1592,6 +1646,19 @@ interface FlowJobItem {
                       {{ selectedFlow ? 'Aplicar y guardar JSON' : 'Aplicar JSON' }}
                     </button>
                   </app-section-header>
+                  <app-context-assistant
+                    [title]="authoringJsonReady ? 'El JSON puede guardarse' : 'El JSON necesita corrección'"
+                    [description]="
+                      authoringJsonReady
+                        ? 'Representa la misma configuración que acabas de completar.'
+                        : 'No se aplicará hasta que la estructura, las claves y las rutas sean válidas.'
+                    "
+                    example="Puedes cambiar steps, entry u output y pulsar Aplicar."
+                    [nextAction]="authoringJsonReady ? 'Aplica el JSON o crea el proceso.' : 'Corrige el error indicado debajo.'"
+                    [stateLabel]="authoringJsonReady ? 'JSON válido' : 'JSON inválido'"
+                    [tone]="authoringJsonReady ? 'success' : 'warning'"
+                    [icon]="authoringJsonReady ? 'pi pi-check' : 'pi pi-code'"
+                  ></app-context-assistant>
                   <textarea
                     class="authoring-code"
                     [(ngModel)]="authoringDefinitionText"
@@ -1735,6 +1802,19 @@ interface FlowJobItem {
                           </p>
                         </div>
                       </div>
+                      <app-context-assistant
+                        [title]="stepPurposeReady ? 'El paso se reconoce claramente' : 'Dale una intención a este bloque'"
+                        [description]="
+                          stepPurposeReady
+                            ? 'El tipo, el nombre visible y el identificador están listos.'
+                            : 'Primero elige qué debe ocurrir; después el diseñador mostrará únicamente sus opciones.'
+                        "
+                        example="Validar correo, Consultar cliente o Construir respuesta."
+                        [nextAction]="stepPurposeReady ? 'Configura la operación.' : 'Elige un tipo y escribe un nombre claro.'"
+                        [stateLabel]="stepPurposeReady ? 'Listo' : 'Por completar'"
+                        [tone]="stepPurposeReady ? 'success' : 'warning'"
+                        [icon]="stepPurposeReady ? 'pi pi-check' : 'pi pi-lightbulb'"
+                      ></app-context-assistant>
                       <div class="grid">
                           <label>
                             Tipo de paso
@@ -1784,6 +1864,23 @@ interface FlowJobItem {
                           <p class="meta">{{ stepTypeSummary(stepDraft.type) }}</p>
                         </div>
                       </div>
+                      <app-context-assistant
+                        [title]="stepConfigurationReady ? 'La operación tiene lo necesario' : 'Completa la operación'"
+                        [description]="
+                          stepConfigurationReady
+                            ? stepTypeSummary(stepDraft.type)
+                            : stepDraftIssues[0] || 'Los campos obligatorios dependen del tipo de paso seleccionado.'
+                        "
+                        [example]="stepConfigurationExample"
+                        [nextAction]="
+                          stepConfigurationReady
+                            ? (stepUsesDataMap ? 'Conecta los datos que necesita.' : 'Define qué ocurre al terminar.')
+                            : 'Completa los campos marcados en este recuadro.'
+                        "
+                        [stateLabel]="stepConfigurationReady ? 'Operación lista' : 'Faltan datos'"
+                        [tone]="stepConfigurationReady ? 'success' : 'warning'"
+                        [icon]="stepConfigurationReady ? 'pi pi-check' : 'pi pi-cog'"
+                      ></app-context-assistant>
                       <div class="guided-panel">
                         @if (stepDraft.type === 'dynamic_service') {
                           <div class="grid">
@@ -2166,6 +2263,19 @@ interface FlowJobItem {
                             <p class="meta">Selecciona el origen de cada valor sin escribir expresiones.</p>
                           </div>
                         </div>
+                        <app-context-assistant
+                          [title]="stepDataReady ? 'Las entradas están conectadas' : 'Indica de dónde sale cada dato'"
+                          [description]="
+                            stepDataReady
+                              ? 'El servicio recibirá valores del input, contexto o resultados anteriores.'
+                              : 'Cada entrada obligatoria necesita un origen antes de ejecutar el paso.'
+                          "
+                          example="email toma el valor Correo del formulario."
+                          [nextAction]="stepDataReady ? 'Define las rutas del resultado.' : 'Selecciona una opción para cada dato pendiente.'"
+                          [stateLabel]="stepDataReady ? 'Conectado' : 'Faltan conexiones'"
+                          [tone]="stepDataReady ? 'success' : 'warning'"
+                          [icon]="stepDataReady ? 'pi pi-check' : 'pi pi-link'"
+                        ></app-context-assistant>
                         <div class="guided-panel">
                           <div class="toolbar">
                             <div>
@@ -2190,6 +2300,15 @@ interface FlowJobItem {
                           <p class="meta">Conecta el resultado correcto, el error y el timeout cuando aplique.</p>
                         </div>
                       </div>
+                      <app-context-assistant
+                        [title]="stepRouteReady ? 'La continuación es coherente' : 'Define caminos diferentes'"
+                        [description]="currentConnectionSummary"
+                        example="Éxito → Construir respuesta; Error → Responder error."
+                        [nextAction]="stepRouteReady ? 'Revisa el JSON generado y guarda.' : 'Selecciona los destinos que faltan.'"
+                        [stateLabel]="stepRouteReady ? 'Ruta lista' : 'Ruta incompleta'"
+                        [tone]="stepRouteReady ? 'success' : 'warning'"
+                        [icon]="stepRouteReady ? 'pi pi-check' : 'pi pi-share-alt'"
+                      ></app-context-assistant>
                       <div class="guided-panel">
                         <div>
                           <div class="mini-title">Rutas del resultado</div>
@@ -2312,6 +2431,19 @@ interface FlowJobItem {
                             ></textarea>
                           </label>
                         </div>
+                        <app-context-assistant
+                          [title]="stepJsonReady ? 'Los objetos JSON son válidos' : 'Hay un JSON que no puede interpretarse'"
+                          [description]="
+                            stepDraft.advancedMode
+                              ? 'Estás editando la definición técnica. La guía dejará de reemplazar tus cambios.'
+                              : 'Estos objetos se generan con los controles anteriores y se guardan con el paso.'
+                          "
+                          example="config controla la operación; inputMap conecta sus entradas."
+                          [nextAction]="stepJsonReady ? 'Guarda y prueba el paso.' : 'Corrige llaves, comas o valores del JSON.'"
+                          [stateLabel]="stepJsonReady ? 'JSON válido' : 'JSON inválido'"
+                          [tone]="stepJsonReady ? 'success' : 'warning'"
+                          [icon]="stepJsonReady ? 'pi pi-check' : 'pi pi-code'"
+                        ></app-context-assistant>
                         <details class="advanced-panel">
                           <summary>
                             Identidad y orden técnico
@@ -3231,6 +3363,53 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     return this.starterSteps().length;
   }
 
+  get flowPurposeReady() {
+    return (
+      this.flowDraft.name.trim().length >= 3 &&
+      this.flowDraft.description.trim().length >= 3 &&
+      /^[a-z][a-z0-9_]{2,119}$/.test(this.flowDraft.key)
+    );
+  }
+
+  get flowEntryReady() {
+    return this.entryMode === 'direct' || /^[a-z0-9_.-]{3,120}$/.test(this.entryKey.trim());
+  }
+
+  get flowInputsReady() {
+    const keys = this.flowInputs.map((field) => field.key.trim()).filter(Boolean);
+    return (
+      keys.length === this.flowInputs.length &&
+      keys.every((key) => /^[a-z][a-z0-9_]{1,79}$/.test(key)) &&
+      new Set(keys).size === keys.length
+    );
+  }
+
+  get authoringJsonReady() {
+    try {
+      this.readAuthoringDocument();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  get stepJsonReady() {
+    try {
+      const config = JSON.parse(this.stepDraft.configText || '{}');
+      const inputMap = JSON.parse(this.stepDraft.inputMapText || '{}');
+      return (
+        Boolean(config) &&
+        typeof config === 'object' &&
+        !Array.isArray(config) &&
+        Boolean(inputMap) &&
+        typeof inputMap === 'object' &&
+        !Array.isArray(inputMap)
+      );
+    } catch {
+      return false;
+    }
+  }
+
   get flowProcessSteps(): ProcessStepItem[] {
     return this.stages.map((stage) => ({
       ...stage,
@@ -3394,6 +3573,25 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       default:
         return true;
     }
+  }
+
+  get stepConfigurationExample() {
+    const examples: Record<FlowStepType, string> = {
+      start: 'Recibir los datos iniciales.',
+      dynamic_service: 'Consultar cliente con timeout de 8 segundos.',
+      parallel: 'Consultar inventario y precios al mismo tiempo.',
+      foreach: 'Enviar una notificación por cada asistente.',
+      subflow: 'Reutilizar el flow validar_pago.',
+      delay: 'Esperar 1000 ms antes de reintentar.',
+      emit_event: 'Emitir pedido.aprobado con el resultado.',
+      formula: 'Multiplicar subtotal por 1.19.',
+      validation: 'Comprobar que input.email sea un correo válido.',
+      decision: 'Si input.total es mayor a 100, solicitar aprobación.',
+      action: 'Crear un record con los datos recibidos.',
+      response: 'Devolver ok y el resultado al front.',
+      end: 'Finalizar el proceso.'
+    };
+    return examples[this.stepDraft.type];
   }
 
   get stepDataReady() {

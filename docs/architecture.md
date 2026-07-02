@@ -120,6 +120,7 @@ Operational designers share the same reusable interface language:
 - `DesignerWorkspaceComponent` owns the responsive catalog-and-workspace shell used by both designers, including the mobile collapse behavior.
 - `ModuleHeaderComponent`, `CatalogHeaderComponent`, `CatalogItemComponent` and `SectionHeaderComponent` keep module titles, catalogs and workspace sections identical across Database, Dynamic Services and Flows.
 - `StatusNoticeComponent` centralizes empty, information, success, warning and error states.
+- `ContextAssistantComponent` gives each authoring block a purpose, business example, readiness state and next action without nesting another full workflow guide.
 - `SegmentedControlComponent` provides the same compact view selector for Database modes and Flow map/list views.
 - Active, trash and new states use the same navigation contract. A trashed object opens a restore-only workspace instead of its editor.
 - The guided configuration is always presented before its generated JSON. The complete flow JSON and each step JSON remain visible for review, while manual editing is an explicit advanced action.

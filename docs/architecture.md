@@ -83,7 +83,7 @@ The app does not contain pages named after business operations. It contains gene
 Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
 
 ```ts
-dynamicServices.execute('buscar_usuario', { name: 'simon' });
+dynamicServices.execute("buscar_usuario", { name: "simon" });
 ```
 
 The API resolves the published definition behind `POST /api/dynamic-services/by-key/:serviceKey/execute`, applies tenant scope and permissions, runs the service, and records the execution in `dynamic_service_runs`.
@@ -99,12 +99,13 @@ Flows use declarative workflow orchestration. The database stores tenant-owned r
 - `flows` stores editable process metadata.
 - `flow_steps` stores draft and versioned steps.
 - `flow_versions` stores immutable snapshots.
+- `flow_templates` stores reusable system and tenant authoring documents.
 - `flow_runs` and `flow_step_runs` store published execution history.
 - `POST /api/flows/:flowId/preview` executes a draft in memory, optionally through one step.
 - `POST /api/flows/by-key/:flowKey/execute` executes the published version.
 - `GET /api/flows/available` exposes published flows allowed for the current user's roles.
 
-`DynamicFlowClientService` mirrors the dynamic-service client with `available()` and `execute(key, input)`. A screen builder can therefore bind a component to a published flow key without generating a new Angular service.
+`DynamicFlowClientService` mirrors the dynamic-service client with `available()` and `execute(key, input)`. A screen builder can therefore bind a component to a published flow key without generating a new Angular service. Declarative actions use `execute_flow` plus `flowKey` and `payloadMap`, so forms and future screen components consume a published flow without adding Angular API code.
 
 Role resource authorization uses `role_resource_policies` and `role_resource_grants`. Each role selects `all`, `selected` or `none` independently for dynamic services and flows. General permissions remain mandatory. Multiple roles use additive RBAC semantics, `owner` always retains access, and internal service calls made by an authorized flow do not grant direct access to those services.
 
@@ -177,6 +178,15 @@ Flow Runtime V4 adds the asynchronous execution layer around the deterministic r
 
 The internal worker is suitable for the initial deployment and multiple API replicas coordinate through database claims. A dedicated worker process can later reuse the same queue contract without changing flow definitions.
 
+Flow Lifecycle V1 closes the operational authoring loop:
+
+- system templates are seeded into `flow_templates`; tenant admins can save a current draft as a reusable template;
+- instantiating or duplicating creates a new independent draft and never shares versions or publication state;
+- immutable versions can be compared by path and restored into the editable draft without changing the currently published version;
+- `GET /api/flows/:flowId/observability` aggregates status, success rate, average/P50/P95 latency, trigger counts, step failure rates and recent errors;
+- observability defaults to a bounded sample and accepts status, trigger and date filters, avoiding unbounded history scans;
+- the Docker smoke test validates templates, duplication, version comparison/restoration, concurrent execution and observability in addition to runtime behavior.
+
 ### Flow capability boundary
 
 Flow Engine currently owns orchestration:
@@ -207,6 +217,7 @@ Supported action types start small:
 - `queue_offline`
 - `capability`
 - `get_gps`
+- `execute_flow`
 
 No arbitrary code is executed from the database.
 

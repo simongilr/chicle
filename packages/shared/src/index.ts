@@ -6,7 +6,8 @@ export type ChicleActionType =
   | 'navigate'
   | 'queue_offline'
   | 'capability'
-  | 'get_gps';
+  | 'get_gps'
+  | 'execute_flow';
 
 export interface ChicleAction {
   type: ChicleActionType;

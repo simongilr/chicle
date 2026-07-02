@@ -23,6 +23,7 @@ async function run() {
   const suffix = Date.now().toString(36);
   const createdServiceIds: string[] = [];
   const createdFlowIds: string[] = [];
+  const createdTemplateIds: string[] = [];
   let createdRoleId = '';
 
   try {
@@ -217,7 +218,9 @@ async function run() {
           outputKey: 'tenant',
           nextStepKey: 'respuesta',
           config: { serviceKey: tenantService.key, timeoutMs: 8000 },
-          inputMap: { tenantId: '{{steps.membresia.response.mapped.tenantId}}' }
+          inputMap: {
+            tenantId: '{{steps.membresia.response.mapped.tenantId}}'
+          }
         },
         {
           key: 'respuesta',
@@ -383,6 +386,77 @@ async function run() {
       throw new Error(`Published execution returned an unexpected result: ${JSON.stringify(execution.output)}`);
     }
 
+    const concurrentRuns = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        flows.execute(auth, flow.id, {
+          input: { email: user.email },
+          triggerType: 'test',
+          triggerKey: `concurrency-smoke-${index}`
+        })
+      )
+    );
+    if (concurrentRuns.some((run) => run.status !== 'success')) {
+      throw new Error('Concurrent flow execution failed');
+    }
+
+    const secondDraft = await flows.update(auth, flow.id, {
+      description: 'Smoke version comparison changed description'
+    });
+    if (!secondDraft) {
+      throw new Error('Flow draft update failed before version comparison');
+    }
+    const secondVersion = await flows.createVersion(auth, flow.id);
+    const comparison = await flows.compareVersions(auth, flow.id, version.id, secondVersion.id);
+    if (!comparison.summary.changed || comparison.summary.changeCount < 1) {
+      throw new Error(`Version comparison did not detect changes: ${JSON.stringify(comparison)}`);
+    }
+    const restoredDraft = await flows.restoreVersionDraft(auth, flow.id, version.id);
+    if (restoredDraft.steps.length !== 4 || restoredDraft.publishedVersion?.id !== version.id) {
+      throw new Error('Restoring a version changed the active publication or lost draft steps');
+    }
+
+    const duplicate = await flows.duplicate(auth, flow.id, {
+      key: `smoke_duplicate_${suffix}`,
+      name: 'Smoke flow duplicado'
+    });
+    createdFlowIds.push(duplicate.id);
+    if (duplicate.steps.length !== 4 || duplicate.publishedVersion) {
+      throw new Error('Duplicated flow is not an independent draft');
+    }
+
+    const savedTemplate = await flows.saveAsTemplate(auth, flow.id, {
+      key: `smoke_template_${suffix}`,
+      name: 'Smoke plantilla tenant'
+    });
+    createdTemplateIds.push(savedTemplate.id);
+    const templateCatalog = await flows.listTemplates(auth);
+    if (!templateCatalog.some((template) => template.id === savedTemplate.id && template.scope === 'tenant')) {
+      throw new Error('Tenant flow template is missing from the catalog');
+    }
+    const systemTemplate = templateCatalog.find((template) => template.scope === 'system');
+    if (!systemTemplate) {
+      throw new Error('System flow templates were not seeded');
+    }
+    const templateFlow = await flows.instantiateTemplate(auth, systemTemplate.id, {
+      key: `smoke_from_template_${suffix}`,
+      name: 'Smoke desde plantilla'
+    });
+    createdFlowIds.push(templateFlow.id);
+    if (!templateFlow.steps.length) {
+      throw new Error('Flow instantiated from template has no draft steps');
+    }
+
+    const observability = await flows.observability(auth, flow.id, {
+      limit: 100
+    });
+    if (
+      observability.summary.total < concurrentRuns.length + 1 ||
+      observability.summary.successRate !== 100 ||
+      !observability.steps.length
+    ) {
+      throw new Error(`Flow observability returned unexpected metrics: ${JSON.stringify(observability.summary)}`);
+    }
+
     const role = await rbac.createRole(tenant.id, {
       key: `smoke_role_${suffix}`,
       name: 'Smoke resource access',
@@ -420,7 +494,9 @@ async function run() {
     } catch {
       deniedService = true;
     }
-    await rbac.setRoleResourceAccess(tenant.id, role.id, 'flow', { mode: 'none' });
+    await rbac.setRoleResourceAccess(tenant.id, role.id, 'flow', {
+      mode: 'none'
+    });
     let deniedFlow = false;
     try {
       await flows.executeByKey(roleAuth, flow.key, {
@@ -633,6 +709,15 @@ async function run() {
           flowInternalServices: allowedFlowRun.status
         },
         publishedRunStatus: execution.status,
+        lifecycle: {
+          versionChanges: comparison.summary.changeCount,
+          restoredDraftSteps: restoredDraft.steps.length,
+          duplicatedDraftSteps: duplicate.steps.length,
+          templates: templateCatalog.length,
+          concurrentRuns: concurrentRuns.length,
+          observedRuns: observability.summary.total,
+          successRate: observability.summary.successRate
+        },
         advancedRuntime: {
           previewSteps: advancedPreview.steps.length,
           parallel: advancedBody['parallelOk'],
@@ -645,6 +730,10 @@ async function run() {
       })
     );
   } finally {
+    for (const templateId of createdTemplateIds) {
+      await dataSource.query('DELETE FROM flow_templates WHERE id = ?', [templateId]);
+      await dataSource.query('DELETE FROM audit_events WHERE resourceId = ?', [templateId]);
+    }
     if (createdRoleId) {
       await dataSource.query('DELETE FROM role_resource_grants WHERE roleId = ?', [createdRoleId]);
       await dataSource.query('DELETE FROM role_resource_policies WHERE roleId = ?', [createdRoleId]);

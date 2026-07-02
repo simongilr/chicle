@@ -30,12 +30,16 @@ npm run build
 ## First Run Goal
 
 ```txt
-docker compose up
+docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build
 open app
 setup tenant/admin
 load optional template
 start operating
 ```
+
+The API container runs pending TypeORM migrations before starting Nest. Keep
+`DB_SYNCHRONIZE=false`; local API development should run `npm run migration:run`
+before `npm run dev:api`.
 
 Read `docs/context-handoff.md` before continuing development in a new Codex conversation.
 

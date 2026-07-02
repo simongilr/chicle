@@ -1602,7 +1602,40 @@ export class DocsPageComponent {
       ui: 'No modifica usuarios ni contraseñas. Crea servicios y flows temporales, ejecuta todos los escenarios y elimina todo al terminar.',
       command:
         'npm run build --workspace @chicle/api\n\ndocker compose -f infra/docker/docker-compose.yml up -d --build api\n\ndocker compose -f infra/docker/docker-compose.yml exec -T api \\\n  node dist/scripts/smoke-flow-assistant.js',
-      note: 'Valida encadenamiento, triggers, idempotencia, suite, paralelo, foreach, subflow, evento durable y compensación.'
+      note: 'Valida encadenamiento, triggers, idempotencia, suite, paralelo, foreach, subflow, compensación, versiones, plantillas, concurrencia y observabilidad.'
+    },
+    {
+      title: 'Versiones recuperables',
+      ui: 'En Publicar abre Historial de versiones. Usa el icono de comparación sobre dos versiones o restaura cualquiera como borrador. La publicación activa no cambia hasta que publiques otra versión.',
+      swagger:
+        'Usa GET /flows/{flowId}/versions, GET /flows/{flowId}/versions/{versionId}/compare/{otherVersionId} y POST /flows/{flowId}/versions/{versionId}/restore-draft.',
+      command:
+        'Comparar:\n  detecta pasos agregados, eliminados o modificados\n\nRestaurar:\n  reemplaza solo el borrador editable\n  conserva la versión publicada\n  registra auditoría',
+      note: 'Una versión inmutable nunca se edita. Restaurar crea el punto de partida del próximo cambio.'
+    },
+    {
+      title: 'Plantillas y duplicación',
+      ui: 'Al crear un flow puedes elegir una plantilla del sistema o de la organización. En Publicar puedes duplicar el proceso o guardar el borrador actual como nueva plantilla.',
+      swagger:
+        'Usa GET /flows/templates, POST /flows/templates/{templateId}/instantiate, POST /flows/{flowId}/duplicate y POST /flows/{flowId}/templates.',
+      command:
+        'Plantilla del sistema\n  disponible para todos los tenants\n\nPlantilla del tenant\n  creada desde un borrador propio\n\nDuplicado\n  nueva key\n  pasos independientes\n  sin versión publicada',
+      note: 'Plantillas y duplicados copian definiciones; nunca comparten estado de ejecución o publicación.'
+    },
+    {
+      title: 'Salud y observabilidad',
+      ui: 'En Publicar abre Salud del flow. Filtra por estado y revisa porcentaje de éxito, promedio, P95 y los pasos con más errores.',
+      swagger: 'Usa GET /flows/{flowId}/observability?status=failed&from=2026-07-01T00:00:00Z&to=2026-07-02T23:59:59Z.',
+      command:
+        'Métricas:\n  total y tasa de éxito\n  promedio, P50 y P95\n  estado y activador\n  fallos y latencia por paso\n  errores recientes\n\nFuente de verdad:\n  flow_runs\n  flow_step_runs',
+      note: 'El muestreo está limitado a 5000 ejecuciones por consulta para evitar lecturas sin límite.'
+    },
+    {
+      title: 'Consumir un flow desde pantallas dinámicas',
+      ui: 'Una acción de formulario o componente declara execute_flow, la key publicada y el mapeo de entrada. No necesita crear otro cliente HTTP.',
+      command:
+        '{\n  "type": "execute_flow",\n  "flowKey": "validar_solicitud",\n  "payloadMap": {\n    "email": "{{form.email}}",\n    "recordId": "{{record.id}}"\n  }\n}',
+      note: 'El catálogo y la ejecución respetan flows.execute y las asignaciones de flows por rol.'
     },
     {
       title: 'Ejemplo: dos servicios',
@@ -1614,7 +1647,7 @@ export class DocsPageComponent {
     {
       title: 'Runtime reactivo y nodos avanzados',
       command:
-        'Disponible:\n  servicios paralelos\n  foreach limitado sobre listas\n  subflows publicados\n  espera breve controlada\n  eventos durables\n  compensaciones\n  triggers por evento, formulario, horario y webhook firmado\n  outbox, cola, retries, SSE y WebSocket\n\nSiguiente evolución:\n  esperas largas reanudables\n  tareas humanas\n  métricas y alertas\n  rollback asistido de versiones',
+        'Disponible:\n  servicios paralelos\n  foreach limitado sobre listas\n  subflows publicados\n  espera breve controlada\n  eventos durables\n  compensaciones\n  triggers por evento, formulario, horario y webhook firmado\n  outbox, cola, retries, SSE y WebSocket\n  métricas operativas\n  comparación y recuperación de versiones\n\nSiguiente evolución mayor:\n  esperas largas reanudables\n  tareas humanas\n  alertas externas',
       note: 'El diseñador solo muestra controles que el runner ejecuta y que el smoke test verifica dentro de Docker.'
     }
   ];
@@ -1898,14 +1931,19 @@ export class DocsPageComponent {
       note: 'Lee DB_PORT desde infra/docker/.env.example. Si no existe, usa el default 3306.'
     },
     {
+      title: 'Aplicar migraciones en local',
+      command: 'DB_HOST=127.0.0.1 npm run migration:run',
+      note: 'Ejecuta las migraciones pendientes en secuencia. No uses synchronize como reemplazo del historial TypeORM.'
+    },
+    {
       title: 'Correr la API',
-      command: 'DB_HOST=127.0.0.1 DB_SYNCHRONIZE=true npm run dev:api',
-      note: 'Para desarrollo local usa 127.0.0.1. En Docker, API_PORT y DB_SYNCHRONIZE salen de infra/docker/.env.example.'
+      command: 'DB_HOST=127.0.0.1 DB_SYNCHRONIZE=false npm run dev:api',
+      note: 'Para desarrollo local usa 127.0.0.1. La estructura sale de migraciones y los valores conservan defaults seguros.'
     },
     {
       title: 'Correr API con Docker',
       command: 'docker compose --env-file infra/docker/.env.example -f infra/docker/docker-compose.yml up --build api',
-      note: 'Levanta API y DB usando los valores de infra/docker/.env.example.'
+      note: 'El contenedor aplica migraciones pendientes y solo inicia Nest si la secuencia termina correctamente.'
     },
     {
       title: 'Administrar confisys',

@@ -76,6 +76,29 @@ interface FlowVersion {
   createdAt: string;
 }
 
+interface FlowTemplateItem {
+  id: string;
+  key: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  scope: 'system' | 'tenant';
+  definition: Record<string, unknown>;
+}
+
+interface FlowVersionComparison {
+  left: { id: string; version: number; status: string };
+  right: { id: string; version: number; status: string };
+  summary: {
+    changed: boolean;
+    changeCount: number;
+    addedSteps: string[];
+    removedSteps: string[];
+    changedSteps: string[];
+  };
+  changes: Array<{ path: string; before?: unknown; after?: unknown }>;
+}
+
 interface FlowItem {
   id: string;
   key: string;
@@ -99,6 +122,46 @@ interface FlowRunItem {
   durationMs?: number | null;
   createdAt: string;
   steps?: FlowStepRunItem[];
+}
+
+interface FlowObservability {
+  filters: {
+    status?: string | null;
+    triggerType?: string | null;
+    from?: string | null;
+    to?: string | null;
+    sampleLimit: number;
+  };
+  summary: {
+    total: number;
+    success: number;
+    failed: number;
+    timeout: number;
+    cancelled: number;
+    successRate: number;
+    averageDurationMs: number;
+    p50DurationMs: number;
+    p95DurationMs: number;
+  };
+  steps: Array<{
+    stepKey: string;
+    stepName: string;
+    stepType: string;
+    executions: number;
+    failed: number;
+    failureRate: number;
+    averageDurationMs: number;
+    p95DurationMs: number;
+  }>;
+  recentErrors: Array<{
+    runId: string;
+    status: string;
+    triggerType: string;
+    triggerKey?: string | null;
+    durationMs?: number | null;
+    error: Record<string, unknown>;
+    createdAt: string;
+  }>;
 }
 
 interface FlowStepRunItem {
@@ -1056,6 +1119,65 @@ interface FlowJobItem {
         margin-top: 18px;
       }
 
+      .operations-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .operation-panel {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #f8fbfe;
+        padding: 14px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+        border: 1px solid #d9e2ec;
+        border-radius: 7px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .metric strong {
+        font-size: 1.2rem;
+      }
+
+      .version-list {
+        display: grid;
+        gap: 8px;
+        max-height: 320px;
+        overflow: auto;
+      }
+
+      .version-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid #d9e2ec;
+        border-radius: 7px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .version-item .row {
+        justify-content: flex-end;
+      }
+
       .runtime-list {
         display: grid;
         gap: 8px;
@@ -1156,7 +1278,8 @@ interface FlowJobItem {
       @media (max-width: 1120px) {
         .builder,
         .test-studio,
-        .runtime-grid {
+        .runtime-grid,
+        .operations-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -1167,6 +1290,7 @@ interface FlowJobItem {
         .branch-row,
         .input-field-row,
         .test-result-bar,
+        .metric-grid,
         .assertion-row,
         .contract-flow,
         .capability-grid {
@@ -1312,7 +1436,9 @@ interface FlowJobItem {
                   <div class="configuration-title">
                     <span>1</span>
                     <div>
-                      <h3>{{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}</h3>
+                      <h3>
+                        {{ selectedFlow ? 'Propósito del proceso' : '¿Qué quieres automatizar?' }}
+                      </h3>
                       <p class="meta">
                         {{
                           selectedFlow
@@ -1323,20 +1449,59 @@ interface FlowJobItem {
                     </div>
                   </div>
                   <app-context-assistant
-                    [title]="flowPurposeReady ? 'El propósito ya se entiende' : 'Describe el resultado, no la tecnología'"
+                    [title]="
+                      flowPurposeReady ? 'El propósito ya se entiende' : 'Describe el resultado, no la tecnología'
+                    "
                     [description]="
                       flowPurposeReady
                         ? 'Nombre, resultado esperado e identificador están completos.'
                         : 'Escribe qué debe conseguir el proceso con palabras que entienda una persona del negocio.'
                     "
                     example="Validar una solicitud y devolver si puede aprobarse."
-                    [nextAction]="flowPurposeReady ? 'Define quién inicia el proceso.' : 'Completa nombre, resultado e identificador.'"
+                    [nextAction]="
+                      flowPurposeReady
+                        ? 'Define quién inicia el proceso.'
+                        : 'Completa nombre, resultado e identificador.'
+                    "
                     [stateLabel]="flowPurposeReady ? 'Listo' : 'Por completar'"
                     [tone]="flowPurposeReady ? 'success' : 'warning'"
                     [icon]="flowPurposeReady ? 'pi pi-check' : 'pi pi-lightbulb'"
                   ></app-context-assistant>
 
                   @if (!selectedFlow) {
+                    @if (flowTemplates.length) {
+                      <div class="guided-panel">
+                        <div>
+                          <div class="mini-title">Comenzar desde una plantilla reutilizable</div>
+                          <p class="meta">
+                            Las plantillas del sistema y de tu organización crean un borrador completo que luego puedes
+                            modificar.
+                          </p>
+                        </div>
+                        <div class="grid">
+                          <label>
+                            Plantilla
+                            <select [(ngModel)]="selectedTemplateId" (ngModelChange)="onTemplateSelected()">
+                              <option value="">Usar el asistente desde cero</option>
+                              @for (template of flowTemplates; track template.id) {
+                                <option [value]="template.id">
+                                  {{ template.name }} ·
+                                  {{ template.scope === 'system' ? 'Sistema' : 'Organización' }}
+                                </option>
+                              }
+                            </select>
+                          </label>
+                          @if (selectedTemplate) {
+                            <div class="hint">
+                              <strong>{{ selectedTemplate.name }}</strong
+                              ><br />
+                              {{ selectedTemplate.description || 'Plantilla reutilizable de flow.' }}
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
                     <div class="starter-grid">
                       @for (starter of starters; track starter.key) {
                         <button
@@ -1393,7 +1558,8 @@ interface FlowJobItem {
                             </div>
                           }
                           <button type="button" (click)="addStarterService()">
-                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar otro servicio
+                            <i class="pi pi-plus" aria-hidden="true"></i>
+                            Agregar otro servicio
                           </button>
                         } @else {
                           <div class="grid">
@@ -1486,7 +1652,9 @@ interface FlowJobItem {
                       Canal de entrada
                       <select [(ngModel)]="entryMode" (ngModelChange)="onEntryModeChanged()">
                         @for (option of entryModeOptions; track option.value) {
-                          <option [value]="option.value">{{ option.label }}</option>
+                          <option [value]="option.value">
+                            {{ option.label }}
+                          </option>
                         }
                       </select>
                     </label>
@@ -1498,7 +1666,8 @@ interface FlowJobItem {
                     }
                   </div>
                   <div class="hint">
-                    <strong>{{ selectedEntrySummary }}</strong><br />
+                    <strong>{{ selectedEntrySummary }}</strong
+                    ><br />
                     @if (entryMode === 'direct') {
                       La pantalla espera la respuesta de
                       <code>POST /api/flows/by-key/{{ flowDraft.key || 'flow_key' }}/execute</code>.
@@ -1515,9 +1684,7 @@ interface FlowJobItem {
                       <span>3</span>
                       <div>
                         <h3>¿Qué datos recibe?</h3>
-                        <p class="meta">
-                          Aparecerán como opciones al conectar servicios, reglas y respuestas.
-                        </p>
+                        <p class="meta">Aparecerán como opciones al conectar servicios, reglas y respuestas.</p>
                       </div>
                     </div>
                     <button type="button" (click)="addFlowInput()">
@@ -1537,7 +1704,9 @@ interface FlowJobItem {
                         ? 'Revisa el recorrido que se generará.'
                         : 'Corrige identificadores repetidos o que no estén en snake_case.'
                     "
-                    [stateLabel]="flowInputs.length ? (flowInputsReady ? 'Datos válidos' : 'Revisar datos') : 'Opcional'"
+                    [stateLabel]="
+                      flowInputs.length ? (flowInputsReady ? 'Datos válidos' : 'Revisar datos') : 'Opcional'
+                    "
                     [tone]="flowInputsReady ? 'success' : 'warning'"
                     [icon]="flowInputsReady ? 'pi pi-check' : 'pi pi-info-circle'"
                   ></app-context-assistant>
@@ -1614,7 +1783,8 @@ interface FlowJobItem {
                       <div class="contract-copy">
                         <strong>Proceso</strong>
                         <span class="meta">
-                          {{ selectedFlow?.steps?.length || starterStepCount }} pasos procesan, validan o deciden.
+                          {{ selectedFlow?.steps?.length || starterStepCount }}
+                          pasos procesan, validan o deciden.
                         </span>
                       </div>
                     </div>
@@ -1654,7 +1824,9 @@ interface FlowJobItem {
                         : 'No se aplicará hasta que la estructura, las claves y las rutas sean válidas.'
                     "
                     example="Puedes cambiar steps, entry u output y pulsar Aplicar."
-                    [nextAction]="authoringJsonReady ? 'Aplica el JSON o crea el proceso.' : 'Corrige el error indicado debajo.'"
+                    [nextAction]="
+                      authoringJsonReady ? 'Aplica el JSON o crea el proceso.' : 'Corrige el error indicado debajo.'
+                    "
                     [stateLabel]="authoringJsonReady ? 'JSON válido' : 'JSON inválido'"
                     [tone]="authoringJsonReady ? 'success' : 'warning'"
                     [icon]="authoringJsonReady ? 'pi pi-check' : 'pi pi-code'"
@@ -1678,7 +1850,9 @@ interface FlowJobItem {
                 </section>
 
                 <details class="guided-panel">
-                  <summary><strong>Qué puede construir este motor</strong></summary>
+                  <summary>
+                    <strong>Qué puede construir este motor</strong>
+                  </summary>
                   <p class="meta">
                     El Flow coordina lógica y servicios. Las conexiones técnicas específicas se resuelven en Servicios.
                   </p>
@@ -1712,10 +1886,16 @@ interface FlowJobItem {
                     <button
                       class="primary"
                       type="button"
-                      (click)="createFlow()"
+                      (click)="selectedTemplateId ? createFromTemplate() : createFlow()"
                       [disabled]="!canCreate || !canCreateDraft || creatingFlow"
                     >
-                      {{ creatingFlow ? 'Creando proceso...' : 'Crear proceso completo' }}
+                      {{
+                        creatingFlow
+                          ? 'Creando proceso...'
+                          : selectedTemplateId
+                            ? 'Crear desde plantilla'
+                            : 'Crear proceso completo'
+                      }}
                     </button>
                   }
                 </div>
@@ -1803,14 +1983,18 @@ interface FlowJobItem {
                         </div>
                       </div>
                       <app-context-assistant
-                        [title]="stepPurposeReady ? 'El paso se reconoce claramente' : 'Dale una intención a este bloque'"
+                          [title]="
+                            stepPurposeReady ? 'El paso se reconoce claramente' : 'Dale una intención a este bloque'
+                          "
                         [description]="
                           stepPurposeReady
                             ? 'El tipo, el nombre visible y el identificador están listos.'
                             : 'Primero elige qué debe ocurrir; después el diseñador mostrará únicamente sus opciones.'
                         "
                         example="Validar correo, Consultar cliente o Construir respuesta."
-                        [nextAction]="stepPurposeReady ? 'Configura la operación.' : 'Elige un tipo y escribe un nombre claro.'"
+                          [nextAction]="
+                            stepPurposeReady ? 'Configura la operación.' : 'Elige un tipo y escribe un nombre claro.'
+                          "
                         [stateLabel]="stepPurposeReady ? 'Listo' : 'Por completar'"
                         [tone]="stepPurposeReady ? 'success' : 'warning'"
                         [icon]="stepPurposeReady ? 'pi pi-check' : 'pi pi-lightbulb'"
@@ -1861,7 +2045,9 @@ interface FlowJobItem {
                         <span>2</span>
                         <div>
                           <div class="mini-title">Configura la operación</div>
-                          <p class="meta">{{ stepTypeSummary(stepDraft.type) }}</p>
+                            <p class="meta">
+                              {{ stepTypeSummary(stepDraft.type) }}
+                            </p>
                         </div>
                       </div>
                       <app-context-assistant
@@ -1874,7 +2060,9 @@ interface FlowJobItem {
                         [example]="stepConfigurationExample"
                         [nextAction]="
                           stepConfigurationReady
-                            ? (stepUsesDataMap ? 'Conecta los datos que necesita.' : 'Define qué ocurre al terminar.')
+                              ? stepUsesDataMap
+                                ? 'Conecta los datos que necesita.'
+                                : 'Define qué ocurre al terminar.'
                             : 'Completa los campos marcados en este recuadro.'
                         "
                         [stateLabel]="stepConfigurationReady ? 'Operación lista' : 'Faltan datos'"
@@ -1988,7 +2176,8 @@ interface FlowJobItem {
                             }
                           </div>
                           <button type="button" (click)="addParallelBranch()">
-                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar servicio paralelo
+                              <i class="pi pi-plus" aria-hidden="true"></i>
+                              Agregar servicio paralelo
                           </button>
                         } @else if (stepDraft.type === 'foreach') {
                           <div class="section-heading">
@@ -2009,7 +2198,10 @@ interface FlowJobItem {
                             </label>
                             <label>
                               Servicio publicado
-                              <select [(ngModel)]="stepDraft.foreachServiceKey" (ngModelChange)="syncGuidedStepJson()">
+                                <select
+                                  [(ngModel)]="stepDraft.foreachServiceKey"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
                                 <option value="">Selecciona un servicio</option>
                                 @for (service of publishedServices; track service.id) {
                                   <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
@@ -2053,7 +2245,8 @@ interface FlowJobItem {
                           <div class="section-heading">
                             <div class="mini-title">Espera antes de continuar</div>
                             <p class="meta">
-                              Para esperas breves dentro de una ejecución. El límite general se administra en Confisys.
+                                Para esperas breves dentro de una ejecución. El límite general se administra en
+                                Confisys.
                             </p>
                           </div>
                           <label>
@@ -2093,7 +2286,9 @@ interface FlowJobItem {
                         } @else if (stepDraft.type === 'decision') {
                           <div class="section-heading">
                             <div class="mini-title">Compara un dato</div>
-                            <p class="meta">Ejemplo: si <code>input.edad</code> es mayor o igual a <code>18</code>.</p>
+                              <p class="meta">
+                                Ejemplo: si <code>input.edad</code> es mayor o igual a <code>18</code>.
+                              </p>
                           </div>
                           <div class="grid">
                             <label>
@@ -2118,7 +2313,10 @@ interface FlowJobItem {
                             </label>
                             <label>
                               Tipo del valor
-                              <select [(ngModel)]="stepDraft.decisionRightType" (ngModelChange)="syncGuidedStepJson()">
+                                <select
+                                  [(ngModel)]="stepDraft.decisionRightType"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
                                 <option value="text">Texto</option>
                                 <option value="number">Número</option>
                                 <option value="boolean">Sí / no</option>
@@ -2189,7 +2387,10 @@ interface FlowJobItem {
                             </label>
                             <label>
                               Operador
-                              <select [(ngModel)]="stepDraft.validationOperator" (ngModelChange)="syncGuidedStepJson()">
+                                <select
+                                  [(ngModel)]="stepDraft.validationOperator"
+                                  (ngModelChange)="syncGuidedStepJson()"
+                                >
                                 <option value="required">Requerido</option>
                                 <option value="equals">Igual a</option>
                                 <option value="not_equals">Diferente de</option>
@@ -2271,7 +2472,11 @@ interface FlowJobItem {
                               : 'Cada entrada obligatoria necesita un origen antes de ejecutar el paso.'
                           "
                           example="email toma el valor Correo del formulario."
-                          [nextAction]="stepDataReady ? 'Define las rutas del resultado.' : 'Selecciona una opción para cada dato pendiente.'"
+                            [nextAction]="
+                              stepDataReady
+                                ? 'Define las rutas del resultado.'
+                                : 'Selecciona una opción para cada dato pendiente.'
+                            "
                           [stateLabel]="stepDataReady ? 'Conectado' : 'Faltan conexiones'"
                           [tone]="stepDataReady ? 'success' : 'warning'"
                           [icon]="stepDataReady ? 'pi pi-check' : 'pi pi-link'"
@@ -2304,7 +2509,9 @@ interface FlowJobItem {
                         [title]="stepRouteReady ? 'La continuación es coherente' : 'Define caminos diferentes'"
                         [description]="currentConnectionSummary"
                         example="Éxito → Construir respuesta; Error → Responder error."
-                        [nextAction]="stepRouteReady ? 'Revisa el JSON generado y guarda.' : 'Selecciona los destinos que faltan.'"
+                          [nextAction]="
+                            stepRouteReady ? 'Revisa el JSON generado y guarda.' : 'Selecciona los destinos que faltan.'
+                          "
                         [stateLabel]="stepRouteReady ? 'Ruta lista' : 'Ruta incompleta'"
                         [tone]="stepRouteReady ? 'success' : 'warning'"
                         [icon]="stepRouteReady ? 'pi pi-check' : 'pi pi-share-alt'"
@@ -2407,7 +2614,8 @@ interface FlowJobItem {
                           <div>
                             <div class="mini-title">JSON generado del paso</div>
                             <p class="meta">
-                              La guía mantiene estos objetos sincronizados. Activa la edición solo para un caso avanzado.
+                                La guía mantiene estos objetos sincronizados. Activa la edición solo para un caso
+                                avanzado.
                             </p>
                           </div>
                           <label class="inline-check">
@@ -2432,14 +2640,18 @@ interface FlowJobItem {
                           </label>
                         </div>
                         <app-context-assistant
-                          [title]="stepJsonReady ? 'Los objetos JSON son válidos' : 'Hay un JSON que no puede interpretarse'"
+                            [title]="
+                              stepJsonReady ? 'Los objetos JSON son válidos' : 'Hay un JSON que no puede interpretarse'
+                            "
                           [description]="
                             stepDraft.advancedMode
                               ? 'Estás editando la definición técnica. La guía dejará de reemplazar tus cambios.'
                               : 'Estos objetos se generan con los controles anteriores y se guardan con el paso.'
                           "
                           example="config controla la operación; inputMap conecta sus entradas."
-                          [nextAction]="stepJsonReady ? 'Guarda y prueba el paso.' : 'Corrige llaves, comas o valores del JSON.'"
+                            [nextAction]="
+                              stepJsonReady ? 'Guarda y prueba el paso.' : 'Corrige llaves, comas o valores del JSON.'
+                            "
                           [stateLabel]="stepJsonReady ? 'JSON válido' : 'JSON inválido'"
                           [tone]="stepJsonReady ? 'success' : 'warning'"
                           [icon]="stepJsonReady ? 'pi pi-check' : 'pi pi-code'"
@@ -2716,7 +2928,8 @@ interface FlowJobItem {
                               <span class="meta">
                                 {{ testCase.target === 'draft' ? 'Borrador' : 'Publicada' }}
                                 ·
-                                {{ testCase.assertions?.length ?? 0 }} comprobaciones
+                                {{ testCase.assertions?.length ?? 0 }}
+                                comprobaciones
                               </span>
                               @if (testCase.lastResult) {
                                 <span
@@ -2778,7 +2991,9 @@ interface FlowJobItem {
                               <select [(ngModel)]="testCaseDraft.throughStepKey">
                                 <option value="">Todo el proceso</option>
                                 @for (step of selectedFlow.steps; track step.id) {
-                                  <option [value]="step.key">{{ step.name }}</option>
+                                  <option [value]="step.key">
+                                    {{ step.name }}
+                                  </option>
                                 }
                               </select>
                             </label>
@@ -2795,7 +3010,8 @@ interface FlowJobItem {
                             <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
                           </div>
                           <button type="button" (click)="addTestAssertion()">
-                            <i class="pi pi-plus" aria-hidden="true"></i> Agregar
+                            <i class="pi pi-plus" aria-hidden="true"></i>
+                            Agregar
                           </button>
                         </div>
                         @for (assertion of testCaseDraft.assertions; track $index) {
@@ -2854,7 +3070,8 @@ interface FlowJobItem {
                           </button>
                           @if (testCaseDraft.id) {
                             <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
-                              <i class="pi pi-play" aria-hidden="true"></i> Ejecutar caso
+                              <i class="pi pi-play" aria-hidden="true"></i>
+                              Ejecutar caso
                             </button>
                             <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
                               Eliminar
@@ -3000,8 +3217,9 @@ interface FlowJobItem {
 
                   @if (selectedFlow.publishedVersion) {
                     <div class="message">
-                      Activa: versión {{ selectedFlow.publishedVersion.version }}. Este proceso ya puede llamarse con la
-                      key <code>{{ selectedFlow.key }}</code
+                      Activa: versión
+                      {{ selectedFlow.publishedVersion.version }}. Este proceso ya puede llamarse con la key
+                      <code>{{ selectedFlow.key }}</code
                       >.
                     </div>
                   }
@@ -3012,6 +3230,164 @@ interface FlowJobItem {
                       <pre>{{ lastRun | json }}</pre>
                     </div>
                   }
+
+                  <div class="operations-grid">
+                    <section class="operation-panel">
+                      <div class="toolbar">
+                        <div>
+                          <h3>Historial de versiones</h3>
+                          <p class="meta">Compara o recupera una versión sin modificar la publicada.</p>
+                        </div>
+                        <button type="button" title="Actualizar versiones" (click)="loadVersions()">
+                          <i class="pi pi-refresh" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                      <div class="version-list">
+                        @for (version of flowVersions; track version.id) {
+                          <div class="version-item">
+                            <div>
+                              <strong>Versión {{ version.version }}</strong>
+                              <div class="meta">{{ version.status }} · {{ version.createdAt }}</div>
+                            </div>
+                            <div class="row">
+                              <button
+                                type="button"
+                                title="Usar para comparar"
+                                (click)="selectVersionForComparison(version.id)"
+                              >
+                                <i class="pi pi-clone" aria-hidden="true"></i>
+                              </button>
+                              <button
+                                type="button"
+                                title="Restaurar como borrador"
+                                (click)="restoreVersionDraft(version)"
+                                [disabled]="!canUpdate"
+                              >
+                                <i class="pi pi-history" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          </div>
+                        } @empty {
+                          <div class="hint">Crea la primera versión para iniciar el historial.</div>
+                        }
+                      </div>
+                      @if (compareVersionIds[0] || compareVersionIds[1]) {
+                        <div class="hint">
+                          Comparación:
+                          {{ versionLabel(compareVersionIds[0]) }} → {{ versionLabel(compareVersionIds[1]) }}.
+                          Selecciona dos versiones.
+                        </div>
+                      }
+                      @if (versionComparison) {
+                        <app-status-notice
+                          [tone]="versionComparison.summary.changed ? 'info' : 'success'"
+                          [title]="
+                            versionComparison.summary.changed
+                              ? versionComparison.summary.changeCount + ' cambios encontrados'
+                              : 'Las versiones son iguales'
+                          "
+                        >
+                          Agregados:
+                          {{ versionComparison.summary.addedSteps.join(', ') || 'ninguno' }}
+                          · Eliminados:
+                          {{ versionComparison.summary.removedSteps.join(', ') || 'ninguno' }}
+                          · Modificados:
+                          {{ versionComparison.summary.changedSteps.join(', ') || 'ninguno' }}.
+                        </app-status-notice>
+                      }
+                    </section>
+
+                    <section class="operation-panel">
+                      <div>
+                        <h3>Reutilizar este proceso</h3>
+                        <p class="meta">Duplica el borrador o guárdalo como plantilla de la organización.</p>
+                      </div>
+                      <div class="grid">
+                        <label>
+                          Nombre de la copia
+                          <input [(ngModel)]="duplicateDraft.name" placeholder="Copia de este flow" />
+                        </label>
+                        <label>
+                          Key de la copia
+                          <input [(ngModel)]="duplicateDraft.key" placeholder="copia_del_flow" />
+                        </label>
+                      </div>
+                      <button type="button" (click)="duplicateFlow()" [disabled]="!canCreate">
+                        <i class="pi pi-copy" aria-hidden="true"></i> Duplicar como borrador
+                      </button>
+                      <div class="grid">
+                        <label>
+                          Nombre de la plantilla
+                          <input [(ngModel)]="templateDraft.name" placeholder="Proceso reutilizable" />
+                        </label>
+                        <label>
+                          Key de la plantilla
+                          <input [(ngModel)]="templateDraft.key" placeholder="proceso_reutilizable" />
+                        </label>
+                      </div>
+                      <button type="button" (click)="saveFlowTemplate()" [disabled]="!canUpdate">
+                        <i class="pi pi-bookmark" aria-hidden="true"></i>
+                        Guardar como plantilla
+                      </button>
+                    </section>
+
+                    <section class="operation-panel" style="grid-column: 1 / -1;">
+                      <div class="toolbar">
+                        <div>
+                          <h3>Salud del flow</h3>
+                          <p class="meta">Éxito, latencia y pasos problemáticos sobre ejecuciones reales.</p>
+                        </div>
+                        <div class="row">
+                          <select [(ngModel)]="observabilityStatus" aria-label="Filtrar estado">
+                            <option value="">Todos los estados</option>
+                            <option value="success">Correctas</option>
+                            <option value="failed">Fallidas</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="cancelled">Canceladas</option>
+                          </select>
+                          <button type="button" (click)="loadObservability()">
+                            <i class="pi pi-chart-line" aria-hidden="true"></i>
+                            Actualizar
+                          </button>
+                        </div>
+                      </div>
+                      @if (observability) {
+                        <div class="metric-grid">
+                          <div class="metric">
+                            <span class="meta">Ejecuciones</span><strong>{{ observability.summary.total }}</strong>
+                          </div>
+                          <div class="metric">
+                            <span class="meta">Éxito</span><strong>{{ observability.summary.successRate }}%</strong>
+                          </div>
+                          <div class="metric">
+                            <span class="meta">Promedio</span
+                            ><strong>{{ observability.summary.averageDurationMs }} ms</strong>
+                          </div>
+                          <div class="metric">
+                            <span class="meta">P95</span><strong>{{ observability.summary.p95DurationMs }} ms</strong>
+                          </div>
+                        </div>
+                        <div class="runtime-list">
+                          @for (step of observability.steps.slice(0, 5); track step.stepKey) {
+                            <div class="runtime-item">
+                              <div class="toolbar" style="margin: 0;">
+                                <strong>{{ step.stepName }}</strong>
+                                <span class="meta">{{ step.failureRate }}% errores</span>
+                              </div>
+                              <span class="meta">
+                                {{ step.executions }} ejecuciones · promedio {{ step.averageDurationMs }} ms · P95
+                                {{ step.p95DurationMs }} ms
+                              </span>
+                            </div>
+                          } @empty {
+                            <div class="hint">Todavía no hay pasos ejecutados para este filtro.</div>
+                          }
+                        </div>
+                      } @else {
+                        <div class="hint">Actualiza para calcular métricas desde el historial del flow.</div>
+                      }
+                    </section>
+                  </div>
 
                   @if (selectedFlow.publishedVersion) {
                     <div class="runtime-grid">
@@ -3146,7 +3522,8 @@ interface FlowJobItem {
                               <i class="pi pi-refresh" aria-hidden="true"></i>
                             </button>
                             <button class="primary" type="button" (click)="enqueueFlow()" [disabled]="executing">
-                              <i class="pi pi-send" aria-hidden="true"></i> Encolar prueba
+                              <i class="pi pi-send" aria-hidden="true"></i>
+                              Encolar prueba
                             </button>
                           </div>
                         </div>
@@ -3171,7 +3548,8 @@ interface FlowJobItem {
                                 >
                               </div>
                               <span class="meta">
-                                Intento {{ job.attempts }}/{{ job.maxAttempts }} ·
+                                Intento {{ job.attempts }}/{{ job.maxAttempts }}
+                                ·
                                 {{ job.createdAt }}
                               </span>
                               @if (job.error) {
@@ -3265,7 +3643,16 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
   ];
   flows: FlowItem[] = [];
   services: DynamicServiceItem[] = [];
+  flowTemplates: FlowTemplateItem[] = [];
+  selectedTemplateId = '';
   flowRuns: FlowRunItem[] = [];
+  flowVersions: FlowVersion[] = [];
+  compareVersionIds: [string, string] = ['', ''];
+  versionComparison?: FlowVersionComparison;
+  observability?: FlowObservability;
+  observabilityStatus = '';
+  duplicateDraft = { name: '', key: '' };
+  templateDraft = { name: '', key: '' };
   selectedFlowId = '';
   message = '';
   loading = false;
@@ -3279,17 +3666,41 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     { key: 'graph', label: 'Mapa', icon: 'pi pi-share-alt' },
     { key: 'list', label: 'Lista', icon: 'pi pi-list' }
   ];
-  readonly entryModeOptions: Array<{ value: FlowEntryMode; label: string; summary: string }> = [
+  readonly entryModeOptions: Array<{
+    value: FlowEntryMode;
+    label: string;
+    summary: string;
+  }> = [
     {
       value: 'direct',
       label: 'Llamada directa',
       summary: 'Una pantalla o integración ejecuta el flow por su key y espera la respuesta.'
     },
-    { value: 'manual', label: 'Manual', summary: 'Un operador lo dispara desde administración.' },
-    { value: 'http', label: 'Webhook HTTP', summary: 'Un sistema externo llama una URL firmada.' },
-    { value: 'record_event', label: 'Evento', summary: 'Reacciona a un evento durable del sistema.' },
-    { value: 'form_submit', label: 'Formulario', summary: 'Se dispara cuando se envía un formulario.' },
-    { value: 'schedule', label: 'Horario', summary: 'Se encola periódicamente después de publicarlo.' }
+    {
+      value: 'manual',
+      label: 'Manual',
+      summary: 'Un operador lo dispara desde administración.'
+    },
+    {
+      value: 'http',
+      label: 'Webhook HTTP',
+      summary: 'Un sistema externo llama una URL firmada.'
+    },
+    {
+      value: 'record_event',
+      label: 'Evento',
+      summary: 'Reacciona a un evento durable del sistema.'
+    },
+    {
+      value: 'form_submit',
+      label: 'Formulario',
+      summary: 'Se dispara cuando se envía un formulario.'
+    },
+    {
+      value: 'schedule',
+      label: 'Horario',
+      summary: 'Se encola periódicamente después de publicarlo.'
+    }
   ];
   readonly capabilityGroups = [
     {
@@ -3357,6 +3768,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
 
   get selectedFlow() {
     return this.flows.find((flow) => flow.id === this.selectedFlowId);
+  }
+
+  get selectedTemplate() {
+    return this.flowTemplates.find((template) => template.id === this.selectedTemplateId);
   }
 
   get starterStepCount() {
@@ -3941,6 +4356,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     return this.auth.state.isOwnerOrAdmin || this.auth.state.hasPermission('flows.publish');
   }
 
+  get canAudit() {
+    return this.auth.state.isOwnerOrAdmin || this.auth.state.hasPermission('flows.audit');
+  }
+
   isStageDone(stage: FlowStage) {
     const flow = this.selectedFlow;
     if (!flow) {
@@ -3995,6 +4414,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       }
     });
     this.loadServices();
+    this.loadTemplates();
     this.load();
   }
 
@@ -4010,6 +4430,17 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.services = [];
+      }
+    });
+  }
+
+  loadTemplates() {
+    this.api.get<FlowTemplateItem[]>('flows/templates').subscribe({
+      next: (templates) => {
+        this.flowTemplates = templates;
+      },
+      error: () => {
+        this.flowTemplates = [];
       }
     });
   }
@@ -4056,6 +4487,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.entryMode = 'direct';
     this.entryKey = 'direct';
     this.authoringDefinitionError = '';
+    this.selectedTemplateId = '';
     this.flowDraft = this.emptyFlowDraft();
     this.selectedStarter = 'validate';
     this.flowInputs = [];
@@ -4069,6 +4501,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.testSuiteResult = undefined;
     this.triggers = [];
     this.flowJobs = [];
+    this.flowVersions = [];
+    this.compareVersionIds = ['', ''];
+    this.versionComparison = undefined;
+    this.observability = undefined;
     this.triggerDraft = this.emptyTriggerDraft();
     this.lastLiveEvent = undefined;
     this.refreshAuthoringDefinition();
@@ -4085,6 +4521,18 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       description: flow.description ?? '',
       category: flow.category ?? ''
     };
+    this.selectedTemplateId = '';
+    this.duplicateDraft = {
+      name: `${flow.name} copia`,
+      key: `${flow.key}_copy`
+    };
+    this.templateDraft = {
+      name: `${flow.name} reutilizable`,
+      key: `${flow.key}_template`
+    };
+    this.compareVersionIds = ['', ''];
+    this.versionComparison = undefined;
+    this.observability = undefined;
     this.flowInputs = this.flowInputsFromMetadata(flow.metadata);
     const authoringEntry = this.asRecord(flow.metadata?.['authoringEntry']);
     this.entryMode = this.flowEntryMode(authoringEntry['mode']);
@@ -4101,10 +4549,87 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.lastPreview = undefined;
     this.previewThroughStepKey = '';
     this.loadRuns(flow.id);
+    this.loadVersions(flow.id);
+    this.loadObservability(flow.id);
     this.loadTestCases(flow.id);
     this.loadTriggers(flow.id);
     this.loadJobs(flow.id);
     this.refreshAuthoringDefinition();
+  }
+
+  onTemplateSelected() {
+    const template = this.selectedTemplate;
+    if (!template) {
+      this.chooseStarter('validate');
+      return;
+    }
+    const definition = this.asRecord(template.definition);
+    const templateFlow = this.asRecord(definition['flow']);
+    const entry = this.asRecord(definition['entry']);
+    this.selectedStarter = 'blank';
+    this.flowDraft = {
+      key: this.slugify(template.name),
+      name: template.name,
+      description:
+        this.asString(templateFlow['description']) || template.description || 'Proceso creado desde plantilla',
+      category: this.asString(templateFlow['category']) || template.category || 'operaciones'
+    };
+    this.entryMode = this.flowEntryMode(entry['mode']);
+    this.entryKey = this.asString(entry['key']) || (this.entryMode === 'direct' ? 'direct' : this.flowDraft.key);
+    this.flowInputs = this.asArray(definition['inputFields']).map((rawField) => {
+      const field = this.asRecord(rawField);
+      const type = this.asString(field['type']);
+      return {
+        key: this.asString(field['key']),
+        label: this.asString(field['label']),
+        type: ['text', 'number', 'boolean', 'email', 'date'].includes(type) ? (type as FlowInputType) : 'text',
+        required: field['required'] === true,
+        example: field['example'] === undefined || field['example'] === null ? '' : String(field['example'])
+      };
+    });
+    this.syncTestInputFromFields();
+    this.authoringDefinitionText = JSON.stringify(
+      {
+        ...definition,
+        flow: {
+          ...templateFlow,
+          ...this.flowDraft
+        }
+      },
+      null,
+      2
+    );
+  }
+
+  createFromTemplate() {
+    const template = this.selectedTemplate;
+    if (!template) {
+      this.createFlow();
+      return;
+    }
+    this.creatingFlow = true;
+    this.api
+      .post<FlowItem>(`flows/templates/${template.id}/instantiate`, {
+        key: this.flowDraft.key,
+        name: this.flowDraft.name,
+        description: this.flowDraft.description,
+        category: this.flowDraft.category
+      })
+      .subscribe({
+        next: (created) => {
+          this.creatingFlow = false;
+          this.message = `Flow creado desde la plantilla “${template.name}”.`;
+          this.loadTemplates();
+          this.load(created.id);
+        },
+        error: (error) => {
+          this.creatingFlow = false;
+          this.message =
+            typeof error?.error?.message === 'string'
+              ? error.error.message
+              : 'No se pudo crear el flow desde la plantilla.';
+        }
+      });
   }
 
   chooseStarter(starter: FlowStarter) {
@@ -4889,6 +5414,135 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.message = 'No se pudo publicar la versión.';
+      }
+    });
+  }
+
+  loadVersions(flowId = this.selectedFlowId) {
+    if (!flowId) {
+      this.flowVersions = [];
+      return;
+    }
+    this.api.get<FlowVersion[]>(`flows/${flowId}/versions`).subscribe({
+      next: (versions) => {
+        this.flowVersions = versions;
+      },
+      error: () => {
+        this.flowVersions = [];
+      }
+    });
+  }
+
+  selectVersionForComparison(versionId: string) {
+    if (!this.compareVersionIds[0] || this.compareVersionIds[1]) {
+      this.compareVersionIds = [versionId, ''];
+      this.versionComparison = undefined;
+      return;
+    }
+    if (this.compareVersionIds[0] === versionId) {
+      return;
+    }
+    this.compareVersionIds = [this.compareVersionIds[0], versionId];
+    const flow = this.selectedFlow;
+    if (!flow) {
+      return;
+    }
+    this.api
+      .get<FlowVersionComparison>(
+        `flows/${flow.id}/versions/${this.compareVersionIds[0]}/compare/${this.compareVersionIds[1]}`
+      )
+      .subscribe({
+        next: (comparison) => {
+          this.versionComparison = comparison;
+        },
+        error: () => {
+          this.message = 'No se pudieron comparar las versiones seleccionadas.';
+        }
+      });
+  }
+
+  versionLabel(versionId: string) {
+    if (!versionId) {
+      return 'pendiente';
+    }
+    const version = this.flowVersions.find((item) => item.id === versionId);
+    return version ? `v${version.version}` : 'versión';
+  }
+
+  restoreVersionDraft(version: FlowVersion) {
+    const flow = this.selectedFlow;
+    if (!flow) {
+      return;
+    }
+    this.api.post<FlowItem>(`flows/${flow.id}/versions/${version.id}/restore-draft`, {}).subscribe({
+      next: () => {
+        this.message = `Versión ${version.version} restaurada como borrador. La versión publicada sigue activa.`;
+        this.load(flow.id);
+      },
+      error: () => {
+        this.message = 'No se pudo restaurar la versión como borrador.';
+      }
+    });
+  }
+
+  duplicateFlow() {
+    const flow = this.selectedFlow;
+    if (!flow || !this.duplicateDraft.key.trim() || !this.duplicateDraft.name.trim()) {
+      this.message = 'Escribe nombre y key para la copia.';
+      return;
+    }
+    this.api
+      .post<FlowItem>(`flows/${flow.id}/duplicate`, {
+        key: this.duplicateDraft.key,
+        name: this.duplicateDraft.name
+      })
+      .subscribe({
+        next: (created) => {
+          this.message = 'Flow duplicado como un borrador independiente.';
+          this.load(created.id);
+        },
+        error: () => {
+          this.message = 'No se pudo duplicar. Revisa que la key no exista.';
+        }
+      });
+  }
+
+  saveFlowTemplate() {
+    const flow = this.selectedFlow;
+    if (!flow || !this.templateDraft.key.trim() || !this.templateDraft.name.trim()) {
+      this.message = 'Escribe nombre y key para la plantilla.';
+      return;
+    }
+    this.api
+      .post<FlowTemplateItem>(`flows/${flow.id}/templates`, {
+        key: this.templateDraft.key,
+        name: this.templateDraft.name,
+        description: flow.description,
+        category: flow.category
+      })
+      .subscribe({
+        next: () => {
+          this.message = 'Plantilla guardada para reutilizarla en nuevos flows.';
+          this.loadTemplates();
+        },
+        error: () => {
+          this.message = 'No se pudo guardar la plantilla. Revisa que la key no exista.';
+        }
+      });
+  }
+
+  loadObservability(flowId = this.selectedFlowId) {
+    if (!flowId || !this.canAudit) {
+      this.observability = undefined;
+      return;
+    }
+    const query = this.observabilityStatus ? `?status=${encodeURIComponent(this.observabilityStatus)}` : '';
+    this.api.get<FlowObservability>(`flows/${flowId}/observability${query}`).subscribe({
+      next: (observability) => {
+        this.observability = observability;
+      },
+      error: () => {
+        this.observability = undefined;
       }
     });
   }
@@ -6377,6 +7031,10 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
 
   private asRecord(value: unknown) {
     return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  }
+
+  private asArray(value: unknown) {
+    return Array.isArray(value) ? value : [];
   }
 
   private asString(value: unknown) {

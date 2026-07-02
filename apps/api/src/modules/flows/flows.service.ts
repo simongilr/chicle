@@ -1,7 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
@@ -20,6 +27,7 @@ import {
   FlowTestExpectedStatus,
   FlowTestTarget
 } from './flow-test-case.entity';
+import { FlowTemplate } from './flow-template.entity';
 import { FlowTrigger, FlowTriggerType } from './flow-trigger.entity';
 import { FlowVersion, FlowDefinition, FlowDefinitionStep, FlowStepType } from './flow-version.entity';
 import { Flow, FlowRuntimeConfig } from './flow.entity';
@@ -38,6 +46,153 @@ const FLOW_STEP_TYPES: FlowStepType[] = [
   'action',
   'response',
   'end'
+];
+const SYSTEM_FLOW_TEMPLATE_OWNER = '00000000-0000-0000-0000-000000000000';
+
+const SYSTEM_FLOW_TEMPLATES: Array<Pick<FlowTemplate, 'key' | 'name' | 'description' | 'category' | 'definition'>> = [
+  {
+    key: 'validate_request',
+    name: 'Validar una solicitud',
+    description: 'Valida un dato obligatorio y responde de forma explícita.',
+    category: 'operaciones',
+    definition: {
+      schemaVersion: 1,
+      flow: {
+        description: 'Validar una solicitud antes de continuar',
+        category: 'operaciones'
+      },
+      entry: { mode: 'direct', key: 'direct', config: {} },
+      inputFields: [
+        {
+          key: 'value',
+          label: 'Valor',
+          type: 'text',
+          required: true,
+          example: 'ABC-123'
+        }
+      ],
+      steps: [
+        {
+          key: 'validar_valor',
+          name: 'Validar valor',
+          type: 'validation',
+          position: 10,
+          outputKey: 'validacion',
+          nextStepKey: 'respuesta',
+          config: {
+            field: 'input.value',
+            operator: 'required',
+            message: 'El valor es obligatorio'
+          }
+        },
+        {
+          key: 'respuesta',
+          name: 'Responder',
+          type: 'response',
+          position: 20,
+          outputKey: 'respuesta',
+          config: {
+            status: 'success',
+            body: { ok: true, value: '{{input.value}}' }
+          }
+        }
+      ],
+      output: { stepKey: 'respuesta', responseTo: 'caller' }
+    }
+  },
+  {
+    key: 'calculate_total',
+    name: 'Calcular un total',
+    description: 'Calcula precio por cantidad y devuelve el resultado.',
+    category: 'operaciones',
+    definition: {
+      schemaVersion: 1,
+      flow: {
+        description: 'Calcular el total a partir de precio y cantidad',
+        category: 'operaciones'
+      },
+      entry: { mode: 'direct', key: 'direct', config: {} },
+      inputFields: [
+        {
+          key: 'price',
+          label: 'Precio',
+          type: 'number',
+          required: true,
+          example: 25
+        },
+        {
+          key: 'quantity',
+          label: 'Cantidad',
+          type: 'number',
+          required: true,
+          example: 2
+        }
+      ],
+      steps: [
+        {
+          key: 'calcular_total',
+          name: 'Calcular total',
+          type: 'formula',
+          position: 10,
+          outputKey: 'total',
+          nextStepKey: 'respuesta',
+          config: {
+            language: 'json_logic',
+            rule: { '*': [{ var: 'input.price' }, { var: 'input.quantity' }] }
+          }
+        },
+        {
+          key: 'respuesta',
+          name: 'Responder',
+          type: 'response',
+          position: 20,
+          outputKey: 'respuesta',
+          config: {
+            status: 'success',
+            body: { ok: true, total: '{{steps.total}}' }
+          }
+        }
+      ],
+      output: { stepKey: 'respuesta', responseTo: 'caller' }
+    }
+  },
+  {
+    key: 'event_reaction',
+    name: 'Reaccionar a un evento',
+    description: 'Recibe un evento durable y deja listo el recorrido.',
+    category: 'eventos',
+    definition: {
+      schemaVersion: 1,
+      flow: {
+        description: 'Procesar un evento del sistema',
+        category: 'eventos'
+      },
+      entry: { mode: 'record_event', key: 'record.created', config: {} },
+      inputFields: [
+        {
+          key: 'record_id',
+          label: 'ID del registro',
+          type: 'text',
+          required: true,
+          example: 'record-id'
+        }
+      ],
+      steps: [
+        {
+          key: 'respuesta',
+          name: 'Confirmar recepción',
+          type: 'response',
+          position: 10,
+          outputKey: 'respuesta',
+          config: {
+            status: 'success',
+            body: { accepted: true, recordId: '{{input.record_id}}' }
+          }
+        }
+      ],
+      output: { stepKey: 'respuesta', responseTo: 'caller' }
+    }
+  }
 ];
 
 class FlowStepTimeoutError extends Error {}
@@ -114,6 +269,34 @@ export interface FlowTriggerRequest {
   active?: boolean;
 }
 
+export interface FlowDuplicateRequest {
+  key?: string;
+  name?: string;
+  versionId?: string | null;
+}
+
+export interface FlowTemplateCreateRequest {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+}
+
+export interface FlowTemplateInstantiateRequest {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+}
+
+export interface FlowMetricsQuery {
+  status?: FlowRun['status'];
+  triggerType?: FlowRunTriggerType;
+  from?: string;
+  to?: string;
+  limit?: string | number;
+}
+
 interface FlowExecutionContext {
   tenant: AuthContext['tenant'];
   user: AuthContext['user'];
@@ -140,7 +323,9 @@ interface FlowStepExecutionMeta {
 }
 
 @Injectable()
-export class FlowsService {
+export class FlowsService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(FlowsService.name);
+
   constructor(
     @InjectRepository(Flow)
     private readonly flows: Repository<Flow>,
@@ -154,6 +339,8 @@ export class FlowsService {
     private readonly stepRuns: Repository<FlowStepRun>,
     @InjectRepository(FlowTestCase)
     private readonly testCases: Repository<FlowTestCase>,
+    @InjectRepository(FlowTemplate)
+    private readonly templates: Repository<FlowTemplate>,
     @InjectRepository(FlowTrigger)
     private readonly triggers: Repository<FlowTrigger>,
     @InjectRepository(FlowOutboxEvent)
@@ -165,6 +352,14 @@ export class FlowsService {
     private readonly live: FlowLiveEventsService,
     private readonly rbac: RbacService
   ) {}
+
+  async onApplicationBootstrap() {
+    try {
+      await this.seedSystemTemplates();
+    } catch (error) {
+      this.logger.warn(`Flow templates are not available yet: ${error instanceof Error ? error.message : error}`);
+    }
+  }
 
   async list(auth: AuthContext) {
     const flows = await this.flows.find({
@@ -201,6 +396,114 @@ export class FlowsService {
         category: flow.category,
         publishedVersionId: flow.publishedVersionId
       }));
+  }
+
+  async listTemplates(auth: AuthContext) {
+    await this.seedSystemTemplates();
+    return this.templates.find({
+      where: [
+        { tenantId: IsNull(), scope: 'system', active: true },
+        { tenantId: auth.tenant.id, scope: 'tenant', active: true }
+      ],
+      order: { scope: 'ASC', name: 'ASC' }
+    });
+  }
+
+  async instantiateTemplate(auth: AuthContext, templateId: string, request: FlowTemplateInstantiateRequest) {
+    const template = await this.requireTemplate(auth, templateId);
+    const definition = this.asRecord(template.definition) as FlowDefinitionReplaceRequest;
+    const flowDefinition = this.asRecord(definition.flow);
+    const description =
+      request.description !== undefined
+        ? request.description
+        : (this.optionalString(flowDefinition['description']) ?? template.description);
+    const category =
+      request.category !== undefined
+        ? request.category
+        : (this.optionalString(flowDefinition['category']) ?? template.category);
+    const flow = await this.create(auth, {
+      key: request.key,
+      name: request.name,
+      description,
+      category,
+      metadata: { templateId: template.id, templateKey: template.key }
+    });
+
+    try {
+      const created = await this.replaceDefinition(auth, flow.id, {
+        ...definition,
+        flow: {
+          ...definition.flow,
+          name: request.name,
+          description,
+          category
+        }
+      });
+      await this.audit.record({
+        auth,
+        action: 'flow.template.instantiated',
+        resourceType: 'flow',
+        resourceId: flow.id,
+        metadata: { templateId: template.id, templateKey: template.key }
+      });
+      return created;
+    } catch (error) {
+      await this.flows.delete({ id: flow.id, tenantId: auth.tenant.id });
+      throw error;
+    }
+  }
+
+  async saveAsTemplate(auth: AuthContext, flowId: string, request: FlowTemplateCreateRequest) {
+    const flow = await this.requireFlow(auth, flowId);
+    const key = this.normalizeKey(request.key);
+    const existing = await this.templates.findOne({
+      where: { tenantId: auth.tenant.id, key }
+    });
+    if (existing) {
+      throw new BadRequestException('Flow template key already exists');
+    }
+    const steps = await this.listDraftSteps(auth, flow.id);
+    const template = await this.templates.save(
+      this.templates.create({
+        tenantId: auth.tenant.id,
+        ownerKey: auth.tenant.id,
+        key,
+        name: this.cleanName(request.name),
+        description: request.description?.trim() || flow.description || null,
+        category: request.category?.trim() || flow.category || null,
+        scope: 'tenant',
+        definition: this.authoringDocumentForFlow(flow, steps),
+        active: true,
+        sourceFlowId: flow.id,
+        createdByUserId: auth.user.id
+      })
+    );
+    await this.audit.record({
+      auth,
+      action: 'flow.template.created',
+      resourceType: 'flow_template',
+      resourceId: template.id,
+      metadata: { flowId: flow.id, key: template.key }
+    });
+    return template;
+  }
+
+  async deleteTemplate(auth: AuthContext, templateId: string) {
+    const template = await this.templates.findOne({
+      where: { id: templateId, tenantId: auth.tenant.id, scope: 'tenant' }
+    });
+    if (!template) {
+      throw new NotFoundException('Flow template not found');
+    }
+    await this.templates.delete({ id: template.id, tenantId: auth.tenant.id });
+    await this.audit.record({
+      auth,
+      action: 'flow.template.deleted',
+      resourceType: 'flow_template',
+      resourceId: template.id,
+      metadata: { key: template.key }
+    });
+    return { deleted: true };
   }
 
   async listTrashed(auth: AuthContext) {
@@ -315,6 +618,71 @@ export class FlowsService {
     });
 
     return this.get(auth, saved.id);
+  }
+
+  async duplicate(auth: AuthContext, flowId: string, request: FlowDuplicateRequest) {
+    const source = await this.requireFlow(auth, flowId);
+    const key = this.normalizeKey(request.key);
+    const name = this.cleanName(request.name);
+    const sourceVersion = request.versionId ? await this.requireVersion(auth, source.id, request.versionId) : null;
+    const sourceSteps = await this.steps.find({
+      where: {
+        tenantId: auth.tenant.id,
+        flowId: source.id,
+        versionId: sourceVersion ? sourceVersion.id : IsNull()
+      },
+      order: { position: 'ASC', createdAt: 'ASC' }
+    });
+    if (!sourceSteps.length) {
+      throw new BadRequestException('The selected flow or version has no editable steps');
+    }
+
+    const duplicate = await this.flows.manager.transaction(async (manager) => {
+      const created = await manager.save(
+        Flow,
+        manager.create(Flow, {
+          tenantId: auth.tenant.id,
+          key,
+          name,
+          description: sourceVersion?.definition.description ?? source.description,
+          category: source.category,
+          status: 'draft',
+          publishedVersionId: null,
+          runtimeConfig: sourceVersion?.runtimeConfig ?? source.runtimeConfig,
+          tags: source.tags,
+          metadata: {
+            ...(source.metadata ?? {}),
+            duplicatedFromFlowId: source.id,
+            duplicatedFromVersionId: sourceVersion?.id ?? null
+          }
+        })
+      );
+      await manager.save(
+        FlowStep,
+        sourceSteps.map((step) =>
+          manager.create(FlowStep, {
+            tenantId: auth.tenant.id,
+            flowId: created.id,
+            versionId: null,
+            ...this.copyStepValues(step)
+          })
+        )
+      );
+      return created;
+    });
+
+    await this.audit.record({
+      auth,
+      action: 'flow.duplicated',
+      resourceType: 'flow',
+      resourceId: duplicate.id,
+      metadata: {
+        sourceFlowId: source.id,
+        sourceVersionId: sourceVersion?.id ?? null,
+        key: duplicate.key
+      }
+    });
+    return this.get(auth, duplicate.id);
   }
 
   async createStep(auth: AuthContext, flowId: string, request: FlowStepRequest) {
@@ -581,13 +949,105 @@ export class FlowsService {
     return this.requireVersion(auth, flow.id, version.id);
   }
 
-  async listRuns(auth: AuthContext, flowId: string) {
+  async restoreVersionDraft(auth: AuthContext, flowId: string, versionId: string) {
     const flow = await this.requireFlow(auth, flowId);
-    const runs = await this.runs.find({
-      where: { tenantId: auth.tenant.id, flowId: flow.id },
-      order: { createdAt: 'DESC' },
-      take: 30
+    const version = await this.requireVersion(auth, flow.id, versionId);
+    const snapshots = await this.steps.find({
+      where: {
+        tenantId: auth.tenant.id,
+        flowId: flow.id,
+        versionId: version.id
+      },
+      order: { position: 'ASC', createdAt: 'ASC' }
     });
+    if (!snapshots.length) {
+      throw new BadRequestException('Version snapshot has no steps');
+    }
+    const responseStep = version.definition.steps.find((step) => step.type === 'response');
+    const metadata = this.cleanMetadata({
+      ...(flow.metadata ?? {}),
+      inputFields: this.inputFieldsFromSchema(version.inputSchema ?? version.definition.inputSchema),
+      authoringOutput: {
+        stepKey: responseStep?.key ?? null,
+        responseTo: 'caller'
+      },
+      restoredFromVersionId: version.id,
+      restoredFromVersion: version.version
+    });
+
+    await this.flows.manager.transaction(async (manager) => {
+      await manager.delete(FlowStep, {
+        tenantId: auth.tenant.id,
+        flowId: flow.id,
+        versionId: IsNull()
+      });
+      await manager.save(
+        FlowStep,
+        snapshots.map((step) =>
+          manager.create(FlowStep, {
+            tenantId: auth.tenant.id,
+            flowId: flow.id,
+            versionId: null,
+            ...this.copyStepValues(step)
+          })
+        )
+      );
+      await manager.save(
+        Flow,
+        manager.merge(Flow, flow, {
+          name: version.definition.name,
+          description: version.definition.description ?? null,
+          runtimeConfig: version.runtimeConfig ?? null,
+          metadata
+        })
+      );
+    });
+    await this.audit.record({
+      auth,
+      action: 'flow.version.restored_to_draft',
+      resourceType: 'flow',
+      resourceId: flow.id,
+      metadata: { versionId: version.id, version: version.version }
+    });
+    return this.get(auth, flow.id);
+  }
+
+  async compareVersions(auth: AuthContext, flowId: string, versionId: string, otherVersionId: string) {
+    const flow = await this.requireFlow(auth, flowId);
+    const [left, right] = await Promise.all([
+      this.requireVersion(auth, flow.id, versionId),
+      this.requireVersion(auth, flow.id, otherVersionId)
+    ]);
+    const changes = this.definitionChanges(left.definition, right.definition);
+    const leftSteps = new Map(left.definition.steps.map((step) => [step.key, step]));
+    const rightSteps = new Map(right.definition.steps.map((step) => [step.key, step]));
+    return {
+      left: { id: left.id, version: left.version, status: left.status },
+      right: { id: right.id, version: right.version, status: right.status },
+      summary: {
+        changed: changes.length > 0,
+        changeCount: changes.length,
+        addedSteps: [...rightSteps.keys()].filter((key) => !leftSteps.has(key)),
+        removedSteps: [...leftSteps.keys()].filter((key) => !rightSteps.has(key)),
+        changedSteps: [...leftSteps.keys()].filter(
+          (key) => rightSteps.has(key) && JSON.stringify(leftSteps.get(key)) !== JSON.stringify(rightSteps.get(key))
+        )
+      },
+      changes
+    };
+  }
+
+  async listRuns(auth: AuthContext, flowId: string, query: FlowMetricsQuery = {}) {
+    const flow = await this.requireFlow(auth, flowId);
+    const filters = this.cleanMetricsQuery(query);
+    const builder = this.runs
+      .createQueryBuilder('run')
+      .where('run.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('run.flowId = :flowId', { flowId: flow.id })
+      .orderBy('run.createdAt', 'DESC')
+      .take(filters.limit);
+    this.applyRunFilters(builder, filters);
+    const runs = await builder.getMany();
     const runIds = runs.map((run) => run.id);
     const steps = runIds.length
       ? await this.stepRuns
@@ -602,6 +1062,96 @@ export class FlowsService {
       stepsByRun.set(step.runId, [...(stepsByRun.get(step.runId) ?? []), step]);
     }
     return runs.map((run) => ({ ...run, steps: stepsByRun.get(run.id) ?? [] }));
+  }
+
+  async observability(auth: AuthContext, flowId: string, query: FlowMetricsQuery = {}) {
+    const flow = await this.requireFlow(auth, flowId);
+    const filters = this.cleanMetricsQuery({
+      ...query,
+      limit: Math.min(Number(query.limit) || 5000, 5000)
+    });
+    const builder = this.runs
+      .createQueryBuilder('run')
+      .where('run.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('run.flowId = :flowId', { flowId: flow.id })
+      .orderBy('run.createdAt', 'DESC')
+      .take(filters.limit);
+    this.applyRunFilters(builder, filters);
+    const runs = await builder.getMany();
+    const runIds = runs.map((run) => run.id);
+    const stepRuns = runIds.length
+      ? await this.stepRuns
+          .createQueryBuilder('step')
+          .where('step.tenantId = :tenantId', { tenantId: auth.tenant.id })
+          .andWhere('step.runId IN (:...runIds)', { runIds })
+          .getMany()
+      : [];
+    const durations = runs
+      .map((run) => run.durationMs)
+      .filter((value): value is number => typeof value === 'number')
+      .sort((left, right) => left - right);
+    const statuses = this.countBy(runs, (run) => run.status);
+    const triggers = this.countBy(runs, (run) => run.triggerType);
+    const stepGroups = new Map<string, FlowStepRun[]>();
+    for (const step of stepRuns) {
+      stepGroups.set(step.stepKey, [...(stepGroups.get(step.stepKey) ?? []), step]);
+    }
+    const steps = [...stepGroups.entries()]
+      .map(([stepKey, items]) => {
+        const stepDurations = items
+          .map((item) => item.durationMs)
+          .filter((value): value is number => typeof value === 'number')
+          .sort((left, right) => left - right);
+        const failed = items.filter((item) => item.status === 'failed' || item.status === 'timeout').length;
+        return {
+          stepKey,
+          stepName: items[0]?.stepName ?? stepKey,
+          stepType: items[0]?.stepType ?? 'unknown',
+          executions: items.length,
+          failed,
+          failureRate: items.length ? Number(((failed / items.length) * 100).toFixed(2)) : 0,
+          averageDurationMs: this.average(stepDurations),
+          p95DurationMs: this.percentile(stepDurations, 95)
+        };
+      })
+      .sort((left, right) => right.failureRate - left.failureRate || right.p95DurationMs - left.p95DurationMs);
+    const successful = statuses['success'] ?? 0;
+    return {
+      flow: { id: flow.id, key: flow.key, name: flow.name },
+      filters: {
+        status: filters.status ?? null,
+        triggerType: filters.triggerType ?? null,
+        from: filters.from?.toISOString() ?? null,
+        to: filters.to?.toISOString() ?? null,
+        sampleLimit: filters.limit
+      },
+      summary: {
+        total: runs.length,
+        success: successful,
+        failed: statuses['failed'] ?? 0,
+        timeout: statuses['timeout'] ?? 0,
+        cancelled: statuses['cancelled'] ?? 0,
+        successRate: runs.length ? Number(((successful / runs.length) * 100).toFixed(2)) : 0,
+        averageDurationMs: this.average(durations),
+        p50DurationMs: this.percentile(durations, 50),
+        p95DurationMs: this.percentile(durations, 95)
+      },
+      statuses,
+      triggers,
+      steps,
+      recentErrors: runs
+        .filter((run) => run.error)
+        .slice(0, 20)
+        .map((run) => ({
+          runId: run.id,
+          status: run.status,
+          triggerType: run.triggerType,
+          triggerKey: run.triggerKey,
+          durationMs: run.durationMs,
+          error: run.error,
+          createdAt: run.createdAt
+        }))
+    };
   }
 
   async listTestCases(auth: AuthContext, flowId: string) {
@@ -2508,6 +3058,238 @@ export class FlowsService {
       ...metadata,
       inputFields: cleanedFields
     };
+  }
+
+  private async seedSystemTemplates() {
+    for (const item of SYSTEM_FLOW_TEMPLATES) {
+      const exists = await this.templates.findOne({
+        where: { tenantId: IsNull(), scope: 'system', key: item.key }
+      });
+      if (exists) {
+        continue;
+      }
+      await this.templates.save(
+        this.templates.create({
+          tenantId: null,
+          ownerKey: SYSTEM_FLOW_TEMPLATE_OWNER,
+          ...item,
+          scope: 'system',
+          active: true,
+          sourceFlowId: null,
+          createdByUserId: null
+        })
+      );
+    }
+  }
+
+  private async requireTemplate(auth: AuthContext, templateId: string) {
+    const template = await this.templates
+      .createQueryBuilder('template')
+      .where('template.id = :templateId', { templateId })
+      .andWhere('template.active = 1')
+      .andWhere('(template.scope = :system OR template.tenantId = :tenantId)', {
+        system: 'system',
+        tenantId: auth.tenant.id
+      })
+      .getOne();
+    if (!template) {
+      throw new NotFoundException('Flow template not found');
+    }
+    return template;
+  }
+
+  private authoringDocumentForFlow(flow: Flow, steps: FlowStep[]): Record<string, unknown> {
+    const entry = this.asRecord(flow.metadata?.['authoringEntry']);
+    const output = this.asRecord(flow.metadata?.['authoringOutput']);
+    return {
+      schemaVersion: 1,
+      flow: {
+        name: flow.name,
+        description: flow.description,
+        category: flow.category,
+        runtimeConfig: flow.runtimeConfig,
+        tags: flow.tags
+      },
+      entry: {
+        mode: this.optionalString(entry['mode']) ?? 'direct',
+        key: this.optionalString(entry['key']) ?? 'direct',
+        config: this.asRecord(entry['config'])
+      },
+      inputFields: this.asArray(flow.metadata?.['inputFields']),
+      steps: steps.map((step) => ({
+        key: step.key,
+        name: step.name,
+        type: step.type,
+        position: step.position,
+        config: step.config,
+        inputMap: step.inputMap,
+        outputKey: step.outputKey,
+        nextStepKey: step.nextStepKey,
+        onSuccessStepKey: step.onSuccessStepKey,
+        onErrorStepKey: step.onErrorStepKey,
+        onTimeoutStepKey: step.onTimeoutStepKey,
+        onTrueStepKey: step.onTrueStepKey,
+        onFalseStepKey: step.onFalseStepKey,
+        runtimeConfig: step.runtimeConfig,
+        ui: step.ui
+      })),
+      output: {
+        stepKey: this.optionalString(output['stepKey']) ?? steps.find((step) => step.type === 'response')?.key ?? null,
+        responseTo: 'caller'
+      }
+    };
+  }
+
+  private copyStepValues(step: FlowStep) {
+    return {
+      key: step.key,
+      name: step.name,
+      type: step.type,
+      position: step.position,
+      config: step.config,
+      inputMap: step.inputMap,
+      outputKey: step.outputKey,
+      nextStepKey: step.nextStepKey,
+      onSuccessStepKey: step.onSuccessStepKey,
+      onErrorStepKey: step.onErrorStepKey,
+      onTimeoutStepKey: step.onTimeoutStepKey,
+      onTrueStepKey: step.onTrueStepKey,
+      onFalseStepKey: step.onFalseStepKey,
+      runtimeConfig: step.runtimeConfig,
+      ui: step.ui
+    };
+  }
+
+  private inputFieldsFromSchema(schema?: Record<string, unknown> | null) {
+    const source = this.asRecord(schema);
+    const properties = this.asRecord(source['properties']);
+    const required = new Set(
+      this.asArray(source['required']).filter((value): value is string => typeof value === 'string')
+    );
+    return Object.entries(properties).map(([key, rawDefinition]) => {
+      const definition = this.asRecord(rawDefinition);
+      const type =
+        definition['format'] === 'email'
+          ? 'email'
+          : definition['format'] === 'date'
+            ? 'date'
+            : definition['type'] === 'number'
+              ? 'number'
+              : definition['type'] === 'boolean'
+                ? 'boolean'
+                : 'text';
+      return {
+        key,
+        label: this.optionalString(definition['title']) ?? key,
+        type,
+        required: required.has(key),
+        example: ''
+      };
+    });
+  }
+
+  private definitionChanges(left: unknown, right: unknown, path = '$'): Array<Record<string, unknown>> {
+    if (JSON.stringify(left) === JSON.stringify(right)) {
+      return [];
+    }
+    if (
+      !left ||
+      !right ||
+      typeof left !== 'object' ||
+      typeof right !== 'object' ||
+      Array.isArray(left) !== Array.isArray(right)
+    ) {
+      return [{ path, before: left, after: right }];
+    }
+    if (Array.isArray(left) && Array.isArray(right)) {
+      const changes: Array<Record<string, unknown>> = [];
+      const length = Math.max(left.length, right.length);
+      for (let index = 0; index < length; index += 1) {
+        changes.push(...this.definitionChanges(left[index], right[index], `${path}[${index}]`));
+      }
+      return changes.slice(0, 500);
+    }
+    const leftRecord = this.asRecord(left);
+    const rightRecord = this.asRecord(right);
+    const keys = new Set([...Object.keys(leftRecord), ...Object.keys(rightRecord)]);
+    const changes: Array<Record<string, unknown>> = [];
+    for (const key of keys) {
+      changes.push(...this.definitionChanges(leftRecord[key], rightRecord[key], `${path}.${key}`));
+    }
+    return changes.slice(0, 500);
+  }
+
+  private cleanMetricsQuery(query: FlowMetricsQuery) {
+    const statuses: FlowRun['status'][] = ['queued', 'running', 'success', 'failed', 'timeout', 'cancelled'];
+    const triggerTypes: FlowRunTriggerType[] = ['manual', 'http', 'form', 'event', 'schedule', 'test'];
+    const parseDate = (value?: string) => {
+      if (!value) {
+        return undefined;
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        throw new BadRequestException(`Invalid metrics date: ${value}`);
+      }
+      return date;
+    };
+    const status = statuses.includes(query.status as FlowRun['status']) ? query.status : undefined;
+    const triggerType = triggerTypes.includes(query.triggerType as FlowRunTriggerType) ? query.triggerType : undefined;
+    const from = parseDate(query.from);
+    const to = parseDate(query.to);
+    if (from && to && from > to) {
+      throw new BadRequestException('Metrics from date must be before to date');
+    }
+    return {
+      status,
+      triggerType,
+      from,
+      to,
+      limit: Math.min(Math.max(Number(query.limit) || 30, 1), 5000)
+    };
+  }
+
+  private applyRunFilters(
+    builder: SelectQueryBuilder<FlowRun>,
+    filters: ReturnType<FlowsService['cleanMetricsQuery']>
+  ) {
+    if (filters.status) {
+      builder.andWhere('run.status = :status', { status: filters.status });
+    }
+    if (filters.triggerType) {
+      builder.andWhere('run.triggerType = :triggerType', {
+        triggerType: filters.triggerType
+      });
+    }
+    if (filters.from) {
+      builder.andWhere('run.createdAt >= :from', { from: filters.from });
+    }
+    if (filters.to) {
+      builder.andWhere('run.createdAt <= :to', { to: filters.to });
+    }
+  }
+
+  private countBy<T>(items: T[], selector: (item: T) => string) {
+    return items.reduce<Record<string, number>>((counts, item) => {
+      const key = selector(item);
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {});
+  }
+
+  private average(values: number[]) {
+    return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+  }
+
+  private percentile(values: number[], percentile: number) {
+    if (!values.length) {
+      return 0;
+    }
+    const index = Math.min(Math.ceil((percentile / 100) * values.length) - 1, values.length - 1);
+    return values[Math.max(index, 0)];
+  }
+
+  private optionalString(value: unknown) {
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   }
 
   private stringConfig(config: Record<string, unknown>, key: string) {

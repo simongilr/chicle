@@ -13,4 +13,4 @@ FROM node:22-alpine
 WORKDIR /app
 COPY --from=deps /app/node_modules node_modules
 COPY --from=build /app/apps/api/dist dist
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "node dist/database/migrate.js && node dist/main.js"]

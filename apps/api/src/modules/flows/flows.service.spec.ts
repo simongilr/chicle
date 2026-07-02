@@ -128,4 +128,62 @@ describe('FlowsService input contract', () => {
       ])
     ).toThrow(BadRequestException);
   });
+
+  it('compares nested immutable definitions with precise paths', () => {
+    const changes = service.definitionChanges(
+      {
+        name: 'Version 1',
+        steps: [{ key: 'validate', config: { required: true } }]
+      },
+      {
+        name: 'Version 2',
+        steps: [{ key: 'validate', config: { required: false } }, { key: 'response' }]
+      }
+    );
+
+    expect(changes.map((change: { path: string }) => change.path)).toEqual(
+      expect.arrayContaining(['$.name', '$.steps[0].config.required', '$.steps[1]'])
+    );
+  });
+
+  it('reconstructs visual inputs from an immutable version schema', () => {
+    expect(
+      service.inputFieldsFromSchema({
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email', title: 'Correo' },
+          active: { type: 'boolean', title: 'Activo' }
+        }
+      })
+    ).toEqual([
+      {
+        key: 'email',
+        label: 'Correo',
+        type: 'email',
+        required: true,
+        example: ''
+      },
+      {
+        key: 'active',
+        label: 'Activo',
+        type: 'boolean',
+        required: false,
+        example: ''
+      }
+    ]);
+  });
+
+  it('bounds observability filters and rejects inverted ranges', () => {
+    expect(service.cleanMetricsQuery({ status: 'success', limit: 99999 })).toMatchObject({
+      status: 'success',
+      limit: 5000
+    });
+    expect(() =>
+      service.cleanMetricsQuery({
+        from: '2026-07-02T12:00:00.000Z',
+        to: '2026-07-01T12:00:00.000Z'
+      })
+    ).toThrow(BadRequestException);
+  });
 });

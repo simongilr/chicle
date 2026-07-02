@@ -21,6 +21,7 @@ import { FlowRun } from './flow-run.entity';
 import { FlowStepRun } from './flow-step-run.entity';
 import { FlowStep } from './flow-step.entity';
 import { FlowTestCase } from './flow-test-case.entity';
+import { FlowTemplate } from './flow-template.entity';
 import { FlowTrigger } from './flow-trigger.entity';
 import { FlowVersion } from './flow-version.entity';
 import { Flow } from './flow.entity';
@@ -44,6 +45,7 @@ import { FlowsService } from './flows.service';
       FlowTrigger,
       FlowActionCatalog,
       FlowTestCase,
+      FlowTemplate,
       FlowJob,
       FlowOutboxEvent,
       Tenant,

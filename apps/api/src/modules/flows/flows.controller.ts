@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Sse, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Sse, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -8,7 +8,11 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
   FlowExecuteRequest,
   FlowDefinitionReplaceRequest,
+  FlowDuplicateRequest,
+  FlowMetricsQuery,
   FlowPreviewRequest,
+  FlowTemplateCreateRequest,
+  FlowTemplateInstantiateRequest,
   FlowStepRequest,
   FlowTestCaseRequest,
   FlowTriggerRequest,
@@ -55,6 +59,31 @@ export class FlowsController {
   @ApiOperation({ summary: 'Listar flows en papelera' })
   listTrash(@CurrentAuth() auth: AuthContext) {
     return this.flows.listTrashed(auth);
+  }
+
+  @Get('templates')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Listar plantillas del sistema y del tenant' })
+  templates(@CurrentAuth() auth: AuthContext) {
+    return this.flows.listTemplates(auth);
+  }
+
+  @Post('templates/:templateId/instantiate')
+  @RequirePermissions('flows.create')
+  @ApiOperation({ summary: 'Crear un flow editable desde una plantilla' })
+  instantiateTemplate(
+    @CurrentAuth() auth: AuthContext,
+    @Param('templateId') templateId: string,
+    @Body() body: FlowTemplateInstantiateRequest
+  ) {
+    return this.flows.instantiateTemplate(auth, templateId, body);
+  }
+
+  @Delete('templates/:templateId')
+  @RequirePermissions('flows.update')
+  @ApiOperation({ summary: 'Eliminar una plantilla propia del tenant' })
+  deleteTemplate(@CurrentAuth() auth: AuthContext, @Param('templateId') templateId: string) {
+    return this.flows.deleteTemplate(auth, templateId);
   }
 
   @Post()
@@ -158,8 +187,17 @@ export class FlowsController {
   @RequirePermissions('flows.read')
   @ApiOperation({ summary: 'Listar ejecuciones recientes de un flow' })
   @ApiParam({ name: 'flowId', example: 'flow-id' })
-  runs(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
-    return this.flows.listRuns(auth, flowId);
+  runs(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Query() query: FlowMetricsQuery) {
+    return this.flows.listRuns(auth, flowId, query);
+  }
+
+  @Get(':flowId/observability')
+  @RequirePermissions('flows.audit')
+  @ApiOperation({
+    summary: 'Obtener métricas, latencias y errores recientes de un flow'
+  })
+  observability(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Query() query: FlowMetricsQuery) {
+    return this.flows.observability(auth, flowId, query);
   }
 
   @Get(':flowId/jobs')
@@ -347,6 +385,28 @@ export class FlowsController {
     return this.flows.restore(auth, flowId);
   }
 
+  @Post(':flowId/duplicate')
+  @RequirePermissions('flows.create')
+  @ApiOperation({
+    summary: 'Duplicar un flow o una versión como un borrador independiente'
+  })
+  duplicate(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: FlowDuplicateRequest) {
+    return this.flows.duplicate(auth, flowId, body);
+  }
+
+  @Post(':flowId/templates')
+  @RequirePermissions('flows.update')
+  @ApiOperation({
+    summary: 'Guardar el borrador actual como plantilla reutilizable del tenant'
+  })
+  saveTemplate(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Body() body: FlowTemplateCreateRequest
+  ) {
+    return this.flows.saveAsTemplate(auth, flowId, body);
+  }
+
   @Get(':flowId/definition')
   @RequirePermissions('flows.read')
   @ApiOperation({
@@ -359,7 +419,9 @@ export class FlowsController {
 
   @Put(':flowId/definition')
   @RequirePermissions('flows.update')
-  @ApiOperation({ summary: 'Reemplazar atómicamente el borrador desde el documento JSON de autoría' })
+  @ApiOperation({
+    summary: 'Reemplazar atómicamente el borrador desde el documento JSON de autoría'
+  })
   replaceDefinition(
     @CurrentAuth() auth: AuthContext,
     @Param('flowId') flowId: string,
@@ -439,5 +501,30 @@ export class FlowsController {
     @Param('versionId') versionId: string
   ) {
     return this.flows.publishVersion(auth, flowId, versionId);
+  }
+
+  @Post(':flowId/versions/:versionId/restore-draft')
+  @RequirePermissions('flows.update')
+  @ApiOperation({
+    summary: 'Restaurar una versión inmutable como nuevo borrador editable'
+  })
+  restoreVersionDraft(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('versionId') versionId: string
+  ) {
+    return this.flows.restoreVersionDraft(auth, flowId, versionId);
+  }
+
+  @Get(':flowId/versions/:versionId/compare/:otherVersionId')
+  @RequirePermissions('flows.read')
+  @ApiOperation({ summary: 'Comparar dos versiones inmutables del mismo flow' })
+  compareVersions(
+    @CurrentAuth() auth: AuthContext,
+    @Param('flowId') flowId: string,
+    @Param('versionId') versionId: string,
+    @Param('otherVersionId') otherVersionId: string
+  ) {
+    return this.flows.compareVersions(auth, flowId, versionId, otherVersionId);
   }
 }

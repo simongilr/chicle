@@ -1,8 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
+import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { PublicPageShellComponent } from '../../shared/public-page-shell/public-page-shell.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 
 type SetupState = 'loading' | 'not_created' | 'ready' | 'unavailable' | 'created';
 
@@ -30,28 +33,16 @@ interface SetupResponse {
 @Component({
   selector: 'app-setup-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, IonContent],
+  imports: [
+    FieldShellComponent,
+    FormsModule,
+    LoadingSkeletonComponent,
+    PublicPageShellComponent,
+    RouterLink,
+    StatusNoticeComponent
+  ],
   styles: [
     `
-      ion-content {
-        --background: #f4f7fb;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-weight: 800;
-      }
-
       .doc-link {
         border: 1px solid #c8d6e4;
         border-radius: 8px;
@@ -66,9 +57,6 @@ interface SetupResponse {
         display: grid;
         grid-template-columns: minmax(0, 0.88fr) minmax(360px, 1.12fr);
         gap: 28px;
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 28px 0 48px;
       }
 
       .intro {
@@ -156,13 +144,6 @@ interface SetupResponse {
         font-size: 1.25rem;
       }
 
-      label {
-        display: grid;
-        gap: 7px;
-        color: #173b5f;
-        font-weight: 700;
-      }
-
       input,
       select {
         min-height: 44px;
@@ -185,24 +166,6 @@ interface SetupResponse {
       select:disabled {
         background: #edf2f7;
         color: #6c7a87;
-      }
-
-      .message {
-        border-radius: 8px;
-        padding: 12px;
-        color: #254057;
-        background: #eaf3fc;
-        line-height: 1.45;
-      }
-
-      .message.error {
-        background: #feecec;
-        color: #8b2323;
-      }
-
-      .message.success {
-        background: #e9f8ef;
-        color: #17613d;
       }
 
       .actions {
@@ -283,13 +246,8 @@ interface SetupResponse {
       }
 
       @media (max-width: 820px) {
-        .topbar {
-          padding: 12px 16px;
-        }
-
         .setup-shell {
           grid-template-columns: 1fr;
-          padding-top: 12px;
         }
 
         h1 {
@@ -299,17 +257,14 @@ interface SetupResponse {
     `
   ],
   template: `
-    <header class="topbar">
-      <div class="brand">Chicle Engine Setup</div>
-      <div class="actions">
-        <a class="doc-link" routerLink="/docs">Docs</a>
+    <app-public-page-shell contextLabel="Setup inicial">
+      <div public-actions class="actions">
+        <a class="doc-link" routerLink="/docs">Manual</a>
         @if (state === 'ready' || state === 'created') {
-          <a class="doc-link" routerLink="/login">Login</a>
+          <a class="doc-link" routerLink="/login">Ingresar</a>
         }
       </div>
-    </header>
-    <ion-content class="ion-padding">
-      <main class="setup-shell">
+      <div class="setup-shell">
         <section class="intro">
           <span class="eyebrow">{{ heroEyebrow }}</span>
           <h1>{{ heroTitle }}</h1>
@@ -325,18 +280,17 @@ interface SetupResponse {
         </section>
 
         @if (state === 'loading') {
-          <section class="ready-panel">
-            <h2>Revisando estado</h2>
-            <div class="message">Consultando si el sistema necesita setup o login.</div>
-          </section>
+          <app-loading-skeleton
+            variant="form"
+            label="Revisando estado del sistema"
+            [rows]="4"
+          ></app-loading-skeleton>
         } @else if (state === 'unavailable') {
           <section class="ready-panel error">
             <h2>API no disponible</h2>
 
             @if (message) {
-              <div class="message error">
-                {{ message }}
-              </div>
+              <app-status-notice tone="error">{{ message }}</app-status-notice>
             }
 
             <ul class="ready-list">
@@ -355,9 +309,7 @@ interface SetupResponse {
             <h2>Continuar con autenticación</h2>
 
             @if (message) {
-              <div class="message" [class.success]="messageType === 'success'">
-                {{ message }}
-              </div>
+              <app-status-notice [tone]="messageType">{{ message }}</app-status-notice>
             }
 
             <ul class="ready-list">
@@ -380,25 +332,23 @@ interface SetupResponse {
             </div>
 
             @if (message) {
-              <div class="message" [class.error]="messageType === 'error'" [class.success]="messageType === 'success'">
-                {{ message }}
-              </div>
+              <app-status-notice [tone]="messageType">{{ message }}</app-status-notice>
             }
 
-            <label>
-              Organización
+            <app-field-shell label="Organización" forId="setup-organization" [required]="true">
               <input
+                id="setup-organization"
                 name="organization"
                 autocomplete="organization"
                 [(ngModel)]="organization"
                 [disabled]="!canEdit"
                 required
               />
-            </label>
+            </app-field-shell>
 
-            <label>
-              Email admin
+            <app-field-shell label="Email admin" forId="setup-email" [required]="true">
               <input
+                id="setup-email"
                 name="email"
                 type="email"
                 autocomplete="email"
@@ -406,11 +356,16 @@ interface SetupResponse {
                 [disabled]="!canEdit"
                 required
               />
-            </label>
+            </app-field-shell>
 
-            <label>
-              Password admin
+            <app-field-shell
+              label="Password admin"
+              forId="setup-password"
+              help="Mínimo 8 caracteres para el setup inicial."
+              [required]="true"
+            >
               <input
+                id="setup-password"
                 name="password"
                 type="password"
                 autocomplete="new-password"
@@ -418,18 +373,18 @@ interface SetupResponse {
                 [disabled]="!canEdit"
                 required
               />
-            </label>
+            </app-field-shell>
 
-            <label>
-              Semilla inicial
+            <app-field-shell label="Semilla inicial" forId="setup-template">
               <select
+                id="setup-template"
                 name="template"
                 [(ngModel)]="template"
                 [disabled]="!canEdit"
               >
                 <option value="blank">Blank</option>
               </select>
-            </label>
+            </app-field-shell>
 
             <div class="actions">
               <button class="primary-button" type="submit" [disabled]="!canSubmit">
@@ -439,8 +394,8 @@ interface SetupResponse {
             </div>
           </form>
         }
-      </main>
-    </ion-content>
+      </div>
+    </app-public-page-shell>
   `
 })
 export class SetupPageComponent implements OnInit {

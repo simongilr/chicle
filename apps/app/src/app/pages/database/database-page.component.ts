@@ -1,15 +1,15 @@
 import { JsonPipe } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import {
   SegmentedControlComponent,
@@ -113,11 +113,11 @@ interface SchemaHistoryResponse {
   imports: [
     DialogModule,
     FormsModule,
-    IonContent,
     JsonPipe,
-    MainNavComponent,
     TableModule,
+    LoadingSkeletonComponent,
     ModuleHeaderComponent,
+    PageShellComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
     SectionHeaderComponent,
@@ -126,16 +126,9 @@ interface SchemaHistoryResponse {
   ],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
-      }
-
       .shell {
         display: grid;
         gap: 18px;
-        max-width: 1260px;
-        margin: 0 auto;
-        padding: 24px 20px 54px;
       }
 
       .panel,
@@ -467,17 +460,12 @@ interface SchemaHistoryResponse {
           grid-template-columns: 1fr;
         }
 
-        .shell {
-          padding-inline: 12px;
-        }
       }
     `
   ],
   template: `
-    <ion-content>
-      <app-main-nav contextLabel="Base de datos" />
-
-      <main class="shell">
+    <app-page-shell contextLabel="Base de datos">
+      <div class="shell">
         <app-module-header
           title="Base de datos"
           description="Visor de datos y diseñador controlado para tablas custom. Sin SQL libre ni cambios sobre tablas core."
@@ -505,7 +493,11 @@ interface SchemaHistoryResponse {
                   [summary]="tables.length + (tables.length === 1 ? ' tabla' : ' tablas')"
                 ></app-catalog-header>
                 @if (loadingTables) {
-                  <p class="meta">Cargando tablas...</p>
+                  <app-loading-skeleton
+                    variant="list"
+                    label="Cargando tablas"
+                    [rows]="5"
+                  ></app-loading-skeleton>
                 } @else if (tablesError) {
                   <app-status-notice title="No se pudieron cargar las tablas" tone="error">
                     <span>{{ tablesError }}</span>
@@ -896,8 +888,8 @@ interface SchemaHistoryResponse {
             }
           </p-dialog>
         }
-      </main>
-    </ion-content>
+      </div>
+    </app-page-shell>
   `
 })
 export class DatabasePageComponent implements OnInit {

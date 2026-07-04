@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { IonContent } from '@ionic/angular/standalone';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { RouterLink } from '@angular/router';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
@@ -25,67 +25,22 @@ interface UiInventoryGroup {
   components: string[];
 }
 
+interface JsonContractResource {
+  title: string;
+  path: string;
+  purpose: string;
+  covers: string;
+  example: string;
+}
+
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [IonContent, MainNavComponent, ProcessStepsComponent, WorkflowGuideComponent],
+  imports: [PageShellComponent, ProcessStepsComponent, RouterLink, WorkflowGuideComponent],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
-      }
-
-      .brand-block {
-        display: grid;
-        gap: 2px;
-        min-width: 190px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-size: 1rem;
-        font-weight: 850;
-      }
-
-      .context-label {
-        color: #64748b;
-        font-size: 0.82rem;
-        font-weight: 700;
-      }
-
-      .top-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .top-actions a {
-        min-height: 38px;
-        border: 1px solid #c8d6e4;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
-        padding: 8px 12px;
-        text-decoration: none;
-        font: inherit;
-        font-weight: 800;
-      }
-
       .docs-shell {
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 24px 24px 48px;
+        display: grid;
       }
 
       .intro {
@@ -181,11 +136,13 @@ interface UiInventoryGroup {
       }
 
       .doc-section {
+        min-width: 0;
         scroll-margin-top: 18px;
         border: 1px solid #d8e3ed;
         border-radius: 8px;
         background: #ffffff;
         padding: 18px;
+        overflow-wrap: anywhere;
       }
 
       .doc-section[data-tone='critical'] {
@@ -310,6 +267,8 @@ interface UiInventoryGroup {
 
       code {
         color: #16324f;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       pre {
@@ -334,35 +293,6 @@ interface UiInventoryGroup {
       }
 
       @media (max-width: 640px) {
-        .topbar {
-          align-items: flex-start;
-          flex-direction: column;
-          padding: 14px 16px;
-        }
-
-        .top-actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          width: 100%;
-        }
-
-        .top-actions a {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 0;
-          text-align: center;
-        }
-
-        .docs-shell {
-          padding: 18px 0 36px;
-        }
-
-        .intro,
-        .docs-content {
-          padding-inline: 16px;
-        }
-
         .intro h1 {
           font-size: 1.55rem;
         }
@@ -423,10 +353,13 @@ interface UiInventoryGroup {
     `
   ],
   template: `
-    <ion-content [scrollEvents]="true" (ionScroll)="syncActiveSection()">
-      <app-main-nav contextLabel="Manual operativo" />
-
-      <main class="docs-shell">
+    <app-page-shell
+      contextLabel="Manual operativo"
+      width="standard"
+      [scrollEvents]="true"
+      (contentScrolled)="syncActiveSection()"
+    >
+      <div class="docs-shell">
         <header class="intro">
           <h1>Primeros pasos de Chicle Engine</h1>
           <p>
@@ -852,6 +785,56 @@ interface UiInventoryGroup {
               </div>
             </section>
 
+            <section id="contratos-json" class="doc-section" data-tone="ops">
+              <div class="section-header">
+                <h2>Contratos JSON oficiales</h2>
+                <p class="section-lead">
+                  Estos archivos son la guía oficial para personas, integraciones e IA. Contienen JSON estricto,
+                  escenarios completos y las reglas que el backend ejecuta realmente.
+                </p>
+              </div>
+              <div class="steps">
+                @for (resource of jsonContractResources; track resource.path) {
+                  <article class="step">
+                    <h3>{{ resource.title }}</h3>
+                    <div class="meta">
+                      <span>{{ resource.path }}</span>
+                    </div>
+                    <div class="guide-blocks">
+                      <div class="guide-block">
+                        <span class="guide-label">Propósito</span>
+                        <div class="guide-text">{{ resource.purpose }}</div>
+                      </div>
+                      <div class="guide-block">
+                        <span class="guide-label">Incluye</span>
+                        <div class="guide-text">{{ resource.covers }}</div>
+                      </div>
+                      <div class="guide-block">
+                        <span class="guide-label">Forma mínima</span>
+                        <pre>{{ resource.example }}</pre>
+                      </div>
+                    </div>
+                  </article>
+                }
+                <article class="step">
+                  <h3>Regla para IA</h3>
+                  <div class="guide-blocks">
+                    <div class="guide-block">
+                      <span class="guide-label">Entrada oficial</span>
+                      <pre>docs/ai-authoring-guide.md</pre>
+                    </div>
+                    <div class="guide-block">
+                      <span class="guide-label">Límites</span>
+                      <div class="guide-text">
+                        No generar SQL, JavaScript arbitrario, secretos persistidos ni tipos de paso no documentados.
+                        Primero se crea el draft, luego se prueba y finalmente se publica.
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
             <section id="componentes-ui" class="doc-section" data-tone="setup">
               <div class="section-header">
                 <h2>Inventario de componentes visuales</h2>
@@ -880,6 +863,22 @@ interface UiInventoryGroup {
                   </article>
                 }
                 <article class="step">
+                  <h3>Documentación independiente</h3>
+                  <div class="meta">
+                    <span>Catálogo mantenido fuera del manual operativo.</span>
+                  </div>
+                  <div class="guide-blocks">
+                    <div class="guide-block">
+                      <span class="guide-label">Página</span>
+                      <div class="guide-text">
+                        Consulta todos los componentes disponibles, filtra por categoría y revisa cómo importarlos e
+                        invocarlos.
+                      </div>
+                    </div>
+                    <a class="doc-link" routerLink="/components">Abrir biblioteca de componentes</a>
+                  </div>
+                </article>
+                <article class="step">
                   <h3>Siguiente kit para Formularios y Pantallas</h3>
                   <div class="meta">
                     <span>Prioridad P0 antes de crecer los nuevos diseñadores.</span>
@@ -899,22 +898,34 @@ interface UiInventoryGroup {
                   </div>
                 </article>
                 <article class="step">
-                  <h3>Estado de librerías visuales</h3>
+                  <h3>Presentación multikit</h3>
                   <div class="meta">
-                    <span>Decisión pendiente antes del primer renderer productivo.</span>
+                    <span>PrimeNG en web, Ionic en móvil y controles base como fallback.</span>
                   </div>
                   <div class="guide-blocks">
                     <div class="guide-block">
-                      <span class="guide-label">Situación actual</span>
+                      <span class="guide-label">Regla</span>
                       <div class="guide-text">
-                        Ionic se usa como shell en varias pantallas y PrimeIcons aporta iconos. PrimeNG está instalado,
-                        pero todavía no existe una capa compartida de controles PrimeNG; la mayoría de formularios usan
-                        controles HTML nativos.
+                        El JSON declara intención y un perfil de presentación opcional. Nunca guarda clases, tags ni
+                        imports de una librería. El renderer resuelve el kit por override, plataforma y resolución.
                       </div>
                     </div>
                     <div class="guide-block">
-                      <span class="guide-label">Inventario técnico completo</span>
-                      <pre>docs/ui-component-inventory.md</pre>
+                      <span class="guide-label">Ejemplo de pantalla o formulario</span>
+                      <pre>{{ presentationJsonExample }}</pre>
+                    </div>
+                    <div class="guide-block">
+                      <span class="guide-label">Arquitectura completa</span>
+                      <pre>docs/ui-presentation-architecture.md
+docs/formly-architecture.md
+docs/ui-component-inventory.md</pre>
+                    </div>
+                    <div class="guide-block">
+                      <span class="guide-label">Temas instalados</span>
+                      <div class="guide-text">
+                        Chicle/Aura, Lara, Material y Nora. Puedes compararlos desde la biblioteca de componentes; los
+                        presets adicionales se cargan solo al seleccionarlos.
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -1135,11 +1146,59 @@ interface UiInventoryGroup {
             </section>
           </div>
         </div>
-      </main>
-    </ion-content>
+      </div>
+    </app-page-shell>
   `
 })
 export class DocsPageComponent {
+  readonly presentationJsonExample =
+    '{\n' +
+    '  "presentation": {\n' +
+    '    "profileKey": "adaptive",\n' +
+    '    "kit": "auto",\n' +
+    '    "theme": "chicle",\n' +
+    '    "rules": [\n' +
+    '      { "kit": "ionic", "maxWidth": 767 },\n' +
+    '      { "kit": "primeng", "minWidth": 768 }\n' +
+    '    ]\n' +
+    '  }\n' +
+    '}';
+
+  readonly jsonContractResources: JsonContractResource[] = [
+    {
+      title: 'Servicios dinámicos',
+      path: 'docs/examples/dynamic-services.examples.json',
+      purpose: 'Crear, versionar, probar y ejecutar servicios sin escribir un cliente nuevo por caso.',
+      covers: 'HTTP externo, tabla interna, filtros all/any, paginación, responseMap, test y ejecución por key.',
+      example:
+        '{\n  "definition": {\n    "source": "internal_table",\n    "method": "GET",\n    "dataTarget": {\n      "queryMode": "single_table",\n      "primaryTable": "users",\n      "filters": []\n    }\n  }\n}'
+    },
+    {
+      title: 'Definiciones completas de Flow',
+      path: 'docs/examples/flows.examples.json',
+      purpose: 'Describir entrada, campos, pasos, conexiones y respuesta final del diseñador.',
+      covers: 'Validación, servicio+decisión, fórmula, paralelo, foreach y eventos durables.',
+      example:
+        '{\n  "flow": { "key": "validar_solicitud", "name": "Validar solicitud" },\n  "entry": { "mode": "direct", "key": "direct", "config": {} },\n  "inputFields": [],\n  "steps": [],\n  "output": { "stepKey": null, "responseTo": "caller" }\n}'
+    },
+    {
+      title: 'Catálogo de pasos de Flow',
+      path: 'docs/examples/flow-step-catalog.examples.json',
+      purpose: 'Mostrar la configuración exacta esperada por cada tipo de paso.',
+      covers:
+        'start, dynamic_service, parallel, foreach, subflow, delay, emit_event, formula, validation, decision, action, response y end.',
+      example:
+        '{\n  "key": "consultar_usuario",\n  "type": "dynamic_service",\n  "outputKey": "usuario",\n  "config": { "serviceKey": "buscar_usuario", "timeoutMs": 8000 }\n}'
+    },
+    {
+      title: 'Runtime, triggers y pruebas',
+      path: 'docs/examples/flow-runtime.examples.json',
+      purpose: 'Ejecutar, previsualizar, encolar, activar y probar flows publicados o draft.',
+      covers: 'Ejecución por key, preview parcial, idempotencia, triggers y assertions.',
+      example:
+        '{\n  "input": { "email": "person@example.com" },\n  "triggerType": "manual",\n  "triggerKey": "front.form.submit"\n}'
+    }
+  ];
   readonly docsFlowSteps: ProcessStepItem[] = [
     {
       key: 'describe',
@@ -1174,6 +1233,8 @@ export class DocsPageComponent {
       purpose: 'Mantienen navegación, encabezados y espacios de trabajo consistentes entre módulos.',
       components: [
         'MainNavComponent',
+        'PageShellComponent',
+        'PublicPageShellComponent',
         'ModuleHeaderComponent',
         'DesignerWorkspaceComponent',
         'CatalogHeaderComponent',
@@ -1189,14 +1250,34 @@ export class DocsPageComponent {
         'ProcessStepsComponent',
         'WorkflowGuideComponent',
         'ContextAssistantComponent',
-        'StatusNoticeComponent'
+        'StatusNoticeComponent',
+        'LoadingSkeletonComponent'
       ]
     },
     {
       family: 'Selección de vistas',
       status: 'Compartido y estable',
       purpose: 'Cambia entre modos compactos sin alterar la estructura del diseñador.',
-      components: ['SegmentedControlComponent']
+      components: ['SegmentedControlComponent', 'PreviewViewportComponent']
+    },
+    {
+      family: 'Campos y formularios',
+      status: 'Renderer multikit inicial funcionando',
+      purpose:
+        'Compone etiquetas, ayuda, errores y controles PrimeNG, Ionic o base desde el mismo esquema.',
+      components: [
+        'FieldShellComponent',
+        'DynamicFieldControlComponent',
+        'DynamicFieldLibraryComponent',
+        'FormlyRuntimeComponent',
+        'ChicleFormlyFieldTypeComponent',
+        'ChicleFormlyDisplayTypeComponent',
+        'PrimengFieldRendererComponent',
+        'IonicFieldRendererComponent',
+        'NativeFieldRendererComponent',
+        'UiPresentationSwitcherComponent',
+        'FormRuntimeService'
+      ]
     },
     {
       family: 'Visuales especializados de Flow',
@@ -1217,20 +1298,19 @@ export class DocsPageComponent {
         'DatabasePageComponent',
         'ServicesPageComponent',
         'FlowsPageComponent',
-        'SecurityPageComponent'
+        'SecurityPageComponent',
+        'DynamicFormPageComponent'
       ]
     },
     {
       family: 'Formularios dinámicos',
-      status: 'Placeholder',
-      purpose: 'Existe ruta y runtime inicial, pero todavía no hay renderer productivo ni diseñador.',
+      status: 'Runtime V1 verificable',
+      purpose: 'Carga un esquema del tenant, renderiza campos, valida obligatorios y permite revisar escritorio, tablet y móvil.',
       components: ['DynamicFormPageComponent', 'FormRuntimeService', 'ActionRunnerService']
     }
   ];
 
   readonly uiBuilderBacklog = [
-    'FieldShellComponent',
-    'DynamicFieldControlComponent',
     'FieldPaletteComponent',
     'ComponentTreeComponent',
     'PropertyInspectorComponent',
@@ -1238,7 +1318,6 @@ export class DocsPageComponent {
     'DataBindingEditorComponent',
     'ActionBindingEditorComponent',
     'JsonEditorPanelComponent',
-    'PreviewViewportComponent',
     'VersionLifecyclePanelComponent',
     'TestWorkbenchComponent',
     'EntityTableComponent',
@@ -1295,6 +1374,11 @@ export class DocsPageComponent {
       id: 'flow-engine',
       label: 'Flow Engine',
       summary: 'Reglas, fórmulas, workflows y pruebas paso a paso.'
+    },
+    {
+      id: 'contratos-json',
+      label: 'Contratos JSON',
+      summary: 'Ejemplos oficiales para personas, integraciones e IA.'
     },
     {
       id: 'componentes-ui',

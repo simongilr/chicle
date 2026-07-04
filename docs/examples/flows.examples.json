@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "domain": "flows",
+  "authoringDocuments": [
+    {
+      "id": "validate_and_respond",
+      "endpoint": "PUT /api/flows/:flowId/definition",
+      "request": {
+        "flow": {
+          "key": "validar_solicitud",
+          "name": "Validar solicitud",
+          "description": "Valida el correo y devuelve una respuesta explícita.",
+          "category": "operaciones"
+        },
+        "entry": {
+          "mode": "direct",
+          "key": "direct",
+          "config": {}
+        },
+        "inputFields": [
+          {
+            "key": "email",
+            "label": "Correo",
+            "type": "email",
+            "required": true,
+            "example": "person@example.com"
+          }
+        ],
+        "steps": [
+          {
+            "key": "validar_email",
+            "name": "Validar correo",
+            "type": "validation",
+            "position": 10,
+            "outputKey": "validacion",
+            "nextStepKey": "respuesta_ok",
+            "onFalseStepKey": "respuesta_error",
+            "config": {
+              "field": "input.email",
+              "operator": "email",
+              "message": "El correo no es válido"
+            }
+          },
+          {
+            "key": "respuesta_ok",
+            "name": "Responder éxito",
+            "type": "response",
+            "position": 20,
+            "outputKey": "respuesta",
+            "config": {
+              "status": "success",
+              "body": {
+                "ok": true,
+                "email": "{{input.email}}"
+              }
+            }
+          },
+          {
+            "key": "respuesta_error",
+            "name": "Responder error",
+            "type": "response",
+            "position": 30,
+            "outputKey": "error",
+            "config": {
+              "status": "failed",
+              "body": {
+                "ok": false,
+                "message": "{{steps.validacion.message}}"
+              }
+            }
+          }
+        ],
+        "output": {
+          "stepKey": "respuesta_ok",
+          "responseTo": "caller"
+        }
+      }
+    },
+    {
+      "id": "service_then_decision",
+      "endpoint": "PUT /api/flows/:flowId/definition",
+      "request": {
+        "flow": {
+          "key": "consultar_y_decidir_usuario",
+          "name": "Consultar y decidir usuario",
+          "description": "Consulta un servicio publicado y decide usando su resultado.",
+          "category": "seguridad"
+        },
+        "entry": {
+          "mode": "direct",
+          "key": "direct",
+          "config": {}
+        },
+        "inputFields": [
+          {
+            "key": "email",
+            "label": "Correo",
+            "type": "email",
+            "required": true,
+            "example": "person@example.com"
+          }
+        ],
+        "steps": [
+          {
+            "key": "buscar_usuario",
+            "name": "Buscar usuario",
+            "type": "dynamic_service",
+            "position": 10,
+            "outputKey": "usuario",
+            "nextStepKey": "decidir",
+            "onErrorStepKey": "respuesta_error",
+            "onTimeoutStepKey": "respuesta_error",
+            "inputMap": {
+              "email": "{{input.email}}"
+            },
+            "config": {
+              "serviceKey": "buscar_usuario",
+              "timeoutMs": 8000,
+              "retry": {
+                "attempts": 1,
+                "backoffMs": 250
+              }
+            }
+          },
+          {
+            "key": "decidir",
+            "name": "Decidir si existe",
+            "type": "decision",
+            "position": 20,
+            "outputKey": "decision",
+            "onTrueStepKey": "respuesta_ok",
+            "onFalseStepKey": "respuesta_error",
+            "config": {
+              "language": "json_logic",
+              "rule": {
+                "==": [
+                  {
+                    "var": "steps.usuario.ok"
+                  },
+                  true
+                ]
+              }
+            }
+          },
+          {
+            "key": "respuesta_ok",
+            "name": "Responder usuario",
+            "type": "response",
+            "position": 30,
+            "outputKey": "respuesta",
+            "config": {
+              "status": "success",
+              "body": {
+                "ok": true,
+                "user": "{{steps.usuario.response.mapped.user}}"
+              }
+            }
+          },
+          {
+            "key": "respuesta_error",
+            "name": "Responder error",
+            "type": "response",
+            "position": 40,
+            "outputKey": "error",
+            "config": {
+              "status": "failed",
+              "body": {
+                "ok": false,
+                "message": "No fue posible obtener el usuario"
+              }
+            }
+          }
+        ],
+        "output": {
+          "stepKey": "respuesta_ok",
+          "responseTo": "caller"
+        }
+      }
+    },
+    {
+      "id": "calculate_total",
+      "endpoint": "PUT /api/flows/:flowId/definition",
+      "request": {
+        "flow": {
+          "key": "calcular_total",
+          "name": "Calcular total",
+          "description": "Multiplica precio por cantidad.",
+          "category": "operaciones"
+        },
+        "entry": {
+          "mode": "direct",
+          "key": "direct",
+          "config": {}
+        },
+        "inputFields": [
+          {
+            "key": "price",
+            "label": "Precio",
+            "type": "number",
+            "required": true,
+            "example": 25
+          },
+          {
+            "key": "quantity",
+            "label": "Cantidad",
+            "type": "number",
+            "required": true,
+            "example": 2
+          }
+        ],
+        "steps": [
+          {
+            "key": "calcular",
+            "name": "Calcular",
+            "type": "formula",
+            "position": 10,
+            "outputKey": "total",
+            "nextStepKey": "respuesta",
+            "config": {
+              "language": "json_logic",
+              "rule": {
+                "*": [
+                  {
+                    "var": "input.price"
+                  },
+                  {
+                    "var": "input.quantity"
+                  }
+                ]
+              },
+              "precision": 2
+            }
+          },
+          {
+            "key": "respuesta",
+            "name": "Responder total",
+            "type": "response",
+            "position": 20,
+            "outputKey": "respuesta",
+            "config": {
+              "status": "success",
+              "body": {
+                "ok": true,
+                "total": "{{steps.total}}"
+              }
+            }
+          }
+        ],
+        "output": {
+          "stepKey": "respuesta",
+          "responseTo": "caller"
+        }
+      }
+    },
+    {
+      "id": "parallel_services",
+      "endpoint": "PUT /api/flows/:flowId/definition",
+      "request": {
+        "flow": {
+          "key": "resumen_cliente",
+          "name": "Resumen de cliente",
+          "description": "Consulta perfil y saldo en paralelo.",
+          "category": "clientes"
+        },
+        "entry": {
+          "mode": "direct",
+          "key": "direct",
+          "config": {}
+        },
+        "inputFields": [
+          {
+            "key": "clientId",
+            "label": "Cliente",
+            "type": "text",
+            "required": true,
+            "example": "client-id"
+          }
+        ],
+        "steps": [
+          {
+            "key": "consultar",
+            "name": "Consultar datos",
+            "type": "parallel",
+            "position": 10,
+            "outputKey": "consultas",
+            "nextStepKey": "respuesta",
+            "onErrorStepKey": "respuesta_error",
+            "config": {
+              "branches": [
+                {
+                  "key": "perfil",
+                  "serviceKey": "consultar_cliente",
+                  "inputMap": {
+                    "id": "{{input.clientId}}"
+                  }
+                },
+                {
+                  "key": "saldo",
+                  "serviceKey": "consultar_saldo",
+                  "inputMap": {
+                    "clientId": "{{input.clientId}}"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "key": "respuesta",
+            "name": "Responder resumen",
+            "type": "response",
+            "position": 20,
+            "outputKey": "respuesta",
+            "config": {
+              "status": "success",
+              "body": {
+                "ok": true,
+                "results": "{{steps.consultas.results}}"
+              }
+            }
+          },
+          {
+            "key": "respuesta_error",
+            "name": "Responder error",
+            "type": "response",
+            "position": 30,
+            "outputKey": "error",
+            "config": {
+              "status": "failed",
+              "body": {
+                "ok": false
+              }
+            }
+          }
+        ],
+        "output": {
+          "stepKey": "respuesta",
+          "responseTo": "caller"
+        }
+      }
+    },
+    {
+      "id": "foreach_items_and_emit_event",
+      "endpoint": "PUT /api/flows/:flowId/definition",
+      "request": {
+        "flow": {
+          "key": "procesar_items",
+          "name": "Procesar items",
+          "description": "Ejecuta un servicio por item y emite un evento durable.",
+          "category": "ordenes"
+        },
+        "entry": {
+          "mode": "record_event",
+          "key": "order.created",
+          "config": {}
+        },
+        "inputFields": [
+          {
+            "key": "orderId",
+            "label": "Orden",
+            "type": "text",
+            "required": true,
+            "example": "order-id"
+          }
+        ],
+        "steps": [
+          {
+            "key": "procesar",
+            "name": "Procesar cada item",
+            "type": "foreach",
+            "position": 10,
+            "outputKey": "procesamiento",
+            "nextStepKey": "emitir",
+            "onErrorStepKey": "respuesta_error",
+            "config": {
+              "itemsPath": "input.items",
+              "serviceKey": "procesar_item",
+              "itemInputKey": "item",
+              "concurrency": 4,
+              "inputMap": {
+                "orderId": "{{input.orderId}}"
+              }
+            }
+          },
+          {
+            "key": "emitir",
+            "name": "Emitir resultado",
+            "type": "emit_event",
+            "position": 20,
+            "outputKey": "evento",
+            "nextStepKey": "respuesta",
+            "config": {
+              "eventKey": "order.items_processed",
+              "aggregateType": "order",
+              "payload": {
+                "orderId": "{{input.orderId}}",
+                "result": "{{steps.procesamiento}}"
+              }
+            }
+          },
+          {
+            "key": "respuesta",
+            "name": "Confirmar procesamiento",
+            "type": "response",
+            "position": 30,
+            "outputKey": "respuesta",
+            "config": {
+              "status": "success",
+              "body": {
+                "ok": true,
+                "event": "{{steps.evento.eventKey}}"
+              }
+            }
+          },
+          {
+            "key": "respuesta_error",
+            "name": "Responder error",
+            "type": "response",
+            "position": 40,
+            "outputKey": "error",
+            "config": {
+              "status": "failed",
+              "body": {
+                "ok": false
+              }
+            }
+          }
+        ],
+        "output": {
+          "stepKey": "respuesta",
+          "responseTo": "caller"
+        }
+      }
+    }
+  ]
+}

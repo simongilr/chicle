@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "domain": "flow_runtime",
+  "examples": [
+    {
+      "id": "execute_published_by_key",
+      "endpoint": "POST /api/flows/by-key/validar_solicitud/execute",
+      "request": {
+        "input": {
+          "email": "person@example.com"
+        },
+        "triggerType": "manual",
+        "triggerKey": "front.form.submit"
+      }
+    },
+    {
+      "id": "preview_draft_through_step",
+      "endpoint": "POST /api/flows/:flowId/preview",
+      "request": {
+        "input": {
+          "email": "person@example.com"
+        },
+        "throughStepKey": "validar_email"
+      }
+    },
+    {
+      "id": "enqueue_published_flow",
+      "endpoint": "POST /api/flows/:flowId/enqueue",
+      "request": {
+        "input": {
+          "orderId": "order-id",
+          "items": [
+            {
+              "sku": "ABC",
+              "quantity": 2
+            }
+          ]
+        },
+        "triggerType": "event",
+        "triggerKey": "order.created",
+        "idempotencyKey": "order:order-id:created"
+      }
+    },
+    {
+      "id": "manual_trigger",
+      "endpoint": "POST /api/flows/:flowId/triggers",
+      "request": {
+        "type": "manual",
+        "key": "reprocesar_orden",
+        "config": {
+          "inputMode": "payload"
+        },
+        "active": true
+      }
+    },
+    {
+      "id": "http_trigger",
+      "endpoint": "POST /api/flows/:flowId/triggers",
+      "request": {
+        "type": "http",
+        "key": "pedido_recibido",
+        "config": {
+          "secret": "replace-with-at-least-16-characters",
+          "inputMode": "payload"
+        },
+        "active": true
+      }
+    },
+    {
+      "id": "record_event_trigger",
+      "endpoint": "POST /api/flows/:flowId/triggers",
+      "request": {
+        "type": "record_event",
+        "key": "record.created",
+        "config": {
+          "inputMode": "envelope"
+        },
+        "active": true
+      }
+    },
+    {
+      "id": "form_submit_trigger",
+      "endpoint": "POST /api/flows/:flowId/triggers",
+      "request": {
+        "type": "form_submit",
+        "key": "customer_registration",
+        "config": {
+          "inputMode": "payload"
+        },
+        "active": true
+      }
+    },
+    {
+      "id": "schedule_trigger",
+      "endpoint": "POST /api/flows/:flowId/triggers",
+      "request": {
+        "type": "schedule",
+        "key": "daily_reconciliation",
+        "config": {
+          "intervalSeconds": 3600,
+          "input": {
+            "scope": "pending"
+          }
+        },
+        "active": true
+      }
+    },
+    {
+      "id": "flow_test_case",
+      "endpoint": "POST /api/flows/:flowId/test-cases",
+      "request": {
+        "name": "Correo válido",
+        "input": {
+          "email": "person@example.com"
+        },
+        "expectedOutput": {
+          "status": "success"
+        },
+        "expectedStatus": "success",
+        "target": "draft",
+        "throughStepKey": null,
+        "assertions": [
+          {
+            "path": "output.body.ok",
+            "operator": "equals",
+            "expected": true
+          },
+          {
+            "path": "output.body.email",
+            "operator": "contains",
+            "expected": "@"
+          }
+        ],
+        "active": true
+      }
+    }
+  ]
+}

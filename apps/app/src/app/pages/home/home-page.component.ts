@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 
 interface HomeModule {
   title: string;
@@ -15,53 +15,9 @@ interface HomeModule {
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, MainNavComponent],
+  imports: [RouterLink, PageShellComponent],
   styles: [
     `
-      :host {
-        display: block;
-        min-height: 100vh;
-        background: #f5f7fb;
-        color: #12365a;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
-      }
-
-      .brand-block {
-        display: grid;
-        gap: 2px;
-        min-width: 190px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-size: 1rem;
-        font-weight: 850;
-      }
-
-      .context-label {
-        color: #64748b;
-        font-size: 0.82rem;
-        font-weight: 700;
-      }
-
-      .top-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .top-actions a,
-      .top-actions button,
       .module-card,
       .panel,
       .status-item {
@@ -69,33 +25,9 @@ interface HomeModule {
         background: #ffffff;
       }
 
-      .top-actions a,
-      .top-actions button {
-        min-height: 38px;
-        border-radius: 8px;
-        color: #173b5f;
-        padding: 8px 12px;
-        text-decoration: none;
-        font: inherit;
-        font-weight: 800;
-      }
-
-      .top-actions a[aria-current='page'] {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
-      }
-
-      .top-actions button {
-        cursor: pointer;
-      }
-
       .shell {
         display: grid;
         gap: 18px;
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 24px;
       }
 
       .hero {
@@ -283,31 +215,6 @@ interface HomeModule {
       }
 
       @media (max-width: 860px) {
-        .topbar {
-          align-items: flex-start;
-          flex-direction: column;
-          padding: 14px 16px;
-        }
-
-        .top-actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          width: 100%;
-        }
-
-        .top-actions a,
-        .top-actions button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 0;
-          text-align: center;
-        }
-
-        .shell {
-          padding: 18px 16px 36px;
-        }
-
         .hero,
         .content-grid,
         .modules-grid {
@@ -326,16 +233,15 @@ interface HomeModule {
     `
   ],
   template: `
-    <app-main-nav contextLabel="Panel principal" />
-
-    <main class="shell">
-      <section class="panel quick-panel">
-        <div>
-          <h1>Panel principal</h1>
-          <p class="muted">Accesos rápidos del entorno administrativo.</p>
-        </div>
-        <div class="quick-actions">
-          <a class="primary" routerLink="/flows">Abrir Flow Designer</a>
+    <app-page-shell contextLabel="Panel principal">
+      <div class="shell">
+        <section class="panel quick-panel">
+          <div>
+            <h1>Panel principal</h1>
+            <p class="muted">Accesos rápidos del entorno administrativo.</p>
+          </div>
+          <div class="quick-actions">
+            <a class="primary" routerLink="/flows">Abrir Flow Designer</a>
           <a routerLink="/services">Servicios</a>
           <a routerLink="/docs">Manual</a>
         </div>
@@ -419,7 +325,8 @@ interface HomeModule {
           <p class="muted">Si esta pantalla permanece así, vuelve a iniciar sesión para recargar el contexto del tenant.</p>
         </section>
       }
-    </main>
+      </div>
+    </app-page-shell>
   `
 })
 export class HomePageComponent {

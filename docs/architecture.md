@@ -1,5 +1,19 @@
 # Chicle Engine Architecture
 
+## Declarative contract documentation
+
+Configuration objects are part of the public architecture and stay documented beside the implementation:
+
+- `docs/ai-authoring-guide.md` is the entry point for people and AI.
+- `docs/dynamic-services-contract.md` defines executable service objects.
+- `docs/flow-contract.md` defines flow authoring and runtime objects.
+- `docs/examples/*.json` contains strict machine-readable examples.
+- `docs/ui-components.md` and `apps/app/src/app/shared/ui-component-catalog.ts` define the visual reuse contract.
+- `docs/ui-presentation-architecture.md` defines adaptive PrimeNG/Ionic rendering and future kit adapters.
+- `docs/formly-architecture.md` defines declarative form orchestration and the multikit Formly bridge.
+
+When a backend contract or visual component changes, its documentation and canonical example change in the same work.
+
 ## Repository
 
 ```txt
@@ -47,15 +61,15 @@ apps/api/src/
 
 ## App
 
-The app is one Ionic Angular application. Ionic provides the application shell on several pages. PrimeNG is installed
-for desktop/admin experiences, but the current shared UI layer still uses native controls plus PrimeIcons. PrimeNG
-controls must be adopted through reusable wrappers instead of being mixed into pages ad hoc. Business screens will be
-rendered from configuration.
+The app is one Angular application with Ionic and PrimeNG adapters. Declarative screens select a presentation profile,
+not library-specific selectors. The initial adaptive renderer uses PrimeNG for desktop, Ionic for mobile/native and
+native controls as a fallback. Business screens are rendered from configuration.
 
 ```txt
 apps/app/src/app/
   core/
     navigation/
+    ui/
   engine/
   capabilities/
   shared/

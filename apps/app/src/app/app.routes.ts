@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, loginGuard, permissionGuard } from './core/auth/auth.guard';
 import { setupRedirectGuard } from './core/setup/setup-redirect.guard';
 import { ConfisysPageComponent } from './pages/confisys/confisys-page.component';
+import { ComponentsPageComponent } from './pages/components/components-page.component';
 import { DatabasePageComponent } from './pages/database/database-page.component';
 import { DocsPageComponent } from './pages/docs/docs-page.component';
 import { DynamicFormPageComponent } from './pages/dynamic-form-page/dynamic-form-page.component';
@@ -15,6 +16,7 @@ import { SetupPageComponent } from './pages/setup/setup-page.component';
 export const routes: Routes = [
   { path: 'setup', component: SetupPageComponent },
   { path: 'docs', component: DocsPageComponent },
+  { path: 'components', component: ComponentsPageComponent },
   {
     path: 'confisys',
     component: ConfisysPageComponent,

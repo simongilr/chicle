@@ -166,6 +166,24 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     description: 'Bandera base para sincronización offline.'
   },
   {
+    key: 'ui.presentation.defaultProfile',
+    value: {
+      key: 'adaptive',
+      theme: 'chicle',
+      defaultKit: 'primeng',
+      rules: [
+        { kit: 'ionic', platforms: ['ios', 'android'] },
+        { kit: 'ionic', maxWidth: 767 },
+        { kit: 'primeng', minWidth: 768 }
+      ]
+    },
+    valueType: 'json',
+    category: 'ui',
+    description:
+      'Perfil visual global. Resuelve el kit por plataforma y ancho cuando una pantalla no define un override.',
+    isPublic: true
+  },
+  {
     key: 'services.defaultTimeoutMs',
     value: 8000,
     valueType: 'number',

@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "domain": "flow_steps",
+  "steps": [
+    {
+      "key": "inicio",
+      "name": "Inicio",
+      "type": "start",
+      "position": 0,
+      "outputKey": "entrada",
+      "nextStepKey": "siguiente",
+      "config": {}
+    },
+    {
+      "key": "consultar_usuario",
+      "name": "Consultar usuario",
+      "type": "dynamic_service",
+      "position": 10,
+      "outputKey": "usuario",
+      "nextStepKey": "siguiente",
+      "onErrorStepKey": "respuesta_error",
+      "onTimeoutStepKey": "respuesta_error",
+      "inputMap": {
+        "email": "{{input.email}}"
+      },
+      "config": {
+        "serviceKey": "buscar_usuario",
+        "timeoutMs": 8000,
+        "retry": {
+          "attempts": 1,
+          "backoffMs": 300
+        },
+        "compensationServiceKey": "revertir_operacion"
+      }
+    },
+    {
+      "key": "consultas_paralelas",
+      "name": "Consultas paralelas",
+      "type": "parallel",
+      "position": 20,
+      "outputKey": "consultas",
+      "nextStepKey": "siguiente",
+      "onErrorStepKey": "respuesta_error",
+      "config": {
+        "branches": [
+          {
+            "key": "cliente",
+            "serviceKey": "consultar_cliente",
+            "inputMap": {
+              "id": "{{input.clientId}}"
+            }
+          },
+          {
+            "key": "saldo",
+            "serviceKey": "consultar_saldo",
+            "inputMap": {
+              "clientId": "{{input.clientId}}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "key": "procesar_items",
+      "name": "Procesar items",
+      "type": "foreach",
+      "position": 30,
+      "outputKey": "items_procesados",
+      "nextStepKey": "siguiente",
+      "onErrorStepKey": "respuesta_error",
+      "config": {
+        "itemsPath": "input.items",
+        "serviceKey": "procesar_item",
+        "itemInputKey": "item",
+        "concurrency": 4,
+        "inputMap": {
+          "orderId": "{{input.orderId}}"
+        }
+      }
+    },
+    {
+      "key": "ejecutar_subflow",
+      "name": "Ejecutar subflow",
+      "type": "subflow",
+      "position": 40,
+      "outputKey": "subflow",
+      "nextStepKey": "siguiente",
+      "inputMap": {
+        "email": "{{input.email}}"
+      },
+      "config": {
+        "flowKey": "validar_identidad"
+      }
+    },
+    {
+      "key": "esperar",
+      "name": "Esperar",
+      "type": "delay",
+      "position": 50,
+      "outputKey": "espera",
+      "nextStepKey": "siguiente",
+      "config": {
+        "durationMs": 1000
+      }
+    },
+    {
+      "key": "emitir_evento",
+      "name": "Emitir evento",
+      "type": "emit_event",
+      "position": 60,
+      "outputKey": "evento",
+      "nextStepKey": "siguiente",
+      "config": {
+        "eventKey": "order.validated",
+        "aggregateType": "order",
+        "payload": {
+          "orderId": "{{input.orderId}}",
+          "result": "{{steps.validacion}}"
+        }
+      }
+    },
+    {
+      "key": "calcular_total",
+      "name": "Calcular total",
+      "type": "formula",
+      "position": 70,
+      "outputKey": "total",
+      "nextStepKey": "siguiente",
+      "config": {
+        "language": "json_logic",
+        "rule": {
+          "*": [
+            {
+              "var": "input.price"
+            },
+            {
+              "var": "input.quantity"
+            }
+          ]
+        },
+        "precision": 2
+      }
+    },
+    {
+      "key": "validar_email",
+      "name": "Validar email",
+      "type": "validation",
+      "position": 80,
+      "outputKey": "validacion",
+      "nextStepKey": "siguiente",
+      "onFalseStepKey": "respuesta_error",
+      "config": {
+        "field": "input.email",
+        "operator": "email",
+        "message": "El correo no es válido"
+      }
+    },
+    {
+      "key": "decidir_aprobacion",
+      "name": "Decidir aprobación",
+      "type": "decision",
+      "position": 90,
+      "outputKey": "decision",
+      "onTrueStepKey": "respuesta_ok",
+      "onFalseStepKey": "respuesta_error",
+      "config": {
+        "language": "json_logic",
+        "rule": {
+          ">=": [
+            {
+              "var": "input.total"
+            },
+            100
+          ]
+        }
+      }
+    },
+    {
+      "key": "instruccion_front",
+      "name": "Instrucción al front",
+      "type": "action",
+      "position": 100,
+      "outputKey": "accion",
+      "nextStepKey": "siguiente",
+      "config": {
+        "action": "show_modal"
+      }
+    },
+    {
+      "key": "respuesta_ok",
+      "name": "Responder éxito",
+      "type": "response",
+      "position": 110,
+      "outputKey": "respuesta",
+      "config": {
+        "status": "success",
+        "body": {
+          "ok": true,
+          "data": "{{steps.total}}"
+        }
+      }
+    },
+    {
+      "key": "fin",
+      "name": "Fin",
+      "type": "end",
+      "position": 120,
+      "outputKey": "fin",
+      "config": {}
+    }
+  ]
+}

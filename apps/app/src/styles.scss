@@ -8,7 +8,15 @@
   --ch-color-primary: #1554a2;
   --ch-color-surface: #ffffff;
   --ch-color-background: #f4f7fb;
+  --ch-color-text: #173b5f;
+  --ch-color-muted: #52677a;
+  --ch-color-border: #d9e2ec;
   --ch-radius: 8px;
+  --ch-page-gap: 18px;
+  --ch-page-padding-top: 24px;
+  --ch-page-padding-inline: 20px;
+  --ch-page-padding-inline-mobile: 12px;
+  --ch-page-padding-bottom: 54px;
   --ion-color-primary: #1554a2;
 }
 
@@ -22,4 +30,32 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   position: relative;
+}
+
+.ch-formly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+.ch-formly-field {
+  display: block;
+  min-width: 0;
+}
+
+.ch-formly-field--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .ch-formly-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ch-formly-field--full,
+  .ch-formly-field--half,
+  .ch-formly-field--third {
+    grid-column: 1;
+  }
 }

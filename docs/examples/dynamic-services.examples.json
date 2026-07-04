@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "domain": "dynamic_services",
+  "examples": [
+    {
+      "id": "create_service_metadata",
+      "endpoint": "POST /api/dynamic-services",
+      "request": {
+        "key": "validar_serial",
+        "name": "Validar serial",
+        "description": "Consulta un proveedor externo y normaliza la respuesta.",
+        "active": true
+      }
+    },
+    {
+      "id": "external_http_validation",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "validate",
+          "source": "external_api",
+          "resultKind": "boolean",
+          "method": "POST",
+          "url": "https://api.example.com/v1/serials/validate",
+          "headers": {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {{input.token}}"
+          },
+          "query": {},
+          "body": {
+            "serial": "{{input.serial}}",
+            "tenant": "{{tenant.slug}}",
+            "requestedBy": "{{user.id}}"
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "valid": "{{response.body.valid}}",
+            "providerCode": "{{response.body.code}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "internal_query_match_all",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "get_one",
+          "source": "internal_table",
+          "resultKind": "single",
+          "method": "GET",
+          "url": "",
+          "headers": {},
+          "query": {},
+          "body": null,
+          "dataTarget": {
+            "queryMode": "single_table",
+            "primaryTable": "users",
+            "involvedTables": [
+              "users"
+            ],
+            "matchMode": "all",
+            "filters": [
+              {
+                "field": "email",
+                "operator": "equals",
+                "valueSource": "input",
+                "inputKey": "email",
+                "required": true
+              },
+              {
+                "field": "name",
+                "operator": "contains",
+                "valueSource": "input",
+                "inputKey": "name",
+                "required": false
+              }
+            ],
+            "relationNotes": "",
+            "filterNotes": "El tenant actual se aplica automáticamente."
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "user": "{{response.result}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "internal_query_match_any",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "query",
+          "source": "internal_table",
+          "resultKind": "list",
+          "method": "GET",
+          "url": "",
+          "headers": {},
+          "query": {},
+          "body": null,
+          "dataTarget": {
+            "queryMode": "single_table",
+            "primaryTable": "users",
+            "involvedTables": [
+              "users"
+            ],
+            "matchMode": "any",
+            "filters": [
+              {
+                "field": "email",
+                "operator": "equals",
+                "valueSource": "input",
+                "inputKey": "email",
+                "required": false
+              },
+              {
+                "field": "name",
+                "operator": "contains",
+                "valueSource": "input",
+                "inputKey": "name",
+                "required": false
+              }
+            ],
+            "relationNotes": "",
+            "filterNotes": "Debe llegar al menos uno de los dos valores."
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "items": "{{response.rows}}",
+            "count": "{{response.count}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "external_paginated_list",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "query",
+          "source": "external_api",
+          "resultKind": "paginated_list",
+          "method": "GET",
+          "url": "https://api.example.com/v1/orders",
+          "headers": {
+            "Accept": "application/json",
+            "Authorization": "Bearer {{input.token}}"
+          },
+          "query": {
+            "page": "{{input.page}}",
+            "pageSize": "{{input.pageSize}}",
+            "status": "{{input.status}}"
+          },
+          "body": null,
+          "pagination": {
+            "enabled": true,
+            "mode": "page",
+            "pageParam": "page",
+            "pageSizeParam": "pageSize",
+            "itemsPath": "body.items",
+            "totalPath": "body.total"
+          },
+          "timeoutMs": 12000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "items": "{{response.body.items}}",
+            "total": "{{response.body.total}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "execute_service_by_key",
+      "endpoint": "POST /api/dynamic-services/by-key/validar_serial/execute",
+      "request": {
+        "context": {
+          "serial": "ABC-123",
+          "token": "secret-from-secure-source"
+        }
+      }
+    },
+    {
+      "id": "test_published_service",
+      "endpoint": "POST /api/dynamic-services/:serviceId/test",
+      "request": {
+        "context": {
+          "serial": "ABC-123",
+          "token": "test-only-token"
+        }
+      }
+    }
+  ]
+}

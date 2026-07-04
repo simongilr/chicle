@@ -1,15 +1,15 @@
 import { JsonPipe, NgFor } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
@@ -175,14 +175,14 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   standalone: true,
   imports: [
     FormsModule,
-    IonContent,
     JsonPipe,
-    MainNavComponent,
     NgFor,
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
+    LoadingSkeletonComponent,
     ModuleHeaderComponent,
+    PageShellComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
     SectionHeaderComponent,
@@ -190,16 +190,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   ],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
-      }
-
       .shell {
         display: grid;
         gap: 18px;
-        max-width: 1260px;
-        margin: 0 auto;
-        padding: 24px 20px 54px;
       }
 
       .panel {
@@ -471,17 +464,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
           grid-template-columns: 1fr;
         }
 
-        .shell {
-          padding-inline: 12px;
-        }
       }
     `
   ],
   template: `
-    <ion-content>
-      <app-main-nav contextLabel="Servicios" />
-
-      <main class="shell">
+    <app-page-shell contextLabel="Servicios">
+      <div class="shell">
         <app-module-header
           title="Servicios dinámicos"
           description="Diseña servicios configurables por organización, publica versiones y prueba respuestas desde backend con límites de seguridad."
@@ -521,7 +509,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
               </app-catalog-header>
 
               @if (loading) {
-                <p class="meta">Cargando servicios...</p>
+                <app-loading-skeleton
+                  variant="list"
+                  label="Cargando servicios"
+                  [rows]="4"
+                ></app-loading-skeleton>
               } @else if (error) {
                 <app-status-notice title="No se pudieron cargar" tone="error">
                   <span>{{ error }}</span>
@@ -1084,8 +1076,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
             </ng-container>
           </app-designer-workspace>
         }
-      </main>
-    </ion-content>
+      </div>
+    </app-page-shell>
   `
 })
 export class ServicesPageComponent implements OnInit {

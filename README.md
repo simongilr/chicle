@@ -44,3 +44,12 @@ before `npm run dev:api`.
 Read `docs/context-handoff.md` before continuing development in a new Codex conversation.
 
 Security and authentication decisions should be checked against `docs/security-auth-review.md` before implementation.
+
+## Official Configuration Documentation
+
+- Human/AI entry point: `docs/ai-authoring-guide.md`
+- Dynamic services contract: `docs/dynamic-services-contract.md`
+- Flow contract: `docs/flow-contract.md`
+- Visual components and adoption: `docs/ui-components.md`
+- In-app visual component catalog: `/components`
+- Machine-readable examples: `docs/examples/*.json`

@@ -1,9 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 
 type ConfisysValueType = 'string' | 'number' | 'boolean' | 'json';
 
@@ -31,35 +33,9 @@ interface ConfisysSaveResponse {
 @Component({
   selector: 'app-confisys-page',
   standalone: true,
-  imports: [FormsModule, IonContent, MainNavComponent],
+  imports: [FieldShellComponent, FormsModule, LoadingSkeletonComponent, ModuleHeaderComponent, PageShellComponent],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-weight: 800;
-      }
-
-      .top-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .link,
       button {
         min-height: 38px;
         border: 1px solid #c8d6e4;
@@ -67,7 +43,6 @@ interface ConfisysSaveResponse {
         background: #ffffff;
         color: #173b5f;
         padding: 8px 12px;
-        text-decoration: none;
         font: inherit;
         font-weight: 800;
       }
@@ -86,12 +61,8 @@ interface ConfisysSaveResponse {
       .shell {
         display: grid;
         gap: 18px;
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 24px 0 54px;
       }
 
-      .intro,
       .toolbar,
       .param-row {
         border: 1px solid #d9e2ec;
@@ -100,7 +71,6 @@ interface ConfisysSaveResponse {
         box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
       }
 
-      .intro,
       .toolbar {
         padding: 18px;
       }
@@ -226,40 +196,41 @@ interface ConfisysSaveResponse {
     `
   ],
   template: `
-    <ion-content class="ion-padding">
-      <app-main-nav contextLabel="Configuración" />
-
-      <main class="shell">
-        <section class="intro">
-          <h1>Confisys</h1>
-          <p>
-            Parámetros de sistema cargados en memoria al iniciar la API. Los cambios se guardan en
-            base de datos y aplican después de reiniciar el backend.
-          </p>
-        </section>
+    <app-page-shell contextLabel="Configuración">
+      <div class="shell">
+        <app-module-header
+          eyebrow="Administración del runtime"
+          title="Confisys"
+          description="Parámetros cargados en memoria al iniciar la API. Los cambios se guardan en base de datos y aplican después de reiniciar el backend."
+          badge="Configuración"
+        ></app-module-header>
 
         <section class="toolbar">
-          <input
-            type="search"
-            [(ngModel)]="filter"
-            placeholder="Buscar por key, categoría o descripción"
-            aria-label="Buscar confisys"
-          />
-          <select [(ngModel)]="category" aria-label="Filtrar categoría">
-            <option value="">Todas las categorías</option>
-            @for (item of categories; track item) {
-              <option [value]="item">{{ item }}</option>
-            }
-          </select>
+          <app-field-shell label="Buscar" forId="confisys-search">
+            <input
+              id="confisys-search"
+              type="search"
+              [(ngModel)]="filter"
+              placeholder="Key, categoría o descripción"
+            />
+          </app-field-shell>
+          <app-field-shell label="Categoría" forId="confisys-category">
+            <select id="confisys-category" [(ngModel)]="category">
+              <option value="">Todas las categorías</option>
+              @for (item of categories; track item) {
+                <option [value]="item">{{ item }}</option>
+              }
+            </select>
+          </app-field-shell>
         </section>
 
         <section class="params">
           @if (loading) {
-            <article class="param-row">
-              <div class="key-block">
-                <h2>Cargando parámetros...</h2>
-              </div>
-            </article>
+            <app-loading-skeleton
+              variant="list"
+              label="Cargando parámetros"
+              [rows]="5"
+            ></app-loading-skeleton>
           }
 
           @if (!loading && filteredEntries.length === 0) {
@@ -313,8 +284,8 @@ interface ConfisysSaveResponse {
             </article>
           }
         </section>
-      </main>
-    </ion-content>
+      </div>
+    </app-page-shell>
   `
 })
 export class ConfisysPageComponent implements OnInit {

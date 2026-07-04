@@ -1,0 +1,323 @@
+export type UiComponentCategory =
+  | 'Shell y navegación'
+  | 'Diseñadores'
+  | 'Guía y estados'
+  | 'Formularios'
+  | 'Temas y presentación'
+  | 'Flow especializado';
+
+export interface UiComponentCatalogEntry {
+  name: string;
+  selector: string;
+  category: UiComponentCategory;
+  purpose: string;
+  importPath: string;
+  usedBy: string[];
+  status: 'stable' | 'initial' | 'domain';
+  example: string;
+}
+
+export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
+  {
+    name: 'MainNavComponent',
+    selector: 'app-main-nav',
+    category: 'Shell y navegación',
+    purpose: 'Navegación principal responsive, permisos, menús del tenant y cierre de sesión.',
+    importPath: 'shared/main-nav/main-nav.component',
+    usedBy: ['PageShellComponent'],
+    status: 'stable',
+    example: '<app-main-nav contextLabel="Servicios"></app-main-nav>'
+  },
+  {
+    name: 'PageShellComponent',
+    selector: 'app-page-shell',
+    category: 'Shell y navegación',
+    purpose: 'Ancho, márgenes, fondo, navegación y scroll de todas las pantallas autenticadas.',
+    importPath: 'shared/page-shell/page-shell.component',
+    usedBy: ['Home', 'Docs', 'Components', 'Confisys', 'Database', 'Services', 'Flows', 'Security', 'Dynamic forms'],
+    status: 'stable',
+    example: '<app-page-shell contextLabel="Formularios">...</app-page-shell>'
+  },
+  {
+    name: 'PublicPageShellComponent',
+    selector: 'app-public-page-shell',
+    category: 'Shell y navegación',
+    purpose: 'Topbar, ancho y márgenes compartidos para rutas públicas.',
+    importPath: 'shared/public-page-shell/public-page-shell.component',
+    usedBy: ['Login', 'Setup'],
+    status: 'stable',
+    example:
+      '<app-public-page-shell contextLabel="Ingreso"><a public-actions routerLink="/docs">Manual</a>...</app-public-page-shell>'
+  },
+  {
+    name: 'ModuleHeaderComponent',
+    selector: 'app-module-header',
+    category: 'Shell y navegación',
+    purpose: 'Título, descripción, eyebrow y badge uniforme para módulos.',
+    importPath: 'shared/module-header/module-header.component',
+    usedBy: ['Confisys', 'Database', 'Services', 'Flows', 'Security', 'Dynamic forms'],
+    status: 'stable',
+    example:
+      '<app-module-header eyebrow="Construcción" title="Formularios" description="Diseña formularios." badge="V1"></app-module-header>'
+  },
+  {
+    name: 'DesignerWorkspaceComponent',
+    selector: 'app-designer-workspace',
+    category: 'Diseñadores',
+    purpose: 'Distribución responsive de catálogo lateral y área de edición.',
+    importPath: 'shared/designer-workspace/designer-workspace.component',
+    usedBy: ['Services', 'Flows'],
+    status: 'stable',
+    example:
+      '<app-designer-workspace><ng-container designer-navigation>...</ng-container><ng-container designer-workspace>...</ng-container></app-designer-workspace>'
+  },
+  {
+    name: 'CatalogHeaderComponent',
+    selector: 'app-catalog-header',
+    category: 'Diseñadores',
+    purpose: 'Título, contador y comandos de un catálogo.',
+    importPath: 'shared/catalog-header/catalog-header.component',
+    usedBy: ['Database', 'Services', 'Flows'],
+    status: 'stable',
+    example: '<app-catalog-header title="Formularios" summary="3 formularios">...</app-catalog-header>'
+  },
+  {
+    name: 'CatalogItemComponent',
+    selector: 'app-catalog-item',
+    category: 'Diseñadores',
+    purpose: 'Fila seleccionable de catálogo con título, metadata y detalle.',
+    importPath: 'shared/catalog-item/catalog-item.component',
+    usedBy: ['Database', 'Services', 'Flows'],
+    status: 'stable',
+    example: '<app-catalog-item title="Registro" meta="draft" [active]="true"></app-catalog-item>'
+  },
+  {
+    name: 'SectionHeaderComponent',
+    selector: 'app-section-header',
+    category: 'Diseñadores',
+    purpose: 'Encabezado de bloque con descripción, paso y acciones proyectadas.',
+    importPath: 'shared/section-header/section-header.component',
+    usedBy: ['Database', 'Services', 'Flows'],
+    status: 'stable',
+    example:
+      '<app-section-header stepLabel="Paso 1" title="Datos" description="Identidad del objeto.">...</app-section-header>'
+  },
+  {
+    name: 'ProcessStepsComponent',
+    selector: 'app-process-steps',
+    category: 'Guía y estados',
+    purpose: 'Etapas completas, activas y pendientes de un proceso guiado.',
+    importPath: 'shared/process-steps/process-steps.component',
+    usedBy: ['Services', 'Flows', 'Docs'],
+    status: 'stable',
+    example: '<app-process-steps [items]="steps" activeKey="design"></app-process-steps>'
+  },
+  {
+    name: 'WorkflowGuideComponent',
+    selector: 'app-workflow-guide',
+    category: 'Guía y estados',
+    purpose: 'Explica el objetivo actual y el siguiente comando del usuario.',
+    importPath: 'shared/workflow-guide/workflow-guide.component',
+    usedBy: ['Services', 'Flows', 'Docs'],
+    status: 'stable',
+    example:
+      '<app-workflow-guide stepLabel="Paso 2" title="Diseña" description="Configura el comportamiento."></app-workflow-guide>'
+  },
+  {
+    name: 'ContextAssistantComponent',
+    selector: 'app-context-assistant',
+    category: 'Guía y estados',
+    purpose: 'Ayuda contextual, ejemplo, estado de preparación y siguiente acción.',
+    importPath: 'shared/context-assistant/context-assistant.component',
+    usedBy: ['Flows'],
+    status: 'stable',
+    example:
+      '<app-context-assistant title="Entrada" description="Define los datos." example="email"></app-context-assistant>'
+  },
+  {
+    name: 'StatusNoticeComponent',
+    selector: 'app-status-notice',
+    category: 'Guía y estados',
+    purpose: 'Estados vacío, informativo, correcto, advertencia y error.',
+    importPath: 'shared/status-notice/status-notice.component',
+    usedBy: ['Login', 'Setup', 'Database', 'Services', 'Flows', 'Security', 'Dynamic forms'],
+    status: 'stable',
+    example: '<app-status-notice tone="error" title="No se pudo cargar">Reintenta.</app-status-notice>'
+  },
+  {
+    name: 'LoadingSkeletonComponent',
+    selector: 'app-loading-skeleton',
+    category: 'Guía y estados',
+    purpose: 'Skeleton accesible para páginas, listas, tablas y formularios.',
+    importPath: 'shared/loading-skeleton/loading-skeleton.component',
+    usedBy: ['Router', 'Login', 'Setup', 'Confisys', 'Database', 'Services', 'Flows', 'Security', 'Dynamic forms'],
+    status: 'stable',
+    example: '<app-loading-skeleton variant="form" label="Cargando formulario" [rows]="6"></app-loading-skeleton>'
+  },
+  {
+    name: 'SegmentedControlComponent',
+    selector: 'app-segmented-control',
+    category: 'Guía y estados',
+    purpose: 'Selector compacto de una sola vista o modo.',
+    importPath: 'shared/segmented-control/segmented-control.component',
+    usedBy: ['Database', 'Flows', 'PreviewViewportComponent'],
+    status: 'stable',
+    example: '<app-segmented-control [items]="modes" [value]="mode" (valueChange)="mode = $event"></app-segmented-control>'
+  },
+  {
+    name: 'FieldShellComponent',
+    selector: 'app-field-shell',
+    category: 'Formularios',
+    purpose: 'Label, requerido, ayuda y error accesible alrededor de un control.',
+    importPath: 'shared/field-shell/field-shell.component',
+    usedBy: ['Login', 'Setup', 'Components', 'Confisys', 'DynamicFieldControlComponent'],
+    status: 'stable',
+    example: '<app-field-shell label="Correo" forId="email" [required]="true"><input id="email" /></app-field-shell>'
+  },
+  {
+    name: 'DynamicFieldControlComponent',
+    selector: 'app-dynamic-field-control',
+    category: 'Formularios',
+    purpose: 'Renderiza controles desde una definición declarativa.',
+    importPath: 'shared/dynamic-field-control/dynamic-field-control.component',
+    usedBy: ['Dynamic forms'],
+    status: 'initial',
+    example:
+      '<app-dynamic-field-control [field]="field" [presentation]="presentation" [viewportWidth]="390" [value]="value" (valueChange)="value = $event"></app-dynamic-field-control>'
+  },
+  {
+    name: 'DynamicFieldLibraryComponent',
+    selector: 'app-dynamic-field-library',
+    category: 'Formularios',
+    purpose: 'Galería reutilizable de todos los campos declarativos disponibles y sus presentaciones instaladas.',
+    importPath: 'shared/dynamic-field-library/dynamic-field-library.component',
+    usedBy: ['Components', 'Dynamic form designer'],
+    status: 'initial',
+    example: '<app-dynamic-field-library [viewportWidth]="390"></app-dynamic-field-library>'
+  },
+  {
+    name: 'FormlyRuntimeComponent',
+    selector: 'app-formly-runtime',
+    category: 'Formularios',
+    purpose: 'Compone formularios y pasos declarativos con Reactive Forms, validación y renderer multikit.',
+    importPath: 'shared/formly-runtime/formly-runtime.component',
+    usedBy: ['Dynamic forms'],
+    status: 'initial',
+    example:
+      '<app-formly-runtime [definition]="form" [model]="model" [presentation]="presentation" (submitted)="submit($event)"></app-formly-runtime>'
+  },
+  {
+    name: 'ChicleFormlyFieldTypeComponent',
+    selector: 'app-chicle-formly-field-type',
+    category: 'Formularios',
+    purpose: 'Puente entre el ciclo de validación de Formly y el control dinámico multikit de Chicle.',
+    importPath: 'engine/forms/formly/chicle-formly-field.type',
+    usedBy: ['FormlyRuntimeComponent'],
+    status: 'initial',
+    example: "{ type: 'chicle-field', props: { runtimeField: field } }"
+  },
+  {
+    name: 'ChicleFormlyDisplayTypeComponent',
+    selector: 'app-chicle-formly-display-type',
+    category: 'Formularios',
+    purpose: 'Renderiza títulos, párrafos y divisores declarativos dentro de un formulario Formly.',
+    importPath: 'engine/forms/formly/chicle-formly-display.type',
+    usedBy: ['FormlyRuntimeComponent'],
+    status: 'initial',
+    example: "{ type: 'chicle-display', props: { runtimeField: field } }"
+  },
+  {
+    name: 'PrimengFieldRendererComponent',
+    selector: 'app-primeng-field-renderer',
+    category: 'Formularios',
+    purpose: 'Adaptador de controles dinámicos para pantallas web basadas en PrimeNG.',
+    importPath: 'shared/field-renderers/primeng-field-renderer.component',
+    usedBy: ['DynamicFieldControlComponent'],
+    status: 'initial',
+    example:
+      '<app-primeng-field-renderer [field]="field" controlId="field-id" [value]="value"></app-primeng-field-renderer>'
+  },
+  {
+    name: 'IonicFieldRendererComponent',
+    selector: 'app-ionic-field-renderer',
+    category: 'Formularios',
+    purpose: 'Adaptador de controles dinámicos para pantallas móviles basadas en Ionic.',
+    importPath: 'shared/field-renderers/ionic-field-renderer.component',
+    usedBy: ['DynamicFieldControlComponent'],
+    status: 'initial',
+    example:
+      '<app-ionic-field-renderer [field]="field" controlId="field-id" [value]="value"></app-ionic-field-renderer>'
+  },
+  {
+    name: 'NativeFieldRendererComponent',
+    selector: 'app-native-field-renderer',
+    category: 'Formularios',
+    purpose: 'Adaptador HTML base y dependencia mínima para controles dinámicos.',
+    importPath: 'shared/field-renderers/native-field-renderer.component',
+    usedBy: ['DynamicFieldControlComponent'],
+    status: 'initial',
+    example:
+      '<app-native-field-renderer [field]="field" controlId="field-id" [value]="value"></app-native-field-renderer>'
+  },
+  {
+    name: 'UiPresentationSwitcherComponent',
+    selector: 'app-ui-presentation-switcher',
+    category: 'Temas y presentación',
+    purpose: 'Alterna entre resolución adaptativa, PrimeNG, Ionic y controles base durante diseño y pruebas.',
+    importPath: 'shared/ui-presentation-switcher/ui-presentation-switcher.component',
+    usedBy: ['Dynamic forms'],
+    status: 'initial',
+    example:
+      '<app-ui-presentation-switcher [value]="kit" [resolvedKit]="resolvedKit" (valueChange)="kit = $event"></app-ui-presentation-switcher>'
+  },
+  {
+    name: 'UiThemeSelectorComponent',
+    selector: 'app-ui-theme-selector',
+    category: 'Temas y presentación',
+    purpose: 'Lista los temas registrados y aplica tokens coordinados a Chicle, PrimeNG e Ionic.',
+    importPath: 'shared/ui-theme-selector/ui-theme-selector.component',
+    usedBy: ['Components'],
+    status: 'initial',
+    example: '<app-ui-theme-selector controlId="screen-theme"></app-ui-theme-selector>'
+  },
+  {
+    name: 'PreviewViewportComponent',
+    selector: 'app-preview-viewport',
+    category: 'Formularios',
+    purpose: 'Vista previa estable en escritorio, tablet y móvil.',
+    importPath: 'shared/preview-viewport/preview-viewport.component',
+    usedBy: ['Dynamic forms'],
+    status: 'initial',
+    example: '<app-preview-viewport [(mode)]="previewMode">...</app-preview-viewport>'
+  },
+  {
+    name: 'FlowDataMapperComponent',
+    selector: 'app-flow-data-mapper',
+    category: 'Flow especializado',
+    purpose: 'Mapea entradas de un paso desde input, contexto y resultados previos.',
+    importPath: 'pages/flows/flow-data-mapper.component',
+    usedBy: ['Flows'],
+    status: 'domain',
+    example: '<app-flow-data-mapper [rows]="rows" [options]="options"></app-flow-data-mapper>'
+  },
+  {
+    name: 'FlowGraphComponent',
+    selector: 'app-flow-graph',
+    category: 'Flow especializado',
+    purpose: 'Representa y selecciona nodos conectados de un flow.',
+    importPath: 'pages/flows/flow-graph.component',
+    usedBy: ['Flows'],
+    status: 'domain',
+    example: '<app-flow-graph [steps]="steps" [selectedStepId]="selectedStepId"></app-flow-graph>'
+  },
+  {
+    name: 'FlowTimelineComponent',
+    selector: 'app-flow-timeline',
+    category: 'Flow especializado',
+    purpose: 'Lista ordenada de pasos, estado y comandos de edición.',
+    importPath: 'pages/flows/flow-timeline.component',
+    usedBy: ['Flows'],
+    status: 'domain',
+    example: '<app-flow-timeline [steps]="steps" [selectedStepId]="selectedStepId"></app-flow-timeline>'
+  }
+];

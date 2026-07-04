@@ -18,8 +18,10 @@ Page containers keep routing, permissions, loading and orchestration.
 
 | Component | Selector | Responsibility | Current use | Maturity |
 | --- | --- | --- | --- | --- |
-| MainNavComponent | `app-main-nav` | Responsive primary navigation, dropdowns, mobile drawer and logout | Seven authenticated/manual pages | Stable |
-| ModuleHeaderComponent | `app-module-header` | Module title, eyebrow, description and badge | Database, Services and Flows | Stable |
+| MainNavComponent | `app-main-nav` | Responsive primary navigation, dropdowns, mobile drawer and logout | Eight authenticated/manual pages | Stable |
+| PageShellComponent | `app-page-shell` | Ionic content, navigation, shared width, margins, background and responsive padding | Home, Manual, Confisys, Security, Database, Services, Flows and dynamic forms | Stable |
+| PublicPageShellComponent | `app-public-page-shell` | Shared public topbar, width, margins, background and responsive padding | Login and Setup | Stable |
+| ModuleHeaderComponent | `app-module-header` | Module title, eyebrow, description and badge | Confisys, Security, Database, Services, Flows and dynamic forms | Stable |
 | DesignerWorkspaceComponent | `app-designer-workspace` | Responsive catalog plus editing workspace | Services and Flows | Stable; adopt in Forms and Screens |
 | CatalogHeaderComponent | `app-catalog-header` | Catalog title, count and projected commands | Database, Services and Flows | Stable |
 | CatalogItemComponent | `app-catalog-item` | Selectable catalog row with title, metadata and detail | Database, Services and Flows | Stable |
@@ -27,8 +29,21 @@ Page containers keep routing, permissions, loading and orchestration.
 | ProcessStepsComponent | `app-process-steps` | Guided stages with complete, active and pending states | Services, Flows and Manual | Stable |
 | WorkflowGuideComponent | `app-workflow-guide` | Current objective, explanation and next command | Services, Flows and Manual | Stable |
 | ContextAssistantComponent | `app-context-assistant` | Local help, example, readiness and next action | Flow authoring blocks | Reusable; adopt in builders |
-| StatusNoticeComponent | `app-status-notice` | Empty, info, success, warning and error states | Database, Services and Flows | Stable |
+| StatusNoticeComponent | `app-status-notice` | Empty, info, success, warning and error states | Login, Setup, Database, Services, Flows, Security and dynamic forms | Stable |
+| LoadingSkeletonComponent | `app-loading-skeleton` | Page, list, table and form loading placeholders with accessible status | Route transitions and data-driven modules | Stable |
 | SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database and Flows | Stable |
+| FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Login, Setup, component catalog, Confisys and dynamic field controls | Stable |
+| DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic or native adapters without changing the schema | Dynamic form runtime | Initial multikit renderer |
+| DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field and compare installed presentation kits | Component library and future form designer | Initial field palette |
+| FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
+| ChicleFormlyFieldTypeComponent | `app-chicle-formly-field-type` | Connect Formly state and validation to the multikit field facade | Formly runtime | Initial internal adapter |
+| ChicleFormlyDisplayTypeComponent | `app-chicle-formly-display-type` | Render declarative title, paragraph and divider content | Formly runtime | Initial internal adapter |
+| PrimengFieldRendererComponent | `app-primeng-field-renderer` | Render the field contract with PrimeNG controls | Dynamic field facade | Initial adapter |
+| IonicFieldRendererComponent | `app-ionic-field-renderer` | Render the field contract with Ionic controls | Dynamic field facade | Initial adapter |
+| NativeFieldRendererComponent | `app-native-field-renderer` | Render the field contract with native HTML controls | Dynamic field facade | Initial fallback |
+| UiPresentationSwitcherComponent | `app-ui-presentation-switcher` | Preview adaptive, PrimeNG, Ionic and native rendering | Dynamic form runtime | Initial |
+| UiThemeSelectorComponent | `app-ui-theme-selector` | Select installed themes and synchronize Chicle, Ionic and PrimeNG tokens | Component library | Initial |
+| PreviewViewportComponent | `app-preview-viewport` | Constrain a projected preview to desktop, tablet or mobile width | Dynamic form runtime | Initial stable contract |
 
 ## Domain visual components
 
@@ -44,21 +59,22 @@ Page containers keep routing, permissions, loading and orchestration.
 | --- | --- | --- |
 | AppComponent | Ionic application shell and router outlet | Stable |
 | HomePageComponent | Operational dashboard | Functional, custom layout |
-| SetupPageComponent | First tenant and owner creation | Functional, Ionic shell |
-| LoginPageComponent | Policy-driven authentication | Functional, Ionic shell |
+| SetupPageComponent | First tenant and owner creation | Functional, shared public shell |
+| LoginPageComponent | Policy-driven authentication | Functional, shared public shell |
 | DocsPageComponent | In-app operational manual | Functional, large page |
 | ConfisysPageComponent | Runtime configuration | Functional, custom layout |
 | DatabasePageComponent | Data viewer and schema designer | Functional; partially uses shared designer language |
 | ServicesPageComponent | Dynamic service lifecycle | Functional; reference visual workflow |
 | FlowsPageComponent | Declarative process lifecycle | Functional; must continue decomposing |
 | SecurityPageComponent | Users, roles, permissions and audit | Functional; needs further component extraction |
-| DynamicFormPageComponent | Dynamic form runtime | Placeholder only |
+| DynamicFormPageComponent | Dynamic form runtime | Loads stored schema, renders fields, previews responsive modes and validates required values |
 
 ## Runtime services that support visual components
 
 | Service | Purpose | Status |
 | --- | --- | --- |
 | FormRuntimeService | Normalize a dynamic form definition | Initial skeleton |
+| FormlySchemaAdapterService | Convert RuntimeField contracts into safe Formly configuration | Initial |
 | ActionRunnerService | Execute declarative UI actions, including `execute_flow` | Partial |
 | DynamicServiceClientService | Discover and execute published services by key | Ready |
 | DynamicFlowClientService | Discover and execute published flows by key | Ready |
@@ -67,26 +83,23 @@ Page containers keep routing, permissions, loading and orchestration.
 
 These components are required before the builders grow inside page files:
 
-1. `FieldShellComponent`: label, required state, help, validation and error presentation.
-2. `DynamicFieldControlComponent`: text, number, date, email, select, checkbox, toggle, textarea and file controls.
-3. `FieldPaletteComponent`: searchable catalog of available field and component types.
-4. `ComponentTreeComponent`: ordered screen hierarchy with selection and nesting.
-5. `PropertyInspectorComponent`: edits the selected field or component without knowing its business module.
-6. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
-7. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
-8. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
-9. `JsonEditorPanelComponent`: synchronized guided/JSON editing with parse errors and reset.
-10. `PreviewViewportComponent`: desktop, tablet and mobile preview modes with stable dimensions.
-11. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
-12. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
-13. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
-14. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
+1. Extend `DynamicFieldLibraryComponent` with search, categories and insertion events for the visual designer.
+2. `ComponentTreeComponent`: ordered screen hierarchy with selection and nesting.
+3. `PropertyInspectorComponent`: edits the selected field or component without knowing its business module.
+4. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
+5. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
+6. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
+7. `JsonEditorPanelComponent`: synchronized guided/JSON editing with parse errors and reset.
+8. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
+9. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
+10. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
+11. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
 
 ## Extraction priorities
 
 ### P0: before Dynamic Forms V1
 
-- Field shell and dynamic field controls.
+- Extend the field renderer with files, catalogs, masks and rule-driven validation.
 - Property inspector and schema field editor.
 - Data/action binding editors.
 - JSON editor and responsive preview viewport.
@@ -102,7 +115,8 @@ These components are required before the builders grow inside page files:
 
 ### P2: after first complete builder
 
-- Move repeated spacing, colors, borders, controls and typography into design tokens.
+- Continue moving repeated controls and typography into design tokens. Page spacing, background, text, muted,
+  borders and radius already use global tokens.
 - Replace page-local copies of panel, toolbar, grid and button styles.
 - Evaluate PrimeNG adoption per component instead of mixing native and PrimeNG controls ad hoc.
 - Add a visual component gallery and interaction tests.
@@ -115,7 +129,8 @@ These components are required before the builders grow inside page files:
   `DatabasePageComponent` are large page containers. New builder behavior must not be added directly to them.
 - Menu grouping is currently inferred in the frontend because the `menus` table does not persist `group` or `placement`.
   Persist those fields when menu administration becomes editable.
-- Dynamic forms have a route and entity, but not a production renderer, field kit, designer, versions or preview system.
+- Dynamic forms now have an initial runtime renderer and responsive preview, but still need a designer, version
+  lifecycle, action execution, richer validation and field types before production use.
 
 ## Definition of done for a new visual component
 
@@ -125,3 +140,6 @@ These components are required before the builders grow inside page files:
 - Loading, empty, error, disabled and readonly states where relevant.
 - No horizontal overflow at 390 px.
 - Demonstrated in the in-app component inventory and covered by a focused interaction test.
+- Themes are registered centrally, lazy-load their non-default PrimeNG preset and are audited through `/components`.
+
+The latest route-by-route adoption check and domain exceptions are recorded in `docs/ui-reuse-audit.md`.

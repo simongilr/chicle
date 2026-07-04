@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "form": {
+    "key": "contact_request",
+    "title": "Solicitud de contacto",
+    "presentation": {
+      "profileKey": "adaptive",
+      "kit": "auto",
+      "theme": "chicle"
+    },
+    "steps": [
+      {
+        "key": "identity",
+        "title": "Datos principales",
+        "description": "Información necesaria para identificar la solicitud.",
+        "fields": [
+          {
+            "name": "identity_title",
+            "type": "title",
+            "label": "Información de contacto",
+            "layout": "full"
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Nombre",
+            "required": true,
+            "transform": "trim",
+            "length": {
+              "min": 3,
+              "max": 80
+            }
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "label": "Correo",
+            "required": true
+          },
+          {
+            "name": "channel",
+            "type": "select",
+            "label": "Canal preferido",
+            "required": true,
+            "options": [
+              {
+                "label": "Correo",
+                "value": "email"
+              },
+              {
+                "label": "Teléfono",
+                "value": "phone"
+              }
+            ]
+          },
+          {
+            "name": "phone",
+            "type": "tel",
+            "label": "Teléfono",
+            "visibleWhen": {
+              "field": "channel",
+              "operator": "equals",
+              "value": "phone"
+            }
+          }
+        ]
+      },
+      {
+        "key": "preferences",
+        "title": "Preferencias",
+        "fields": [
+          {
+            "name": "priority",
+            "type": "radio",
+            "label": "Prioridad",
+            "required": true,
+            "layout": "full",
+            "options": [
+              {
+                "label": "Normal",
+                "value": "normal"
+              },
+              {
+                "label": "Alta",
+                "value": "high"
+              }
+            ]
+          },
+          {
+            "name": "contactDate",
+            "type": "date",
+            "label": "Fecha de contacto"
+          },
+          {
+            "name": "notifications",
+            "type": "toggle",
+            "label": "Notificaciones",
+            "placeholder": "Recibir actualizaciones"
+          },
+          {
+            "name": "notes",
+            "type": "textarea",
+            "label": "Observaciones",
+            "layout": "full",
+            "length": {
+              "max": 500
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+

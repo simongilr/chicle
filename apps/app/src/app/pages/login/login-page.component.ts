@@ -1,9 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { IonContent } from '@ionic/angular/standalone';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { PublicPageShellComponent } from '../../shared/public-page-shell/public-page-shell.component';
+import { StatusNoticeComponent, StatusNoticeTone } from '../../shared/status-notice/status-notice.component';
 
 type SecurityChannel = 'web' | 'mobile' | 'device';
 type AuthMethodType = 'password' | 'oauth2' | 'oidc' | 'saml' | 'magic_link' | 'device_code' | 'passkey';
@@ -41,28 +44,16 @@ interface PublicAuthConfig {
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, IonContent],
+  imports: [
+    FieldShellComponent,
+    FormsModule,
+    LoadingSkeletonComponent,
+    PublicPageShellComponent,
+    RouterLink,
+    StatusNoticeComponent
+  ],
   styles: [
     `
-      ion-content {
-        --background: #f4f7fb;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #ffffff;
-        padding: 14px 24px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-weight: 800;
-      }
-
       .link {
         border: 1px solid #c8d6e4;
         border-radius: 8px;
@@ -77,9 +68,6 @@ interface PublicAuthConfig {
         display: grid;
         grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
         gap: 28px;
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 32px 0 52px;
       }
 
       .intro,
@@ -160,13 +148,6 @@ interface PublicAuthConfig {
         gap: 14px;
       }
 
-      label {
-        display: grid;
-        gap: 7px;
-        color: #173b5f;
-        font-weight: 700;
-      }
-
       input {
         min-height: 44px;
         width: 100%;
@@ -245,21 +226,9 @@ interface PublicAuthConfig {
         color: #ffffff;
       }
 
-      .message {
-        border-radius: 8px;
-        background: #eaf3fc;
-        color: #254057;
-        padding: 12px;
-      }
-
       @media (max-width: 820px) {
-        .topbar {
-          padding: 12px 16px;
-        }
-
         .login-shell {
           grid-template-columns: 1fr;
-          padding-top: 16px;
         }
 
         h1 {
@@ -269,13 +238,9 @@ interface PublicAuthConfig {
     `
   ],
   template: `
-    <header class="topbar">
-      <div class="brand">Chicle Engine</div>
-      <a class="link" routerLink="/docs">Docs</a>
-    </header>
-
-    <ion-content class="ion-padding">
-      <main class="login-shell">
+    <app-public-page-shell contextLabel="Ingreso">
+      <a public-actions class="link" routerLink="/docs">Manual</a>
+      <div class="login-shell">
         <section class="intro">
           <span class="badge">Seguridad modular</span>
           <h1>Ingreso adaptable por organización</h1>
@@ -311,13 +276,19 @@ interface PublicAuthConfig {
         <section class="login-panel">
           <h2>Iniciar sesión</h2>
 
-          @if (message) {
-            <div class="message">{{ message }}</div>
+          @if (loading) {
+            <app-loading-skeleton
+              variant="form"
+              label="Cargando política de seguridad"
+              [rows]="2"
+            ></app-loading-skeleton>
+          } @else if (message) {
+            <app-status-notice [tone]="messageTone">{{ message }}</app-status-notice>
           }
 
-          @if (config?.setupRequired) {
+          @if (!loading && config?.setupRequired) {
             <a class="link" routerLink="/setup">Crear sistema primero</a>
-          } @else {
+          } @else if (!loading) {
             <div class="channel-tabs" aria-label="Canal de seguridad">
               <button type="button" [class.active]="channel === 'web'" (click)="channel = 'web'">Web</button>
               <button type="button" [class.active]="channel === 'mobile'" (click)="channel = 'mobile'">Móvil</button>
@@ -326,14 +297,24 @@ interface PublicAuthConfig {
 
             @if (passwordEnabledForChannel) {
               <form class="form" (ngSubmit)="login()">
-                <label>
-                  Email
-                  <input name="email" type="email" autocomplete="email" [(ngModel)]="email" />
-                </label>
-                <label>
-                  Password
-                  <input name="password" type="password" autocomplete="current-password" [(ngModel)]="password" />
-                </label>
+                <app-field-shell label="Email" forId="login-email" [required]="true">
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    [(ngModel)]="email"
+                  />
+                </app-field-shell>
+                <app-field-shell label="Password" forId="login-password" [required]="true">
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    [(ngModel)]="password"
+                  />
+                </app-field-shell>
                 <button class="primary-button" type="submit" [disabled]="submitting">
                   {{ submitting ? 'Entrando...' : 'Entrar con password' }}
                 </button>
@@ -353,8 +334,8 @@ interface PublicAuthConfig {
             </div>
           }
         </section>
-      </main>
-    </ion-content>
+      </div>
+    </app-public-page-shell>
   `
 })
 export class LoginPageComponent implements OnInit {
@@ -368,7 +349,9 @@ export class LoginPageComponent implements OnInit {
   email = '';
   password = '';
   submitting = false;
+  loading = true;
   message = 'Cargando política de seguridad...';
+  messageTone: StatusNoticeTone = 'info';
 
   ngOnInit() {
     this.loadConfig();
@@ -390,11 +373,15 @@ export class LoginPageComponent implements OnInit {
     this.api.get<PublicAuthConfig>('auth/config').subscribe({
       next: (config) => {
         this.config = config;
+        this.loading = false;
+        this.messageTone = 'info';
         this.message = config.setupRequired
           ? 'El sistema todavía no fue creado. Ejecuta el setup inicial.'
           : 'Métodos disponibles según la política de seguridad activa.';
       },
       error: () => {
+        this.loading = false;
+        this.messageTone = 'error';
         this.message = 'No se pudo cargar la política de seguridad. Revisa API_PORT y Docker.';
       }
     });
@@ -402,11 +389,13 @@ export class LoginPageComponent implements OnInit {
 
   login() {
     if (!this.email.trim() || !this.password) {
+      this.messageTone = 'warning';
       this.message = 'Ingresa email y password.';
       return;
     }
 
     this.submitting = true;
+    this.messageTone = 'info';
     this.message = 'Validando credenciales...';
     this.auth
       .login({
@@ -422,6 +411,7 @@ export class LoginPageComponent implements OnInit {
         },
         error: () => {
           this.submitting = false;
+          this.messageTone = 'error';
           this.message = 'No se pudo iniciar sesión. Revisa tus credenciales.';
         }
       });

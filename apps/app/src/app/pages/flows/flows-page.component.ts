@@ -10,8 +10,9 @@ import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-head
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import {
@@ -421,7 +422,8 @@ interface FlowJobItem {
   imports: [
     FormsModule,
     JsonPipe,
-    MainNavComponent,
+    PageShellComponent,
+    LoadingSkeletonComponent,
     ModuleHeaderComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
@@ -448,9 +450,6 @@ interface FlowJobItem {
       .page {
         display: grid;
         gap: 18px;
-        max-width: 1260px;
-        margin: 0 auto;
-        padding: 24px 20px 54px;
       }
 
       .eyebrow,
@@ -486,10 +485,13 @@ interface FlowJobItem {
         display: grid;
         gap: 16px;
         align-content: start;
+        min-width: 0;
+        max-width: 100%;
         background: #fff;
         border: 1px solid #d9e2ec;
         border-radius: 8px;
         padding: 18px;
+        overflow-wrap: anywhere;
       }
 
       app-process-steps,
@@ -1307,9 +1309,6 @@ interface FlowJobItem {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .page {
-          padding-inline: 12px;
-        }
       }
 
       @media (max-width: 520px) {
@@ -1320,8 +1319,8 @@ interface FlowJobItem {
     `
   ],
   template: `
-    <app-main-nav contextLabel="Flow Designer"></app-main-nav>
-    <main class="page">
+    <app-page-shell contextLabel="Flow Designer">
+      <div class="page">
       <app-module-header
         eyebrow="Procesos de la organización"
         title="Flows dinámicos"
@@ -1329,7 +1328,12 @@ interface FlowJobItem {
         badge="Flow Engine"
       ></app-module-header>
 
-      @if (message) {
+      @if (loading) {
+        <app-loading-skeleton
+          variant="page"
+          label="Cargando Flow Designer"
+        ></app-loading-skeleton>
+      } @else if (message) {
         <app-status-notice tone="info">{{ message }}</app-status-notice>
       }
 
@@ -3577,7 +3581,8 @@ interface FlowJobItem {
           }
         </ng-container>
       </app-designer-workspace>
-    </main>
+      </div>
+    </app-page-shell>
   `
 })
 export class FlowsPageComponent implements OnInit, OnDestroy {

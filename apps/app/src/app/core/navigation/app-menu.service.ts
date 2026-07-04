@@ -5,13 +5,29 @@ import { AppMenuItem } from './app-menu.types';
 
 const PUBLIC_MENU: AppMenuItem[] = [
   { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 10 },
-  { key: 'setup', label: 'Setup', route: '/setup', icon: 'pi pi-wrench', placement: 'primary', sortOrder: 20 },
-  { key: 'login', label: 'Ingresar', route: '/login', icon: 'pi pi-sign-in', placement: 'primary', sortOrder: 30 }
+  {
+    key: 'components',
+    label: 'Componentes',
+    route: '/components',
+    icon: 'pi pi-th-large',
+    placement: 'primary',
+    sortOrder: 20
+  },
+  { key: 'setup', label: 'Setup', route: '/setup', icon: 'pi pi-wrench', placement: 'primary', sortOrder: 30 },
+  { key: 'login', label: 'Ingresar', route: '/login', icon: 'pi pi-sign-in', placement: 'primary', sortOrder: 40 }
 ];
 
 const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   { key: 'home', label: 'Inicio', route: '/home', icon: 'pi pi-home', placement: 'primary', sortOrder: 10 },
   { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 20 },
+  {
+    key: 'components',
+    label: 'Componentes',
+    route: '/components',
+    icon: 'pi pi-th-large',
+    placement: 'primary',
+    sortOrder: 25
+  },
   {
     key: 'confisys',
     label: 'Configuración',

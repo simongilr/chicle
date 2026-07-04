@@ -22,9 +22,9 @@ export interface SegmentedControlItem {
         max-width: 100%;
         gap: 4px;
         overflow-x: auto;
-        border: 1px solid #c8d6e4;
-        border-radius: 8px;
-        background: #eef4fa;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: color-mix(in srgb, var(--ch-color-primary) 7%, var(--ch-color-surface));
         padding: 3px;
       }
 
@@ -35,9 +35,9 @@ export interface SegmentedControlItem {
         gap: 7px;
         min-height: 34px;
         border: 0;
-        border-radius: 6px;
+        border-radius: max(3px, calc(var(--ch-radius) - 2px));
         background: transparent;
-        color: #173b5f;
+        color: var(--ch-color-text);
         padding: 6px 11px;
         font: inherit;
         font-weight: 850;
@@ -46,14 +46,32 @@ export interface SegmentedControlItem {
       }
 
       button.active {
-        background: #ffffff;
-        color: #1554a2;
-        box-shadow: 0 1px 4px rgba(23, 79, 145, 0.14);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-primary) 16%, transparent);
       }
 
       button:disabled {
         cursor: not-allowed;
         opacity: 0.55;
+      }
+
+      @media (max-width: 520px) {
+        :host {
+          display: block;
+        }
+
+        .control {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          width: 100%;
+          overflow: visible;
+        }
+
+        button {
+          min-width: 0;
+          white-space: normal;
+        }
       }
     `
   ],

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "defaultProfile": {
+    "key": "adaptive",
+    "theme": "chicle",
+    "defaultKit": "primeng",
+    "rules": [
+      {
+        "kit": "ionic",
+        "platforms": ["ios", "android"]
+      },
+      {
+        "kit": "ionic",
+        "maxWidth": 767
+      },
+      {
+        "kit": "primeng",
+        "minWidth": 768
+      }
+    ]
+  },
+  "formExample": {
+    "key": "customer_registration",
+    "title": "Registro de cliente",
+    "presentation": {
+      "profileKey": "adaptive",
+      "kit": "auto",
+      "theme": "chicle"
+    },
+    "fields": [
+      {
+        "name": "email",
+        "type": "email",
+        "label": "Correo",
+        "required": true
+      },
+      {
+        "name": "channel",
+        "type": "select",
+        "label": "Canal",
+        "options": [
+          {
+            "label": "Web",
+            "value": "web"
+          },
+          {
+            "label": "Móvil",
+            "value": "mobile"
+          }
+        ]
+      }
+    ]
+  },
+  "forcedComponentExample": {
+    "name": "signature",
+    "type": "text",
+    "label": "Firma",
+    "presentation": {
+      "kit": "ionic"
+    }
+  }
+}
+

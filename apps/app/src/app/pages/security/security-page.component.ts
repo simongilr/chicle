@@ -1,11 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
 import { forkJoin } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
-import { MainNavComponent } from '../../shared/main-nav/main-nav.component';
+import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
+import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 
 interface SecurityUser {
   id: string;
@@ -91,30 +93,19 @@ type RolePanelMode = 'create' | 'edit';
 @Component({
   selector: 'app-security-page',
   standalone: true,
-  imports: [FormsModule, IonContent, MainNavComponent],
+  imports: [
+    FormsModule,
+    LoadingSkeletonComponent,
+    ModuleHeaderComponent,
+    PageShellComponent,
+    StatusNoticeComponent
+  ],
   styles: [
     `
-      ion-content {
-        --background: #f5f7fb;
-      }
-
-      .topbar,
       .panel,
       .row {
         border: 1px solid #d9e2ec;
         background: #ffffff;
-      }
-
-      .topbar {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 14px 24px;
-      }
-
-      .brand {
-        color: #12324f;
-        font-weight: 850;
       }
 
       .actions {
@@ -154,9 +145,6 @@ type RolePanelMode = 'create' | 'edit';
       .shell {
         display: grid;
         gap: 18px;
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 24px 0 54px;
       }
 
       .panel {
@@ -463,13 +451,6 @@ type RolePanelMode = 'create' | 'edit';
         padding-right: 4px;
       }
 
-      .message {
-        border-radius: 8px;
-        background: #eaf3fc;
-        color: #254057;
-        padding: 10px 12px;
-      }
-
       .header-row {
         display: flex;
         align-items: flex-start;
@@ -498,15 +479,20 @@ type RolePanelMode = 'create' | 'edit';
     `
   ],
   template: `
-    <ion-content class="ion-padding">
-      <app-main-nav contextLabel="Seguridad" />
+    <app-page-shell contextLabel="Seguridad">
+      <div class="shell">
+        <app-module-header
+          eyebrow="Administración del tenant"
+          title="Seguridad y acceso"
+          description="Controla organización, usuarios, roles, permisos y auditoría desde un mismo módulo."
+          badge="RBAC"
+        ></app-module-header>
 
-      <main class="shell">
         <section class="panel">
           <div class="header-row">
-            <div>
-              <h1>Seguridad y administración</h1>
-              <p>Control operativo del tenant actual: organización, usuarios, roles, permisos y auditoría.</p>
+            <div class="section-title">
+              <h2>Resumen operativo</h2>
+              <p class="meta">Estado actual de identidad y autorización de la organización.</p>
             </div>
             <div class="actions">
               <button class="primary" type="button" (click)="syncSecurity()" [disabled]="!canManageRoles || syncing">
@@ -536,8 +522,14 @@ type RolePanelMode = 'create' | 'edit';
               <span class="meta">Se administrarán como entidades de negocio, no como usuarios de login.</span>
             </article>
           </div>
-          @if (message) {
-            <div class="message">{{ message }}</div>
+          @if (loading) {
+            <app-loading-skeleton
+              variant="list"
+              label="Cargando seguridad"
+              [rows]="3"
+            ></app-loading-skeleton>
+          } @else if (message) {
+            <app-status-notice tone="info">{{ message }}</app-status-notice>
           }
         </section>
 
@@ -618,7 +610,7 @@ type RolePanelMode = 'create' | 'edit';
                     </div>
                   </button>
                 } @empty {
-                  <div class="message">No hay usuarios con esos filtros.</div>
+                  <app-status-notice tone="info">No hay usuarios con esos filtros.</app-status-notice>
                 }
               </div>
               <div class="actions">
@@ -723,7 +715,7 @@ type RolePanelMode = 'create' | 'edit';
                   Guardar cambios
                 </button>
               } @else {
-                <div class="message">Selecciona un usuario o crea uno nuevo.</div>
+                <app-status-notice tone="info">Selecciona un usuario o crea uno nuevo.</app-status-notice>
               }
             </section>
           </section>
@@ -836,10 +828,10 @@ type RolePanelMode = 'create' | 'edit';
                           <p class="meta">{{ resourceType.description }}</p>
                         </div>
                         @if (!selectedRole.permissions.includes(resourcePermission(resourceType.key))) {
-                          <div class="message">
+                          <app-status-notice tone="warning">
                             Activa primero el permiso <strong>{{ resourcePermission(resourceType.key) }}</strong
                             >. La selección por sí sola no concede ejecución.
-                          </div>
+                          </app-status-notice>
                         }
                         <label>
                           Alcance
@@ -876,17 +868,19 @@ type RolePanelMode = 'create' | 'edit';
                                 </small>
                               </label>
                             } @empty {
-                              <div class="message">Todavía no hay recursos de este tipo.</div>
+                              <app-status-notice tone="info">
+                                Todavía no hay recursos de este tipo.
+                              </app-status-notice>
                             }
                           </div>
                         } @else {
-                          <div class="message">
+                          <app-status-notice tone="info">
                             {{
                               roleResourceAccess.policies[resourceType.key].mode === 'all'
                                 ? 'El rol podrá usar recursos actuales y los que se publiquen después.'
                                 : 'El rol no podrá ejecutar ningún recurso de este tipo.'
                             }}
-                          </div>
+                          </app-status-notice>
                         }
                       </section>
                     }
@@ -899,7 +893,7 @@ type RolePanelMode = 'create' | 'edit';
                     {{ savingRoleResources ? 'Guardando acceso...' : 'Guardar acceso a servicios y flows' }}
                   </button>
                 } @else {
-                  <div class="message">Cargando recursos asignados al rol...</div>
+                  <app-status-notice tone="info">Cargando recursos asignados al rol...</app-status-notice>
                 }
                 <button
                   class="primary"
@@ -927,13 +921,13 @@ type RolePanelMode = 'create' | 'edit';
                   <span class="meta">{{ event.resourceType }} · {{ event.createdAt }}</span>
                 </div>
               } @empty {
-                <div class="message">Todavía no hay eventos de auditoría.</div>
+                <app-status-notice tone="info">Todavía no hay eventos de auditoría.</app-status-notice>
               }
             </div>
           </section>
         }
-      </main>
-    </ion-content>
+      </div>
+    </app-page-shell>
   `
 })
 export class SecurityPageComponent implements OnInit {
@@ -985,6 +979,7 @@ export class SecurityPageComponent implements OnInit {
     description: ''
   };
   message = '';
+  loading = true;
   syncing = false;
   newUser = {
     email: '',
@@ -1034,6 +1029,7 @@ export class SecurityPageComponent implements OnInit {
   }
 
   load() {
+    this.loading = true;
     this.message = 'Cargando seguridad...';
     this.api.get<SecurityRole[]>('roles').subscribe({
       next: (roles) => {
@@ -1049,9 +1045,11 @@ export class SecurityPageComponent implements OnInit {
     this.api.get<AuditEvent[]>('audit').subscribe({
       next: (audit) => {
         this.audit = audit;
+        this.loading = false;
         this.message = '';
       },
       error: () => {
+        this.loading = false;
         this.message = 'No se pudo cargar toda la información de seguridad.';
       }
     });

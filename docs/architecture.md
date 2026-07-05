@@ -11,6 +11,7 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/ui-components.md` and `apps/app/src/app/shared/ui-component-catalog.ts` define the visual reuse contract.
 - `docs/ui-presentation-architecture.md` defines adaptive PrimeNG/Ionic rendering and future kit adapters.
 - `docs/formly-architecture.md` defines declarative form orchestration and the multikit Formly bridge.
+- `docs/angular-20-migration-roadmap.md` defines the audited dependency matrix, safety gates and phased Angular 20 migration.
 
 When a backend contract or visual component changes, its documentation and canonical example change in the same work.
 

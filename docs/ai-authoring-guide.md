@@ -20,6 +20,7 @@ Read these files in order:
 10. `docs/examples/ui-presentation.examples.json`
 11. `docs/formly-architecture.md`
 12. `docs/examples/dynamic-form-formly.examples.json`
+13. `docs/angular-20-migration-roadmap.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 

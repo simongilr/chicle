@@ -471,6 +471,7 @@ Supported V1 field types:
 | `email` | Email value | PrimeNG input type email | Ionic input type email |
 | `password` | Password input | PrimeNG input type password | Ionic input type password |
 | `number` | Numeric value | PrimeNG input type number | Ionic input type number |
+| `currency` | Monetary numeric value | PrimeNG numeric input baseline | Ionic numeric input baseline |
 | `tel` | Phone value | PrimeNG input type tel | Ionic input type tel |
 | `url` | URL value | PrimeNG input type url | Ionic input type url |
 | `textarea` | Long text | PrimeNG textarea | Ionic textarea |
@@ -481,15 +482,18 @@ Supported V1 field types:
 | `date` | Date | Native/Prime input | Ionic input date |
 | `time` | Time | Native/Prime input | Ionic input time |
 | `datetime` | Date and time | Native/Prime datetime-local | Ionic datetime-compatible input |
+| `file` | File evidence metadata | Native file input fallback | Native file input fallback |
+| `image` | Image evidence metadata | Native image input fallback | Native image input fallback |
+| `gps` | Location capture metadata | Geolocation button fallback | Geolocation button fallback |
 | `title` | Display heading | Chicle display type | Chicle display type |
 | `paragraph` | Display text | Chicle display type | Chicle display type |
 | `divider` | Visual divider | Chicle display type | Chicle display type |
 
 Planned field families:
 
-- `file`, `image`, `camera`, `signature`, `barcode`, `qr`, `gps`, `nfc`, `rfid`, `ble_device`.
+- `camera`, `signature`, `barcode`, `qr`, `nfc`, `rfid`, `ble_device`.
 - `catalog_select`, `multi_select`, `entity_lookup`, `table_editor`, `repeater`, `object_group`.
-- `currency`, `percentage`, `mask`, `color`, `rating`, `slider`.
+- `percentage`, `mask`, `color`, `rating`, `slider`.
 
 Each new field must have PrimeNG, Ionic and native fallback behavior, or an explicit unsupported state.
 
@@ -949,7 +953,7 @@ The designer must guide the user in this order:
 6. Save draft, create immutable version and publish only when the checklist has no blocking issues.
 
 Publishing controls must remain disabled when required targets are missing, JSON is invalid, fields are incomplete, or
-the form has not been saved/versioned.
+the form has not been saved/versioned/tested successfully.
 
 ## Component responsibilities
 
@@ -974,7 +978,7 @@ Shared components required by the form designer:
 | `IonicFieldRendererComponent` | Mobile field adapter | Initial, usable |
 | `NativeFieldRendererComponent` | Accessible fallback field adapter | Initial, usable |
 | `DynamicFieldLibraryComponent` | Field palette and visual examples | Initial; needs search/categories/insert events |
-| `FormlyRuntimeComponent` | Runtime form rendering, validation and step navigation | Initial; needs adaptive card/screen layout support |
+| `FormlyRuntimeComponent` | Runtime form rendering, validation, adaptive layouts and step navigation | Initial V1; supports cards, continuous and paged modes |
 | `UiPresentationSwitcherComponent` | Preview kit switcher | Ready for preview |
 | `PreviewViewportComponent` | Desktop, tablet and mobile preview frame | Ready |
 | `StepManagerComponent` | Create, reorder, select and validate steps | Missing |
@@ -1061,18 +1065,25 @@ Every canonical dynamic form example must pass these checks before it is used as
 - Status: functional baseline implemented in `FormsPageComponent`.
 - Current capabilities: list forms, create draft, start from templates, edit identity, configure presentation kit/theme,
   configure responsive behavior, configure runtime timeout/offline/autosave, configure persistence mode, select
-  published services/flows, configure payload/response maps, manage steps, add fields from palette or quick sets,
-  duplicate/reorder/remove fields, inspect/edit selected field, configure select options, basic validation, visual
-  visibility conditions, review/apply JSON, responsive preview, generate test fixtures, run submit tests against the
-  backend, display publishing checklist, save draft, create version and publish.
+  published services/flows, configure payload/response maps, manage extra command buttons, manage steps, add fields
+  from palette or quick sets, duplicate/reorder/remove fields, inspect/edit selected field, configure select/radio
+  options, basic validation, visual visibility conditions, review/apply JSON, responsive preview, generate test
+  fixtures, run submit tests against the backend, display publishing checklist, save draft, create version and publish.
+- Runtime V1 now consumes the generated layout contract: desktop `step_cards` renders steps as integrated cards,
+  `single_form`/`single_scroll` render continuously, and `wizard`/`step_screens` render with paged navigation. Fields
+  with `dataSource.type=dynamic_service` can load option lists from a published dynamic service. Runtime command
+  buttons can execute a published dynamic service, execute a published flow or show local feedback.
 - Next cleanup: extract `StepManagerComponent`, `SchemaFieldEditorComponent`, `JsonEditorPanelComponent` and
   `VersionLifecyclePanelComponent` so Screens, Forms and future builders share the same controls.
-- Next UX rule: persist successful preview/test status and require it before enabling publish.
+- Current publish rule: publish is enabled only after a saved draft, valid schema, immutable version and successful
+  backend submit test.
+- Next UX rule: persist successful preview/test status across reloads. Add async field-level remote validators with
+  debounce, timeout and explicit error copy.
 
 ### Phase 3 - Actions and data sources
 
 - Bind fields to dynamic services.
-- Bind submit to `execute_flow`, `execute_service`, `create_record`, `upload_files` and navigation.
+- Bind submit and extra buttons to `execute_flow`, `execute_service`, `create_record`, `upload_files` and navigation.
 - Add test fixtures and recorded runs.
 - Expand visual selectors for published services and flows into a reusable `DataBindingEditorComponent`.
 - Extract the inline form submit workbench into reusable `TestWorkbenchComponent`.

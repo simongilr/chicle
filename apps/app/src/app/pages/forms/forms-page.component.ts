@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
+import { UiPresentationConfig } from '../../core/ui/ui-presentation.types';
 import {
   AvailableDynamicService,
   DynamicServiceClientService
@@ -27,7 +28,25 @@ import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-gui
 type FormLifecycleStatus = 'draft' | 'published' | 'archived';
 type DesignerPhase = 'define' | 'fields' | 'json' | 'publish' | 'preview';
 type PersistenceMode = 'record' | 'service' | 'flow' | 'hybrid' | 'none';
-type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
+type FieldType =
+  | 'text'
+  | 'email'
+  | 'number'
+  | 'currency'
+  | 'tel'
+  | 'url'
+  | 'password'
+  | 'textarea'
+  | 'select'
+  | 'radio'
+  | 'checkbox'
+  | 'toggle'
+  | 'date'
+  | 'time'
+  | 'datetime'
+  | 'file'
+  | 'image'
+  | 'gps';
 type FieldLayout = 'full' | 'half' | 'third';
 type ConditionOperator = 'equals' | 'not_equals' | 'truthy' | 'falsy' | 'contains';
 type PresentationKit = 'auto' | 'primeng' | 'ionic' | 'native';
@@ -35,6 +54,7 @@ type ThemeMode = 'system' | 'light' | 'dark';
 type DensityMode = 'comfortable' | 'compact' | 'spacious';
 type DesktopLayoutMode = 'step_cards' | 'single_form' | 'wizard' | 'auto';
 type MobileLayoutMode = 'step_screens' | 'single_scroll' | 'auto';
+type FormCommandType = 'execute_service' | 'execute_flow' | 'show_message';
 
 interface FormTemplate {
   key: 'blank' | 'capture' | 'lookup' | 'approval' | 'inspection';
@@ -99,6 +119,16 @@ interface StepDraft {
   fields: FieldDraft[];
 }
 
+interface FormCommandDraft {
+  key: string;
+  label: string;
+  type: FormCommandType;
+  serviceKey: string;
+  flowKey: string;
+  payloadMapText: string;
+  responseMode: 'show_response' | 'silent';
+}
+
 interface FormDraft {
   templateKey: FormTemplate['key'];
   key: string;
@@ -124,6 +154,7 @@ interface FormDraft {
   payloadMapText: string;
   responseMapText: string;
   idempotencyKey: string;
+  commands: FormCommandDraft[];
   steps: StepDraft[];
 }
 
@@ -157,6 +188,10 @@ const FIELD_PALETTE: Array<{
   { type: 'text', label: 'Texto', description: 'Nombre, serial, código o dato corto.' },
   { type: 'email', label: 'Email', description: 'Correo con validación visual.' },
   { type: 'number', label: 'Número', description: 'Cantidad, valor o medida.' },
+  { type: 'currency', label: 'Moneda', description: 'Valor económico o tarifa.', defaults: { placeholder: '0.00' } },
+  { type: 'tel', label: 'Teléfono', description: 'Número de contacto.', defaults: { placeholder: '+57 300 000 0000' } },
+  { type: 'url', label: 'URL', description: 'Enlace web o recurso externo.', defaults: { placeholder: 'https://empresa.com' } },
+  { type: 'password', label: 'Password', description: 'Dato sensible de entrada oculta.' },
   { type: 'textarea', label: 'Texto largo', description: 'Observaciones y descripciones.', defaults: { layout: 'full' } },
   {
     type: 'select',
@@ -169,8 +204,25 @@ const FIELD_PALETTE: Array<{
       ]
     }
   },
+  {
+    type: 'radio',
+    label: 'Opciones',
+    description: 'Selección visible entre pocas alternativas.',
+    defaults: {
+      options: [
+        { label: 'Sí', value: 'yes' },
+        { label: 'No', value: 'no' }
+      ]
+    }
+  },
   { type: 'checkbox', label: 'Sí / no', description: 'Confirmación, aceptación o bandera.' },
-  { type: 'date', label: 'Fecha', description: 'Fecha de evento, visita o vencimiento.' }
+  { type: 'toggle', label: 'Switch', description: 'Activar o desactivar una opción.' },
+  { type: 'date', label: 'Fecha', description: 'Fecha de evento, visita o vencimiento.' },
+  { type: 'time', label: 'Hora', description: 'Hora de visita, evento o ejecución.' },
+  { type: 'datetime', label: 'Fecha y hora', description: 'Momento exacto de una actividad.' },
+  { type: 'file', label: 'Archivo', description: 'Documento o evidencia general.', defaults: { layout: 'full' } },
+  { type: 'image', label: 'Imagen', description: 'Foto o evidencia visual.', defaults: { layout: 'full' } },
+  { type: 'gps', label: 'GPS', description: 'Captura de ubicación desde navegador o móvil.', defaults: { layout: 'full' } }
 ];
 
 const FORM_TEMPLATES: FormTemplate[] = [
@@ -517,6 +569,81 @@ const FORM_TEMPLATES: FormTemplate[] = [
         gap: 14px;
       }
 
+      .preview-workbench {
+        display: grid;
+        gap: 14px;
+      }
+
+      .preview-contract {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .preview-contract-card {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        border: 1px solid #d9e2ec;
+        border-radius: 8px;
+        background: #fbfcfe;
+        padding: 12px;
+      }
+
+      .preview-contract-card strong {
+        color: #173b5f;
+      }
+
+      .preview-contract-card small {
+        overflow-wrap: anywhere;
+        color: #52677a;
+        line-height: 1.35;
+      }
+
+      .preview-form-shell {
+        display: grid;
+        gap: 16px;
+        min-height: 340px;
+        padding: 18px;
+      }
+
+      .preview-form-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        border-bottom: 1px solid #d9e2ec;
+        padding-bottom: 14px;
+      }
+
+      .preview-form-title {
+        display: grid;
+        gap: 5px;
+      }
+
+      .preview-form-title h2,
+      .preview-form-title p {
+        margin: 0;
+      }
+
+      .preview-form-title h2 {
+        color: #143653;
+        font-size: clamp(1.2rem, 1.6vw, 1.55rem);
+        line-height: 1.15;
+      }
+
+      .preview-form-title p {
+        color: #52677a;
+        line-height: 1.45;
+      }
+
+      .preview-form-meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
       .test-output {
         min-height: 220px;
         overflow: auto;
@@ -669,8 +796,14 @@ const FORM_TEMPLATES: FormTemplate[] = [
         .checklist-grid,
         .builder-grid,
         .test-grid,
+        .preview-contract,
+        .preview-form-header,
         .field-row {
           grid-template-columns: 1fr;
+        }
+
+        .preview-form-meta {
+          justify-content: flex-start;
         }
 
         .palette-grid,
@@ -956,6 +1089,82 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     </app-field-shell>
                   </div>
                 }
+
+                <app-section-header
+                  title="Botones y acciones extra"
+                  description="Agrega comandos que el usuario puede ejecutar sin cambiar el botón principal del formulario."
+                >
+                  <button type="button" (click)="addCommand()">Agregar botón</button>
+                </app-section-header>
+
+                @if (!draft.commands.length) {
+                  <app-status-notice tone="info">
+                    Sin botones extra. El formulario solo usará el botón principal: {{ draft.submitLabel || 'Enviar' }}.
+                  </app-status-notice>
+                } @else {
+                  <div class="step-list">
+                    @for (command of draft.commands; track command.key; let commandIndex = $index) {
+                      <section class="step-item">
+                        <div class="toolbar">
+                          <strong>{{ command.label || command.key }}</strong>
+                          <button class="danger" type="button" (click)="removeCommand(commandIndex)">Quitar</button>
+                        </div>
+                        <div class="grid">
+                          <app-field-shell label="Key" [forId]="'command-key-' + commandIndex">
+                            <input [id]="'command-key-' + commandIndex" [(ngModel)]="command.key" (ngModelChange)="syncJson()" />
+                          </app-field-shell>
+                          <app-field-shell label="Texto del botón" [forId]="'command-label-' + commandIndex">
+                            <input [id]="'command-label-' + commandIndex" [(ngModel)]="command.label" (ngModelChange)="syncJson()" />
+                          </app-field-shell>
+                          <app-field-shell label="Acción" [forId]="'command-type-' + commandIndex">
+                            <select [id]="'command-type-' + commandIndex" [(ngModel)]="command.type" (ngModelChange)="syncJson()">
+                              <option value="execute_service">Ejecutar servicio</option>
+                              <option value="execute_flow">Ejecutar flow</option>
+                              <option value="show_message">Mostrar mensaje</option>
+                            </select>
+                          </app-field-shell>
+                          <app-field-shell label="Respuesta" [forId]="'command-response-' + commandIndex">
+                            <select [id]="'command-response-' + commandIndex" [(ngModel)]="command.responseMode" (ngModelChange)="syncJson()">
+                              <option value="show_response">Mostrar respuesta</option>
+                              <option value="silent">Silenciosa</option>
+                            </select>
+                          </app-field-shell>
+                        </div>
+                        @if (command.type === 'execute_service') {
+                          <app-field-shell label="Servicio publicado" [forId]="'command-service-' + commandIndex">
+                            <select [id]="'command-service-' + commandIndex" [(ngModel)]="command.serviceKey" (ngModelChange)="syncJson()">
+                              <option value="">Selecciona un servicio</option>
+                              @for (service of availableServices; track service.id) {
+                                <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
+                              }
+                            </select>
+                          </app-field-shell>
+                        }
+                        @if (command.type === 'execute_flow') {
+                          <app-field-shell label="Flow publicado" [forId]="'command-flow-' + commandIndex">
+                            <select [id]="'command-flow-' + commandIndex" [(ngModel)]="command.flowKey" (ngModelChange)="syncJson()">
+                              <option value="">Selecciona un flow</option>
+                              @for (flow of availableFlows; track flow.id) {
+                                <option [value]="flow.key">{{ flow.name }}</option>
+                              }
+                            </select>
+                          </app-field-shell>
+                        }
+                        @if (command.type !== 'show_message') {
+                          <app-field-shell label="Payload map" [forId]="'command-payload-' + commandIndex">
+                            <textarea
+                              [id]="'command-payload-' + commandIndex"
+                              class="compact-json"
+                              [(ngModel)]="command.payloadMapText"
+                              (ngModelChange)="syncJson()"
+                              spellcheck="false"
+                            ></textarea>
+                          </app-field-shell>
+                        }
+                      </section>
+                    }
+                  </div>
+                }
               </section>
             }
 
@@ -988,6 +1197,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         <button type="button" class="helper-card" (click)="addApprovalSet(activeStepIndex)">
                           <strong>Agregar decisión</strong>
                           <small>Estado, comentarios y fecha.</small>
+                        </button>
+                        <button type="button" class="helper-card" (click)="addEvidenceSet(activeStepIndex)">
+                          <strong>Agregar evidencias</strong>
+                          <small>Foto, archivo y ubicación GPS.</small>
                         </button>
                       </div>
                       <div class="palette-grid">
@@ -1082,10 +1295,21 @@ const FORM_TEMPLATES: FormTemplate[] = [
                           <option value="text">Texto</option>
                           <option value="email">Email</option>
                           <option value="number">Número</option>
+                          <option value="currency">Moneda</option>
+                          <option value="tel">Teléfono</option>
+                          <option value="url">URL</option>
+                          <option value="password">Password</option>
                           <option value="textarea">Textarea</option>
                           <option value="select">Select</option>
+                          <option value="radio">Opciones radio</option>
                           <option value="checkbox">Check</option>
+                          <option value="toggle">Switch</option>
                           <option value="date">Fecha</option>
+                          <option value="time">Hora</option>
+                          <option value="datetime">Fecha y hora</option>
+                          <option value="file">Archivo</option>
+                          <option value="image">Imagen</option>
+                          <option value="gps">GPS</option>
                         </select>
                       </app-field-shell>
                       <app-field-shell label="Layout" forId="selected-field-layout">
@@ -1113,7 +1337,14 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         <input id="selected-field-default" [(ngModel)]="selectedField.defaultValue" (ngModelChange)="syncJson()" />
                       </app-field-shell>
 
-                      @if (selectedField.type === 'text' || selectedField.type === 'email' || selectedField.type === 'textarea') {
+                      @if (
+                        selectedField.type === 'text' ||
+                        selectedField.type === 'email' ||
+                        selectedField.type === 'textarea' ||
+                        selectedField.type === 'tel' ||
+                        selectedField.type === 'url' ||
+                        selectedField.type === 'password'
+                      ) {
                         <div class="grid">
                           <app-field-shell label="Mín. caracteres" forId="selected-field-min-length">
                             <input id="selected-field-min-length" type="number" [(ngModel)]="selectedField.minLength" (ngModelChange)="syncJson()" />
@@ -1124,7 +1355,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         </div>
                       }
 
-                      @if (selectedField.type === 'number') {
+                      @if (selectedField.type === 'number' || selectedField.type === 'currency') {
                         <div class="grid">
                           <app-field-shell label="Mínimo" forId="selected-field-min">
                             <input id="selected-field-min" type="number" [(ngModel)]="selectedField.min" (ngModelChange)="syncJson()" />
@@ -1135,7 +1366,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         </div>
                       }
 
-                      @if (selectedField.type === 'select') {
+                      @if (selectedField.type === 'select' || selectedField.type === 'radio') {
                         <app-section-header
                           title="Opciones"
                           description="Usa opciones fijas o conecta un servicio publicado para cargarlas."
@@ -1265,17 +1496,53 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   title="Preview responsive"
                   description="Valida cómo se verá la misma definición en escritorio, tablet y móvil antes de publicarla."
                 ></app-section-header>
-                <app-preview-viewport [(mode)]="previewMode">
-                  @if (previewForm) {
-                    <app-formly-runtime
-                      [definition]="previewForm"
-                      [model]="previewModel"
-                      [viewportWidth]="previewWidth"
-                      submitLabel="Validar preview"
-                      (modelChange)="previewModel = $event"
-                    ></app-formly-runtime>
-                  }
-                </app-preview-viewport>
+                <div class="preview-workbench">
+                  <div class="preview-contract" aria-label="Contrato de integración del preview">
+                    <section class="preview-contract-card">
+                      <strong>Entrada</strong>
+                      <small>{{ previewSubmitEndpoint }}</small>
+                    </section>
+                    <section class="preview-contract-card">
+                      <strong>Layout activo</strong>
+                      <small>{{ previewLayoutLabel }}</small>
+                    </section>
+                    <section class="preview-contract-card">
+                      <strong>Salida</strong>
+                      <small>{{ previewPersistenceDetail }}</small>
+                    </section>
+                  </div>
+
+                  <app-preview-viewport [(mode)]="previewMode">
+                    @if (previewForm) {
+                      <section class="preview-form-shell">
+                        <header class="preview-form-header">
+                          <div class="preview-form-title">
+                            <span class="pill">{{ previewDeviceLabel }}</span>
+                            <h2>{{ previewForm.title }}</h2>
+                            <p>{{ draft.description || 'Formulario sin descripción todavía.' }}</p>
+                          </div>
+                          <div class="preview-form-meta" aria-label="Metadatos visuales">
+                            <span class="pill">{{ draft.kit }}</span>
+                            <span class="pill">{{ draft.theme }}</span>
+                            <span class="pill">{{ draft.density }}</span>
+                          </div>
+                        </header>
+                        <app-formly-runtime
+                          [definition]="previewForm"
+                          [model]="previewModel"
+                          [presentation]="previewPresentation"
+                          [viewportWidth]="previewWidth"
+                          submitLabel="Validar preview"
+                          (modelChange)="previewModel = $event"
+                        ></app-formly-runtime>
+                      </section>
+                    } @else {
+                      <app-status-notice tone="warning">
+                        Agrega campos para construir una vista previa real.
+                      </app-status-notice>
+                    }
+                  </app-preview-viewport>
+                </div>
 
                 <section class="test-panel">
                   <app-section-header
@@ -1367,8 +1634,10 @@ export class FormsPageComponent implements OnInit {
   submitTestMessage = '';
   submitTestError = '';
   testing = false;
+  submitTestPassed = false;
   jsonText = '';
   draft: FormDraft = this.blankDraft();
+  previewPresentation: UiPresentationConfig = this.buildPreviewPresentation();
   readonly fieldPalette = FIELD_PALETTE;
   readonly formTemplates = FORM_TEMPLATES;
 
@@ -1564,6 +1833,11 @@ export class FormsPageComponent implements OnInit {
         label: 'Versión',
         ready: Boolean(this.latestVersion),
         description: this.latestVersion ? `v${this.latestVersion.version} creada.` : 'Crea una versión antes de publicar.'
+      },
+      {
+        label: 'Prueba',
+        ready: this.submitTestPassed,
+        description: this.submitTestPassed ? 'Submit validado contra backend.' : 'Ejecuta una prueba exitosa antes de publicar.'
       }
     ];
   }
@@ -1579,7 +1853,7 @@ export class FormsPageComponent implements OnInit {
   }
 
   get canPublish() {
-    return this.canCreateVersion && Boolean(this.latestVersion);
+    return this.canCreateVersion && Boolean(this.latestVersion) && this.submitTestPassed;
   }
 
   get previewWidth() {
@@ -1588,6 +1862,51 @@ export class FormsPageComponent implements OnInit {
       tablet: 760,
       mobile: 390
     }[this.previewMode];
+  }
+
+  get previewDeviceLabel() {
+    return {
+      desktop: 'Web escritorio',
+      tablet: 'Tablet',
+      mobile: 'Móvil'
+    }[this.previewMode];
+  }
+
+  get previewSubmitEndpoint() {
+    const key = this.selected?.key || this.normalizeKey(this.draft.key) || 'form_key';
+    return `POST /api/forms/by-key/${key}/submit`;
+  }
+
+  get previewLayoutLabel() {
+    const desktopLabels: Record<DesktopLayoutMode, string> = {
+      step_cards: 'Web: pasos como cards',
+      single_form: 'Web: formulario continuo',
+      wizard: 'Web: wizard por pasos',
+      auto: 'Web: automático'
+    };
+    const mobileLabels: Record<MobileLayoutMode, string> = {
+      step_screens: 'Móvil: pantallas por paso',
+      single_scroll: 'Móvil: scroll continuo',
+      auto: 'Móvil: automático'
+    };
+    if (this.previewMode === 'mobile') {
+      return mobileLabels[this.draft.mobileMode];
+    }
+    if (this.previewMode === 'tablet') {
+      return `${desktopLabels[this.draft.desktopMode]} adaptado a tablet`;
+    }
+    return desktopLabels[this.draft.desktopMode];
+  }
+
+  get previewPersistenceDetail() {
+    const details: Record<PersistenceMode, string> = {
+      record: `Crea record tipo ${this.draft.recordType || 'dynamic_form'}.`,
+      service: `Ejecuta servicio ${this.draft.serviceKey || 'pendiente de seleccionar'}.`,
+      flow: `Dispara flow ${this.draft.flowKey || 'pendiente de seleccionar'}.`,
+      hybrid: 'Guarda record y luego ejecuta orquestación.',
+      none: 'Solo devuelve payload validado al componente.'
+    };
+    return details[this.draft.persistenceMode];
   }
 
   ngOnInit() {
@@ -1654,6 +1973,7 @@ export class FormsPageComponent implements OnInit {
     this.submitTestOutputText = '';
     this.submitTestMessage = '';
     this.submitTestError = '';
+    this.submitTestPassed = false;
     this.phase = 'define';
     this.syncJson();
   }
@@ -1684,6 +2004,7 @@ export class FormsPageComponent implements OnInit {
     this.submitTestOutputText = '';
     this.submitTestMessage = '';
     this.submitTestError = '';
+    this.submitTestPassed = false;
     this.syncJson();
   }
 
@@ -1744,7 +2065,7 @@ export class FormsPageComponent implements OnInit {
     this.addFields(stepIndex, [
       { key: 'nombre', label: 'Nombre', type: 'text', required: true, placeholder: 'Nombre completo', layout: 'half' },
       { key: 'email', label: 'Email', type: 'email', required: true, placeholder: 'persona@empresa.com', layout: 'half' },
-      { key: 'telefono', label: 'Teléfono', type: 'text', required: false, placeholder: '+57 300 000 0000', layout: 'half' }
+      { key: 'telefono', label: 'Teléfono', type: 'tel', required: false, placeholder: '+57 300 000 0000', layout: 'half' }
     ]);
   }
 
@@ -1772,6 +2093,14 @@ export class FormsPageComponent implements OnInit {
       },
       { key: 'comentarios', label: 'Comentarios', type: 'textarea', required: false, placeholder: 'Explica la decisión', layout: 'full' },
       { key: 'fecha_decision', label: 'Fecha de decisión', type: 'date', required: true, layout: 'half' }
+    ]);
+  }
+
+  addEvidenceSet(stepIndex: number) {
+    this.addFields(stepIndex, [
+      { key: 'foto', label: 'Foto', type: 'image', required: false, layout: 'full', help: 'Captura o adjunta una imagen como evidencia.' },
+      { key: 'archivo', label: 'Archivo adjunto', type: 'file', required: false, layout: 'full', help: 'Adjunta un documento o soporte.' },
+      { key: 'ubicacion', label: 'Ubicación GPS', type: 'gps', required: false, layout: 'full', help: 'Captura coordenadas cuando el dispositivo lo permita.' }
     ]);
   }
 
@@ -1825,10 +2154,30 @@ export class FormsPageComponent implements OnInit {
     this.syncJson();
   }
 
+  addCommand() {
+    const count = this.draft.commands.length + 1;
+    this.draft.commands.push({
+      key: this.nextCommandKey(`accion_${count}`),
+      label: `Acción ${count}`,
+      type: 'execute_service',
+      serviceKey: '',
+      flowKey: '',
+      payloadMapText: JSON.stringify({ input: '{{input}}' }, null, 2),
+      responseMode: 'show_response'
+    });
+    this.syncJson();
+  }
+
+  removeCommand(commandIndex: number) {
+    this.draft.commands.splice(commandIndex, 1);
+    this.syncJson();
+  }
+
   usePreviewAsFixture() {
     this.submitTestInputText = JSON.stringify(this.previewModel, null, 2);
     this.submitTestError = '';
     this.submitTestMessage = 'Datos del preview copiados al input de prueba.';
+    this.submitTestPassed = false;
   }
 
   generateExampleFixture() {
@@ -1841,6 +2190,7 @@ export class FormsPageComponent implements OnInit {
     this.submitTestInputText = JSON.stringify(fixture, null, 2);
     this.submitTestError = '';
     this.submitTestMessage = 'Ejemplo generado desde los campos actuales.';
+    this.submitTestPassed = false;
   }
 
   runSubmitTest() {
@@ -1873,6 +2223,7 @@ export class FormsPageComponent implements OnInit {
           const durationMs = Math.round(performance.now() - startedAt);
           this.submitTestOutputText = JSON.stringify({ ok: true, durationMs, output }, null, 2);
           this.submitTestMessage = `Submit ejecutado correctamente en ${durationMs} ms.`;
+          this.submitTestPassed = true;
           this.testing = false;
         },
         error: (response) => {
@@ -1887,6 +2238,7 @@ export class FormsPageComponent implements OnInit {
             2
           );
           this.submitTestError = 'El backend rechazó la prueba. Revisa permisos, schema, servicio, flow o persistencia.';
+          this.submitTestPassed = false;
           this.testing = false;
         }
       });
@@ -1896,6 +2248,8 @@ export class FormsPageComponent implements OnInit {
     const schema = this.schemaFromDraft();
     this.jsonText = JSON.stringify(schema, null, 2);
     this.jsonError = '';
+    this.submitTestPassed = false;
+    this.previewPresentation = this.buildPreviewPresentation();
     this.rebuildPreview();
   }
 
@@ -1914,6 +2268,7 @@ export class FormsPageComponent implements OnInit {
         status: this.selected?.status
       });
       this.jsonError = '';
+      this.submitTestPassed = false;
       this.rebuildPreview();
     } catch {
       this.jsonError = 'El JSON no es válido. Corrígelo antes de aplicarlo o guardar.';
@@ -1985,7 +2340,7 @@ export class FormsPageComponent implements OnInit {
 
   publishLatest() {
     if (!this.selected || !this.latestVersion || !this.canPublish) {
-      this.error = 'Antes de publicar necesitas un borrador guardado, sin pendientes y con versión creada.';
+      this.error = 'Antes de publicar necesitas un borrador guardado, sin pendientes, con versión creada y con prueba exitosa.';
       return;
     }
     this.saving = true;
@@ -2031,6 +2386,18 @@ export class FormsPageComponent implements OnInit {
     if (!this.submitTestInputText || this.submitTestInputText === '{}') {
       this.submitTestInputText = JSON.stringify(this.previewModel, null, 2);
     }
+  }
+
+  private buildPreviewPresentation(): UiPresentationConfig {
+    return {
+      profileKey: 'adaptive',
+      kit: this.draft.kit === 'auto' ? 'primeng' : this.draft.kit,
+      theme: this.draft.theme || 'chicle',
+      rules: [
+        { kit: 'ionic', platforms: ['ios', 'android'] },
+        { kit: 'primeng', platforms: ['web'] }
+      ]
+    };
   }
 
   private loadDynamicTargets() {
@@ -2091,8 +2458,8 @@ export class FormsPageComponent implements OnInit {
         density: this.draft.density,
         radius: 'md',
         rules: [
-          { kit: 'ionic', maxWidth: 767 },
-          { kit: 'primeng', minWidth: 768 }
+          { kit: 'ionic', platforms: ['ios', 'android'] },
+          { kit: 'primeng', platforms: ['web'] }
         ],
         tokens: {}
       },
@@ -2134,7 +2501,7 @@ export class FormsPageComponent implements OnInit {
           required: field.required,
           placeholder: field.placeholder || '',
           help: field.help || '',
-          options: field.type === 'select' ? field.options : undefined,
+          options: field.type === 'select' || field.type === 'radio' ? field.options : undefined,
           layout: field.layout,
           visibleWhen: field.visibleWhenField
             ? {
@@ -2176,11 +2543,14 @@ export class FormsPageComponent implements OnInit {
             : undefined,
           config: {
             help: field.help || undefined,
-            defaultValue: field.defaultValue || undefined
+            defaultValue: field.defaultValue || undefined,
+            accept: field.type === 'image' ? 'image/*' : field.type === 'file' ? '*/*' : undefined,
+            capture: field.type === 'image' ? 'environment' : undefined,
+            currency: field.type === 'currency' ? 'COP' : undefined
           }
         }))
       })),
-      commands: [],
+      commands: this.commandsFromDraft(),
       actions: this.actionsFromDraft(),
       dataSources: [],
       tests: []
@@ -2251,6 +2621,22 @@ export class FormsPageComponent implements OnInit {
     ];
   }
 
+  private commandsFromDraft() {
+    return this.draft.commands.map((command) => ({
+      key: this.normalizeKey(command.key) || 'accion',
+      label: command.label || command.key || 'Acción',
+      event: 'onClick',
+      type: command.type,
+      serviceKey: command.type === 'execute_service' ? command.serviceKey || undefined : undefined,
+      flowKey: command.type === 'execute_flow' ? command.flowKey || undefined : undefined,
+      payloadMap:
+        command.type === 'show_message'
+          ? undefined
+          : this.safeMapFromText(command.payloadMapText, { input: '{{input}}' }),
+      responseMode: command.responseMode
+    }));
+  }
+
   private draftFromSchema(form: DynamicFormItem): FormDraft {
     const schema = form.schema ?? {};
     const runtime = this.asObject(schema['runtime']);
@@ -2289,6 +2675,7 @@ export class FormsPageComponent implements OnInit {
       payloadMapText: JSON.stringify(this.asObject(submitAction?.['payloadMap']) ?? { input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify(this.asObject(submitAction?.['responseMap']) ?? {}, null, 2),
       idempotencyKey: String(offline?.['idempotencyKey'] ?? '{{input.email}}'),
+      commands: this.commandsFromSchema(schema),
       steps: steps.length
         ? steps.map((step) => this.stepDraftFromSchema(step))
         : this.blankDraft().steps
@@ -2353,6 +2740,7 @@ export class FormsPageComponent implements OnInit {
       payloadMapText: JSON.stringify({ input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify({}, null, 2),
       idempotencyKey: '{{input.email}}',
+      commands: [],
       steps: [
         {
           key: 'datos_basicos',
@@ -2572,6 +2960,36 @@ export class FormsPageComponent implements OnInit {
     return `${normalized}_${index}`;
   }
 
+  private nextCommandKey(baseKey: string) {
+    const normalized = this.normalizeKey(baseKey) || 'accion';
+    const keys = new Set(this.draft.commands.map((command) => this.normalizeKey(command.key)));
+    if (!keys.has(normalized)) {
+      return normalized;
+    }
+    let index = 2;
+    while (keys.has(`${normalized}_${index}`)) {
+      index += 1;
+    }
+    return `${normalized}_${index}`;
+  }
+
+  private commandsFromSchema(schema: Record<string, unknown>): FormCommandDraft[] {
+    const commands = Array.isArray(schema['commands'])
+      ? (schema['commands'] as Array<Record<string, unknown>>)
+      : [];
+    return commands
+      .filter((command) => String(command['event'] ?? 'onClick') === 'onClick')
+      .map((command, index) => ({
+        key: this.normalizeKey(String(command['key'] ?? `accion_${index + 1}`)),
+        label: String(command['label'] ?? command['key'] ?? `Acción ${index + 1}`),
+        type: this.asCommandType(command['type']),
+        serviceKey: String(command['serviceKey'] ?? ''),
+        flowKey: String(command['flowKey'] ?? ''),
+        payloadMapText: JSON.stringify(this.asObject(command['payloadMap']) ?? { input: '{{input}}' }, null, 2),
+        responseMode: command['responseMode'] === 'silent' ? 'silent' : 'show_response'
+      }));
+  }
+
   private exampleValueForField(field: FieldDraft): unknown {
     if (field.defaultValue) {
       return field.defaultValue;
@@ -2579,17 +2997,44 @@ export class FormsPageComponent implements OnInit {
     if (field.type === 'checkbox') {
       return true;
     }
-    if (field.type === 'number') {
+    if (field.type === 'toggle') {
+      return true;
+    }
+    if (field.type === 'number' || field.type === 'currency') {
       return field.min ?? 1;
     }
     if (field.type === 'date') {
       return new Date().toISOString().slice(0, 10);
     }
-    if (field.type === 'select') {
+    if (field.type === 'time') {
+      return '09:00';
+    }
+    if (field.type === 'datetime') {
+      return new Date().toISOString().slice(0, 16);
+    }
+    if (field.type === 'select' || field.type === 'radio') {
       return field.options[0]?.value ?? '';
     }
     if (field.type === 'email') {
       return 'persona@empresa.com';
+    }
+    if (field.type === 'tel') {
+      return '+57 300 000 0000';
+    }
+    if (field.type === 'url') {
+      return 'https://empresa.com';
+    }
+    if (field.type === 'password') {
+      return 'valor-seguro';
+    }
+    if (field.type === 'file') {
+      return { name: 'documento.pdf', size: 128000, type: 'application/pdf' };
+    }
+    if (field.type === 'image') {
+      return { name: 'evidencia.jpg', size: 256000, type: 'image/jpeg' };
+    }
+    if (field.type === 'gps') {
+      return { lat: 4.711, lng: -74.0721, accuracy: 25 };
     }
     if (field.key.includes('telefono')) {
       return '+57 300 000 0000';
@@ -2622,9 +3067,32 @@ export class FormsPageComponent implements OnInit {
   }
 
   private asFieldType(value: unknown): FieldType {
-    return ['text', 'email', 'number', 'textarea', 'select', 'checkbox', 'date'].includes(String(value))
+    return [
+      'text',
+      'email',
+      'number',
+      'currency',
+      'tel',
+      'url',
+      'password',
+      'textarea',
+      'select',
+      'radio',
+      'checkbox',
+      'toggle',
+      'date',
+      'time',
+      'datetime',
+      'file',
+      'image',
+      'gps'
+    ].includes(String(value))
       ? (value as FieldType)
       : 'text';
+  }
+
+  private asCommandType(value: unknown): FormCommandType {
+    return value === 'execute_flow' || value === 'show_message' ? value : 'execute_service';
   }
 
   private asFieldLayout(value: unknown): FieldLayout {

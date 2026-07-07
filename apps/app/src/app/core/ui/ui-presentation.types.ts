@@ -44,8 +44,6 @@ export const DEFAULT_UI_PRESENTATION_PROFILE: UiPresentationProfile = {
   defaultKit: 'primeng',
   rules: [
     { kit: 'ionic', platforms: ['ios', 'android'] },
-    { kit: 'ionic', maxWidth: 767 },
-    { kit: 'primeng', minWidth: 768 }
+    { kit: 'primeng', platforms: ['web'] }
   ]
 };
-

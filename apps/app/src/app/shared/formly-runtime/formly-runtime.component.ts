@@ -14,6 +14,8 @@ import {
   FormlyFormOptions
 } from '@ngx-formly/core';
 import { UiPresentationConfig } from '../../core/ui/ui-presentation.types';
+import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
+import { DynamicFlowClientService } from '../../core/services/dynamic-flow-client.service';
 import {
   RuntimeForm,
   RuntimeFormStep
@@ -24,6 +26,11 @@ import {
   ProcessStepsComponent
 } from '../process-steps/process-steps.component';
 import { StatusNoticeComponent } from '../status-notice/status-notice.component';
+
+interface RenderedRuntimeStep {
+  step: RuntimeFormStep;
+  fields: FormlyFieldConfig[];
+}
 
 @Component({
   selector: 'app-formly-runtime',
@@ -41,6 +48,53 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         display: grid;
         gap: 16px;
         min-width: 0;
+      }
+
+      .runtime-sections {
+        display: grid;
+        gap: 14px;
+      }
+
+      .runtime-sections.cards {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+        align-items: start;
+      }
+
+      .runtime-section {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .runtime-section.card {
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 16px;
+      }
+
+      .runtime-section.card:only-child {
+        max-width: 760px;
+      }
+
+      .runtime-layout-compact .runtime-section.card:only-child {
+        max-width: none;
+      }
+
+      .runtime-layout-compact .ch-formly-grid,
+      .runtime-layout-tablet .ch-formly-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .runtime-layout-compact .ch-formly-field,
+      .runtime-layout-compact .ch-formly-field--full,
+      .runtime-layout-compact .ch-formly-field--half,
+      .runtime-layout-compact .ch-formly-field--third,
+      .runtime-layout-tablet .ch-formly-field,
+      .runtime-layout-tablet .ch-formly-field--full,
+      .runtime-layout-tablet .ch-formly-field--half,
+      .runtime-layout-tablet .ch-formly-field--third {
+        grid-column: 1 / -1;
       }
 
       .step-heading {
@@ -76,6 +130,13 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         margin-left: auto;
       }
 
+      .command-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
+      }
+
       button {
         min-height: 40px;
         border: 1px solid var(--ch-color-border);
@@ -93,12 +154,20 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         color: var(--ch-color-primary-contrast);
       }
 
+      button.secondary {
+        background: #f7fbff;
+      }
+
       button:disabled {
         cursor: not-allowed;
         opacity: 0.55;
       }
 
       @media (max-width: 520px) {
+        .runtime-sections.cards {
+          grid-template-columns: 1fr;
+        }
+
         .actions {
           display: grid;
           grid-template-columns: 1fr;
@@ -109,11 +178,16 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
           grid-template-columns: 1fr;
           margin-left: 0;
         }
+
+        .command-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
       }
     `
   ],
   template: `
-    @if (steps.length > 1) {
+    @if (showStepper) {
       <app-process-steps
         [items]="processSteps"
         [activeKey]="currentStep.key"
@@ -121,22 +195,52 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
       ></app-process-steps>
     }
 
-    <div class="step-heading">
-      <h2>{{ currentStep.title }}</h2>
-      @if (currentStep.description) {
-        <p>{{ currentStep.description }}</p>
-      }
-    </div>
+    <form
+      [formGroup]="form"
+      [class.runtime-layout-compact]="isCompactViewport"
+      [class.runtime-layout-tablet]="isTabletViewport"
+      (ngSubmit)="continue()"
+    >
+      @if (isContinuousLayout) {
+        <div class="runtime-sections" [class.cards]="isCardLayout">
+          @for (section of renderedSteps; track section.step.key) {
+            <section class="runtime-section" [class.card]="isCardLayout">
+              <div class="step-heading">
+                <h2>{{ section.step.title }}</h2>
+                @if (section.step.description) {
+                  <p>{{ section.step.description }}</p>
+                }
+              </div>
+              <formly-form
+                class="ch-formly-grid"
+                [class.ch-formly-grid--compact]="isNarrowGrid"
+                [form]="form"
+                [fields]="section.fields"
+                [model]="runtimeModel"
+                [options]="options"
+                (modelChange)="handleModelChange($event)"
+              ></formly-form>
+            </section>
+          }
+        </div>
+      } @else {
+        <div class="step-heading">
+          <h2>{{ currentStep.title }}</h2>
+          @if (currentStep.description) {
+            <p>{{ currentStep.description }}</p>
+          }
+        </div>
 
-    <form [formGroup]="form" (ngSubmit)="continue()">
-      <formly-form
-        class="ch-formly-grid"
-        [form]="form"
-        [fields]="fields"
-        [model]="runtimeModel"
-        [options]="options"
-        (modelChange)="handleModelChange($event)"
-      ></formly-form>
+        <formly-form
+          class="ch-formly-grid"
+          [class.ch-formly-grid--compact]="isNarrowGrid"
+          [form]="form"
+          [fields]="fields"
+          [model]="runtimeModel"
+          [options]="options"
+          (modelChange)="handleModelChange($event)"
+        ></formly-form>
+      }
 
       @if (!fields.length) {
         <app-status-notice tone="warning">
@@ -146,6 +250,20 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
 
       @if (validationMessage) {
         <app-status-notice tone="warning">{{ validationMessage }}</app-status-notice>
+      }
+
+      @if (commandMessage) {
+        <app-status-notice tone="success">{{ commandMessage }}</app-status-notice>
+      }
+
+      @if (runtimeCommands.length) {
+        <div class="command-actions" aria-label="Acciones del formulario">
+          @for (command of runtimeCommands; track command['key'] || command['label']) {
+            <button class="secondary" type="button" [disabled]="commandRunning" (click)="runCommand(command)">
+              {{ command['label'] || command['key'] || 'Acción' }}
+            </button>
+          }
+        </div>
       }
 
       @if (showActions) {
@@ -167,6 +285,9 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
 })
 export class FormlyRuntimeComponent implements OnChanges {
   private readonly adapter = inject(FormlySchemaAdapterService);
+  private readonly services = inject(DynamicServiceClientService);
+  private readonly flows = inject(DynamicFlowClientService);
+  private readonly loadedOptionKeys = new Set<string>();
 
   @Input({ required: true }) definition!: RuntimeForm;
   @Input() model: Record<string, unknown> = {};
@@ -181,14 +302,18 @@ export class FormlyRuntimeComponent implements OnChanges {
 
   form = new FormGroup({});
   fields: FormlyFieldConfig[] = [];
+  renderedSteps: RenderedRuntimeStep[] = [];
   options: FormlyFormOptions = {};
   runtimeModel: Record<string, unknown> = {};
   currentStepIndex = 0;
   validationMessage = '';
+  commandMessage = '';
+  commandRunning = false;
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['definition']) {
       this.currentStepIndex = 0;
+      this.loadedOptionKeys.clear();
     }
     if (changes['definition'] || changes['model']?.firstChange) {
       this.runtimeModel = { ...(this.model ?? {}) };
@@ -221,6 +346,43 @@ export class FormlyRuntimeComponent implements OnChanges {
     return this.steps[this.currentStepIndex] ?? this.steps[0];
   }
 
+  get layoutMode() {
+    const layout = this.asObject(this.definition?.layout);
+    const desktop = this.asObject(layout?.['desktop']);
+    const mobile = this.asObject(layout?.['mobile']);
+    const isMobile = (this.viewportWidth ?? 1280) <= 767;
+    const configured = isMobile ? mobile?.['mode'] : desktop?.['mode'];
+    if (configured === 'auto') {
+      return isMobile ? 'step_screens' : this.steps.length > 2 ? 'step_cards' : 'single_form';
+    }
+    return typeof configured === 'string' ? configured : isMobile ? 'step_screens' : 'step_cards';
+  }
+
+  get isCompactViewport() {
+    return (this.viewportWidth ?? 1280) <= 520;
+  }
+
+  get isTabletViewport() {
+    const width = this.viewportWidth ?? 1280;
+    return width > 520 && width <= 820;
+  }
+
+  get isNarrowGrid() {
+    return (this.viewportWidth ?? 1280) <= 820;
+  }
+
+  get isContinuousLayout() {
+    return ['single_form', 'single_scroll', 'step_cards'].includes(this.layoutMode);
+  }
+
+  get isCardLayout() {
+    return this.layoutMode === 'step_cards' && (this.viewportWidth ?? 1280) > 767;
+  }
+
+  get showStepper() {
+    return this.steps.length > 1 && !this.isContinuousLayout;
+  }
+
   get processSteps(): ProcessStepItem[] {
     return this.steps.map((step, index) => ({
       key: step.key,
@@ -245,7 +407,7 @@ export class FormlyRuntimeComponent implements OnChanges {
 
     this.validationMessage = '';
     this.validChange.emit(true);
-    if (this.currentStepIndex < this.steps.length - 1) {
+    if (!this.isContinuousLayout && this.currentStepIndex < this.steps.length - 1) {
       this.currentStepIndex += 1;
       this.rebuild();
       return;
@@ -255,7 +417,7 @@ export class FormlyRuntimeComponent implements OnChanges {
   }
 
   previous() {
-    if (this.currentStepIndex === 0) {
+    if (this.isContinuousLayout || this.currentStepIndex === 0) {
       return;
     }
     this.currentStepIndex -= 1;
@@ -269,16 +431,159 @@ export class FormlyRuntimeComponent implements OnChanges {
     this.validChange.emit(this.form.valid);
   }
 
+  get runtimeCommands() {
+    return Array.isArray(this.definition?.commands)
+      ? this.definition.commands.filter((command) => this.asObject(command)?.['event'] === 'onClick')
+      : [];
+  }
+
+  runCommand(command: Record<string, unknown>) {
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      this.validationMessage = 'Completa los campos obligatorios antes de ejecutar esta acción.';
+      this.validChange.emit(false);
+      return;
+    }
+
+    const type = String(command['type'] ?? '');
+    const responseMode = String(command['responseMode'] ?? 'show_response');
+    this.validationMessage = '';
+    this.commandMessage = '';
+
+    if (type === 'show_message') {
+      this.commandMessage = `${String(command['label'] ?? 'Acción')} ejecutada.`;
+      return;
+    }
+
+    const payload = { input: { ...this.runtimeModel } };
+    this.commandRunning = true;
+    if (type === 'execute_flow') {
+      const flowKey = String(command['flowKey'] ?? '');
+      this.flows.execute(flowKey, payload.input).subscribe({
+        next: () => {
+          this.commandMessage = responseMode === 'silent' ? 'Acción ejecutada.' : 'Flow ejecutado correctamente.';
+          this.commandRunning = false;
+        },
+        error: () => {
+          this.validationMessage = 'No se pudo ejecutar el flow configurado.';
+          this.commandRunning = false;
+        }
+      });
+      return;
+    }
+
+    const serviceKey = String(command['serviceKey'] ?? '');
+    this.services.execute(serviceKey, payload).subscribe({
+      next: () => {
+        this.commandMessage = responseMode === 'silent' ? 'Acción ejecutada.' : 'Servicio ejecutado correctamente.';
+        this.commandRunning = false;
+      },
+      error: () => {
+        this.validationMessage = 'No se pudo ejecutar el servicio configurado.';
+        this.commandRunning = false;
+      }
+    });
+  }
+
   private rebuild() {
     if (!this.definition || !this.currentStep) {
       return;
     }
     this.form = new FormGroup({});
-    this.options = { formState: { stepKey: this.currentStep.key } };
-    this.fields = this.adapter.toFields(this.currentStep.fields, {
+    this.options = { formState: { stepKey: this.isContinuousLayout ? 'all' : this.currentStep.key } };
+    const context = {
       presentation: this.presentation ?? this.definition.presentation,
       viewportWidth: this.viewportWidth,
       readonly: this.readonly
-    });
+    };
+    this.renderedSteps = this.steps.map((step) => ({
+      step,
+      fields: this.adapter.toFields(step.fields, context)
+    }));
+    this.fields = this.isContinuousLayout
+      ? this.renderedSteps.flatMap((section) => section.fields)
+      : this.adapter.toFields(this.currentStep.fields, context);
+    this.loadDynamicOptions();
+  }
+
+  private asObject(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private loadDynamicOptions() {
+    for (const field of this.steps.flatMap((step) => step.fields)) {
+      const dataSource = this.asObject(field.dataSource);
+      const serviceKey = typeof dataSource?.['serviceKey'] === 'string' ? dataSource['serviceKey'] : '';
+      const type = typeof dataSource?.['type'] === 'string' ? dataSource['type'] : '';
+      if (!serviceKey || type !== 'dynamic_service') {
+        continue;
+      }
+      const cacheKey = `${field.key || field.name}:${serviceKey}`;
+      if (this.loadedOptionKeys.has(cacheKey)) {
+        continue;
+      }
+      this.loadedOptionKeys.add(cacheKey);
+      this.services.execute(serviceKey, { input: this.runtimeModel }).subscribe({
+        next: (execution) => {
+          const options = this.optionsFromServiceResult(execution.result ?? execution.response);
+          if (!options.length) {
+            return;
+          }
+          field.options = options;
+          this.rebuildAfterOptionLoad();
+        },
+        error: () => {
+          this.loadedOptionKeys.delete(cacheKey);
+        }
+      });
+    }
+  }
+
+  private rebuildAfterOptionLoad() {
+    const currentLoaded = new Set(this.loadedOptionKeys);
+    this.rebuild();
+    this.loadedOptionKeys.clear();
+    for (const key of currentLoaded) {
+      this.loadedOptionKeys.add(key);
+    }
+  }
+
+  private optionsFromServiceResult(value: unknown): Array<{ label: string; value: unknown }> {
+    const source = this.firstArray(value);
+    return source
+      .map((item) => this.optionFromUnknown(item))
+      .filter((option): option is { label: string; value: unknown } => Boolean(option));
+  }
+
+  private firstArray(value: unknown): unknown[] {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    const object = this.asObject(value);
+    if (!object) {
+      return [];
+    }
+    for (const key of ['items', 'data', 'rows', 'result', 'options']) {
+      const nested = object[key];
+      if (Array.isArray(nested)) {
+        return nested;
+      }
+    }
+    return [];
+  }
+
+  private optionFromUnknown(item: unknown): { label: string; value: unknown } | null {
+    const object = this.asObject(item);
+    if (!object) {
+      return { label: String(item), value: item };
+    }
+    const value = object['value'] ?? object['id'] ?? object['key'] ?? object['code'] ?? object['slug'];
+    const label = object['label'] ?? object['name'] ?? object['title'] ?? value;
+    if (label === undefined || value === undefined) {
+      return null;
+    }
+    return { label: String(label), value };
   }
 }

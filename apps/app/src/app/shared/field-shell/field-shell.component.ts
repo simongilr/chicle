@@ -12,13 +12,15 @@ import { Component, Input } from '@angular/core';
 
       .field {
         display: grid;
-        gap: 6px;
+        gap: 7px;
+        min-width: 0;
       }
 
       label {
         color: var(--ch-color-text);
         font-size: 0.88rem;
         font-weight: 800;
+        line-height: 1.2;
       }
 
       .required {
@@ -38,6 +40,10 @@ import { Component, Input } from '@angular/core';
       .error {
         color: #a33428;
         font-weight: 700;
+      }
+
+      .field:focus-within label {
+        color: var(--ch-color-primary);
       }
     `
   ],

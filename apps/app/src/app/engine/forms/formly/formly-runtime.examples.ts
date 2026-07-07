@@ -162,6 +162,15 @@ export const FORMLY_FIELD_LIBRARY_EXAMPLE: RuntimeForm = {
       placeholder: '0'
     },
     {
+      name: 'currency',
+      type: 'currency',
+      label: 'Moneda',
+      placeholder: '0.00',
+      config: {
+        currency: 'COP'
+      }
+    },
+    {
       name: 'telephone',
       type: 'tel',
       label: 'Teléfono',
@@ -185,7 +194,7 @@ export const FORMLY_FIELD_LIBRARY_EXAMPLE: RuntimeForm = {
     },
     {
       name: 'datetime',
-      type: 'datetime-local',
+      type: 'datetime',
       label: 'Fecha y hora'
     },
     {
@@ -219,6 +228,34 @@ export const FORMLY_FIELD_LIBRARY_EXAMPLE: RuntimeForm = {
       type: 'toggle',
       label: 'Interruptor',
       placeholder: 'Activar opción'
+    },
+    {
+      name: 'file',
+      type: 'file',
+      label: 'Archivo',
+      placeholder: 'Adjuntar documento',
+      layout: 'full',
+      config: {
+        accept: '*/*'
+      }
+    },
+    {
+      name: 'image',
+      type: 'image',
+      label: 'Imagen',
+      placeholder: 'Adjuntar foto',
+      layout: 'full',
+      config: {
+        accept: 'image/*',
+        capture: 'environment'
+      }
+    },
+    {
+      name: 'gps',
+      type: 'gps',
+      label: 'Ubicación GPS',
+      placeholder: 'Capturar ubicación',
+      layout: 'full'
     },
     {
       name: 'library_divider',

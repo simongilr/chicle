@@ -16,12 +16,12 @@ describe("UiPresentationService", () => {
     });
   });
 
-  it("selects Ionic for mobile and PrimeNG for desktop with the default profile", () => {
+  it("selects PrimeNG for web previews and Ionic for native mobile apps with the default profile", () => {
     const presentation = TestBed.inject(UiPresentationService);
 
     expect(presentation.resolve({ width: 390, platform: "web" })).toMatchObject(
       {
-        kit: "ionic",
+        kit: "primeng",
         source: "rule",
       },
     );

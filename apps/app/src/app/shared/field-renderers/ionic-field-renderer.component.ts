@@ -28,16 +28,39 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
 
       ion-input,
       ion-select {
-        min-height: 48px;
+        min-height: 46px;
+        --background: #ffffff;
+        --border-color: #c5d6e6;
+        --border-radius: var(--ch-radius);
+        --border-width: 1px;
+        --color: var(--ch-color-text);
+        --highlight-color-focused: var(--ch-color-primary);
+        --padding-end: 12px;
+        --padding-start: 12px;
+        --placeholder-color: #7b8fa3;
       }
 
       ion-textarea {
         min-height: 112px;
+        --background: #ffffff;
+        --border-color: #c5d6e6;
+        --border-radius: var(--ch-radius);
+        --border-width: 1px;
+        --color: var(--ch-color-text);
+        --highlight-color-focused: var(--ch-color-primary);
+        --padding-end: 12px;
+        --padding-start: 12px;
+        --placeholder-color: #7b8fa3;
       }
 
       ion-toggle {
         width: 100%;
         min-height: 48px;
+        border: 1px solid #d9e2ec;
+        border-radius: var(--ch-radius);
+        background: #fbfcfe;
+        color: var(--ch-color-text);
+        padding: 10px 12px;
         --track-background-checked: var(--ch-color-primary);
       }
 
@@ -45,6 +68,53 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
       ion-radio {
         width: 100%;
         min-height: 44px;
+        border: 1px solid #d9e2ec;
+        border-radius: var(--ch-radius);
+        background: #fbfcfe;
+        color: var(--ch-color-text);
+        padding: 10px 12px;
+        --checkbox-background-checked: var(--ch-color-primary);
+        --border-color-checked: var(--ch-color-primary);
+        --color-checked: var(--ch-color-primary);
+      }
+
+      ion-radio-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      .file-control,
+      .geo-control {
+        display: grid;
+        gap: 8px;
+      }
+
+      .file-control input[type='file'],
+      .geo-control button {
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid #c5d6e6;
+        border-radius: var(--ch-radius);
+        background: #ffffff;
+        color: var(--ch-color-text);
+        padding: 10px 12px;
+        font: inherit;
+        text-align: left;
+      }
+
+      .file-control input[type='file'] {
+        border-style: dashed;
+        background: #fbfcfe;
+      }
+
+      .geo-control button {
+        font-weight: 800;
+      }
+
+      .value-summary {
+        color: var(--ch-color-muted);
+        font-size: 0.8rem;
+        line-height: 1.35;
       }
     `
   ],
@@ -119,6 +189,46 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
           }
         </ion-radio-group>
       }
+      @case ('file') {
+        <div class="file-control">
+          <input
+            [id]="controlId"
+            [attr.name]="field.name"
+            type="file"
+            [attr.accept]="accept"
+            [required]="field.required === true"
+            [disabled]="disabled || readonly"
+            (change)="updateFile($event)"
+          />
+          @if (valueSummary) {
+            <span class="value-summary">{{ valueSummary }}</span>
+          }
+        </div>
+      }
+      @case ('image') {
+        <div class="file-control">
+          <input
+            [id]="controlId"
+            [attr.name]="field.name"
+            type="file"
+            accept="image/*"
+            [attr.capture]="capture"
+            [required]="field.required === true"
+            [disabled]="disabled || readonly"
+            (change)="updateFile($event)"
+          />
+          @if (valueSummary) {
+            <span class="value-summary">{{ valueSummary }}</span>
+          }
+        </div>
+      }
+      @case ('gps') {
+        <div class="geo-control">
+          <button type="button" [disabled]="disabled || readonly" (click)="captureLocation()">
+            {{ valueSummary || field.placeholder || 'Capturar ubicación' }}
+          </button>
+        </div>
+      }
       @default {
         <ion-input
           fill="outline"
@@ -146,7 +256,7 @@ export class IonicFieldRendererComponent {
 
   get controlType() {
     const type = this.field.type.toLowerCase();
-    if (['textarea', 'select', 'boolean', 'checkbox', 'toggle', 'radio'].includes(type)) {
+    if (['textarea', 'select', 'boolean', 'checkbox', 'toggle', 'radio', 'file', 'image', 'gps'].includes(type)) {
       return type === 'boolean' ? 'checkbox' : type;
     }
     return 'input';
@@ -154,6 +264,9 @@ export class IonicFieldRendererComponent {
 
   get inputType(): 'date' | 'datetime-local' | 'email' | 'number' | 'password' | 'tel' | 'text' | 'time' | 'url' {
     const type = this.field.type.toLowerCase();
+    if (type === 'currency') {
+      return 'number';
+    }
     const normalized = type === 'datetime' ? 'datetime-local' : type;
     return ['email', 'number', 'date', 'time', 'datetime-local', 'password', 'tel', 'url'].includes(normalized)
       ? (normalized as 'date' | 'datetime-local' | 'email' | 'number' | 'password' | 'tel' | 'time' | 'url')
@@ -162,6 +275,36 @@ export class IonicFieldRendererComponent {
 
   get stringValue() {
     return this.value === null || this.value === undefined ? '' : String(this.value);
+  }
+
+  get accept() {
+    const accept = this.field.config?.['accept'];
+    return typeof accept === 'string' ? accept : undefined;
+  }
+
+  get capture() {
+    const capture = this.field.config?.['capture'];
+    return typeof capture === 'string' ? capture : undefined;
+  }
+
+  get valueSummary() {
+    const value = this.value;
+    if (!value) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'object') {
+      const object = value as Record<string, unknown>;
+      if (typeof object['lat'] === 'number' && typeof object['lng'] === 'number') {
+        return `${object['lat']}, ${object['lng']}`;
+      }
+      if (object['name']) {
+        return String(object['name']);
+      }
+    }
+    return 'Valor capturado';
   }
 
   updateText(event: CustomEvent<{ value?: string | null }>) {
@@ -175,5 +318,28 @@ export class IonicFieldRendererComponent {
 
   updateToggle(event: CustomEvent<{ checked: boolean }>) {
     this.valueChange.emit(event.detail.checked);
+  }
+
+  updateFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.valueChange.emit(file ? { name: file.name, size: file.size, type: file.type } : null);
+  }
+
+  captureLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      this.valueChange.emit({ unavailable: true });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.valueChange.emit({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+      },
+      () => this.valueChange.emit({ unavailable: true })
+    );
   }
 }

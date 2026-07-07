@@ -35,7 +35,7 @@ Page containers keep routing, permissions, loading and orchestration.
 | FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Login, Setup, component catalog, Confisys and dynamic field controls | Stable |
 | DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic or native adapters without changing the schema | Dynamic form runtime | Initial multikit renderer |
 | DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field and compare installed presentation kits | Component library and future form designer | Initial field palette |
-| FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
+| FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields, command buttons and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
 | ChicleFormlyFieldTypeComponent | `app-chicle-formly-field-type` | Connect Formly state and validation to the multikit field facade | Formly runtime | Initial internal adapter |
 | ChicleFormlyDisplayTypeComponent | `app-chicle-formly-display-type` | Render declarative title, paragraph and divider content | Formly runtime | Initial internal adapter |
 | PrimengFieldRendererComponent | `app-primeng-field-renderer` | Render the field contract with PrimeNG controls | Dynamic field facade | Initial adapter |
@@ -43,7 +43,7 @@ Page containers keep routing, permissions, loading and orchestration.
 | NativeFieldRendererComponent | `app-native-field-renderer` | Render the field contract with native HTML controls | Dynamic field facade | Initial fallback |
 | UiPresentationSwitcherComponent | `app-ui-presentation-switcher` | Preview adaptive, PrimeNG, Ionic and native rendering | Dynamic form runtime | Initial |
 | UiThemeSelectorComponent | `app-ui-theme-selector` | Select installed themes and synchronize Chicle, Ionic and PrimeNG tokens | Component library | Initial |
-| PreviewViewportComponent | `app-preview-viewport` | Constrain a projected preview to desktop, tablet or mobile width | Dynamic form runtime | Initial stable contract |
+| PreviewViewportComponent | `app-preview-viewport` | Device-aware preview shell with desktop, tablet and mobile chrome, size metadata and projected runtime content | Dynamic form designer, dynamic form runtime and future screen designer | Stable |
 
 ## Domain visual components
 
@@ -101,10 +101,10 @@ These components are required before the builders grow inside page files:
 
 | Capability | Existing reusable pieces | Status |
 | --- | --- | --- |
-| Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | Initial, usable |
-| Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/native renderers | Initial, usable |
+| Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | V1 usable; cards, continuous, paged modes, command buttons and dynamic options |
+| Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/native renderers | Initial, usable; includes text, numeric, choice, file/image metadata and GPS fallback |
 | Labels/help/errors | `FieldShellComponent` | Ready |
-| Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready |
+| Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready; preview now separates device simulation, runtime content and integration contract |
 | Form lifecycle guide | `ProcessStepsComponent`, `WorkflowGuideComponent`, `StatusNoticeComponent` | Ready |
 | Designer workspace | `DesignerWorkspaceComponent`, catalog and section components | Ready |
 | Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples | Extract shared insertion component next |
@@ -112,9 +112,9 @@ These components are required before the builders grow inside page files:
 | Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings and visibility conditions | Extract shared component next |
 | JSON editor | Inline V1 result panel below guided editing plus full editor step in `FormsPageComponent` | Extract shared component next |
 | Data binding | Inline V1 service/flow selectors, runtime limits and payload/response maps in `FormsPageComponent`; Flow mapper exists only in Flow domain | Missing shared component |
-| Action binding | Page-local patterns only | Missing |
+| Action binding | Inline V1 commands in `FormsPageComponent`; runtime can execute service/flow/show_message buttons | Extract shared component next |
 | Version and publish panel | Inline V1 checklist in `FormsPageComponent`; page-local patterns in Services/Flows | Missing shared component |
-| Test workbench | Inline V1 fixture generator and submit runner in `FormsPageComponent`; page-local patterns in Services/Flows | Missing shared component |
+| Test workbench | Inline V1 fixture generator and submit runner in `FormsPageComponent`; runtime component tests cover layout and dynamic options | Missing shared component |
 | Server pagination/list for many forms | No shared entity table yet | Missing |
 
 Conclusion: the runtime foundation is present; the visual authoring foundation still needs the P0 builder components
@@ -127,7 +127,7 @@ before the designer should grow.
 - Extend the field renderer with files, catalogs, masks and rule-driven validation.
 - Property inspector and schema field editor.
 - Data/action binding editors.
-- JSON editor and responsive preview viewport.
+- JSON editor and responsive preview viewport extraction for future screen/page designers.
 - Reusable entity table with server pagination.
 
 ### P1: during Screen Designer V1

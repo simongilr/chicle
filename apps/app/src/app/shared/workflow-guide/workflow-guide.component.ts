@@ -59,9 +59,21 @@ export type WorkflowGuideTone = 'info' | 'success' | 'warning';
         display: none;
       }
 
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+        align-items: center;
+      }
+
       @media (max-width: 720px) {
         .guide {
           grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
         }
       }
     `

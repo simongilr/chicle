@@ -73,10 +73,14 @@ export class DynamicFieldLibraryComponent {
 
   readonly definition = FORMLY_FIELD_LIBRARY_EXAMPLE;
   model: Record<string, unknown> = {
+    currency: 125000,
     select: 'first',
     radio: 'a',
     checkbox: true,
-    toggle: true
+    toggle: true,
+    file: { name: 'documento.pdf', size: 128000, type: 'application/pdf' },
+    image: { name: 'evidencia.jpg', size: 256000, type: 'image/jpeg' },
+    gps: { lat: 4.711, lng: -74.0721, accuracy: 25 }
   };
   kit: UiKitPreference = 'auto';
   presentation: UiPresentationConfig = { kit: 'auto' };

@@ -12,6 +12,12 @@ services:
       - "${DB_PORT:-3306}:3306"
     volumes:
       - chicle_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   api:
     build:
@@ -38,7 +44,8 @@ services:
     volumes:
       - chicle_files:/app/storage/files
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   chicle_db:

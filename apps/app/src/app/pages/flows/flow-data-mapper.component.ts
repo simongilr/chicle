@@ -109,7 +109,7 @@ export interface FlowDataOption {
               <input
                 [ngModel]="row.value === '__manual__' ? '' : row.value"
                 (ngModelChange)="setManualValue($index, $event)"
-                placeholder="Texto fijo o {{input.campo}}"
+                [placeholder]="'Texto fijo o {{input.campo}}'"
               />
             </label>
           }

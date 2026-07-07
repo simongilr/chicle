@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -330,6 +330,8 @@ interface HomeModule {
   `
 })
 export class HomePageComponent {
+  readonly auth = inject(AuthService);
+
   readonly modules: HomeModule[] = [
     {
       title: 'Manual operativo',
@@ -373,8 +375,6 @@ export class HomePageComponent {
       status: 'RBAC'
     }
   ];
-
-  constructor(readonly auth: AuthService) {}
 
   get visibleModules() {
     return this.modules.filter((module) => {

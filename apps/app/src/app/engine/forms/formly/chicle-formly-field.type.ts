@@ -51,7 +51,10 @@ export class ChicleFormlyFieldTypeComponent extends FieldType<
     const errorKey = Object.keys(this.formControl.errors)[0];
     const configured = this.field.validation?.messages?.[errorKey];
     if (typeof configured === 'function') {
-      return configured(this.formControl.errors[errorKey], this.field);
+      const resolved = configured(this.formControl.errors[errorKey], this.field);
+      if (typeof resolved === 'string') {
+        return resolved;
+      }
     }
     if (typeof configured === 'string') {
       return configured;
@@ -62,4 +65,3 @@ export class ChicleFormlyFieldTypeComponent extends FieldType<
       : `${this.props.runtimeField.label} contiene un valor inválido.`;
   }
 }
-

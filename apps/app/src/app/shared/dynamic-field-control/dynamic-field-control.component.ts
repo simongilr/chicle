@@ -113,5 +113,7 @@ export class DynamicFieldControlComponent {
   }
 
   @HostListener('window:resize')
-  handleViewportChange() {}
+  handleViewportChange() {
+    // The host event schedules change detection so the responsive getter is reevaluated.
+  }
 }

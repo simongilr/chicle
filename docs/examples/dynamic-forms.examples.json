@@ -1,0 +1,581 @@
+{
+  "version": 1,
+  "examples": [
+    {
+      "name": "single_step_contact_request",
+      "description": "A small form that renders on web and mobile from the same schema.",
+      "form": {
+        "schemaVersion": 1,
+        "kind": "dynamic_form",
+        "key": "contact_request",
+        "title": "Solicitud de contacto",
+        "description": "Captura un contacto simple y lo envia a un flow.",
+        "category": "crm",
+        "lifecycle": {
+          "status": "draft",
+          "version": 1,
+          "published": false
+        },
+        "security": {
+          "visibilityPermission": "forms.read",
+          "submitPermission": "forms.submit",
+          "roles": ["owner", "admin", "operator"]
+        },
+        "runtime": {
+          "mode": "guided",
+          "submitLabel": "Enviar solicitud",
+          "autosave": false,
+          "offline": {
+            "enabled": true,
+            "queueKey": "contact_request",
+            "idempotencyKey": "{{input.email}}"
+          },
+          "limits": {
+            "timeoutMs": 10000,
+            "maxPayloadKb": 512
+          }
+        },
+        "presentation": {
+          "profileKey": "adaptive",
+          "kit": "auto",
+          "theme": "chicle",
+          "themeMode": "system",
+          "density": "comfortable",
+          "radius": "md",
+          "rules": [
+            { "kit": "ionic", "maxWidth": 767 },
+            { "kit": "primeng", "minWidth": 768 }
+          ],
+          "tokens": {}
+        },
+        "layout": {
+          "strategy": "adaptive_steps",
+          "desktop": {
+            "mode": "single_form",
+            "cardColumns": 1,
+            "allowSingleLongForm": true,
+            "maxFieldsPerSection": 8
+          },
+          "tablet": {
+            "mode": "step_cards",
+            "cardColumns": 1,
+            "maxFieldsPerSection": 6
+          },
+          "mobile": {
+            "mode": "step_screens",
+            "progress": "compact",
+            "navigation": "bottom_actions",
+            "maxFieldsPerScreen": 6
+          },
+          "autoSplit": {
+            "enabled": true,
+            "suggestAfterFields": 8,
+            "forceReviewAfterFields": 14
+          }
+        },
+        "persistence": {
+          "mode": "hybrid",
+          "defaultTarget": {
+            "type": "record",
+            "recordType": "contact_request"
+          },
+          "audit": {
+            "storeSubmissionSnapshot": true,
+            "storeResolvedBindings": true
+          }
+        },
+        "dataSources": [],
+        "commands": [
+          {
+            "key": "submit_contact_request",
+            "label": "Enviar solicitud",
+            "icon": "send",
+            "placement": "bottom",
+            "style": "primary",
+            "event": "onClick",
+            "permission": "forms.submit",
+            "requiresValidForm": true,
+            "action": {
+              "type": "execute_flow",
+              "flowKey": "create_contact_request",
+              "payloadMap": {
+                "contact": "{{input}}",
+                "tenant": "{{tenant.slug}}"
+              },
+              "resultKey": "request"
+            },
+            "feedback": {
+              "loadingLabel": "Enviando...",
+              "successMessage": "Solicitud creada.",
+              "errorMessage": "No se pudo crear la solicitud."
+            }
+          }
+        ],
+        "steps": [
+          {
+            "key": "identity",
+            "title": "Datos principales",
+            "description": "Informacion necesaria para identificar la solicitud.",
+            "layout": {
+              "desktopColumns": 12,
+              "tabletColumns": 8,
+              "mobileColumns": 4
+            },
+            "fields": [
+              {
+                "key": "identity_title",
+                "type": "title",
+                "label": "Informacion de contacto",
+                "layout": {
+                  "desktopSpan": 12,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                }
+              },
+              {
+                "key": "name",
+                "type": "text",
+                "label": "Nombre",
+                "required": true,
+                "placeholder": "Nombre completo",
+                "transform": "trim",
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "minLength": 3,
+                  "maxLength": 80,
+                  "messages": {
+                    "required": "El nombre es obligatorio.",
+                    "minLength": "Escribe al menos 3 caracteres."
+                  }
+                }
+              },
+              {
+                "key": "email",
+                "type": "email",
+                "label": "Correo",
+                "required": true,
+                "placeholder": "persona@empresa.com",
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "format": "email",
+                  "messages": {
+                    "required": "El correo es obligatorio.",
+                    "format": "Escribe un correo valido."
+                  }
+                }
+              },
+              {
+                "key": "channel",
+                "type": "select",
+                "label": "Canal preferido",
+                "required": true,
+                "options": [
+                  { "label": "Correo", "value": "email" },
+                  { "label": "Telefono", "value": "phone" }
+                ],
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 4,
+                  "mobileSpan": 4
+                }
+              },
+              {
+                "key": "phone",
+                "type": "tel",
+                "label": "Telefono",
+                "placeholder": "+57 300 000 0000",
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 4,
+                  "mobileSpan": 4
+                },
+                "visibleWhen": {
+                  "field": "channel",
+                  "operator": "equals",
+                  "value": "phone"
+                }
+              },
+              {
+                "key": "notes",
+                "type": "textarea",
+                "label": "Observaciones",
+                "layout": {
+                  "desktopSpan": 12,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "maxLength": 500
+                }
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "event": "onSubmit",
+            "type": "execute_flow",
+            "flowKey": "create_contact_request",
+            "payloadMap": {
+              "contact": "{{input}}",
+              "tenant": "{{tenant.slug}}"
+            },
+            "resultKey": "request",
+            "success": {
+              "type": "show_message",
+              "tone": "success",
+              "message": "Solicitud creada."
+            },
+            "error": {
+              "type": "show_message",
+              "tone": "error",
+              "message": "No se pudo crear la solicitud."
+            }
+          }
+        ],
+        "tests": [
+          {
+            "name": "correo_valido",
+            "viewport": "desktop",
+            "input": {
+              "name": "Simon",
+              "email": "simon@example.com",
+              "channel": "email",
+              "notes": "Primera prueba"
+            },
+            "expect": {
+              "valid": true,
+              "visibleFields": ["identity_title", "name", "email", "channel", "notes"]
+            }
+          },
+          {
+            "name": "telefono_visible",
+            "viewport": "mobile",
+            "input": {
+              "name": "Simon",
+              "email": "simon@example.com",
+              "channel": "phone",
+              "phone": "+57 300 000 0000"
+            },
+            "expect": {
+              "valid": true,
+              "visibleFields": ["identity_title", "name", "email", "channel", "phone", "notes"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "catalog_and_flow_submit",
+      "description": "A multi-step form with a dynamic service catalog and a flow submit action.",
+      "form": {
+        "schemaVersion": 1,
+        "kind": "dynamic_form",
+        "key": "service_request",
+        "title": "Solicitud de servicio",
+        "description": "Consulta catalogos, valida datos y ejecuta un flow al enviar.",
+        "category": "operations",
+        "lifecycle": {
+          "status": "draft",
+          "version": 1,
+          "published": false
+        },
+        "security": {
+          "visibilityPermission": "forms.read",
+          "submitPermission": "forms.submit",
+          "roles": ["owner", "admin", "operator"]
+        },
+        "runtime": {
+          "mode": "guided",
+          "submitLabel": "Crear solicitud",
+          "autosave": true,
+          "offline": {
+            "enabled": true,
+            "queueKey": "service_request",
+            "idempotencyKey": "{{input.customer_email}}:{{input.service_type}}"
+          },
+          "limits": {
+            "timeoutMs": 15000,
+            "maxPayloadKb": 1024
+          }
+        },
+        "presentation": {
+          "profileKey": "adaptive",
+          "kit": "auto",
+          "theme": "chicle",
+          "themeMode": "system",
+          "density": "comfortable",
+          "radius": "md",
+          "rules": [
+            { "kit": "ionic", "maxWidth": 767 },
+            { "kit": "primeng", "minWidth": 768 }
+          ],
+          "tokens": {
+            "primary": "#1554a2",
+            "primaryContrast": "#ffffff"
+          }
+        },
+        "layout": {
+          "strategy": "adaptive_steps",
+          "desktop": {
+            "mode": "step_cards",
+            "cardColumns": 2,
+            "allowSingleLongForm": false,
+            "maxFieldsPerSection": 8
+          },
+          "tablet": {
+            "mode": "step_cards",
+            "cardColumns": 1,
+            "maxFieldsPerSection": 6
+          },
+          "mobile": {
+            "mode": "step_screens",
+            "progress": "compact",
+            "navigation": "bottom_actions",
+            "maxFieldsPerScreen": 6
+          },
+          "autoSplit": {
+            "enabled": true,
+            "suggestAfterFields": 8,
+            "forceReviewAfterFields": 14
+          }
+        },
+        "persistence": {
+          "mode": "flow",
+          "defaultTarget": {
+            "type": "flow",
+            "flowKey": "create_service_request"
+          },
+          "audit": {
+            "storeSubmissionSnapshot": true,
+            "storeResolvedBindings": true
+          }
+        },
+        "dataSources": [
+          {
+            "key": "service_types",
+            "type": "dynamic_service",
+            "serviceKey": "catalog_service_types",
+            "payloadMap": {
+              "active": true
+            },
+            "labelPath": "name",
+            "valuePath": "id",
+            "cache": {
+              "scope": "tenant",
+              "ttlSeconds": 300
+            }
+          }
+        ],
+        "commands": [
+          {
+            "key": "validate_customer_email",
+            "label": "Validar correo",
+            "icon": "shield-check",
+            "placement": "field",
+            "fieldKey": "customer_email",
+            "style": "secondary",
+            "event": "onClick",
+            "permission": "forms.submit",
+            "visibleWhen": {
+              "field": "customer_email",
+              "operator": "truthy"
+            },
+            "enabledWhen": {
+              "field": "customer_email",
+              "operator": "truthy"
+            },
+            "requiresValidStep": false,
+            "action": {
+              "type": "execute_service",
+              "serviceKey": "validate_email",
+              "payloadMap": {
+                "email": "{{input.customer_email}}"
+              },
+              "resultKey": "emailValidation"
+            },
+            "feedback": {
+              "loadingLabel": "Validando...",
+              "successMessage": "Correo validado.",
+              "errorMessage": "No se pudo validar el correo."
+            }
+          },
+          {
+            "key": "submit_service_request",
+            "label": "Crear solicitud",
+            "icon": "send",
+            "placement": "bottom",
+            "style": "primary",
+            "event": "onClick",
+            "permission": "forms.submit",
+            "requiresValidForm": true,
+            "action": {
+              "type": "execute_flow",
+              "flowKey": "create_service_request",
+              "payloadMap": {
+                "customerName": "{{input.customer_name}}",
+                "customerEmail": "{{input.customer_email}}",
+                "serviceType": "{{input.service_type}}",
+                "priority": "{{input.priority}}",
+                "description": "{{input.description}}"
+              },
+              "resultKey": "request"
+            },
+            "feedback": {
+              "loadingLabel": "Creando...",
+              "successMessage": "Solicitud creada.",
+              "errorMessage": "No se pudo crear la solicitud."
+            }
+          }
+        ],
+        "steps": [
+          {
+            "key": "client",
+            "title": "Cliente",
+            "description": "Identifica la persona o empresa que solicita el servicio.",
+            "layout": {
+              "desktopColumns": 12,
+              "tabletColumns": 8,
+              "mobileColumns": 4
+            },
+            "fields": [
+              {
+                "key": "customer_name",
+                "type": "text",
+                "label": "Cliente",
+                "required": true,
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "minLength": 3,
+                  "maxLength": 120
+                }
+              },
+              {
+                "key": "customer_email",
+                "type": "email",
+                "label": "Correo",
+                "required": true,
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "format": "email"
+                }
+              }
+            ]
+          },
+          {
+            "key": "request",
+            "title": "Solicitud",
+            "description": "Selecciona el tipo de servicio y detalla el requerimiento.",
+            "layout": {
+              "desktopColumns": 12,
+              "tabletColumns": 8,
+              "mobileColumns": 4
+            },
+            "fields": [
+              {
+                "key": "service_type",
+                "type": "catalog_select",
+                "label": "Tipo de servicio",
+                "required": true,
+                "dataSourceKey": "service_types",
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                }
+              },
+              {
+                "key": "priority",
+                "type": "radio",
+                "label": "Prioridad",
+                "required": true,
+                "options": [
+                  { "label": "Normal", "value": "normal" },
+                  { "label": "Alta", "value": "high" }
+                ],
+                "layout": {
+                  "desktopSpan": 6,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                }
+              },
+              {
+                "key": "description",
+                "type": "textarea",
+                "label": "Descripcion",
+                "required": true,
+                "layout": {
+                  "desktopSpan": 12,
+                  "tabletSpan": 8,
+                  "mobileSpan": 4
+                },
+                "validation": {
+                  "minLength": 10,
+                  "maxLength": 1000
+                }
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "event": "onSubmit",
+            "type": "execute_flow",
+            "flowKey": "create_service_request",
+            "payloadMap": {
+              "customerName": "{{input.customer_name}}",
+              "customerEmail": "{{input.customer_email}}",
+              "serviceType": "{{input.service_type}}",
+              "priority": "{{input.priority}}",
+              "description": "{{input.description}}"
+            },
+            "resultKey": "request",
+            "success": {
+              "type": "navigate",
+              "route": "/records/{{result.request.recordId}}"
+            },
+            "error": {
+              "type": "show_message",
+              "tone": "error",
+              "message": "No se pudo crear la solicitud."
+            }
+          }
+        ],
+        "tests": [
+          {
+            "name": "solicitud_normal",
+            "viewport": "desktop",
+            "input": {
+              "customer_name": "Cliente Demo",
+              "customer_email": "cliente@example.com",
+              "service_type": "support",
+              "priority": "normal",
+              "description": "Necesito ayuda con una solicitud de prueba."
+            },
+            "expect": {
+              "valid": true,
+              "action": "execute_flow",
+              "flowKey": "create_service_request"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

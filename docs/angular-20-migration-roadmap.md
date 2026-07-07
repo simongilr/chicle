@@ -1,5 +1,9 @@
 # Angular 20 migration roadmap
 
+Status: completed on 2026-07-05. See
+`docs/angular-20-migration-report.md` for the installed matrix and verification
+evidence.
+
 ## Purpose
 
 This document is the official execution plan for moving the Chicle Engine frontend

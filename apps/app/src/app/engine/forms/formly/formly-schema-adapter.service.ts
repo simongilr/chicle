@@ -39,9 +39,9 @@ export class FormlySchemaAdapterService {
 
     const exactLength = field.length?.exact;
     const config: FormlyFieldConfig = {
-      key: field.name,
+      key: this.fieldKey(field),
       type: 'chicle-field',
-      className: `ch-formly-field ch-formly-field--${field.layout || 'half'}`,
+      className: `ch-formly-field ch-formly-field--${this.layoutClass(field)}`,
       defaultValue: field.config?.['defaultValue'],
       props: {
         label: field.label,
@@ -51,7 +51,7 @@ export class FormlySchemaAdapterService {
         disabled: context.readonly === true,
         readonly: context.readonly === true,
         help: typeof field.config?.['help'] === 'string' ? field.config['help'] : '',
-        runtimeField: field,
+        runtimeField: { ...field, name: this.fieldKey(field), key: field.key ?? field.name },
         presentation: context.presentation,
         viewportWidth: context.viewportWidth
       },
@@ -121,10 +121,39 @@ export class FormlySchemaAdapterService {
         return Array.isArray(actual)
           ? actual.includes(condition.value)
           : String(actual ?? '').includes(String(condition.value ?? ''));
+      case 'in':
+        return Array.isArray(condition.value) && condition.value.includes(actual);
+      case 'not_in':
+        return Array.isArray(condition.value) && !condition.value.includes(actual);
+      case 'greater_than':
+        return Number(actual) > Number(condition.value);
+      case 'greater_or_equal':
+        return Number(actual) >= Number(condition.value);
+      case 'less_than':
+        return Number(actual) < Number(condition.value);
+      case 'less_or_equal':
+        return Number(actual) <= Number(condition.value);
     }
   }
 
   private isDisplay(type: string) {
     return ['title', 'paragraph', 'divider'].includes(type.toLowerCase());
+  }
+
+  private fieldKey(field: RuntimeField) {
+    return field.key || field.name;
+  }
+
+  private layoutClass(field: RuntimeField) {
+    if (typeof field.layout === 'string') {
+      return field.layout;
+    }
+    if (field.layout?.desktopSpan === 12) {
+      return 'full';
+    }
+    if (field.layout?.desktopSpan && field.layout.desktopSpan <= 4) {
+      return 'third';
+    }
+    return 'half';
   }
 }

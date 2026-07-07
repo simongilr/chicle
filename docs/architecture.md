@@ -7,11 +7,14 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/ai-authoring-guide.md` is the entry point for people and AI.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
+- `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive
+  behavior.
 - `docs/examples/*.json` contains strict machine-readable examples.
 - `docs/ui-components.md` and `apps/app/src/app/shared/ui-component-catalog.ts` define the visual reuse contract.
 - `docs/ui-presentation-architecture.md` defines adaptive PrimeNG/Ionic rendering and future kit adapters.
 - `docs/formly-architecture.md` defines declarative form orchestration and the multikit Formly bridge.
 - `docs/angular-20-migration-roadmap.md` defines the audited dependency matrix, safety gates and phased Angular 20 migration.
+- `docs/angular-20-migration-report.md` records the installed Angular 20 matrix and final verification results.
 
 When a backend contract or visual component changes, its documentation and canonical example change in the same work.
 
@@ -104,6 +107,17 @@ The engine renders:
 - Workflows
 
 The app does not contain pages named after business operations. It contains generic pages such as dynamic form, record list and record detail.
+
+Dynamic forms use a Chicle-owned JSON contract documented in `docs/dynamic-forms-contract.md`. The contract keeps
+`steps` as the top-level user journey, uses JSON-Schema-style validation, stores UI behavior as declarative metadata
+and delegates Angular rendering to Formly through the Chicle multikit adapters. One published form key must render on
+web, mobile web and native mobile without storing PrimeNG or Ionic selectors in the database.
+
+Form definitions and submitted business data are separate. `dynamic_forms` stores the form recipe; submissions go
+through the form runtime and then use one of the approved persistence modes: `records`, a published dynamic service, a
+published flow or an offline queue. A field can call services for options, validation, default values and enrichment,
+but the browser never writes arbitrary tables directly. `dynamic_form_bindings` records every field/service/flow
+dependency and pins target versions when a form is published.
 
 Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
 

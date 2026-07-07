@@ -66,7 +66,7 @@ export interface SchemaDesignRequest {
   confirmation?: string;
 }
 
-interface SchemaPlan {
+export interface SchemaPlan {
   operation: SchemaChangeOperation;
   tableName: string;
   columnName?: string | null;
@@ -76,7 +76,7 @@ interface SchemaPlan {
   warnings: string[];
 }
 
-export interface SchemaPreviewResponse extends SchemaPlan {}
+export type SchemaPreviewResponse = SchemaPlan;
 
 export interface SchemaApplyResponse extends SchemaPlan {
   change: SchemaChange;

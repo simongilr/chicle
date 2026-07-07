@@ -7,7 +7,13 @@ export type RuntimeFieldConditionOperator =
   | 'not_equals'
   | 'truthy'
   | 'falsy'
-  | 'contains';
+  | 'contains'
+  | 'in'
+  | 'not_in'
+  | 'greater_than'
+  | 'greater_or_equal'
+  | 'less_than'
+  | 'less_or_equal';
 
 export interface RuntimeFieldCondition {
   field: string;
@@ -22,6 +28,7 @@ export interface RuntimeFieldLength {
 }
 
 export interface RuntimeField {
+  key?: string;
   name: string;
   type: string;
   label: string;
@@ -34,7 +41,18 @@ export interface RuntimeField {
   transform?: RuntimeFieldTransform;
   length?: RuntimeFieldLength;
   visibleWhen?: RuntimeFieldCondition;
-  layout?: 'full' | 'half' | 'third';
+  dataSource?: Record<string, unknown>;
+  validation?: Record<string, unknown>;
+  readonly?: boolean;
+  layout?:
+    | 'full'
+    | 'half'
+    | 'third'
+    | {
+        desktopSpan?: number;
+        tabletSpan?: number;
+        mobileSpan?: number;
+      };
 }
 
 export interface RuntimeFormStep {
@@ -50,6 +68,11 @@ export interface RuntimeForm {
   version: number;
   fields: RuntimeField[];
   actions?: Array<Record<string, unknown>>;
+  commands?: Array<Record<string, unknown>>;
+  dataSources?: Array<Record<string, unknown>>;
+  persistence?: Record<string, unknown>;
+  runtime?: Record<string, unknown>;
+  layout?: Record<string, unknown>;
   presentation?: UiPresentationConfig;
   steps?: RuntimeFormStep[];
 }
@@ -69,14 +92,18 @@ export class FormRuntimeService {
       ...form,
       fields: (form.fields ?? []).map((field) => ({
         ...field,
-        label: field.label || field.name,
+        name: this.fieldKey(field),
+        key: field.key ?? field.name,
+        label: field.label || this.fieldKey(field),
         type: field.type || 'text'
       })),
       steps: form.steps?.map((step) => ({
         ...step,
         fields: (step.fields ?? []).map((field) => ({
           ...field,
-          label: field.label || field.name,
+          name: this.fieldKey(field),
+          key: field.key ?? field.name,
+          label: field.label || this.fieldKey(field),
           type: field.type || 'text'
         }))
       }))
@@ -89,6 +116,12 @@ export class FormRuntimeService {
       : [];
     const actions = Array.isArray(form.schema['actions'])
       ? (form.schema['actions'] as Array<Record<string, unknown>>)
+      : [];
+    const commands = Array.isArray(form.schema['commands'])
+      ? (form.schema['commands'] as Array<Record<string, unknown>>)
+      : [];
+    const dataSources = Array.isArray(form.schema['dataSources'])
+      ? (form.schema['dataSources'] as Array<Record<string, unknown>>)
       : [];
     const presentation =
       form.schema['presentation'] &&
@@ -106,6 +139,11 @@ export class FormRuntimeService {
       version: form.version,
       fields,
       actions,
+      commands,
+      dataSources,
+      persistence: this.asObject(form.schema['persistence']),
+      runtime: this.asObject(form.schema['runtime']),
+      layout: this.asObject(form.schema['layout']),
       presentation,
       steps
     });
@@ -114,7 +152,7 @@ export class FormRuntimeService {
   initialValues(form: RuntimeForm) {
     return Object.fromEntries(
       this.allFields(form).map((field) => [
-        field.name,
+        this.fieldKey(field),
         field.config?.['defaultValue'] ?? (this.isBoolean(field.type) ? false : '')
       ])
     );
@@ -124,9 +162,10 @@ export class FormRuntimeService {
     return Object.fromEntries(
       this.allFields(form)
         .map((field) => {
-          const value = values[field.name];
+          const key = this.fieldKey(field);
+          const value = values[key];
           const missing = value === null || value === undefined || value === '';
-          return [field.name, field.required && missing ? `${field.label} es obligatorio.` : ''] as const;
+          return [key, field.required && missing ? `${field.label} es obligatorio.` : ''] as const;
         })
         .filter(([, error]) => Boolean(error))
     );
@@ -138,5 +177,15 @@ export class FormRuntimeService {
 
   allFields(form: RuntimeForm) {
     return form.steps?.length ? form.steps.flatMap((step) => step.fields) : form.fields;
+  }
+
+  fieldKey(field: Pick<RuntimeField, 'key' | 'name'>) {
+    return field.key || field.name;
+  }
+
+  private asObject(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
   }
 }

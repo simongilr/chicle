@@ -2796,10 +2796,11 @@ interface FlowJobItem {
                         <p class="meta">Completa el formulario como lo haría una pantalla real.</p>
                       </div>
                       @for (field of flowInputs; track field.key) {
-                        <label>
+                        <label [for]="'flow-test-input-' + field.key">
                           {{ field.label || field.key }}{{ field.required ? ' *' : '' }}
                           @if (field.type === 'boolean') {
                             <select
+                              [id]="'flow-test-input-' + field.key"
                               [ngModel]="testInputValues[field.key]"
                               (ngModelChange)="setTestInputValue(field, $event)"
                             >
@@ -2808,6 +2809,7 @@ interface FlowJobItem {
                             </select>
                           } @else {
                             <input
+                              [id]="'flow-test-input-' + field.key"
                               [type]="testInputType(field)"
                               [ngModel]="testInputValues[field.key]"
                               (ngModelChange)="setTestInputValue(field, $event)"
@@ -3587,7 +3589,7 @@ interface FlowJobItem {
 })
 export class FlowsPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiClientService);
-  private readonly flowLive = inject(FlowLiveClientService);
+  readonly flowLive = inject(FlowLiveClientService);
   private liveSubscription?: Subscription;
   readonly auth = inject(AuthService);
 

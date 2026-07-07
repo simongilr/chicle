@@ -42,6 +42,70 @@ the frontend uses the same built-in default and remains operational.
 The initial adaptive profile selects Ionic for native iOS/Android or widths up to 767 px, and PrimeNG from 768 px.
 Preview width is passed explicitly by the designer, so mobile previews do not depend on the browser window size.
 
+## Personalization hierarchy
+
+Theme and personalization are resolved independently from the component kit. The renderer must apply the first explicit
+value it finds in this order:
+
+1. Field or command override.
+2. Step override.
+3. Form or screen override.
+4. Selected app template default.
+5. Tenant/organization Confisys default.
+6. Chicle built-in default.
+
+Supported stored values:
+
+| Property | Purpose | Allowed strategy |
+| --- | --- | --- |
+| `theme` | Installed theme key such as `chicle`, `lara`, `material`, `nora` | Must exist in `UiThemeService`. |
+| `themeMode` | `light`, `dark`, `system` or `inherit` | Defaults to app/tenant setting. |
+| `density` | `comfortable`, `compact`, `spacious` or `inherit` | Affects spacing and control height. |
+| `radius` | `none`, `sm`, `md`, `lg`, `inherit` | Tokenized only; no arbitrary CSS radius per field. |
+| `tokens` | Safe color token overrides | Allowlisted token names and validated color values. |
+
+Allowed token override keys:
+
+- `primary`
+- `primaryContrast`
+- `surface`
+- `background`
+- `text`
+- `muted`
+- `border`
+- `success`
+- `warning`
+- `danger`
+- `info`
+
+Rules:
+
+- Stored JSON may reference installed themes and safe tokens; it must not store raw CSS classes, selectors or style
+  blocks.
+- Token overrides are optional and should be rare. Prefer installed themes for brand consistency.
+- The designer must check contrast for `text` over `background`, `text` over `surface` and `primaryContrast` over
+  `primary`.
+- Dark mode is a mode over the selected theme, not a separate component kit.
+- A field-level color override must be semantic, such as `tone=warning`, before using raw token overrides.
+- Theme changes must be previewed in desktop, tablet and mobile before publishing when a form forces a theme.
+
+## Responsive form transformation
+
+Dynamic forms keep one stored schema, but the renderer changes the layout pattern by viewport. This is intentional:
+large web screens should not look like stretched mobile screens, and mobile screens should not look like squeezed web
+forms.
+
+| Viewport | Primary pattern | Step behavior |
+| --- | --- | --- |
+| Wide desktop | PrimeNG operational form | Steps render as sections or cards, often two cards per row. |
+| Desktop previewing mobile | Preview viewport shell | The mobile screen renders inside the preview frame, with compact step progress. |
+| Tablet | PrimeNG or Ionic by profile | Steps render as one card per row or mobile-style screens when touch-first. |
+| Mobile web/native | Ionic guided screen | One step becomes one screen with bottom navigation. |
+
+The decision is controlled by the dynamic form `layout` contract, not by page-local CSS. The same runtime component
+must receive a preview width and resolve the correct presentation without reading the browser width when it is inside a
+designer preview.
+
 ## Stored contract
 
 `presentation` is optional at form, screen and component level:
@@ -52,11 +116,17 @@ Preview width is passed explicitly by the designer, so mobile previews do not de
     "profileKey": "adaptive",
     "kit": "auto",
     "theme": "chicle",
+    "themeMode": "system",
+    "density": "comfortable",
     "rules": [
       { "kit": "ionic", "platforms": ["ios", "android"] },
       { "kit": "ionic", "maxWidth": 767 },
       { "kit": "primeng", "minWidth": 768 }
-    ]
+    ],
+    "tokens": {
+      "primary": "#1554a2",
+      "primaryContrast": "#ffffff"
+    }
   }
 }
 ```

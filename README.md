@@ -50,6 +50,7 @@ Security and authentication decisions should be checked against `docs/security-a
 - Human/AI entry point: `docs/ai-authoring-guide.md`
 - Dynamic services contract: `docs/dynamic-services-contract.md`
 - Flow contract: `docs/flow-contract.md`
+- Dynamic forms contract: `docs/dynamic-forms-contract.md`
 - Visual components and adoption: `docs/ui-components.md`
 - In-app visual component catalog: `/components`
 - Machine-readable examples: `docs/examples/*.json`

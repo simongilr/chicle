@@ -1,7 +1,11 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+
+export type DynamicFormStatus = 'draft' | 'published' | 'archived';
 
 @Entity('dynamic_forms')
 @Index(['tenantId', 'key'], { unique: true })
+@Index(['tenantId', 'status'])
+@Index(['tenantId', 'trashedAt'])
 export class DynamicForm {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -15,6 +19,12 @@ export class DynamicForm {
   @Column({ length: 180 })
   title!: string;
 
+  @Column({ type: 'text', nullable: true })
+  description?: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  category?: string | null;
+
   @Column({ default: 1 })
   version!: number;
 
@@ -23,4 +33,28 @@ export class DynamicForm {
 
   @Column({ default: false })
   published!: boolean;
+
+  @Column({ type: 'varchar', length: 24, default: 'draft' })
+  status!: DynamicFormStatus;
+
+  @Column({ type: 'varchar', length: 36, nullable: true })
+  publishedVersionId?: string | null;
+
+  @Column({ type: 'json', nullable: true })
+  metadata?: Record<string, unknown> | null;
+
+  @Column({ type: 'json', nullable: true })
+  tags?: string[] | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  trashedAt?: Date | null;
+
+  @Column({ type: 'varchar', length: 180, nullable: true })
+  trashedByUserId?: string | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

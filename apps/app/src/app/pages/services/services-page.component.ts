@@ -1,4 +1,4 @@
-import { JsonPipe, NgFor } from '@angular/common';
+import { JsonPipe } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
@@ -176,7 +176,6 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   imports: [
     FormsModule,
     JsonPipe,
-    NgFor,
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
@@ -326,7 +325,8 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         min-width: 0;
       }
 
-      label {
+      label,
+      .field-label {
         color: #173b5f;
         font-size: 0.9rem;
         font-weight: 850;
@@ -719,12 +719,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           (ngModelChange)="onPrimaryTableChange()"
                         >
                           <option value="">Selecciona una tabla</option>
-                          <option
-                            *ngFor="let table of tableSelectOptions; trackBy: trackTableName"
-                            [value]="table.name"
-                          >
-                            {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                          </option>
+                          @for (table of tableSelectOptions; track table.name) {
+                            <option [value]="table.name">
+                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                            </option>
+                          }
                         </select>
                         @if (tablesLoading) {
                           <span class="meta">Cargando catálogo de tablas...</span>
@@ -741,12 +740,11 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           [(ngModel)]="guide.involvedTableList"
                           (ngModelChange)="syncGuideToDefinition()"
                         >
-                          <option
-                            *ngFor="let table of tableSelectOptions; trackBy: trackTableName"
-                            [value]="table.name"
-                          >
-                            {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                          </option>
+                          @for (table of tableSelectOptions; track table.name) {
+                            <option [value]="table.name">
+                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
+                            </option>
+                          }
                         </select>
                         <span class="meta">Usa Cmd/Ctrl para seleccionar varias tablas.</span>
                       </div>
@@ -766,7 +764,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           </select>
                         </div>
                         <div class="field">
-                          <label>Filtros configurados</label>
+                          <div class="field-label">Filtros configurados</div>
                           <button type="button" (click)="addGuideFilter()">Agregar filtro</button>
                         </div>
                         <div class="filter-builder">
@@ -840,7 +838,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                                     placeholder="name"
                                   />
                                 } @else {
-                                  <label>Origen</label>
+                                  <div class="field-label">Origen</div>
                                   <div class="notice">
                                     {{
                                       filter.valueSource === 'tenant'
@@ -1025,7 +1023,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <textarea id="test-context" class="code" [(ngModel)]="contextText" spellcheck="false"></textarea>
                     </div>
                     <div class="block">
-                      <label>Última respuesta</label>
+                      <div class="field-label">Última respuesta</div>
                       @if (lastRun) {
                         <pre>{{ lastRun | json }}</pre>
                       } @else if (!selected.publishedVersion) {
@@ -1414,10 +1412,6 @@ export class ServicesPageComponent implements OnInit {
       .filter((filter): filter is ServiceFilter => Boolean(filter));
   }
 
-  trackTableName(_index: number, table: DatabaseTable) {
-    return table.name;
-  }
-
   get guideWarnings() {
     const warnings: string[] = [];
     if (this.guide.source === 'internal_table' || this.guide.source === 'dynamic_record') {
@@ -1536,7 +1530,11 @@ export class ServicesPageComponent implements OnInit {
         this.loading = false;
         if (this.selected) {
           const refreshed = services.find((service) => service.id === this.selected?.id);
-          refreshed ? this.select(refreshed) : this.newService();
+          if (refreshed) {
+            this.select(refreshed);
+          } else {
+            this.newService();
+          }
         } else if (services.length) {
           this.select(services[0]);
         }

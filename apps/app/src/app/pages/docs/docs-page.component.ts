@@ -911,6 +911,14 @@ interface JsonContractResource {
                       </div>
                     </div>
                     <div class="guide-block">
+                      <span class="guide-label">Steps responsivos</span>
+                      <div class="guide-text">
+                        En escritorio los steps pueden verse como secciones o cards integradas, por ejemplo dos por
+                        fila. En móvil esos mismos steps se transforman en pantallas guiadas con progreso compacto y
+                        botones inferiores. El diseñador sugiere dividir cuando hay muchos campos.
+                      </div>
+                    </div>
+                    <div class="guide-block">
                       <span class="guide-label">Ejemplo de pantalla o formulario</span>
                       <pre>{{ presentationJsonExample }}</pre>
                     </div>
@@ -1161,6 +1169,13 @@ export class DocsPageComponent {
     '      { "kit": "ionic", "maxWidth": 767 },\n' +
     '      { "kit": "primeng", "minWidth": 768 }\n' +
     '    ]\n' +
+    '  },\n' +
+    '  "layout": {\n' +
+    '    "strategy": "adaptive_steps",\n' +
+    '    "desktop": { "mode": "step_cards", "cardColumns": 2 },\n' +
+    '    "tablet": { "mode": "step_cards", "cardColumns": 1 },\n' +
+    '    "mobile": { "mode": "step_screens", "progress": "compact" },\n' +
+    '    "autoSplit": { "enabled": true, "suggestAfterFields": 8 }\n' +
     '  }\n' +
     '}';
 
@@ -1172,6 +1187,15 @@ export class DocsPageComponent {
       covers: 'HTTP externo, tabla interna, filtros all/any, paginación, responseMap, test y ejecución por key.',
       example:
         '{\n  "definition": {\n    "source": "internal_table",\n    "method": "GET",\n    "dataTarget": {\n      "queryMode": "single_table",\n      "primaryTable": "users",\n      "filters": []\n    }\n  }\n}'
+    },
+    {
+      title: 'Formularios dinámicos',
+      path: 'docs/examples/dynamic-forms.examples.json',
+      purpose: 'Definir formularios tenant-owned que renderizan igual en web y móvil desde el mismo contrato.',
+      covers:
+        'Steps, campos, validaciones, presentación adaptive, dataSources, acciones, offline, pruebas y submit hacia flows.',
+      example:
+        '{\n  "schemaVersion": 1,\n  "kind": "dynamic_form",\n  "key": "contact_request",\n  "presentation": { "kit": "auto" },\n  "layout": {\n    "desktop": { "mode": "step_cards", "cardColumns": 2 },\n    "mobile": { "mode": "step_screens" }\n  },\n  "steps": [\n    { "key": "identity", "title": "Datos", "fields": [] }\n  ],\n  "actions": [\n    { "event": "onSubmit", "type": "execute_flow", "flowKey": "create_contact_request" }\n  ]\n}'
     },
     {
       title: 'Definiciones completas de Flow',
@@ -1304,13 +1328,22 @@ export class DocsPageComponent {
     },
     {
       family: 'Formularios dinámicos',
-      status: 'Runtime V1 verificable',
-      purpose: 'Carga un esquema del tenant, renderiza campos, valida obligatorios y permite revisar escritorio, tablet y móvil.',
-      components: ['DynamicFormPageComponent', 'FormRuntimeService', 'ActionRunnerService']
+      status: 'Runtime V1 verificable; diseñador pendiente',
+      purpose:
+        'Carga un esquema del tenant, renderiza campos, valida obligatorios y permite revisar escritorio, tablet y móvil. El diseñador visual requiere StepManager, inspector, JSON editor, acciones, versionado y banco de pruebas.',
+      components: [
+        'DynamicFormPageComponent',
+        'FormRuntimeService',
+        'FormlySchemaAdapterService',
+        'FormlyRuntimeComponent',
+        'PreviewViewportComponent',
+        'ActionRunnerService'
+      ]
     }
   ];
 
   readonly uiBuilderBacklog = [
+    'StepManagerComponent',
     'FieldPaletteComponent',
     'ComponentTreeComponent',
     'PropertyInspectorComponent',

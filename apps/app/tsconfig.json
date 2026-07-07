@@ -13,15 +13,14 @@
     "declaration": false,
     "downlevelIteration": true,
     "experimentalDecorators": true,
-    "moduleResolution": "node",
-    "paths": {
-      "rxjs": ["../../node_modules/rxjs"],
-      "rxjs/*": ["../../node_modules/rxjs/*"]
-    },
+    "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
     "useDefineForClassFields": false,
     "lib": ["ES2022", "dom"]
+  },
+  "angularCompilerOptions": {
+    "strictTemplates": true
   }
 }

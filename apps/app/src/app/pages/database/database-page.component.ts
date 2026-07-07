@@ -552,7 +552,7 @@ interface SchemaHistoryResponse {
                     </div>
                   } @else {
                     <p-table [value]="filteredRows" [scrollable]="true" scrollHeight="430px">
-                      <ng-template pTemplate="header">
+                      <ng-template #header>
                         <tr>
                           <th style="width: 84px">Detalle</th>
                           @for (column of selectedTable.columns; track column.name) {
@@ -560,7 +560,7 @@ interface SchemaHistoryResponse {
                           }
                         </tr>
                       </ng-template>
-                      <ng-template pTemplate="body" let-row>
+                      <ng-template #body let-row>
                         <tr>
                           <td>
                             <button class="row-button" type="button" (click)="openRow(row)">Ver</button>
@@ -574,7 +574,7 @@ interface SchemaHistoryResponse {
                           }
                         </tr>
                       </ng-template>
-                      <ng-template pTemplate="emptymessage">
+                      <ng-template #emptymessage>
                         <tr>
                           <td [attr.colspan]="selectedTable.columns.length + 1">No hay filas para mostrar.</td>
                         </tr>

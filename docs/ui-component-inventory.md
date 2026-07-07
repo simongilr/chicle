@@ -84,16 +84,40 @@ Page containers keep routing, permissions, loading and orchestration.
 These components are required before the builders grow inside page files:
 
 1. Extend `DynamicFieldLibraryComponent` with search, categories and insertion events for the visual designer.
-2. `ComponentTreeComponent`: ordered screen hierarchy with selection and nesting.
-3. `PropertyInspectorComponent`: edits the selected field or component without knowing its business module.
-4. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
-5. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
-6. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
-7. `JsonEditorPanelComponent`: synchronized guided/JSON editing with parse errors and reset.
-8. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
-9. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
-10. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
-11. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
+2. `StepManagerComponent`: create, reorder, select and validate form steps.
+3. `ComponentTreeComponent`: ordered screen hierarchy with selection and nesting.
+4. `PropertyInspectorComponent`: edits the selected form, step, field or component without knowing its business module.
+5. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
+6. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
+7. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
+8. `JsonEditorPanelComponent`: synchronized guided/JSON editing with parse errors and reset.
+9. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
+10. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
+11. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
+12. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
+
+## Dynamic Forms readiness audit
+
+| Capability | Existing reusable pieces | Status |
+| --- | --- | --- |
+| Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | Initial, usable |
+| Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/native renderers | Initial, usable |
+| Labels/help/errors | `FieldShellComponent` | Ready |
+| Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready |
+| Form lifecycle guide | `ProcessStepsComponent`, `WorkflowGuideComponent`, `StatusNoticeComponent` | Ready |
+| Designer workspace | `DesignerWorkspaceComponent`, catalog and section components | Ready |
+| Field palette | `DynamicFieldLibraryComponent` | Initial; needs insertion events |
+| Step management | None yet | Missing |
+| Field inspector | None yet | Missing |
+| JSON editor | None yet | Missing |
+| Data binding | Flow mapper exists only in Flow domain | Missing shared component |
+| Action binding | Page-local patterns only | Missing |
+| Version and publish panel | Page-local patterns in Services/Flows | Missing shared component |
+| Test workbench | Page-local patterns in Services/Flows | Missing shared component |
+| Server pagination/list for many forms | No shared entity table yet | Missing |
+
+Conclusion: the runtime foundation is present; the visual authoring foundation still needs the P0 builder components
+before the designer should grow.
 
 ## Extraction priorities
 

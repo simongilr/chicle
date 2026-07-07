@@ -62,7 +62,7 @@ export const INSTALLED_UI_THEMES: UiThemeDefinition[] = [
     key: 'chicle',
     label: 'Chicle / Aura',
     description: 'Tema operativo predeterminado de Chicle Engine.',
-    loadPrimePreset: () => import('@primeng/themes/aura').then((module) => module.default),
+    loadPrimePreset: () => import('@primeuix/themes/aura').then((module) => module.default),
     primaryPalette: CHICLE_PRIMARY,
     tokens: {
       primary: '#1554a2',
@@ -79,7 +79,7 @@ export const INSTALLED_UI_THEMES: UiThemeDefinition[] = [
     key: 'lara',
     label: 'Lara',
     description: 'Superficies ligeras y acento verde para interfaces densas.',
-    loadPrimePreset: () => import('@primeng/themes/lara').then((module) => module.default),
+    loadPrimePreset: () => import('@primeuix/themes/lara').then((module) => module.default),
     primaryPalette: LARA_PRIMARY,
     tokens: {
       primary: '#047857',
@@ -96,7 +96,7 @@ export const INSTALLED_UI_THEMES: UiThemeDefinition[] = [
     key: 'material',
     label: 'Material',
     description: 'Geometría compacta y acento índigo.',
-    loadPrimePreset: () => import('@primeng/themes/material').then((module) => module.default),
+    loadPrimePreset: () => import('@primeuix/themes/material').then((module) => module.default),
     primaryPalette: MATERIAL_PRIMARY,
     tokens: {
       primary: '#3f51b5',
@@ -113,7 +113,7 @@ export const INSTALLED_UI_THEMES: UiThemeDefinition[] = [
     key: 'nora',
     label: 'Nora',
     description: 'Contraste sereno y acento teal para operación prolongada.',
-    loadPrimePreset: () => import('@primeng/themes/nora').then((module) => module.default),
+    loadPrimePreset: () => import('@primeuix/themes/nora').then((module) => module.default),
     primaryPalette: NORA_PRIMARY,
     tokens: {
       primary: '#0f766e',

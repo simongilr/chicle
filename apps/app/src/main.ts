@@ -4,7 +4,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { providePrimeNG } from 'primeng/config';
-import Aura from '@primeng/themes/aura';
+import Aura from '@primeuix/themes/aura';
 import { importProvidersFrom } from '@angular/core';
 import { provideFormlyCore } from '@ngx-formly/core';
 import { AppComponent } from './app/app.component';

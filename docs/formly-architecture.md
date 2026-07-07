@@ -1,8 +1,11 @@
 # Formly runtime architecture
 
-Chicle Engine uses Formly 7 as the declarative form orchestration layer. Formly owns Reactive Forms construction,
-validation, parsers, visibility expressions and field lifecycle. Chicle owns the persisted schema, security,
+Chicle Engine uses Formly 7 as the Angular form orchestration layer. Formly owns Reactive Forms construction,
+validation, parsers, visibility expressions and field lifecycle. Chicle owns the public persisted contract, security,
 presentation profile and concrete PrimeNG/Ionic/native rendering.
+
+The canonical stored contract is documented in `docs/dynamic-forms-contract.md`. The Formly adapter is an
+implementation detail that converts that Chicle document into `FormlyFieldConfig[]`.
 
 ## Dependency boundary
 
@@ -55,6 +58,10 @@ The reusable parts recovered from the earlier example project are now represente
 
 No product names, product tables or product-specific validation services were copied.
 
+The earlier project also had useful concepts such as button settings, dynamic sources, grouped fields and nested arrays.
+Those concepts are not copied directly. They are translated into the Chicle contract as `actions`, `dataSources`,
+`steps`, field layout and future `repeater`/`object_group` field types.
+
 ## Safe conditional visibility
 
 Stored JSON does not contain JavaScript. `visibleWhen` accepts only a field, approved operator and optional value:
@@ -98,4 +105,3 @@ The required architecture for a capability field is:
 
 Formly's official standalone APIs are `FormlyForm`, `provideFormlyCore` and `provideFormlyConfig`. Chicle uses the
 standalone API rather than importing the earlier application's NgModules.
-

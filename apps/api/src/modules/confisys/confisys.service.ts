@@ -299,7 +299,7 @@ export class ConfisysService implements OnApplicationBootstrap {
     if (valueType === 'json') {
       try {
         return JSON.parse(value);
-      } catch (error) {
+      } catch {
         this.logger.warn(`Invalid JSON confisys value ignored`);
         return null;
       }

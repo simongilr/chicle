@@ -148,11 +148,18 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
               [model]="values"
               [presentation]="effectivePresentation"
               [viewportWidth]="previewWidth"
-              submitLabel="Validar formulario"
+              [readonly]="submitting"
+              [submitLabel]="submitLabel"
               (modelChange)="updateModel($event)"
               (validChange)="updateValidity($event)"
               (submitted)="completeValidation($event)"
             ></app-formly-runtime>
+            @if (submitMessage) {
+              <app-status-notice tone="success">{{ submitMessage }}</app-status-notice>
+            }
+            @if (submitError) {
+              <app-status-notice tone="error">{{ submitError }}</app-status-notice>
+            }
           </div>
         </app-preview-viewport>
 
@@ -166,8 +173,11 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
             <h2>Estado del renderer</h2>
             <p>
               Kit: {{ resolvedPresentation.kit }} · Tema: {{ resolvedPresentation.theme }} ·
-              {{ validationMessage || 'Completa los campos y valida el formulario.' }}
+              {{ validationMessage || 'Completa los campos y envía el formulario.' }}
             </p>
+            @if (submitOutput) {
+              <pre>{{ submitOutput | json }}</pre>
+            }
           </article>
         </section>
       }
@@ -187,6 +197,10 @@ export class DynamicFormPageComponent implements OnInit, OnDestroy {
   previewMode: PreviewViewportMode = 'desktop';
   previewKit: UiKitPreference = 'auto';
   validationMessage = '';
+  submitMessage = '';
+  submitError = '';
+  submitOutput?: Record<string, unknown>;
+  submitting = false;
   loading = true;
   error = '';
   effectivePresentation: UiPresentationConfig = { kit: 'auto' };
@@ -206,10 +220,15 @@ export class DynamicFormPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  get submitLabel() {
+    const label = this.form?.runtime?.['submitLabel'];
+    return typeof label === 'string' && label.trim() ? label : 'Enviar formulario';
+  }
+
   ngOnInit() {
     this.previousTheme = this.themeService.activeThemeKey();
     const formKey = this.route.snapshot.paramMap.get('formKey') ?? '';
-    this.api.get<StoredRuntimeForm>(`forms/${encodeURIComponent(formKey)}`).subscribe({
+    this.api.get<StoredRuntimeForm>(`forms/by-key/${encodeURIComponent(formKey)}/runtime`).subscribe({
       next: (stored) => {
         this.form = this.runtime.fromStored(stored);
         this.values = this.runtime.initialValues(this.form);
@@ -241,6 +260,8 @@ export class DynamicFormPageComponent implements OnInit, OnDestroy {
 
   updateModel(model: Record<string, unknown>) {
     this.values = model;
+    this.submitError = '';
+    this.submitMessage = '';
   }
 
   updateValidity(valid: boolean) {
@@ -252,5 +273,27 @@ export class DynamicFormPageComponent implements OnInit, OnDestroy {
   completeValidation(model: Record<string, unknown>) {
     this.values = model;
     this.validationMessage = 'La estructura y los campos obligatorios son válidos.';
+    if (!this.form || this.submitting) {
+      return;
+    }
+    this.submitting = true;
+    this.submitError = '';
+    this.submitMessage = '';
+    this.submitOutput = undefined;
+    this.api
+      .post<Record<string, unknown>>(`forms/by-key/${encodeURIComponent(this.form.key)}/submit`, {
+        input: model
+      })
+      .subscribe({
+        next: (output) => {
+          this.submitOutput = output;
+          this.submitMessage = 'Formulario enviado correctamente.';
+          this.submitting = false;
+        },
+        error: () => {
+          this.submitError = 'No se pudo enviar el formulario. Revisa permisos, publicación o configuración.';
+          this.submitting = false;
+        }
+      });
   }
 }

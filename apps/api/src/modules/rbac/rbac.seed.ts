@@ -29,6 +29,8 @@ export const BASE_PERMISSIONS: BasePermissionSeed[] = [
   { key: 'menus.read', category: 'menus', description: 'Ver menús.' },
   { key: 'forms.read', category: 'forms', description: 'Ver formularios.' },
   { key: 'forms.manage', category: 'forms', description: 'Administrar formularios.' },
+  { key: 'forms.publish', category: 'forms', description: 'Publicar versiones de formularios.' },
+  { key: 'forms.submit', category: 'forms', description: 'Enviar formularios publicados.' },
   { key: 'services.read', category: 'services', description: 'Ver servicios dinámicos.' },
   { key: 'services.manage', category: 'services', description: 'Administrar servicios dinámicos.' },
   { key: 'services.execute', category: 'services', description: 'Probar y ejecutar servicios dinámicos.' },
@@ -74,6 +76,8 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'menus.read',
       'forms.read',
       'forms.manage',
+      'forms.publish',
+      'forms.submit',
       'services.read',
       'services.manage',
       'services.execute',
@@ -99,6 +103,7 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     permissions: [
       'menus.read',
       'forms.read',
+      'forms.submit',
       'services.read',
       'services.execute',
       'records.read',
@@ -118,6 +123,6 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     key: 'client',
     name: 'Cliente app',
     description: 'Cliente o usuario externo que usa la app del tenant con acceso limitado.',
-    permissions: ['menus.read', 'forms.read', 'records.read', 'records.create', 'files.upload', 'files.read']
+    permissions: ['menus.read', 'forms.read', 'forms.submit', 'records.read', 'records.create', 'files.upload', 'files.read']
   }
 ];

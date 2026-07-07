@@ -14,13 +14,16 @@ Read these files in order:
 4. `docs/examples/flows.examples.json`
 5. `docs/examples/flow-step-catalog.examples.json`
 6. `docs/examples/flow-runtime.examples.json`
-7. `docs/ui-components.md`
-8. `docs/ui-component-inventory.md`
-9. `docs/ui-presentation-architecture.md`
-10. `docs/examples/ui-presentation.examples.json`
-11. `docs/formly-architecture.md`
-12. `docs/examples/dynamic-form-formly.examples.json`
-13. `docs/angular-20-migration-roadmap.md`
+7. `docs/dynamic-forms-contract.md`
+8. `docs/examples/dynamic-forms.examples.json`
+9. `docs/ui-components.md`
+10. `docs/ui-component-inventory.md`
+11. `docs/ui-presentation-architecture.md`
+12. `docs/examples/ui-presentation.examples.json`
+13. `docs/formly-architecture.md`
+14. `docs/examples/dynamic-form-formly.examples.json`
+15. `docs/angular-20-migration-roadmap.md`
+16. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -48,6 +51,14 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Create metadata first, then a draft version, test it, publish it and only then execute it from another component.
 - Keep forms and screens library-neutral. Use the optional `presentation` contract; never emit Angular selectors,
   PrimeNG/Ionic component tags or library CSS classes in stored JSON.
+- Personalization must use installed themes, `themeMode`, `density`, `radius` and safe semantic `tokens`. Never emit
+  CSS blocks, arbitrary classes or unregistered theme imports in stored JSON.
+- Build dynamic forms from the Chicle contract first. Use `steps` as the user journey, `fields` as declarative data
+  capture, `actions` for submit behavior and `tests` for designer verification.
+- Use `commands` for visible buttons. A button must declare placement, style, permission, validation requirements and
+  a safe action such as `execute_service`, `execute_flow`, `create_record`, `upload_files` or `navigate`.
+- Dynamic forms never write arbitrary tables directly from the frontend. Use `create_record`, `execute_service` or
+  `execute_flow`, and document every field/service/flow dependency through bindings.
 - Never store Formly functions or JavaScript expressions. Conditional fields use the documented `visibleWhen` object.
 
 ## Validation checklist

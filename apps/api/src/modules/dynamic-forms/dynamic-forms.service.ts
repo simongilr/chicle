@@ -84,6 +84,14 @@ export interface CreateDynamicFormRequest {
   published?: boolean;
 }
 
+export interface UpdateDynamicFormRequest {
+  title?: string;
+  description?: string | null;
+  category?: string | null;
+  schema?: Record<string, unknown>;
+  published?: boolean;
+}
+
 export interface SubmitDynamicFormRequest {
   input?: Record<string, unknown>;
   commandKey?: string;
@@ -176,6 +184,28 @@ export class DynamicFormsService {
     );
     await this.replaceDraftBindings(auth, form, schema);
     return form;
+  }
+
+  async update(auth: AuthContext, formId: string, body: UpdateDynamicFormRequest) {
+    const form = await this.requireForm(auth, formId);
+    const title = body.title?.trim() || form.title;
+    const schema = this.normalizeSchema(body.schema ?? form.schema, form.key, title);
+    this.validateSchema(schema);
+    const saved = await this.forms.save(
+      this.forms.merge(form, {
+        title,
+        description: body.description === undefined ? form.description : body.description?.trim() || null,
+        category:
+          body.category === undefined
+            ? form.category
+            : body.category?.trim() || this.asString(schema.category) || null,
+        schema: schema as unknown as Record<string, unknown>,
+        published: body.published ?? form.published,
+        status: body.published ? 'published' : form.status === 'published' ? 'draft' : form.status
+      })
+    );
+    await this.replaceDraftBindings(auth, saved, schema);
+    return saved;
   }
 
   async createVersion(auth: AuthContext, formId: string) {
@@ -330,6 +360,15 @@ export class DynamicFormsService {
       return this.createRecord(auth, form, version, schema, action, input, idempotencyKey);
     }
 
+    if (action.type === 'show_message') {
+      return {
+        ok: true,
+        formKey: form.key,
+        version: version?.version ?? form.version,
+        input
+      };
+    }
+
     const mode = schema.persistence?.mode;
     if (!action.type && (mode === 'record' || mode === 'hybrid')) {
       return this.createRecord(auth, form, version, schema, action, input, idempotencyKey);
@@ -386,6 +425,9 @@ export class DynamicFormsService {
         serviceKey: schema.persistence.defaultTarget.serviceKey,
         payloadMap: { input: '{{input}}' }
       };
+    }
+    if (schema.persistence?.mode === 'none') {
+      return { type: 'show_message' };
     }
     return { type: 'create_record' };
   }

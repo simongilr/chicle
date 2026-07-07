@@ -6,6 +6,7 @@ describe("application route security contract", () => {
     ["confisys", "confisys.read"],
     ["database", "database.read"],
     ["services", "services.read"],
+    ["forms", "forms.read"],
   ])("protects /%s with authentication and %s", (path, permission) => {
     const route = routes.find((candidate) => candidate.path === path);
 

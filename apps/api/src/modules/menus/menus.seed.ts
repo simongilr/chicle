@@ -55,11 +55,19 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 39
   },
   {
+    key: 'forms',
+    label: 'Formularios',
+    route: '/forms',
+    icon: 'pi pi-file-edit',
+    permissions: ['forms.read'],
+    sortOrder: 40
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',
     icon: 'pi pi-shield',
     permissions: ['users.read', 'roles.read', 'permissions.read'],
-    sortOrder: 40
+    sortOrder: 45
   }
 ];

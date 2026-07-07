@@ -50,6 +50,12 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'forms',
+    loadComponent: () => import('./pages/forms/forms-page.component').then((module) => module.FormsPageComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['forms.read'] }
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login/login-page.component').then((module) => module.LoginPageComponent),
     canActivate: [loginGuard]

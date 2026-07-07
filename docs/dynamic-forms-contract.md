@@ -933,6 +933,24 @@ The designer lifecycle should match Dynamic Services and Flows:
 
 Draft edits never change a published version. Screens consume published forms by key.
 
+### Designer UX rule
+
+The visual assistant is the primary path for non-developer users. The generated JSON is shown after the active visual
+configuration block as the technical contract/result, not as the first thing the user must understand. If the JSON is
+edited manually, the user must apply it so the visual assistant, preview and submit tester stay synchronized.
+
+The designer must guide the user in this order:
+
+1. Pick a starter template: capture, lookup, approval, inspection or blank.
+2. Define identity, presentation, responsive behavior, persistence and runtime limits.
+3. Add steps and fields with quick field sets, then refine each field in the inspector.
+4. Review generated JSON as the contract result.
+5. Preview web/tablet/mobile and generate example input.
+6. Save draft, create immutable version and publish only when the checklist has no blocking issues.
+
+Publishing controls must remain disabled when required targets are missing, JSON is invalid, fields are incomplete, or
+the form has not been saved/versioned.
+
 ## Component responsibilities
 
 Shared components required by the form designer:
@@ -962,7 +980,7 @@ Shared components required by the form designer:
 | `StepManagerComponent` | Create, reorder, select and validate steps | Missing |
 | `SchemaFieldEditorComponent` | Field key, type, label, options and validation | Missing |
 | `PropertyInspectorComponent` | Edits selected form, step, field or action | Missing |
-| `JsonEditorPanelComponent` | Synchronized advanced JSON editing | Missing |
+| `JsonEditorPanelComponent` | Synchronized advanced JSON editing | Inline V1 in Forms; extract shared component next |
 | `ActionBindingEditorComponent` | Submit, command buttons and field event actions | Missing |
 | `DataBindingEditorComponent` | Dynamic service payload and response mapping | Missing; generalize from Flow mapper |
 | `VersionLifecyclePanelComponent` | Draft, version, publish and restore | Missing; pattern exists in Services/Flows pages |
@@ -1040,15 +1058,24 @@ Every canonical dynamic form example must pass these checks before it is used as
 
 ### Phase 2 - Designer V1
 
-- Build Form Designer with the same visual language as Services and Flows.
-- Add field palette, selected field inspector, step manager, JSON preview and responsive preview.
-- Require a successful preview before publishing.
+- Status: functional baseline implemented in `FormsPageComponent`.
+- Current capabilities: list forms, create draft, start from templates, edit identity, configure presentation kit/theme,
+  configure responsive behavior, configure runtime timeout/offline/autosave, configure persistence mode, select
+  published services/flows, configure payload/response maps, manage steps, add fields from palette or quick sets,
+  duplicate/reorder/remove fields, inspect/edit selected field, configure select options, basic validation, visual
+  visibility conditions, review/apply JSON, responsive preview, generate test fixtures, run submit tests against the
+  backend, display publishing checklist, save draft, create version and publish.
+- Next cleanup: extract `StepManagerComponent`, `SchemaFieldEditorComponent`, `JsonEditorPanelComponent` and
+  `VersionLifecyclePanelComponent` so Screens, Forms and future builders share the same controls.
+- Next UX rule: persist successful preview/test status and require it before enabling publish.
 
 ### Phase 3 - Actions and data sources
 
 - Bind fields to dynamic services.
 - Bind submit to `execute_flow`, `execute_service`, `create_record`, `upload_files` and navigation.
 - Add test fixtures and recorded runs.
+- Expand visual selectors for published services and flows into a reusable `DataBindingEditorComponent`.
+- Extract the inline form submit workbench into reusable `TestWorkbenchComponent`.
 
 ### Phase 4 - Mobile and offline
 

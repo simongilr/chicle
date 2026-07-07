@@ -1,11 +1,16 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { CreateDynamicFormRequest, DynamicFormsService, SubmitDynamicFormRequest } from './dynamic-forms.service';
+import {
+  CreateDynamicFormRequest,
+  DynamicFormsService,
+  SubmitDynamicFormRequest,
+  UpdateDynamicFormRequest
+} from './dynamic-forms.service';
 
 @Controller('forms')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -47,6 +52,13 @@ export class DynamicFormsController {
   @ApiOperation({ summary: 'Crear formulario del tenant actual' })
   create(@CurrentAuth() auth: AuthContext, @Body() body: CreateDynamicFormRequest) {
     return this.dynamicForms.create(auth, body);
+  }
+
+  @Patch(':formId')
+  @RequirePermissions('forms.manage')
+  @ApiOperation({ summary: 'Actualizar borrador de formulario del tenant actual' })
+  update(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string, @Body() body: UpdateDynamicFormRequest) {
+    return this.dynamicForms.update(auth, formId, body);
   }
 
   @Post(':formId/versions')

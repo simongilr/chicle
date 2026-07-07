@@ -66,8 +66,9 @@ Page containers keep routing, permissions, loading and orchestration.
 | DatabasePageComponent | Data viewer and schema designer | Functional; partially uses shared designer language |
 | ServicesPageComponent | Dynamic service lifecycle | Functional; reference visual workflow |
 | FlowsPageComponent | Declarative process lifecycle | Functional; must continue decomposing |
+| FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, JSON, preview, test, version and publish |
 | SecurityPageComponent | Users, roles, permissions and audit | Functional; needs further component extraction |
-| DynamicFormPageComponent | Dynamic form runtime | Loads stored schema, renders fields, previews responsive modes and validates required values |
+| DynamicFormPageComponent | Dynamic form runtime | Loads published runtime schema, renders fields, previews responsive modes and submits through API |
 
 ## Runtime services that support visual components
 
@@ -106,14 +107,14 @@ These components are required before the builders grow inside page files:
 | Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready |
 | Form lifecycle guide | `ProcessStepsComponent`, `WorkflowGuideComponent`, `StatusNoticeComponent` | Ready |
 | Designer workspace | `DesignerWorkspaceComponent`, catalog and section components | Ready |
-| Field palette | `DynamicFieldLibraryComponent` | Initial; needs insertion events |
-| Step management | None yet | Missing |
-| Field inspector | None yet | Missing |
-| JSON editor | None yet | Missing |
-| Data binding | Flow mapper exists only in Flow domain | Missing shared component |
+| Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples | Extract shared insertion component next |
+| Step management | Inline V1 in `FormsPageComponent` with add/remove/select | Extract shared component next |
+| Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings and visibility conditions | Extract shared component next |
+| JSON editor | Inline V1 result panel below guided editing plus full editor step in `FormsPageComponent` | Extract shared component next |
+| Data binding | Inline V1 service/flow selectors, runtime limits and payload/response maps in `FormsPageComponent`; Flow mapper exists only in Flow domain | Missing shared component |
 | Action binding | Page-local patterns only | Missing |
-| Version and publish panel | Page-local patterns in Services/Flows | Missing shared component |
-| Test workbench | Page-local patterns in Services/Flows | Missing shared component |
+| Version and publish panel | Inline V1 checklist in `FormsPageComponent`; page-local patterns in Services/Flows | Missing shared component |
+| Test workbench | Inline V1 fixture generator and submit runner in `FormsPageComponent`; page-local patterns in Services/Flows | Missing shared component |
 | Server pagination/list for many forms | No shared entity table yet | Missing |
 
 Conclusion: the runtime foundation is present; the visual authoring foundation still needs the P0 builder components

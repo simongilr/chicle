@@ -69,6 +69,16 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 39
   },
   {
+    key: 'forms',
+    label: 'Formularios',
+    route: '/forms',
+    icon: 'pi pi-file-edit',
+    permissions: ['forms.read'],
+    group: 'Construcción',
+    placement: 'build',
+    sortOrder: 40
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',
@@ -76,7 +86,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     permissions: ['users.read', 'roles.read', 'permissions.read'],
     group: 'Administración',
     placement: 'admin',
-    sortOrder: 40
+    sortOrder: 45
   }
 ];
 

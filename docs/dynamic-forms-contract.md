@@ -192,6 +192,41 @@ Recommended default:
 - Single controlled table mutation: `service`.
 - Multi-table mutation or external side effects: `flow` with outbox/event steps.
 
+Hybrid submit example:
+
+```json
+{
+  "persistence": {
+    "mode": "hybrid",
+    "defaultTarget": {
+      "type": "record",
+      "recordType": "client_onboarding"
+    }
+  },
+  "actions": [
+    {
+      "event": "onSubmit",
+      "type": "create_record",
+      "recordType": "client_onboarding",
+      "resultKey": "record",
+      "payloadMap": {
+        "input": "{{input}}"
+      }
+    },
+    {
+      "event": "onSubmit",
+      "type": "execute_flow",
+      "flowKey": "client_onboarding_after_submit",
+      "resultKey": "flow",
+      "payloadMap": {
+        "input": "{{input}}",
+        "tenant": "{{tenant.slug}}"
+      }
+    }
+  ]
+}
+```
+
 ### Field-to-service bindings
 
 Fields may use dynamic services for read or validation behavior:
@@ -706,7 +741,11 @@ Command contract:
   "fieldKey": "email",
   "style": "secondary",
   "event": "onClick",
-  "permission": "forms.submit",
+  "access": {
+    "permissions": ["forms.submit"],
+    "roles": ["operator"],
+    "deniedMode": "hidden"
+  },
   "visibleWhen": {
     "field": "email",
     "operator": "truthy"
@@ -716,7 +755,7 @@ Command contract:
     "operator": "truthy"
   },
   "confirm": {
-    "enabled": false
+    "message": "Validar este correo ahora?"
   },
   "action": {
     "type": "execute_service",
@@ -733,6 +772,53 @@ Command contract:
   }
 }
 ```
+
+The designer may also store the action flattened at command level for runtime convenience:
+
+```json
+{
+  "key": "validate_email",
+  "label": "Validar correo",
+  "placement": "form_toolbar",
+  "style": "secondary",
+  "event": "onClick",
+  "type": "execute_service",
+  "serviceKey": "validate_email",
+  "payloadMap": {
+    "input": "{{input}}"
+  },
+  "requiresValidForm": true,
+  "responseMode": "show_response"
+}
+```
+
+Backend accepts both shapes. `action` is the canonical long form; flattened `type/serviceKey/flowKey/payloadMap` is the
+friendly form produced by the V1 designer.
+
+## Access rules
+
+Forms inherit route/backend permissions, but the JSON can also declare field and button access for generated screens:
+
+```json
+{
+  "key": "internal_notes",
+  "type": "textarea",
+  "label": "Notas internas",
+  "access": {
+    "permissions": ["forms.read_internal"],
+    "roles": ["admin"],
+    "readonlyUnlessPermission": "forms.edit_internal",
+    "deniedMode": "hidden"
+  }
+}
+```
+
+Rules:
+
+- `permissions` and `roles` are additive: if present, the user must satisfy them.
+- `deniedMode=hidden` removes the field or command from runtime.
+- `deniedMode=readonly` keeps the field visible but blocks editing.
+- `readonlyUnlessPermission` is useful for sensitive values that some users can view but not change.
 
 Command placements:
 
@@ -939,16 +1025,19 @@ Draft edits never change a published version. Screens consume published forms by
 
 ### Designer UX rule
 
-The visual assistant is the primary path for non-developer users. The generated JSON is shown after the active visual
-configuration block as the technical contract/result, not as the first thing the user must understand. If the JSON is
-edited manually, the user must apply it so the visual assistant, preview and submit tester stay synchronized.
+The visual assistant and JSON editor are equivalent authoring paths. Non-developer users can follow the guided
+configuration, while advanced users or AI agents can work directly in the JSON from the first screen. JSON is always
+visible and editable; it is not a separate mandatory lifecycle step.
+
+Saving, versioning and publishing must use the current JSON contract as the source of truth. If JSON is edited
+manually, the user may apply it to synchronize the visual assistant, but applying it is not required before saving.
 
 The designer must guide the user in this order:
 
 1. Pick a starter template: capture, lookup, approval, inspection or blank.
 2. Define identity, presentation, responsive behavior, persistence and runtime limits.
 3. Add steps and fields with quick field sets, then refine each field in the inspector.
-4. Review generated JSON as the contract result.
+4. Edit the JSON directly when needed, or keep using the guided controls.
 5. Preview web/tablet/mobile and generate example input.
 6. Save draft, create immutable version and publish only when the checklist has no blocking issues.
 

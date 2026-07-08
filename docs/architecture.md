@@ -5,6 +5,7 @@
 Configuration objects are part of the public architecture and stay documented beside the implementation:
 
 - `docs/ai-authoring-guide.md` is the entry point for people and AI.
+- `docs/ai-ready-authoring.md` defines JSON-only endpoints and sequences for future assistants.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive

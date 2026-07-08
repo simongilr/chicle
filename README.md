@@ -48,6 +48,7 @@ Security and authentication decisions should be checked against `docs/security-a
 ## Official Configuration Documentation
 
 - Human/AI entry point: `docs/ai-authoring-guide.md`
+- AI-ready JSON-only endpoints: `docs/ai-ready-authoring.md`
 - Dynamic services contract: `docs/dynamic-services-contract.md`
 - Flow contract: `docs/flow-contract.md`
 - Dynamic forms contract: `docs/dynamic-forms-contract.md`

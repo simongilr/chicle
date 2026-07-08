@@ -40,6 +40,16 @@ export interface DynamicServiceExecuteRequest {
   context?: Record<string, unknown>;
 }
 
+export interface DynamicServiceJsonAuthoringRequest {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  active?: boolean;
+  document?: DynamicServiceDefinition;
+  definition?: DynamicServiceDefinition;
+  publish?: boolean;
+}
+
 interface ServiceLimits {
   defaultTimeoutMs: number;
   maxTimeoutMs: number;
@@ -290,6 +300,39 @@ export class DynamicServicesService {
     });
 
     return saved;
+  }
+
+  async upsertFromJson(auth: AuthContext, request: DynamicServiceJsonAuthoringRequest) {
+    const definition = this.validateDefinition(request.document ?? request.definition);
+    const definitionMeta = definition as unknown as Record<string, unknown>;
+    const key = this.normalizeKey(request.key ?? definitionMeta['key']?.toString());
+    const name = this.cleanName(request.name ?? definitionMeta['name']?.toString() ?? key);
+    const existing = await this.services.findOne({
+      where: { tenantId: auth.tenant.id, key }
+    });
+    const service = existing
+      ? await this.update(auth, existing.id, {
+          key,
+          name,
+          description: request.description ?? existing.description,
+          active: request.active ?? existing.active
+        })
+      : await this.create(auth, {
+          key,
+          name,
+          description: request.description ?? null,
+          active: request.active ?? true
+        });
+    const version = await this.createVersion(auth, service.id, { definition });
+    const publishedVersion = request.publish ? await this.publishVersion(auth, service.id, version.id) : null;
+    return {
+      artifactType: 'dynamic_service',
+      id: service.id,
+      key: service.key,
+      service,
+      version: publishedVersion ?? version,
+      published: Boolean(request.publish)
+    };
   }
 
   async trash(auth: AuthContext, serviceId: string) {

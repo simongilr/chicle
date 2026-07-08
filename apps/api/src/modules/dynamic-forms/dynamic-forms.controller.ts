@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
   CreateDynamicFormRequest,
+  DynamicFormJsonAuthoringRequest,
   DynamicFormsService,
   SubmitDynamicFormRequest,
   UpdateDynamicFormRequest
@@ -52,6 +53,17 @@ export class DynamicFormsController {
   @ApiOperation({ summary: 'Crear formulario del tenant actual' })
   create(@CurrentAuth() auth: AuthContext, @Body() body: CreateDynamicFormRequest) {
     return this.dynamicForms.create(auth, body);
+  }
+
+  @Post('authoring/json')
+  @RequirePermissions('forms.manage')
+  @ApiOperation({
+    summary: 'Crear o actualizar formulario desde JSON',
+    description:
+      'Endpoint AI-ready estándar. Usa document.key como identidad, guarda el JSON como fuente de verdad y opcionalmente crea/publica una versión con publish=true.'
+  })
+  upsertFromJson(@CurrentAuth() auth: AuthContext, @Body() body: DynamicFormJsonAuthoringRequest) {
+    return this.dynamicForms.upsertFromJson(auth, body);
   }
 
   @Patch(':formId')

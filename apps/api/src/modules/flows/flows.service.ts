@@ -241,6 +241,12 @@ export interface FlowDefinitionReplaceRequest {
   };
 }
 
+export interface FlowJsonAuthoringRequest {
+  document?: FlowDefinitionReplaceRequest;
+  definition?: FlowDefinitionReplaceRequest;
+  publish?: boolean;
+}
+
 export interface FlowExecuteRequest {
   input?: Record<string, unknown>;
   triggerType?: FlowRunTriggerType;
@@ -872,6 +878,43 @@ export class FlowsService implements OnApplicationBootstrap {
     });
 
     return this.get(auth, flow.id);
+  }
+
+  async upsertFromJson(auth: AuthContext, request: FlowJsonAuthoringRequest) {
+    const definition = request.document ?? request.definition;
+    if (!definition?.flow) {
+      throw new BadRequestException('document.flow is required');
+    }
+    const key = this.normalizeKey(definition.flow.key);
+    const name = this.cleanName(definition.flow.name);
+    const existing = await this.flows.findOne({
+      where: { tenantId: auth.tenant.id, key }
+    });
+    const flow = existing
+      ? await this.update(auth, existing.id, {
+          ...definition.flow,
+          key,
+          name
+        })
+      : await this.create(auth, {
+          ...definition.flow,
+          key,
+          name
+        });
+    const savedFlow = await this.replaceDefinition(auth, flow.id, definition);
+    let version: FlowVersion | null = null;
+    if (request.publish) {
+      version = await this.createVersion(auth, flow.id);
+      version = await this.publishVersion(auth, flow.id, version.id);
+    }
+    return {
+      artifactType: 'flow',
+      id: savedFlow.id,
+      key: savedFlow.key,
+      flow: savedFlow,
+      version,
+      published: Boolean(request.publish)
+    };
   }
 
   async listVersions(auth: AuthContext, flowId: string) {

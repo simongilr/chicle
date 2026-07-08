@@ -43,6 +43,12 @@ export interface RuntimeField {
   visibleWhen?: RuntimeFieldCondition;
   dataSource?: Record<string, unknown>;
   validation?: Record<string, unknown>;
+  access?: {
+    permissions?: string[];
+    roles?: string[];
+    readonlyUnlessPermission?: string;
+    deniedMode?: 'hidden' | 'readonly';
+  };
   readonly?: boolean;
   layout?:
     | 'full'

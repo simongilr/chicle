@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
   DynamicServiceExecuteRequest,
+  DynamicServiceJsonAuthoringRequest,
   DynamicServiceTestRequest,
   DynamicServiceUpsertRequest,
   DynamicServiceVersionRequest,
@@ -105,6 +106,17 @@ export class DynamicServicesController {
   })
   create(@CurrentAuth() auth: AuthContext, @Body() body: DynamicServiceUpsertRequest) {
     return this.dynamicServices.create(auth, body);
+  }
+
+  @Post('authoring/json')
+  @RequirePermissions('services.manage')
+  @ApiOperation({
+    summary: 'Crear o actualizar servicio desde JSON',
+    description:
+      'Endpoint AI-ready estándar. Usa key como identidad, guarda document como fuente de verdad y opcionalmente publica la versión creada con publish=true.'
+  })
+  upsertFromJson(@CurrentAuth() auth: AuthContext, @Body() body: DynamicServiceJsonAuthoringRequest) {
+    return this.dynamicServices.upsertFromJson(auth, body);
   }
 
   @Patch(':serviceId')

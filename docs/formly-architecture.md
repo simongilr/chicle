@@ -42,6 +42,10 @@ Stored dynamic_forms.schema
 `FormlyRuntimeComponent` is the public reusable form surface. It receives a `RuntimeForm`, model, presentation profile
 and viewport width. It emits model updates, validity and final submission without calling a business API.
 
+The runtime also applies Chicle access rules before handing fields to Formly. A field or command with `access.roles` or
+`access.permissions` is hidden unless the current session satisfies the rule. `readonlyUnlessPermission` converts a
+field into read-only mode when the user can see it but cannot edit it.
+
 ## Supported imported concepts
 
 The reusable parts recovered from the earlier example project are now represented generically:
@@ -54,6 +58,8 @@ The reusable parts recovered from the earlier example project are now represente
 - Required, minimum, maximum and exact length.
 - `uppercase`, `lowercase` and `trim` parsers.
 - Declarative conditional visibility.
+- Declarative access rules for fields and command buttons.
+- Command buttons that execute dynamic services, flows or UI messages.
 - Full, half and third layout intent.
 
 No product names, product tables or product-specific validation services were copied.

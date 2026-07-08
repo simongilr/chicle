@@ -9,6 +9,7 @@ import {
   FlowExecuteRequest,
   FlowDefinitionReplaceRequest,
   FlowDuplicateRequest,
+  FlowJsonAuthoringRequest,
   FlowMetricsQuery,
   FlowPreviewRequest,
   FlowTemplateCreateRequest,
@@ -101,6 +102,17 @@ export class FlowsController {
   })
   create(@CurrentAuth() auth: AuthContext, @Body() body: FlowUpsertRequest) {
     return this.flows.create(auth, body);
+  }
+
+  @Post('authoring/json')
+  @RequirePermissions('flows.create')
+  @ApiOperation({
+    summary: 'Crear o actualizar flow desde JSON',
+    description:
+      'Endpoint AI-ready estándar. Usa document.flow.key como identidad, reemplaza la definición draft completa y opcionalmente publica una versión con publish=true.'
+  })
+  upsertFromJson(@CurrentAuth() auth: AuthContext, @Body() body: FlowJsonAuthoringRequest) {
+    return this.flows.upsertFromJson(auth, body);
   }
 
   @Get('jobs')

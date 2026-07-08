@@ -7,6 +7,7 @@ import { DynamicServiceClientService } from '../../core/services/dynamic-service
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
+import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -126,6 +127,15 @@ interface DynamicServiceItem {
   publishedVersion?: DynamicServiceVersion | null;
 }
 
+interface DynamicServiceAuthoringResponse {
+  artifactType: 'dynamic_service';
+  id: string;
+  key: string;
+  service: DynamicServiceItem;
+  version: DynamicServiceVersion;
+  published: boolean;
+}
+
 interface DynamicServiceRun {
   id: string;
   status: string;
@@ -179,6 +189,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
+    JsonAuthoringPanelComponent,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
@@ -958,45 +969,35 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   }
                 </section>
 
-                <section class="panel" id="service-version">
-                  <app-section-header
-                    title="Versión ejecutable"
-                    description="Guarda la lógica como versión y publícala para que el front, workflows y acciones la usen."
-                    stepLabel="Pasos 3 y 4"
+                <div id="service-version">
+                  <app-json-authoring-panel
+                    artifactLabel="Servicio"
+                    title="JSON ejecutable del servicio"
+                    description="Puedes configurar el servicio con la guía o editar directamente este JSON. Guardar draft y publicar usan el endpoint estándar para asistentes."
+                    stepLabel="Authoring JSON"
+                    endpoint="/api/dynamic-services/authoring/json"
+                    [value]="definitionText"
+                    [error]="definitionAuthoringError"
+                    [ready]="definitionAuthoringReady"
+                    [isBusy]="saving"
+                    [resetDisabled]="!selected.publishedVersion"
+                    [draftDisabled]="!canEditSelected"
+                    [publishDisabled]="!canEditSelected"
+                    (valueChange)="definitionText = $event; formError = ''"
+                    (resetJson)="loadPublishedDefinition()"
+                    (applyJson)="applyServiceJsonToGuide()"
+                    (saveDraft)="saveServiceJsonOnly(false)"
+                    (saveAndPublish)="saveServiceJsonOnly(true)"
                   >
-                    <button type="button" (click)="loadPublishedDefinition()">Usar publicada</button>
-                    <button class="primary" type="button" (click)="createVersion()" [disabled]="!canCreateVersion">
-                      {{ selected.latestVersion ? 'Crear nueva versión' : 'Crear versión' }}
-                    </button>
-                    <button
-                      type="button"
-                      (click)="publishLatest()"
-                      [disabled]="
-                        !canEditSelected ||
-                        !selected.latestVersion ||
-                        selected.latestVersion.status === 'published' ||
-                        saving
-                      "
-                    >
-                      Publicar última
-                    </button>
-                  </app-section-header>
-
-                  <textarea class="code" [(ngModel)]="definitionText" spellcheck="false"></textarea>
-
-                  @if (selected.latestVersion) {
-                    <p class="meta">
-                      Última versión: v{{ selected.latestVersion.version }} · {{ selected.latestVersion.status }}
-                    </p>
-                  } @else {
-                    <p class="meta">Aún no hay versiones. Crea una versión con la definición actual.</p>
-                  }
-                  @if (selected.latestVersion?.status !== 'published') {
-                    <div class="notice">
-                      Hay una versión draft pendiente. Publícala para que sea la definición activa del servicio.
-                    </div>
-                  }
-                </section>
+                    @if (selected.latestVersion) {
+                      <p class="meta">
+                        Última versión: v{{ selected.latestVersion.version }} · {{ selected.latestVersion.status }}
+                      </p>
+                    } @else {
+                      <p class="meta">Aún no hay versiones. Guardar draft crea una versión con la definición actual.</p>
+                    }
+                  </app-json-authoring-panel>
+                </div>
 
                 <section class="panel" id="service-test">
                   <app-section-header
@@ -1392,6 +1393,19 @@ export class ServicesPageComponent implements OnInit {
     return current !== JSON.stringify(saved);
   }
 
+  get definitionAuthoringReady() {
+    return !this.definitionAuthoringError;
+  }
+
+  get definitionAuthoringError() {
+    try {
+      JSON.parse(this.definitionText || '{}');
+      return '';
+    } catch {
+      return 'El JSON no es válido. Corrige llaves, comas o valores antes de guardar.';
+    }
+  }
+
   get tableSelectOptions() {
     return this.tableOptions.length ? this.tableOptions : FALLBACK_TABLE_OPTIONS;
   }
@@ -1732,11 +1746,69 @@ export class ServicesPageComponent implements OnInit {
       });
   }
 
+  saveServiceJsonOnly(publish: boolean) {
+    if (!this.canEditSelected) {
+      this.formError = 'No tienes permisos para guardar este servicio.';
+      return;
+    }
+    const document = this.parseJson<DynamicServiceDefinition>(this.definitionText);
+    if (!document) {
+      return;
+    }
+
+    this.saving = true;
+    this.formError = '';
+    this.message = '';
+    this.api
+      .post<DynamicServiceAuthoringResponse>('dynamic-services/authoring/json', {
+        key: this.draft.key || this.selected?.key,
+        name: this.draft.name || this.selected?.name,
+        description: this.draft.description || this.selected?.description,
+        active: this.draft.active,
+        document,
+        publish
+      })
+      .subscribe({
+        next: (response) => {
+          const service: DynamicServiceItem = {
+            ...response.service,
+            latestVersion: response.version,
+            publishedVersion: response.published ? response.version : response.service.publishedVersion ?? null
+          };
+          this.saving = false;
+          this.selected = service;
+          this.draft = {
+            key: service.key,
+            name: service.name,
+            description: service.description ?? '',
+            active: service.active
+          };
+          this.savedDraftSnapshot = this.draftSnapshot();
+          this.definitionText = JSON.stringify(response.version.definition, null, 2);
+          this.services = this.services.some((item) => item.id === service.id)
+            ? this.services.map((item) => (item.id === service.id ? service : item))
+            : [service, ...this.services];
+          this.loadGuideFromDefinition();
+          this.message = publish
+            ? `Servicio ${response.key} guardado y publicado.`
+            : `Servicio ${response.key} guardado como draft.`;
+        },
+        error: (error) => {
+          this.saving = false;
+          this.formError = this.errorMessage(error);
+        }
+      });
+  }
+
   loadPublishedDefinition() {
     if (this.selected?.publishedVersion) {
       this.definitionText = JSON.stringify(this.selected.publishedVersion.definition, null, 2);
       this.loadGuideFromDefinition();
     }
+  }
+
+  applyServiceJsonToGuide() {
+    this.loadGuideFromDefinition();
   }
 
   testService() {

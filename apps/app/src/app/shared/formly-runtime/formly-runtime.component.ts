@@ -14,6 +14,7 @@ import {
   FormlyFormOptions
 } from '@ngx-formly/core';
 import { UiPresentationConfig } from '../../core/ui/ui-presentation.types';
+import { AuthStateService } from '../../core/auth/auth-state.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { DynamicFlowClientService } from '../../core/services/dynamic-flow-client.service';
 import {
@@ -285,6 +286,7 @@ interface RenderedRuntimeStep {
 })
 export class FormlyRuntimeComponent implements OnChanges {
   private readonly adapter = inject(FormlySchemaAdapterService);
+  private readonly authState = inject(AuthStateService);
   private readonly services = inject(DynamicServiceClientService);
   private readonly flows = inject(DynamicFlowClientService);
   private readonly loadedOptionKeys = new Set<string>();
@@ -433,15 +435,26 @@ export class FormlyRuntimeComponent implements OnChanges {
 
   get runtimeCommands() {
     return Array.isArray(this.definition?.commands)
-      ? this.definition.commands.filter((command) => this.asObject(command)?.['event'] === 'onClick')
+      ? this.definition.commands.filter((command) => {
+          const object = this.asObject(command);
+          return object?.['event'] === 'onClick' && this.canUseItem(object);
+        })
       : [];
   }
 
   runCommand(command: Record<string, unknown>) {
-    this.form.markAllAsTouched();
-    if (this.form.invalid) {
+    const requiresValidForm = command['requiresValidForm'] !== false;
+    if (requiresValidForm) {
+      this.form.markAllAsTouched();
+    }
+    if (requiresValidForm && this.form.invalid) {
       this.validationMessage = 'Completa los campos obligatorios antes de ejecutar esta acción.';
       this.validChange.emit(false);
+      return;
+    }
+    const confirmConfig = this.asObject(command['confirm']);
+    const confirmMessage = typeof confirmConfig?.['message'] === 'string' ? confirmConfig['message'] : '';
+    if (confirmMessage && !window.confirm(confirmMessage)) {
       return;
     }
 
@@ -498,11 +511,11 @@ export class FormlyRuntimeComponent implements OnChanges {
     };
     this.renderedSteps = this.steps.map((step) => ({
       step,
-      fields: this.adapter.toFields(step.fields, context)
+      fields: this.adapter.toFields(this.visibleFields(step.fields), context)
     }));
     this.fields = this.isContinuousLayout
       ? this.renderedSteps.flatMap((section) => section.fields)
-      : this.adapter.toFields(this.currentStep.fields, context);
+      : this.adapter.toFields(this.visibleFields(this.currentStep.fields), context);
     this.loadDynamicOptions();
   }
 
@@ -513,7 +526,7 @@ export class FormlyRuntimeComponent implements OnChanges {
   }
 
   private loadDynamicOptions() {
-    for (const field of this.steps.flatMap((step) => step.fields)) {
+    for (const field of this.steps.flatMap((step) => this.visibleFields(step.fields))) {
       const dataSource = this.asObject(field.dataSource);
       const serviceKey = typeof dataSource?.['serviceKey'] === 'string' ? dataSource['serviceKey'] : '';
       const type = typeof dataSource?.['type'] === 'string' ? dataSource['type'] : '';
@@ -585,5 +598,43 @@ export class FormlyRuntimeComponent implements OnChanges {
       return null;
     }
     return { label: String(label), value };
+  }
+
+  private visibleFields(fields: RuntimeFormStep['fields']) {
+    return fields
+      .filter((field) => this.canUseItem(field))
+      .map((field) => {
+        if (this.shouldForceReadonly(field)) {
+          field.readonly = true;
+        }
+        return field;
+      });
+  }
+
+  private canUseItem(item: unknown) {
+    const object = this.asObject(item);
+    const access = this.asObject(object?.['access']);
+    if (!access) {
+      return true;
+    }
+    const permissions = Array.isArray(access['permissions'])
+      ? access['permissions'].map(String).filter(Boolean)
+      : [];
+    const roles = Array.isArray(access['roles']) ? access['roles'].map(String).filter(Boolean) : [];
+    const hasPermissions = !permissions.length || this.authState.hasAllPermissions(permissions);
+    const hasRoles = !roles.length || this.authState.hasAnyRole(roles);
+    if (hasPermissions && hasRoles) {
+      return true;
+    }
+    return access['deniedMode'] === 'readonly';
+  }
+
+  private shouldForceReadonly(item: unknown) {
+    const object = this.asObject(item);
+    const access = this.asObject(object?.['access']);
+    const permission = typeof access?.['readonlyUnlessPermission'] === 'string'
+      ? access['readonlyUnlessPermission'].trim()
+      : '';
+    return Boolean(permission && !this.authState.hasPermission(permission));
   }
 }

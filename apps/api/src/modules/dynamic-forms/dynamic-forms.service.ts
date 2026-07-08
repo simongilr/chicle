@@ -38,6 +38,11 @@ interface DynamicFormCommand {
   placement: string;
   style: string;
   event: string;
+  type?: FormActionType;
+  serviceKey?: string;
+  flowKey?: string;
+  payloadMap?: Record<string, unknown>;
+  responseMode?: string;
   fieldKey?: string;
   action?: DynamicFormAction;
 }
@@ -96,6 +101,12 @@ export interface SubmitDynamicFormRequest {
   input?: Record<string, unknown>;
   commandKey?: string;
   idempotencyKey?: string;
+}
+
+export interface DynamicFormJsonAuthoringRequest {
+  document?: Record<string, unknown>;
+  schema?: Record<string, unknown>;
+  publish?: boolean;
 }
 
 @Injectable()
@@ -184,6 +195,51 @@ export class DynamicFormsService {
     );
     await this.replaceDraftBindings(auth, form, schema);
     return form;
+  }
+
+  async upsertFromJson(auth: AuthContext, body: DynamicFormJsonAuthoringRequest) {
+    const schema = body.document ?? body.schema;
+    if (!schema) {
+      throw new BadRequestException('document is required');
+    }
+    const key = this.normalizeKey(this.asString(schema['key']));
+    const title = this.asString(schema['title']);
+    if (!key || !title) {
+      throw new BadRequestException('document.key and document.title are required');
+    }
+    const existing = await this.forms.findOne({
+      where: { tenantId: auth.tenant.id, key },
+      order: { version: 'DESC' }
+    });
+    const form = existing
+      ? await this.update(auth, existing.id, {
+          title,
+          description: this.asString(schema['description']) || existing.description,
+          category: this.asString(schema['category']) || existing.category,
+          schema
+        })
+      : await this.create(auth, {
+          key,
+          title,
+          description: this.asString(schema['description']) || null,
+          category: this.asString(schema['category']) || null,
+          schema
+        });
+
+    let version: DynamicFormVersion | null = null;
+    if (body.publish) {
+      version = await this.createVersion(auth, form.id);
+      version = await this.publishVersion(auth, form.id, version.id);
+    }
+
+    return {
+      artifactType: 'dynamic_form',
+      id: form.id,
+      key: form.key,
+      form,
+      version,
+      published: Boolean(body.publish)
+    };
   }
 
   async update(auth: AuthContext, formId: string, body: UpdateDynamicFormRequest) {
@@ -283,9 +339,9 @@ export class DynamicFormsService {
     }
 
     try {
-      const action = this.resolveSubmitAction(schema, request.commandKey);
+      const actions = this.resolveSubmitActions(schema, request.commandKey);
       const output = this.toJsonObject(
-        await this.executeAction(auth, form, version, schema, action, input, idempotencyKey)
+        await this.executeActions(auth, form, version, schema, actions, input, idempotencyKey)
       );
       const run = await this.runs.save(
         this.runs.create({
@@ -323,6 +379,34 @@ export class DynamicFormsService {
       );
       throw error;
     }
+  }
+
+  private async executeActions(
+    auth: AuthContext,
+    form: DynamicForm,
+    version: DynamicFormVersion | null,
+    schema: DynamicFormSchema,
+    actions: DynamicFormAction[],
+    input: Record<string, unknown>,
+    idempotencyKey: string
+  ) {
+    const results: Record<string, unknown> = {};
+    let last: unknown;
+    for (const action of actions) {
+      last = await this.executeAction(auth, form, version, schema, action, input, idempotencyKey);
+      const resultKey = action.resultKey?.trim();
+      if (resultKey) {
+        results[resultKey] = last;
+      }
+    }
+    if (actions.length > 1) {
+      return {
+        ok: true,
+        results,
+        last
+      };
+    }
+    return last;
   }
 
   private async executeAction(
@@ -404,32 +488,51 @@ export class DynamicFormsService {
     });
   }
 
-  private resolveSubmitAction(schema: DynamicFormSchema, commandKey?: string): DynamicFormAction {
+  private resolveSubmitActions(schema: DynamicFormSchema, commandKey?: string): DynamicFormAction[] {
     if (commandKey) {
       const command = (schema.commands ?? []).find((item) => item.key === commandKey);
-      if (!command?.action) {
+      const action = command ? this.actionFromCommand(command) : null;
+      if (!action) {
         throw new BadRequestException('Command action not found');
       }
-      return command.action;
+      return [action];
     }
-    const submitAction = (schema.actions ?? []).find((action) => action.event === 'onSubmit');
-    if (submitAction) {
-      return submitAction;
+    const submitActions = (schema.actions ?? [])
+      .filter((action) => action.event === 'onSubmit')
+      .map((action) => ({ ...action, event: undefined }));
+    if (submitActions.length) {
+      return submitActions;
     }
     if (schema.persistence?.mode === 'flow' && schema.persistence.defaultTarget?.flowKey) {
-      return { type: 'execute_flow', flowKey: schema.persistence.defaultTarget.flowKey, payloadMap: { input: '{{input}}' } };
+      return [{ type: 'execute_flow', flowKey: schema.persistence.defaultTarget.flowKey, payloadMap: { input: '{{input}}' } }];
     }
     if (schema.persistence?.mode === 'service' && schema.persistence.defaultTarget?.serviceKey) {
-      return {
+      return [{
         type: 'execute_service',
         serviceKey: schema.persistence.defaultTarget.serviceKey,
         payloadMap: { input: '{{input}}' }
-      };
+      }];
     }
     if (schema.persistence?.mode === 'none') {
-      return { type: 'show_message' };
+      return [{ type: 'show_message' }];
     }
-    return { type: 'create_record' };
+    return [{ type: 'create_record' }];
+  }
+
+  private actionFromCommand(command: DynamicFormCommand): DynamicFormAction | null {
+    if (command.action?.type) {
+      return command.action;
+    }
+    if (!command.type) {
+      return null;
+    }
+    return {
+      type: command.type,
+      serviceKey: command.serviceKey,
+      flowKey: command.flowKey,
+      payloadMap: command.payloadMap,
+      resultKey: command.key
+    };
   }
 
   private async resolveRuntimeVersion(auth: AuthContext, form: DynamicForm) {
@@ -532,7 +635,7 @@ export class DynamicFormsService {
       if (!command.key || !command.label || !command.placement || !command.style || !command.event) {
         throw new BadRequestException('Every command requires key, label, placement, style and event');
       }
-      if (!command.action?.type) {
+      if (!this.actionFromCommand(command)) {
         throw new BadRequestException(`Command ${command.key} requires an action`);
       }
     }
@@ -572,7 +675,7 @@ export class DynamicFormsService {
       }
     }
     for (const command of schema.commands ?? []) {
-      const action = command.action;
+      const action = this.actionFromCommand(command);
       if (action?.type === 'execute_service' && action.serviceKey) {
         bindings.push({
           fieldKey: command.fieldKey ?? null,

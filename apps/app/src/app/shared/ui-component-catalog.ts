@@ -145,6 +145,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-status-notice tone="error" title="No se pudo cargar">Reintenta.</app-status-notice>'
   },
   {
+    name: 'JsonAuthoringPanelComponent',
+    selector: 'app-json-authoring-panel',
+    category: 'Diseñadores',
+    purpose:
+      'Editor JSON estándar para asistentes y usuarios avanzados: valida, aplica a la guía, guarda draft y publica.',
+    importPath: 'shared/json-authoring-panel/json-authoring-panel.component',
+    usedBy: ['Dynamic forms', 'Services', 'Flows'],
+    status: 'stable',
+    example:
+      '<app-json-authoring-panel artifactLabel="Formulario" endpoint="/api/forms/authoring/json" [value]="jsonText"></app-json-authoring-panel>'
+  },
+  {
     name: 'LoadingSkeletonComponent',
     selector: 'app-loading-skeleton',
     category: 'Guía y estados',

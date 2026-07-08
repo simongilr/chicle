@@ -66,7 +66,7 @@ Page containers keep routing, permissions, loading and orchestration.
 | DatabasePageComponent | Data viewer and schema designer | Functional; partially uses shared designer language |
 | ServicesPageComponent | Dynamic service lifecycle | Functional; reference visual workflow |
 | FlowsPageComponent | Declarative process lifecycle | Functional; must continue decomposing |
-| FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, JSON, preview, test, version and publish |
+| FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, always-editable JSON, preview, test, version and publish |
 | SecurityPageComponent | Users, roles, permissions and audit | Functional; needs further component extraction |
 | DynamicFormPageComponent | Dynamic form runtime | Loads published runtime schema, renders fields, previews responsive modes and submits through API |
 
@@ -91,7 +91,7 @@ These components are required before the builders grow inside page files:
 5. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
 6. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
 7. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
-8. `JsonEditorPanelComponent`: synchronized guided/JSON editing with parse errors and reset.
+8. `JsonAuthoringPanelComponent`: synchronized guided/JSON editing with parse errors, reset, draft save and publish.
 9. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
 10. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
 11. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
@@ -101,7 +101,7 @@ These components are required before the builders grow inside page files:
 
 | Capability | Existing reusable pieces | Status |
 | --- | --- | --- |
-| Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | V1 usable; cards, continuous, paged modes, command buttons and dynamic options |
+| Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | V1 usable; cards, continuous, paged modes, command buttons, dynamic options and access filtering |
 | Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/native renderers | Initial, usable; includes text, numeric, choice, file/image metadata and GPS fallback |
 | Labels/help/errors | `FieldShellComponent` | Ready |
 | Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready; preview now separates device simulation, runtime content and integration contract |
@@ -109,10 +109,10 @@ These components are required before the builders grow inside page files:
 | Designer workspace | `DesignerWorkspaceComponent`, catalog and section components | Ready |
 | Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples | Extract shared insertion component next |
 | Step management | Inline V1 in `FormsPageComponent` with add/remove/select | Extract shared component next |
-| Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings and visibility conditions | Extract shared component next |
-| JSON editor | Inline V1 result panel below guided editing plus full editor step in `FormsPageComponent` | Extract shared component next |
-| Data binding | Inline V1 service/flow selectors, runtime limits and payload/response maps in `FormsPageComponent`; Flow mapper exists only in Flow domain | Missing shared component |
-| Action binding | Inline V1 commands in `FormsPageComponent`; runtime can execute service/flow/show_message buttons | Extract shared component next |
+| Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings, access rules and visibility conditions | Extract shared component next |
+| JSON editor | `JsonAuthoringPanelComponent` shared by Forms, Services and Flows; current JSON can apply to the guide, save draft or publish through `/authoring/json` endpoints | Ready |
+| Data binding | Inline V1 service/flow selectors, hybrid submit, runtime limits and payload/response maps in `FormsPageComponent`; Flow mapper exists only in Flow domain | Missing shared component |
+| Action binding | Inline V1 commands in `FormsPageComponent`; runtime can execute service/flow/show_message buttons with permissions and confirmations | Extract shared component next |
 | Version and publish panel | Inline V1 checklist in `FormsPageComponent`; page-local patterns in Services/Flows | Missing shared component |
 | Test workbench | Inline V1 fixture generator and submit runner in `FormsPageComponent`; runtime component tests cover layout and dynamic options | Missing shared component |
 | Server pagination/list for many forms | No shared entity table yet | Missing |
@@ -127,7 +127,7 @@ before the designer should grow.
 - Extend the field renderer with files, catalogs, masks and rule-driven validation.
 - Property inspector and schema field editor.
 - Data/action binding editors.
-- JSON editor and responsive preview viewport extraction for future screen/page designers.
+- Reuse `JsonAuthoringPanelComponent` and responsive preview viewport in future screen/page designers.
 - Reusable entity table with server pagination.
 
 ### P1: during Screen Designer V1

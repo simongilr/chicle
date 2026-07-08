@@ -8,22 +8,23 @@ backend.
 
 Read these files in order:
 
-1. `docs/dynamic-services-contract.md`
-2. `docs/flow-contract.md`
-3. `docs/examples/dynamic-services.examples.json`
-4. `docs/examples/flows.examples.json`
-5. `docs/examples/flow-step-catalog.examples.json`
-6. `docs/examples/flow-runtime.examples.json`
-7. `docs/dynamic-forms-contract.md`
-8. `docs/examples/dynamic-forms.examples.json`
-9. `docs/ui-components.md`
-10. `docs/ui-component-inventory.md`
-11. `docs/ui-presentation-architecture.md`
-12. `docs/examples/ui-presentation.examples.json`
-13. `docs/formly-architecture.md`
-14. `docs/examples/dynamic-form-formly.examples.json`
-15. `docs/angular-20-migration-roadmap.md`
-16. `docs/angular-20-migration-report.md`
+1. `docs/ai-ready-authoring.md`
+2. `docs/dynamic-services-contract.md`
+3. `docs/flow-contract.md`
+4. `docs/examples/dynamic-services.examples.json`
+5. `docs/examples/flows.examples.json`
+6. `docs/examples/flow-step-catalog.examples.json`
+7. `docs/examples/flow-runtime.examples.json`
+8. `docs/dynamic-forms-contract.md`
+9. `docs/examples/dynamic-forms.examples.json`
+10. `docs/ui-components.md`
+11. `docs/ui-component-inventory.md`
+12. `docs/ui-presentation-architecture.md`
+13. `docs/examples/ui-presentation.examples.json`
+14. `docs/formly-architecture.md`
+15. `docs/examples/dynamic-form-formly.examples.json`
+16. `docs/angular-20-migration-roadmap.md`
+17. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -47,8 +48,9 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Set explicit `onErrorStepKey`, `onTimeoutStepKey`, `onFalseStepKey` or `onTrueStepKey` when failure or branching
   changes the route.
 - Give every flow step a unique `key`, `position` and `outputKey`.
-- Prefer the visual designer. JSON editing is an advanced synchronized representation, not a separate execution path.
-- Create metadata first, then a draft version, test it, publish it and only then execute it from another component.
+- JSON-only and guided visual editing are equivalent authoring paths. Future assistants should use the JSON-only
+  endpoints in `docs/ai-ready-authoring.md`.
+- Create or update JSON first, test it when possible, publish it and only then execute it from another component.
 - Keep forms and screens library-neutral. Use the optional `presentation` contract; never emit Angular selectors,
   PrimeNG/Ionic component tags or library CSS classes in stored JSON.
 - Personalization must use installed themes, `themeMode`, `density`, `radius` and safe semantic `tokens`. Never emit

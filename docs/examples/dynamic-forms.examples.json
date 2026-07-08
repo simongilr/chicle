@@ -93,7 +93,11 @@
             "placement": "bottom",
             "style": "primary",
             "event": "onClick",
-            "permission": "forms.submit",
+            "access": {
+              "permissions": ["forms.submit"],
+              "roles": [],
+              "deniedMode": "hidden"
+            },
             "requiresValidForm": true,
             "action": {
               "type": "execute_flow",
@@ -159,6 +163,11 @@
                 "label": "Correo",
                 "required": true,
                 "placeholder": "persona@empresa.com",
+                "access": {
+                  "permissions": [],
+                  "roles": [],
+                  "deniedMode": "hidden"
+                },
                 "layout": {
                   "desktopSpan": 6,
                   "tabletSpan": 8,

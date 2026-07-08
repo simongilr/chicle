@@ -10,6 +10,7 @@ import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-head
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
+import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -112,6 +113,15 @@ interface FlowItem {
   latestVersion?: FlowVersion | null;
   publishedVersion?: FlowVersion | null;
   definitionPreview: Record<string, unknown>;
+}
+
+interface FlowAuthoringResponse {
+  artifactType: 'flow';
+  id: string;
+  key: string;
+  flow: FlowItem;
+  version?: FlowVersion | null;
+  published: boolean;
 }
 
 interface FlowRunItem {
@@ -428,6 +438,7 @@ interface FlowJobItem {
     CatalogHeaderComponent,
     CatalogItemComponent,
     ContextAssistantComponent,
+    JsonAuthoringPanelComponent,
     SectionHeaderComponent,
     SegmentedControlComponent,
     StatusNoticeComponent,
@@ -1805,52 +1816,38 @@ interface FlowJobItem {
                 </section>
 
                 <section class="json-column">
-                  <app-section-header
-                    title="JSON generado del flow"
-                    description="La configuración anterior actualiza esta definición. También puedes editarla directamente."
-                    stepLabel="Configuración técnica"
+                  <app-json-authoring-panel
+                    artifactLabel="Flow"
+                    title="JSON editable del flow"
+                    description="Puedes construir el flow solo desde este JSON. Aplicar sincroniza la guía; guardar draft y publicar usan el endpoint estándar para asistentes."
+                    stepLabel="Authoring JSON"
+                    endpoint="/api/flows/authoring/json"
+                    [value]="authoringDefinitionText"
+                    [error]="authoringDefinitionError || authoringJsonValidationError"
+                    [ready]="authoringJsonReady"
+                    [isBusy]="applyingDefinition || creatingFlow"
+                    [draftDisabled]="!canCreate && !canUpdate"
+                    [publishDisabled]="!canPublish"
+                    (valueChange)="authoringDefinitionText = $event; authoringDefinitionError = ''"
+                    (resetJson)="refreshAuthoringDefinition()"
+                    (applyJson)="applyAuthoringDefinition(!!selectedFlow)"
+                    (saveDraft)="saveFlowJsonOnly(false)"
+                    (saveAndPublish)="saveFlowJsonOnly(true)"
                   >
-                    <button type="button" (click)="refreshAuthoringDefinition()">Deshacer edición JSON</button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="applyAuthoringDefinition(!!selectedFlow)"
-                      [disabled]="applyingDefinition"
-                    >
-                      {{ selectedFlow ? 'Aplicar y guardar JSON' : 'Aplicar JSON' }}
-                    </button>
-                  </app-section-header>
-                  <app-context-assistant
-                    [title]="authoringJsonReady ? 'El JSON puede guardarse' : 'El JSON necesita corrección'"
-                    [description]="
-                      authoringJsonReady
-                        ? 'Representa la misma configuración que acabas de completar.'
-                        : 'No se aplicará hasta que la estructura, las claves y las rutas sean válidas.'
-                    "
-                    example="Puedes cambiar steps, entry u output y pulsar Aplicar."
-                    [nextAction]="
-                      authoringJsonReady ? 'Aplica el JSON o crea el proceso.' : 'Corrige el error indicado debajo.'
-                    "
-                    [stateLabel]="authoringJsonReady ? 'JSON válido' : 'JSON inválido'"
-                    [tone]="authoringJsonReady ? 'success' : 'warning'"
-                    [icon]="authoringJsonReady ? 'pi pi-check' : 'pi pi-code'"
-                  ></app-context-assistant>
-                  <textarea
-                    class="authoring-code"
-                    [(ngModel)]="authoringDefinitionText"
-                    spellcheck="false"
-                    aria-label="Definición JSON editable del flow"
-                  ></textarea>
-                  @if (authoringDefinitionError) {
-                    <app-status-notice tone="error" title="Revisa la definición">
-                      {{ authoringDefinitionError }}
-                    </app-status-notice>
-                  } @else {
-                    <div class="hint">
-                      Puedes trabajar solo con la guía. El JSON queda visible para copiar, revisar o configurar casos
-                      avanzados sin perder la validación del diseñador.
-                    </div>
-                  }
+                    <app-context-assistant
+                      [title]="authoringJsonReady ? 'Listo para guardar' : 'Necesita corrección'"
+                      [description]="
+                        authoringJsonReady
+                          ? 'Este mismo JSON puede crear, actualizar, versionar y publicar el flow.'
+                          : 'Corrige estructura, claves o rutas antes de guardar.'
+                      "
+                      example="Edita flow, entry, inputFields, steps u output. El backend validará todo el contrato."
+                      [nextAction]="authoringJsonReady ? 'Guarda draft o publica desde el JSON.' : 'Corrige el error indicado.'"
+                      [stateLabel]="authoringJsonReady ? 'Contrato listo' : 'Contrato pendiente'"
+                      [tone]="authoringJsonReady ? 'success' : 'warning'"
+                      [icon]="authoringJsonReady ? 'pi pi-check' : 'pi pi-code'"
+                    ></app-context-assistant>
+                  </app-json-authoring-panel>
                 </section>
 
                 <details class="guided-panel">
@@ -3815,6 +3812,15 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  get authoringJsonValidationError() {
+    try {
+      this.readAuthoringDocument();
+      return '';
+    } catch (error) {
+      return error instanceof Error ? error.message : 'El JSON del flow no es válido.';
+    }
+  }
+
   get stepJsonReady() {
     try {
       const config = JSON.parse(this.stepDraft.configText || '{}');
@@ -4842,6 +4848,58 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
           'No se pudo aplicar la definición. Revisa claves, rutas y que la salida apunte a un paso response.';
       }
     });
+  }
+
+  saveFlowJsonOnly(publish: boolean) {
+    let document: FlowAuthoringDocument;
+    try {
+      document = this.readAuthoringDocument();
+    } catch (error) {
+      this.authoringDefinitionError = error instanceof Error ? error.message : 'El JSON del flow no es válido.';
+      return;
+    }
+    if (publish && !this.canPublish) {
+      this.authoringDefinitionError = 'No tienes permisos para publicar flows.';
+      return;
+    }
+    if (!publish && !this.canCreate && !this.canUpdate) {
+      this.authoringDefinitionError = 'No tienes permisos para guardar flows.';
+      return;
+    }
+
+    this.applyingDefinition = true;
+    this.message = publish ? 'Guardando y publicando flow desde JSON...' : 'Guardando draft del flow desde JSON...';
+    this.api
+      .post<FlowAuthoringResponse>('flows/authoring/json', {
+        document,
+        publish
+      })
+      .subscribe({
+        next: (response) => {
+          const flow: FlowItem = {
+            ...response.flow,
+            latestVersion: response.version ?? response.flow.latestVersion ?? null,
+            publishedVersion: response.published ? response.version ?? null : response.flow.publishedVersion ?? null
+          };
+          this.applyingDefinition = false;
+          this.flows = this.flows.some((item) => item.id === flow.id)
+            ? this.flows.map((item) => (item.id === flow.id ? flow : item))
+            : [flow, ...this.flows];
+          this.selectFlow(flow, false);
+          this.authoringDefinitionText = JSON.stringify(document, null, 2);
+          this.authoringDefinitionError = '';
+          this.activeStage = publish ? 'test' : 'build';
+          this.message = publish ? `Flow ${response.key} guardado y publicado.` : `Flow ${response.key} guardado como draft.`;
+          this.loadVersions(flow.id);
+        },
+        error: () => {
+          this.applyingDefinition = false;
+          this.authoringDefinitionError =
+            publish
+              ? 'No se pudo guardar y publicar desde JSON. Revisa pasos, rutas y salida.'
+              : 'No se pudo guardar el draft desde JSON. Revisa pasos, rutas y salida.';
+        }
+      });
   }
 
   get selectedEntrySummary() {

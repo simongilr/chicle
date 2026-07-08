@@ -16,6 +16,7 @@ import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.com
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
+import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -26,7 +27,7 @@ import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
 type FormLifecycleStatus = 'draft' | 'published' | 'archived';
-type DesignerPhase = 'define' | 'fields' | 'json' | 'publish' | 'preview';
+type DesignerPhase = 'define' | 'fields' | 'publish' | 'preview';
 type PersistenceMode = 'record' | 'service' | 'flow' | 'hybrid' | 'none';
 type FieldType =
   | 'text'
@@ -55,6 +56,7 @@ type DensityMode = 'comfortable' | 'compact' | 'spacious';
 type DesktopLayoutMode = 'step_cards' | 'single_form' | 'wizard' | 'auto';
 type MobileLayoutMode = 'step_screens' | 'single_scroll' | 'auto';
 type FormCommandType = 'execute_service' | 'execute_flow' | 'show_message';
+type HybridActionType = 'none' | 'execute_service' | 'execute_flow';
 
 interface FormTemplate {
   key: 'blank' | 'capture' | 'lookup' | 'approval' | 'inspection';
@@ -91,6 +93,15 @@ interface DynamicFormVersion {
   createdAt: string;
 }
 
+interface DynamicFormAuthoringResponse {
+  artifactType: 'dynamic_form';
+  id: string;
+  key: string;
+  form: DynamicFormItem;
+  version?: DynamicFormVersion | null;
+  published: boolean;
+}
+
 interface FieldDraft {
   key: string;
   label: string;
@@ -110,6 +121,9 @@ interface FieldDraft {
   visibleWhenField: string;
   visibleWhenOperator: ConditionOperator;
   visibleWhenValue: string;
+  requiredPermission: string;
+  requiredRole: string;
+  readonlyPermission: string;
 }
 
 interface StepDraft {
@@ -127,6 +141,10 @@ interface FormCommandDraft {
   flowKey: string;
   payloadMapText: string;
   responseMode: 'show_response' | 'silent';
+  requiredPermission: string;
+  requiredRole: string;
+  requiresValidForm: boolean;
+  confirmMessage: string;
 }
 
 interface FormDraft {
@@ -151,6 +169,9 @@ interface FormDraft {
   recordType: string;
   serviceKey: string;
   flowKey: string;
+  hybridActionType: HybridActionType;
+  hybridServiceKey: string;
+  hybridFlowKey: string;
   payloadMapText: string;
   responseMapText: string;
   idempotencyKey: string;
@@ -176,7 +197,10 @@ const DEFAULT_FIELD: FieldDraft = {
   validationServiceKey: '',
   visibleWhenField: '',
   visibleWhenOperator: 'equals',
-  visibleWhenValue: ''
+  visibleWhenValue: '',
+  requiredPermission: '',
+  requiredRole: '',
+  readonlyPermission: ''
 };
 
 const FIELD_PALETTE: Array<{
@@ -268,6 +292,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     DesignerWorkspaceComponent,
     FieldShellComponent,
     FormlyRuntimeComponent,
+    JsonAuthoringPanelComponent,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
@@ -819,7 +844,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
         <app-module-header
           eyebrow="Dynamic Forms"
           title="Diseñador de formularios"
-          description="Crea formularios versionados para web y móvil, revisa el JSON generado y publica solo cuando el preview esté correcto."
+          description="Crea formularios versionados para web y móvil desde la guía visual o directamente desde el JSON editable."
           badge="V1"
         ></app-module-header>
 
@@ -1058,6 +1083,41 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     }
                   </app-field-shell>
                 }
+                @if (draft.persistenceMode === 'hybrid') {
+                  <div class="grid">
+                    <app-field-shell
+                      label="Después de guardar"
+                      forId="form-hybrid-action"
+                      help="El formulario crea primero el record y luego puede ejecutar un servicio o flow con el mismo input."
+                    >
+                      <select id="form-hybrid-action" [(ngModel)]="draft.hybridActionType" (ngModelChange)="syncJson()">
+                        <option value="none">Solo guardar record</option>
+                        <option value="execute_service">Ejecutar servicio</option>
+                        <option value="execute_flow">Ejecutar flow</option>
+                      </select>
+                    </app-field-shell>
+                    @if (draft.hybridActionType === 'execute_service') {
+                      <app-field-shell label="Servicio posterior" forId="form-hybrid-service-key">
+                        <select id="form-hybrid-service-key" [(ngModel)]="draft.hybridServiceKey" (ngModelChange)="syncJson()">
+                          <option value="">Selecciona un servicio</option>
+                          @for (service of availableServices; track service.id) {
+                            <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
+                          }
+                        </select>
+                      </app-field-shell>
+                    }
+                    @if (draft.hybridActionType === 'execute_flow') {
+                      <app-field-shell label="Flow posterior" forId="form-hybrid-flow-key">
+                        <select id="form-hybrid-flow-key" [(ngModel)]="draft.hybridFlowKey" (ngModelChange)="syncJson()">
+                          <option value="">Selecciona un flow</option>
+                          @for (flow of availableFlows; track flow.id) {
+                            <option [value]="flow.key">{{ flow.name }}</option>
+                          }
+                        </select>
+                      </app-field-shell>
+                    }
+                  </div>
+                }
 
                 @if (draft.persistenceMode === 'service' || draft.persistenceMode === 'flow') {
                   <div class="grid">
@@ -1161,6 +1221,42 @@ const FORM_TEMPLATES: FormTemplate[] = [
                             ></textarea>
                           </app-field-shell>
                         }
+                        <div class="grid">
+                          <app-field-shell label="Permiso requerido" [forId]="'command-permission-' + commandIndex" help="Opcional. Si el usuario no lo tiene, el botón no aparece.">
+                            <input
+                              [id]="'command-permission-' + commandIndex"
+                              [(ngModel)]="command.requiredPermission"
+                              (ngModelChange)="syncJson()"
+                              placeholder="forms.submit"
+                            />
+                          </app-field-shell>
+                          <app-field-shell label="Rol requerido" [forId]="'command-role-' + commandIndex">
+                            <input
+                              [id]="'command-role-' + commandIndex"
+                              [(ngModel)]="command.requiredRole"
+                              (ngModelChange)="syncJson()"
+                              placeholder="operator"
+                            />
+                          </app-field-shell>
+                        </div>
+                        <div class="grid">
+                          <label class="toggle-card">
+                            <input type="checkbox" [(ngModel)]="command.requiresValidForm" (ngModelChange)="syncJson()" />
+                            <span class="toggle-mark">✓</span>
+                            <span class="toggle-copy">
+                              <strong>Requiere formulario válido</strong>
+                              <small>Valida obligatorios antes de ejecutar este botón.</small>
+                            </span>
+                          </label>
+                          <app-field-shell label="Confirmación" [forId]="'command-confirm-' + commandIndex" help="Opcional. Pide confirmación antes de ejecutar.">
+                            <input
+                              [id]="'command-confirm-' + commandIndex"
+                              [(ngModel)]="command.confirmMessage"
+                              (ngModelChange)="syncJson()"
+                              placeholder="¿Ejecutar esta acción?"
+                            />
+                          </app-field-shell>
+                        </div>
                       </section>
                     }
                   </div>
@@ -1431,6 +1527,36 @@ const FORM_TEMPLATES: FormTemplate[] = [
                           </app-field-shell>
                         </div>
                       }
+                      <app-section-header
+                        title="Acceso del campo"
+                        description="Permite ocultar o dejar en solo lectura un campo según rol o permiso."
+                      ></app-section-header>
+                      <div class="grid">
+                        <app-field-shell label="Permiso para ver" forId="selected-field-permission">
+                          <input
+                            id="selected-field-permission"
+                            [(ngModel)]="selectedField.requiredPermission"
+                            (ngModelChange)="syncJson()"
+                            placeholder="forms.read_sensitive"
+                          />
+                        </app-field-shell>
+                        <app-field-shell label="Rol para ver" forId="selected-field-role">
+                          <input
+                            id="selected-field-role"
+                            [(ngModel)]="selectedField.requiredRole"
+                            (ngModelChange)="syncJson()"
+                            placeholder="admin"
+                          />
+                        </app-field-shell>
+                        <app-field-shell label="Permiso para editar" forId="selected-field-readonly-permission">
+                          <input
+                            id="selected-field-readonly-permission"
+                            [(ngModel)]="selectedField.readonlyPermission"
+                            (ngModelChange)="syncJson()"
+                            placeholder="forms.edit_sensitive"
+                          />
+                        </app-field-shell>
+                      </div>
                     } @else {
                       <app-status-notice tone="info">
                         Agrega un campo desde la paleta o selecciona uno existente para editarlo aquí.
@@ -1438,22 +1564,6 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     }
                   </aside>
                 </div>
-              </section>
-            }
-
-            @if (phase === 'json') {
-              <section class="json-panel" [class.invalid]="!!jsonError">
-                <app-section-header
-                  stepLabel="Paso 3"
-                  title="JSON generado"
-                  description="Puedes revisar o corregir el contrato. Aplicar JSON actualiza el asistente visual."
-                >
-                  <button type="button" (click)="applyJson()">Aplicar JSON</button>
-                </app-section-header>
-                <textarea [(ngModel)]="jsonText" spellcheck="false"></textarea>
-                @if (jsonError) {
-                  <app-status-notice tone="error">{{ jsonError }}</app-status-notice>
-                }
               </section>
             }
 
@@ -1583,24 +1693,24 @@ const FORM_TEMPLATES: FormTemplate[] = [
               </section>
             }
 
-            @if (phase !== 'json') {
-              <section class="live-json-card" [class.invalid]="!!jsonError">
-                <div class="live-json-toolbar">
-                  <app-section-header
-                    title="Contrato JSON generado"
-                    description="Este es el resultado técnico de la configuración visual. Puedes revisarlo al final; si lo editas a mano, aplica el JSON para sincronizar el asistente."
-                  ></app-section-header>
-                  <div class="actions">
-                    <button type="button" (click)="applyJson()">Aplicar JSON</button>
-                    <button type="button" (click)="setPhase('json')">Editor completo</button>
-                  </div>
-                </div>
-                <textarea class="live-json-text" [(ngModel)]="jsonText" spellcheck="false"></textarea>
-                @if (jsonError) {
-                  <app-status-notice tone="error">{{ jsonError }}</app-status-notice>
-                }
-              </section>
-            }
+            <app-json-authoring-panel
+              artifactLabel="Formulario"
+              title="Contrato JSON editable"
+              description="Puedes trabajar solo desde este JSON y guardar/publicar sin usar la guía visual. El asistente de IA usará este mismo contrato."
+              stepLabel="Authoring JSON"
+              endpoint="/api/forms/authoring/json"
+              [value]="jsonText"
+              [error]="jsonAuthoringError"
+              [ready]="jsonAuthoringReady"
+              [isBusy]="saving"
+              [draftDisabled]="saving"
+              [publishDisabled]="saving"
+              (valueChange)="jsonText = $event; onJsonEdited()"
+              (resetJson)="syncJson()"
+              (applyJson)="applyJson()"
+              (saveDraft)="saveJsonOnly(false)"
+              (saveAndPublish)="saveJsonOnly(true)"
+            ></app-json-authoring-panel>
           </div>
         </app-designer-workspace>
       </div>
@@ -1644,7 +1754,6 @@ export class FormsPageComponent implements OnInit {
   readonly processItems: ProcessStepItem[] = [
     { key: 'define', label: 'Definir', summary: 'Identidad y salida' },
     { key: 'fields', label: 'Campos', summary: 'Pasos y controles' },
-    { key: 'json', label: 'JSON', summary: 'Contrato vivo' },
     { key: 'publish', label: 'Publicar', summary: 'Versión estable' },
     { key: 'preview', label: 'Preview', summary: 'Web y móvil' }
   ];
@@ -1663,16 +1772,10 @@ export class FormsPageComponent implements OnInit {
         description: 'Cada paso será una sección cómoda en web y una pantalla guiada en móvil.',
         tone: 'info'
       },
-      json: {
-        stepLabel: 'Contrato',
-        title: 'Revisa el JSON que consume el runtime',
-        description: 'Este documento es la receta oficial para web, móvil, servicios, flows y otras IAs.',
-        tone: this.jsonError ? 'warning' : 'success'
-      },
       publish: {
         stepLabel: 'Ciclo de vida',
         title: 'No publiques sin congelar una versión',
-        description: 'Guardar edita el borrador; publicar expone una versión estable para el runtime.',
+        description: 'Puedes guardar desde la guía visual o solo desde el JSON. Publicar expone una versión estable para el runtime.',
         tone: 'warning'
       },
       preview: {
@@ -1743,13 +1846,17 @@ export class FormsPageComponent implements OnInit {
   }
 
   get nextPhase(): DesignerPhase | null {
-    const order: DesignerPhase[] = ['define', 'fields', 'preview', 'publish', 'json'];
+    const order: DesignerPhase[] = ['define', 'fields', 'preview', 'publish'];
     const index = order.indexOf(this.phase);
     return index >= 0 && index < order.length - 1 ? order[index + 1] : null;
   }
 
   get validationIssues() {
     const issues: string[] = [];
+    const jsonIssues = this.jsonContractIssues();
+    if (jsonIssues.length) {
+      return jsonIssues;
+    }
     if (!this.normalizeKey(this.draft.key)) {
       issues.push('Define una key técnica válida para el formulario.');
     }
@@ -1794,6 +1901,12 @@ export class FormsPageComponent implements OnInit {
     }
     if ((this.draft.persistenceMode === 'record' || this.draft.persistenceMode === 'hybrid') && !this.draft.recordType.trim()) {
       issues.push('Define el tipo de record donde se guardarán los datos.');
+    }
+    if (this.draft.persistenceMode === 'hybrid' && this.draft.hybridActionType === 'execute_service' && !this.draft.hybridServiceKey) {
+      issues.push('Selecciona el servicio posterior del modo híbrido o cambia a solo guardar record.');
+    }
+    if (this.draft.persistenceMode === 'hybrid' && this.draft.hybridActionType === 'execute_flow' && !this.draft.hybridFlowKey) {
+      issues.push('Selecciona el flow posterior del modo híbrido o cambia a solo guardar record.');
     }
     if (!this.isJsonObject(this.draft.payloadMapText)) {
       issues.push('Payload map debe ser un JSON objeto válido.');
@@ -1843,9 +1956,7 @@ export class FormsPageComponent implements OnInit {
   }
 
   get canSave() {
-    return !this.validationIssues.some((issue) =>
-      issue.includes('key') || issue.includes('título') || issue.includes('paso') || issue.includes('campo') || issue.includes('JSON')
-    );
+    return this.jsonContractIssues().length === 0;
   }
 
   get canCreateVersion() {
@@ -2163,7 +2274,11 @@ export class FormsPageComponent implements OnInit {
       serviceKey: '',
       flowKey: '',
       payloadMapText: JSON.stringify({ input: '{{input}}' }, null, 2),
-      responseMode: 'show_response'
+      responseMode: 'show_response',
+      requiredPermission: '',
+      requiredRole: '',
+      requiresValidForm: true,
+      confirmMessage: ''
     });
     this.syncJson();
   }
@@ -2275,11 +2390,66 @@ export class FormsPageComponent implements OnInit {
     }
   }
 
+  onJsonEdited() {
+    this.jsonError = '';
+    this.submitTestPassed = false;
+    this.rebuildPreview();
+  }
+
+  get jsonAuthoringReady() {
+    return !this.liveJsonParseError();
+  }
+
+  get jsonAuthoringError() {
+    return this.jsonError || this.liveJsonParseError();
+  }
+
+  saveJsonOnly(publish: boolean) {
+    this.message = '';
+    this.error = '';
+    this.jsonError = '';
+    let document: Record<string, unknown>;
+    try {
+      document = JSON.parse(this.jsonText) as Record<string, unknown>;
+    } catch {
+      this.jsonError = 'El JSON no es válido. No se puede guardar.';
+      return;
+    }
+
+    this.saving = true;
+    this.api
+      .post<DynamicFormAuthoringResponse>('forms/authoring/json', {
+        document,
+        publish
+      })
+      .subscribe({
+        next: (response) => {
+          this.selected = response.form;
+          this.latestVersion = response.version ?? undefined;
+          this.forms = this.upsertForm(this.forms, response.form);
+          this.draft = this.draftFromSchema(response.form);
+          this.jsonText = JSON.stringify(response.form.schema, null, 2);
+          this.message = publish
+            ? `Formulario ${response.key} guardado y publicado.`
+            : `Formulario ${response.key} guardado como draft.`;
+          this.saving = false;
+          this.rebuildPreview();
+        },
+        error: () => {
+          this.error = publish
+            ? 'No se pudo guardar y publicar desde JSON. Revisa el contrato.'
+            : 'No se pudo guardar el draft desde JSON. Revisa el contrato.';
+          this.saving = false;
+        }
+      });
+  }
+
   save() {
     this.message = '';
     this.error = '';
     this.jsonError = '';
-    if (!this.canSave) {
+    const jsonIssues = this.jsonContractIssues();
+    if (jsonIssues.length) {
       this.error = 'Corrige los pendientes antes de guardar el borrador.';
       return;
     }
@@ -2293,10 +2463,10 @@ export class FormsPageComponent implements OnInit {
 
     this.saving = true;
     const body = {
-      key: this.normalizeKey(this.draft.key),
-      title: this.draft.title.trim(),
-      description: this.draft.description.trim() || null,
-      category: this.draft.category.trim() || null,
+      key: this.normalizeKey(String(schema['key'] ?? this.draft.key)),
+      title: String(schema['title'] ?? this.draft.title).trim(),
+      description: String(schema['description'] ?? this.draft.description).trim() || null,
+      category: String(schema['category'] ?? this.draft.category).trim() || null,
       schema
     };
     const request = this.selected
@@ -2369,7 +2539,7 @@ export class FormsPageComponent implements OnInit {
     return form.status ?? 'borrador';
   }
 
-  private rebuildPreview() {
+  rebuildPreview() {
     const schema = this.safeJson();
     if (!schema) {
       this.previewForm = undefined;
@@ -2425,6 +2595,71 @@ export class FormsPageComponent implements OnInit {
     } catch {
       return null;
     }
+  }
+
+  private liveJsonParseError() {
+    try {
+      JSON.parse(this.jsonText || '{}');
+      return '';
+    } catch {
+      return 'El JSON no es válido. Corrige llaves, comas o valores antes de guardar.';
+    }
+  }
+
+  private jsonContractIssues() {
+    const issues: string[] = [];
+    let schema: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(this.jsonText || '{}');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return ['El contrato JSON debe ser un objeto.'];
+      }
+      schema = parsed as Record<string, unknown>;
+    } catch {
+      this.jsonError = 'El JSON no es válido. Corrige llaves, comas o valores antes de guardar.';
+      return [this.jsonError];
+    }
+
+    if (schema['kind'] !== 'dynamic_form') {
+      issues.push('schema.kind debe ser dynamic_form.');
+    }
+    if (!this.normalizeKey(String(schema['key'] ?? ''))) {
+      issues.push('El JSON necesita una key técnica válida.');
+    }
+    if (!String(schema['title'] ?? '').trim()) {
+      issues.push('El JSON necesita un title visible.');
+    }
+    const steps = Array.isArray(schema['steps']) ? (schema['steps'] as Array<Record<string, unknown>>) : [];
+    if (!steps.length) {
+      issues.push('El JSON necesita al menos un step.');
+    }
+    const stepKeys = new Set<string>();
+    let fieldCount = 0;
+    for (const step of steps) {
+      const stepKey = this.normalizeKey(String(step['key'] ?? ''));
+      if (!stepKey || stepKeys.has(stepKey)) {
+        issues.push(`El step "${String(step['title'] ?? step['key'] ?? '')}" necesita una key única.`);
+      }
+      stepKeys.add(stepKey);
+      const fields = Array.isArray(step['fields']) ? (step['fields'] as Array<Record<string, unknown>>) : [];
+      const fieldKeys = new Set<string>();
+      for (const field of fields) {
+        fieldCount += 1;
+        const fieldKey = this.normalizeKey(String(field['key'] ?? field['name'] ?? ''));
+        if (!fieldKey || fieldKeys.has(fieldKey)) {
+          issues.push(`Hay un campo sin key única en el step ${stepKey || 'sin_key'}.`);
+        }
+        fieldKeys.add(fieldKey);
+        if (!String(field['type'] ?? '').trim() || !String(field['label'] ?? '').trim()) {
+          issues.push(`El campo ${fieldKey || 'sin_key'} necesita type y label.`);
+        }
+      }
+    }
+    if (!fieldCount) {
+      issues.push('El JSON necesita al menos un campo.');
+    }
+    this.jsonError = issues.length ? issues[0] : '';
+    return [...new Set(issues)].slice(0, 8);
   }
 
   private schemaFromDraft(): Record<string, unknown> {
@@ -2541,6 +2776,15 @@ export class FormsPageComponent implements OnInit {
                 }
               }
             : undefined,
+          access:
+            field.requiredPermission || field.requiredRole || field.readonlyPermission
+              ? {
+                  permissions: field.requiredPermission ? [field.requiredPermission.trim()] : [],
+                  roles: field.requiredRole ? [field.requiredRole.trim()] : [],
+                  readonlyUnlessPermission: field.readonlyPermission || undefined,
+                  deniedMode: 'hidden'
+                }
+              : undefined,
           config: {
             help: field.help || undefined,
             defaultValue: field.defaultValue || undefined,
@@ -2611,6 +2855,38 @@ export class FormsPageComponent implements OnInit {
         }
       ];
     }
+    if (this.draft.persistenceMode === 'hybrid') {
+      const actions: Array<Record<string, unknown>> = [
+        {
+          event: 'onSubmit',
+          type: 'create_record',
+          recordType: this.draft.recordType || this.normalizeKey(this.draft.key),
+          resultKey: 'record',
+          payloadMap: { input: '{{input}}' }
+        }
+      ];
+      if (this.draft.hybridActionType === 'execute_service' && this.draft.hybridServiceKey) {
+        actions.push({
+          event: 'onSubmit',
+          type: 'execute_service',
+          serviceKey: this.draft.hybridServiceKey,
+          resultKey: 'service',
+          payloadMap: this.safeMapFromText(this.draft.payloadMapText, { input: '{{input}}' }),
+          responseMap: this.safeMapFromText(this.draft.responseMapText, {})
+        });
+      }
+      if (this.draft.hybridActionType === 'execute_flow' && this.draft.hybridFlowKey) {
+        actions.push({
+          event: 'onSubmit',
+          type: 'execute_flow',
+          flowKey: this.draft.hybridFlowKey,
+          resultKey: 'flow',
+          payloadMap: this.safeMapFromText(this.draft.payloadMapText, { input: '{{input}}' }),
+          responseMap: this.safeMapFromText(this.draft.responseMapText, {})
+        });
+      }
+      return actions;
+    }
     return [
       {
         event: 'onSubmit',
@@ -2622,19 +2898,42 @@ export class FormsPageComponent implements OnInit {
   }
 
   private commandsFromDraft() {
-    return this.draft.commands.map((command) => ({
-      key: this.normalizeKey(command.key) || 'accion',
-      label: command.label || command.key || 'Acción',
-      event: 'onClick',
-      type: command.type,
-      serviceKey: command.type === 'execute_service' ? command.serviceKey || undefined : undefined,
-      flowKey: command.type === 'execute_flow' ? command.flowKey || undefined : undefined,
-      payloadMap:
+    return this.draft.commands.map((command) => {
+      const key = this.normalizeKey(command.key) || 'accion';
+      const payloadMap =
         command.type === 'show_message'
           ? undefined
-          : this.safeMapFromText(command.payloadMapText, { input: '{{input}}' }),
-      responseMode: command.responseMode
-    }));
+          : this.safeMapFromText(command.payloadMapText, { input: '{{input}}' });
+      return {
+        key,
+        label: command.label || command.key || 'Acción',
+        placement: 'form_toolbar',
+        style: 'secondary',
+        event: 'onClick',
+        type: command.type,
+        serviceKey: command.type === 'execute_service' ? command.serviceKey || undefined : undefined,
+        flowKey: command.type === 'execute_flow' ? command.flowKey || undefined : undefined,
+        payloadMap,
+        action: {
+          type: command.type,
+          serviceKey: command.type === 'execute_service' ? command.serviceKey || undefined : undefined,
+          flowKey: command.type === 'execute_flow' ? command.flowKey || undefined : undefined,
+          payloadMap,
+          resultKey: key
+        },
+        responseMode: command.responseMode,
+        requiresValidForm: command.requiresValidForm,
+        confirm: command.confirmMessage ? { message: command.confirmMessage } : undefined,
+        access:
+          command.requiredPermission || command.requiredRole
+            ? {
+                permissions: command.requiredPermission ? [command.requiredPermission.trim()] : [],
+                roles: command.requiredRole ? [command.requiredRole.trim()] : [],
+                deniedMode: 'hidden'
+              }
+            : undefined
+      };
+    });
   }
 
   private draftFromSchema(form: DynamicFormItem): FormDraft {
@@ -2649,6 +2948,7 @@ export class FormsPageComponent implements OnInit {
     const persistence = this.asObject(schema['persistence']);
     const target = this.asObject(persistence?.['defaultTarget']);
     const submitAction = this.submitActionFromSchema(schema);
+    const hybridAction = this.hybridActionFromSchema(schema);
     const steps = Array.isArray(schema['steps']) ? (schema['steps'] as Array<Record<string, unknown>>) : [];
     return {
       templateKey: 'blank',
@@ -2672,6 +2972,9 @@ export class FormsPageComponent implements OnInit {
       recordType: String(target?.['recordType'] ?? form.key ?? ''),
       serviceKey: String(target?.['serviceKey'] ?? ''),
       flowKey: String(target?.['flowKey'] ?? ''),
+      hybridActionType: this.asHybridActionType(hybridAction?.['type']),
+      hybridServiceKey: String(hybridAction?.['serviceKey'] ?? ''),
+      hybridFlowKey: String(hybridAction?.['flowKey'] ?? ''),
       payloadMapText: JSON.stringify(this.asObject(submitAction?.['payloadMap']) ?? { input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify(this.asObject(submitAction?.['responseMap']) ?? {}, null, 2),
       idempotencyKey: String(offline?.['idempotencyKey'] ?? '{{input.email}}'),
@@ -2690,6 +2993,9 @@ export class FormsPageComponent implements OnInit {
       description: String(step['description'] ?? ''),
       fields: fields.map((field) => {
         const visibleWhen = this.asObject(field['visibleWhen']);
+        const access = this.asObject(field['access']);
+        const permissions = Array.isArray(access?.['permissions']) ? access['permissions'] : [];
+        const roles = Array.isArray(access?.['roles']) ? access['roles'] : [];
         return {
           key: String(field['key'] ?? field['name'] ?? ''),
           label: String(field['label'] ?? field['key'] ?? ''),
@@ -2708,7 +3014,10 @@ export class FormsPageComponent implements OnInit {
           validationServiceKey: String(this.asObject(field['validation'])?.['serviceKey'] ?? ''),
           visibleWhenField: String(visibleWhen?.['field'] ?? ''),
           visibleWhenOperator: this.asConditionOperator(visibleWhen?.['operator']),
-          visibleWhenValue: String(visibleWhen?.['value'] ?? '')
+          visibleWhenValue: String(visibleWhen?.['value'] ?? ''),
+          requiredPermission: String(permissions[0] ?? ''),
+          requiredRole: String(roles[0] ?? ''),
+          readonlyPermission: String(access?.['readonlyUnlessPermission'] ?? '')
         };
       })
     };
@@ -2737,6 +3046,9 @@ export class FormsPageComponent implements OnInit {
       recordType: 'cliente_onboarding',
       serviceKey: '',
       flowKey: '',
+      hybridActionType: 'none',
+      hybridServiceKey: '',
+      hybridFlowKey: '',
       payloadMapText: JSON.stringify({ input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify({}, null, 2),
       idempotencyKey: '{{input.email}}',
@@ -2748,26 +3060,15 @@ export class FormsPageComponent implements OnInit {
           description: 'Información mínima para identificar al cliente.',
           fields: [
             this.cloneField(DEFAULT_FIELD),
-            {
+            this.fieldDraft({
               key: 'email',
               label: 'Email',
               type: 'email',
               required: true,
               placeholder: 'cliente@empresa.com',
               help: 'Usaremos este correo para evitar duplicados.',
-              defaultValue: '',
-              layout: 'half',
-              minLength: null,
-              maxLength: null,
-              min: null,
-              max: null,
-              options: [],
-              dataSourceServiceKey: '',
-              validationServiceKey: '',
-              visibleWhenField: '',
-              visibleWhenOperator: 'equals',
-              visibleWhenValue: ''
-            }
+              layout: 'half'
+            })
           ]
         }
       ]
@@ -2943,7 +3244,10 @@ export class FormsPageComponent implements OnInit {
       validationServiceKey: field.validationServiceKey ?? '',
       visibleWhenField: field.visibleWhenField ?? '',
       visibleWhenOperator: field.visibleWhenOperator ?? 'equals',
-      visibleWhenValue: field.visibleWhenValue ?? ''
+      visibleWhenValue: field.visibleWhenValue ?? '',
+      requiredPermission: field.requiredPermission ?? '',
+      requiredRole: field.requiredRole ?? '',
+      readonlyPermission: field.readonlyPermission ?? ''
     };
   }
 
@@ -2983,10 +3287,14 @@ export class FormsPageComponent implements OnInit {
         key: this.normalizeKey(String(command['key'] ?? `accion_${index + 1}`)),
         label: String(command['label'] ?? command['key'] ?? `Acción ${index + 1}`),
         type: this.asCommandType(command['type']),
-        serviceKey: String(command['serviceKey'] ?? ''),
-        flowKey: String(command['flowKey'] ?? ''),
-        payloadMapText: JSON.stringify(this.asObject(command['payloadMap']) ?? { input: '{{input}}' }, null, 2),
-        responseMode: command['responseMode'] === 'silent' ? 'silent' : 'show_response'
+      serviceKey: String(command['serviceKey'] ?? ''),
+      flowKey: String(command['flowKey'] ?? ''),
+      payloadMapText: JSON.stringify(this.asObject(command['payloadMap']) ?? { input: '{{input}}' }, null, 2),
+        responseMode: command['responseMode'] === 'silent' ? 'silent' : 'show_response',
+        requiredPermission: this.firstAccessValue(command, 'permissions'),
+        requiredRole: this.firstAccessValue(command, 'roles'),
+        requiresValidForm: command['requiresValidForm'] !== false,
+        confirmMessage: String(this.asObject(command['confirm'])?.['message'] ?? '')
       }));
   }
 
@@ -3095,6 +3403,10 @@ export class FormsPageComponent implements OnInit {
     return value === 'execute_flow' || value === 'show_message' ? value : 'execute_service';
   }
 
+  private asHybridActionType(value: unknown): HybridActionType {
+    return value === 'execute_service' || value === 'execute_flow' ? value : 'none';
+  }
+
   private asFieldLayout(value: unknown): FieldLayout {
     return value === 'full' || value === 'third' ? value : 'half';
   }
@@ -3163,6 +3475,25 @@ export class FormsPageComponent implements OnInit {
       (item): item is Record<string, unknown> => Boolean(this.asObject(item)) && this.asObject(item)?.['event'] === 'onSubmit'
     );
     return action ?? null;
+  }
+
+  private hybridActionFromSchema(schema: Record<string, unknown>): Record<string, unknown> | null {
+    const actions = Array.isArray(schema['actions']) ? (schema['actions'] as unknown[]) : [];
+    const action = actions.find((item): item is Record<string, unknown> => {
+      const object = this.asObject(item);
+      return Boolean(
+        object &&
+          object['event'] === 'onSubmit' &&
+          (object['type'] === 'execute_service' || object['type'] === 'execute_flow')
+      );
+    });
+    return action ?? null;
+  }
+
+  private firstAccessValue(source: Record<string, unknown>, key: 'permissions' | 'roles') {
+    const access = this.asObject(source['access']);
+    const values = Array.isArray(access?.[key]) ? access?.[key] : [];
+    return String(values[0] ?? '');
   }
 
   private safeMapFromText(text: string, fallback: Record<string, unknown>) {

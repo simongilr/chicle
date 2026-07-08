@@ -47,8 +47,12 @@ Security and authentication decisions should be checked against `docs/security-a
 
 ## Official Configuration Documentation
 
+- Platform architecture and product factory vision: `docs/platform-architecture.md`
+- Backup and worker evolution: `docs/backup-worker-architecture.md`
 - Human/AI entry point: `docs/ai-authoring-guide.md`
 - AI-ready JSON-only endpoints: `docs/ai-ready-authoring.md`
+- AI RAG architecture and Knowledge Packs: `docs/ai-rag-architecture.md`
+- Local AI with Ollama: `docs/ai-local-ollama.md`
 - Dynamic services contract: `docs/dynamic-services-contract.md`
 - Flow contract: `docs/flow-contract.md`
 - Dynamic forms contract: `docs/dynamic-forms-contract.md`

@@ -4,11 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
-import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
-import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
@@ -190,11 +189,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
     JsonAuthoringPanelComponent,
-    LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
-    CatalogHeaderComponent,
     CatalogItemComponent,
+    DesignerCatalogPanelComponent,
     SectionHeaderComponent,
     StatusNoticeComponent
   ],
@@ -509,50 +507,42 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         } @else {
           <app-designer-workspace>
             <ng-container designer-navigation>
-              <app-catalog-header
+              <app-designer-catalog-panel
                 [title]="viewingTrash ? 'Papelera' : 'Servicios'"
                 [summary]="services.length + (services.length === 1 ? ' servicio' : ' servicios')"
+                [loading]="loading"
+                loadingLabel="Cargando servicios"
+                [loadingRows]="4"
+                [error]="error"
+                [empty]="!services.length"
+                [emptyTitle]="viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía'"
+                [emptyMessage]="
+                  viewingTrash
+                    ? 'Los servicios enviados a papelera aparecerán aquí.'
+                    : 'Crea el primer servicio dinámico de esta organización.'
+                "
+                (retry)="load()"
               >
-                <button type="button" (click)="toggleTrash()">{{ viewingTrash ? 'Activos' : 'Papelera' }}</button>
+                <button catalog-actions type="button" (click)="toggleTrash()">
+                  {{ viewingTrash ? 'Activos' : 'Papelera' }}
+                </button>
                 @if (!viewingTrash) {
-                  <button type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
+                  <button catalog-actions type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
                 }
-              </app-catalog-header>
-
-              @if (loading) {
-                <app-loading-skeleton
-                  variant="list"
-                  label="Cargando servicios"
-                  [rows]="4"
-                ></app-loading-skeleton>
-              } @else if (error) {
-                <app-status-notice title="No se pudieron cargar" tone="error">
-                  <span>{{ error }}</span>
-                  <button notice-action type="button" (click)="load()">Reintentar</button>
-                </app-status-notice>
-              } @else if (!services.length) {
-                <app-status-notice [title]="viewingTrash ? 'Papelera vacía' : 'Sin servicios todavía'">
-                  <span>{{
-                    viewingTrash
-                      ? 'Los servicios enviados a papelera aparecerán aquí.'
-                      : 'Crea el primer servicio dinámico de esta organización.'
-                  }}</span>
-                </app-status-notice>
-              }
-
-              @for (service of services; track service.id) {
-                <app-catalog-item
-                  [title]="service.name"
-                  [meta]="
-                    service.key + ' · ' + (service.trashedAt ? 'en papelera' : service.active ? 'activo' : 'inactivo')
-                  "
-                  [detail]="
-                    'publicada: ' + (service.publishedVersion ? 'v' + service.publishedVersion.version : 'sin publicar')
-                  "
-                  [active]="selected?.id === service.id"
-                  (selected)="select(service)"
-                ></app-catalog-item>
-              }
+                @for (service of services; track service.id) {
+                  <app-catalog-item
+                    [title]="service.name"
+                    [meta]="
+                      service.key + ' · ' + (service.trashedAt ? 'en papelera' : service.active ? 'activo' : 'inactivo')
+                    "
+                    [detail]="
+                      'publicada: ' + (service.publishedVersion ? 'v' + service.publishedVersion.version : 'sin publicar')
+                    "
+                    [active]="selected?.id === service.id"
+                    (selected)="select(service)"
+                  ></app-catalog-item>
+                }
+              </app-designer-catalog-panel>
             </ng-container>
 
             <ng-container designer-workspace>

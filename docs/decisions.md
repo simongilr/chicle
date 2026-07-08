@@ -26,3 +26,21 @@
 ## Core Principle
 
 Chicle Engine executes generic configuration. Business behavior is provided by templates and declarative actions.
+
+## Platform Architecture Language
+
+Chicle uses an Evolutionary Modular Platform Architecture.
+
+Implementation language: metadata-driven modular monolith prepared for event-driven, AI-assisted, multi-tenant and
+multi-target platform execution.
+
+Product language: configurable product factory for digital applications.
+
+## Worker And Backup Evolution
+
+Chicle V1 deploys initially as API + DB. The code must separate HTTP, application/core, dynamic runtime and async
+runtime responsibilities now, but `api-worker` becomes a separate container only after the V1 base is stable or when
+backups, schedules, outbox processing, retries, notifications or long-running flows require it.
+
+Database backups must be dated compressed dump files stored outside the live MariaDB data volume. Production deployments
+should copy those backups to an external destination.

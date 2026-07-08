@@ -12,11 +12,12 @@ import { IonApp } from '@ionic/angular/standalone';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoadingSkeletonComponent } from './shared/loading-skeleton/loading-skeleton.component';
 import { UiThemeService } from './core/ui/ui-theme.service';
+import { AiAssistantLauncherComponent } from './shared/ai-assistant-launcher/ai-assistant-launcher.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [IonApp, LoadingSkeletonComponent, RouterOutlet],
+  imports: [IonApp, LoadingSkeletonComponent, RouterOutlet, AiAssistantLauncherComponent],
   animations: [
     trigger('routeTransition', [
       transition('* <=> *', [
@@ -133,6 +134,7 @@ import { UiThemeService } from './core/ui/ui-theme.service';
       <main class="route-frame" [@routeTransition]="routeKey(outlet)">
         <router-outlet #outlet="outlet"></router-outlet>
       </main>
+      <app-ai-assistant-launcher></app-ai-assistant-launcher>
       @if (navigationLoading()) {
         <div class="navigation-loading">
           <div class="loading-nav"></div>

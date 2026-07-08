@@ -8,6 +8,7 @@ import {
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
+import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { DynamicFieldLibraryComponent } from '../../shared/dynamic-field-library/dynamic-field-library.component';
@@ -51,6 +52,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     CatalogHeaderComponent,
     CatalogItemComponent,
     ContextAssistantComponent,
+    DesignerCatalogPanelComponent,
     DesignerWorkspaceComponent,
     DynamicFieldControlComponent,
     DynamicFieldLibraryComponent,
@@ -268,6 +270,19 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           <app-catalog-header title="Formularios" summary="3 formularios">
             <button class="preview-button" type="button">Nuevo</button>
           </app-catalog-header>
+        }
+        @case ('DesignerCatalogPanelComponent') {
+          <app-designer-catalog-panel title="Servicios" summary="2 servicios">
+            <button catalog-actions class="preview-button" type="button">Papelera</button>
+            <button catalog-actions class="preview-button" type="button">Nuevo</button>
+            <app-catalog-item
+              title="Buscar usuario"
+              meta="buscar_usuario · activo"
+              detail="publicada: v4"
+              [active]="true"
+            ></app-catalog-item>
+            <app-catalog-item title="Buscar roles" meta="roles · activo" detail="publicada: v1"></app-catalog-item>
+          </app-designer-catalog-panel>
         }
         @case ('CatalogItemComponent') {
           <app-catalog-item

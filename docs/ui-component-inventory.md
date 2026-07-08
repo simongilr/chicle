@@ -29,6 +29,7 @@ Page containers keep routing, permissions, loading and orchestration.
 | ProcessStepsComponent | `app-process-steps` | Guided stages with complete, active and pending states | Services, Flows and Manual | Stable |
 | WorkflowGuideComponent | `app-workflow-guide` | Current objective, explanation and next command | Services, Flows and Manual | Stable |
 | ContextAssistantComponent | `app-context-assistant` | Local help, example, readiness and next action | Flow authoring blocks | Reusable; adopt in builders |
+| AiAssistantLauncherComponent | `app-ai-assistant-launcher` | Floating global chat entry point for natural-language requests; delegates the requested action to the current screen context | AppComponent, all routes | Initial local prototype; connect to screen handlers, backend AI and RAG later |
 | StatusNoticeComponent | `app-status-notice` | Empty, info, success, warning and error states | Login, Setup, Database, Services, Flows, Security and dynamic forms | Stable |
 | LoadingSkeletonComponent | `app-loading-skeleton` | Page, list, table and form loading placeholders with accessible status | Route transitions and data-driven modules | Stable |
 | SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database and Flows | Stable |
@@ -96,6 +97,7 @@ These components are required before the builders grow inside page files:
 10. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
 11. `EntityTableComponent`: server pagination, search, filters, empty/loading/error states and row commands.
 12. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
+13. `DesignerCatalogPanelComponent`: shared designer side catalog with title, count, Nuevo/Papelera actions, loading, error, empty and item projection.
 
 ## Dynamic Forms readiness audit
 
@@ -106,7 +108,7 @@ These components are required before the builders grow inside page files:
 | Labels/help/errors | `FieldShellComponent` | Ready |
 | Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready; preview now separates device simulation, runtime content and integration contract |
 | Form lifecycle guide | `ProcessStepsComponent`, `WorkflowGuideComponent`, `StatusNoticeComponent` | Ready |
-| Designer workspace | `DesignerWorkspaceComponent`, catalog and section components | Ready |
+| Designer workspace | `DesignerWorkspaceComponent`, `DesignerCatalogPanelComponent`, catalog items and section components | Ready |
 | Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples | Extract shared insertion component next |
 | Step management | Inline V1 in `FormsPageComponent` with add/remove/select | Extract shared component next |
 | Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings, access rules and visibility conditions | Extract shared component next |
@@ -127,7 +129,7 @@ before the designer should grow.
 - Extend the field renderer with files, catalogs, masks and rule-driven validation.
 - Property inspector and schema field editor.
 - Data/action binding editors.
-- Reuse `JsonAuthoringPanelComponent` and responsive preview viewport in future screen/page designers.
+- Reuse `JsonAuthoringPanelComponent`, `DesignerCatalogPanelComponent` and responsive preview viewport in future screen/page designers.
 - Reusable entity table with server pagination.
 
 ### P1: during Screen Designer V1

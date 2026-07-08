@@ -4,8 +4,12 @@
 
 Configuration objects are part of the public architecture and stay documented beside the implementation:
 
+- `docs/platform-architecture.md` defines the platform-level architecture, naming and evolution path.
+- `docs/backup-worker-architecture.md` defines background worker and backup evolution.
 - `docs/ai-authoring-guide.md` is the entry point for people and AI.
 - `docs/ai-ready-authoring.md` defines JSON-only endpoints and sequences for future assistants.
+- `docs/ai-rag-architecture.md` defines the versioned knowledge layer for the future AI Manager.
+- `docs/ai-local-ollama.md` defines the first local AI provider stack.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive

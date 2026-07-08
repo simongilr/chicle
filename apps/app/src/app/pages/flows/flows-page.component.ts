@@ -6,9 +6,9 @@ import { environment } from '../../../environments/environment';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
-import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
+import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
@@ -435,8 +435,8 @@ interface FlowJobItem {
     PageShellComponent,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
-    CatalogHeaderComponent,
     CatalogItemComponent,
+    DesignerCatalogPanelComponent,
     ContextAssistantComponent,
     JsonAuthoringPanelComponent,
     SectionHeaderComponent,
@@ -1372,20 +1372,21 @@ interface FlowJobItem {
 
       <app-designer-workspace>
         <ng-container designer-navigation>
-          <app-catalog-header
+          <app-designer-catalog-panel
             [title]="viewingTrash ? 'Papelera' : 'Flows'"
             [summary]="flows.length + (flows.length === 1 ? ' proceso' : ' procesos')"
+            [loading]="loading"
+            loadingLabel="Cargando flows"
+            [loadingRows]="4"
+            [empty]="!flows.length"
+            [emptyTitle]="viewingTrash ? 'Papelera vacía' : 'Sin flows todavía'"
+            [emptyMessage]="
+              viewingTrash
+                ? 'Los procesos eliminados aparecerán aquí y podrán restaurarse.'
+                : 'Pulsa Nuevo. El asistente te ayudará a crear el primer proceso.'
+            "
+            [showRetry]="false"
           >
-            <div class="row">
-              <button type="button" (click)="toggleTrash()">
-                {{ viewingTrash ? 'Activos' : 'Papelera' }}
-              </button>
-              @if (!viewingTrash) {
-                <button class="primary" type="button" (click)="startNewFlow()" [disabled]="!canCreate">Nuevo</button>
-              }
-            </div>
-          </app-catalog-header>
-          <div class="list">
             @for (flow of flows; track flow.id) {
               <app-catalog-item
                 [title]="flow.name"
@@ -1398,16 +1399,16 @@ interface FlowJobItem {
                 [active]="flow.id === selectedFlowId"
                 (selected)="selectFlow(flow)"
               ></app-catalog-item>
-            } @empty {
-              <app-status-notice [title]="viewingTrash ? 'Papelera vacía' : 'Sin flows todavía'">
-                {{
-                  viewingTrash
-                    ? 'Los procesos eliminados aparecerán aquí y podrán restaurarse.'
-                    : 'Pulsa Nuevo. El asistente te ayudará a crear el primer proceso.'
-                }}
-              </app-status-notice>
             }
-          </div>
+            <button catalog-actions type="button" (click)="toggleTrash()">
+              {{ viewingTrash ? 'Activos' : 'Papelera' }}
+            </button>
+            @if (!viewingTrash) {
+              <button catalog-actions class="primary" type="button" (click)="startNewFlow()" [disabled]="!canCreate">
+                Nuevo
+              </button>
+            }
+          </app-designer-catalog-panel>
         </ng-container>
 
         <ng-container designer-workspace>

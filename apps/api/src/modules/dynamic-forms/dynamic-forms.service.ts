@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { AuthContext } from '../auth/auth.types';
 import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
 import { FlowsService } from '../flows/flows.service';
@@ -129,7 +129,14 @@ export class DynamicFormsService {
 
   findAll(auth: AuthContext) {
     return this.forms.find({
-      where: { tenantId: auth.tenant.id },
+      where: { tenantId: auth.tenant.id, trashedAt: IsNull() },
+      order: { key: 'ASC', version: 'DESC' }
+    });
+  }
+
+  findTrashed(auth: AuthContext) {
+    return this.forms.find({
+      where: { tenantId: auth.tenant.id, trashedAt: Not(IsNull()) },
       order: { key: 'ASC', version: 'DESC' }
     });
   }
@@ -211,6 +218,9 @@ export class DynamicFormsService {
       where: { tenantId: auth.tenant.id, key },
       order: { version: 'DESC' }
     });
+    if (existing?.trashedAt) {
+      throw new BadRequestException('Restore the form before updating it from JSON');
+    }
     const form = existing
       ? await this.update(auth, existing.id, {
           title,
@@ -244,6 +254,7 @@ export class DynamicFormsService {
 
   async update(auth: AuthContext, formId: string, body: UpdateDynamicFormRequest) {
     const form = await this.requireForm(auth, formId);
+    this.ensureEditable(form);
     const title = body.title?.trim() || form.title;
     const schema = this.normalizeSchema(body.schema ?? form.schema, form.key, title);
     this.validateSchema(schema);
@@ -266,6 +277,7 @@ export class DynamicFormsService {
 
   async createVersion(auth: AuthContext, formId: string) {
     const form = await this.requireForm(auth, formId);
+    this.ensureEditable(form);
     const schema = this.normalizeSchema(form.schema, form.key, form.title);
     this.validateSchema(schema);
     const current = await this.versions.findOne({
@@ -291,6 +303,7 @@ export class DynamicFormsService {
 
   async publishVersion(auth: AuthContext, formId: string, versionId: string) {
     const form = await this.requireForm(auth, formId);
+    this.ensureEditable(form);
     const version = await this.versions.findOne({
       where: { tenantId: auth.tenant.id, formId: form.id, id: versionId }
     });
@@ -321,6 +334,29 @@ export class DynamicFormsService {
       .execute();
     await this.replaceVersionBindings(auth, form, version, version.schema);
     return this.versions.findOneOrFail({ where: { id: version.id } });
+  }
+
+  async trash(auth: AuthContext, formId: string) {
+    const form = await this.requireForm(auth, formId);
+    if (form.trashedAt) {
+      return form;
+    }
+    return this.forms.save(
+      this.forms.merge(form, {
+        trashedAt: new Date(),
+        trashedByUserId: auth.user.id
+      })
+    );
+  }
+
+  async restore(auth: AuthContext, formId: string) {
+    const form = await this.requireTrashedForm(auth, formId);
+    return this.forms.save(
+      this.forms.merge(form, {
+        trashedAt: null,
+        trashedByUserId: null
+      })
+    );
   }
 
   async submitByKey(auth: AuthContext, key: string, request: SubmitDynamicFormRequest) {
@@ -549,7 +585,7 @@ export class DynamicFormsService {
 
   private async requireFormByKey(auth: AuthContext, key: string) {
     const form = await this.forms.findOne({
-      where: { tenantId: auth.tenant.id, key: this.normalizeKey(key) },
+      where: { tenantId: auth.tenant.id, key: this.normalizeKey(key), trashedAt: IsNull() },
       order: { version: 'DESC' }
     });
     if (!form) {
@@ -566,6 +602,22 @@ export class DynamicFormsService {
       throw new NotFoundException('Form not found');
     }
     return form;
+  }
+
+  private async requireTrashedForm(auth: AuthContext, formId: string) {
+    const form = await this.forms.findOne({
+      where: { tenantId: auth.tenant.id, id: formId }
+    });
+    if (!form || !form.trashedAt) {
+      throw new NotFoundException('Trashed form not found');
+    }
+    return form;
+  }
+
+  private ensureEditable(form: DynamicForm) {
+    if (form.trashedAt) {
+      throw new BadRequestException('Restore the form before editing it');
+    }
   }
 
   private normalizeKey(value?: string) {

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { DatabaseViewerModule } from './modules/database-viewer/database-viewer.module';
 import { ActionsModule } from './modules/actions/actions.module';
+import { AiAssistantModule } from './modules/ai-assistant/ai-assistant.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfisysModule } from './modules/confisys/confisys.module';
@@ -37,6 +38,7 @@ import { UsersModule } from './modules/users/users.module';
     DynamicServicesModule,
     FlowsModule,
     ActionsModule,
+    AiAssistantModule,
     RecordsModule,
     FilesModule,
     DevicesModule,

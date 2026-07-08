@@ -41,6 +41,8 @@ export const BASE_PERMISSIONS: BasePermissionSeed[] = [
   { key: 'flows.execute', category: 'flows', description: 'Probar y ejecutar flujos publicados.' },
   { key: 'flows.manage', category: 'flows', description: 'Administrar catálogo, reglas y acciones de flujos.' },
   { key: 'flows.audit', category: 'flows', description: 'Ver trazabilidad técnica de flujos.' },
+  { key: 'ai.assistant.use', category: 'ai', description: 'Usar el asistente IA para generar propuestas.' },
+  { key: 'ai.assistant.manage', category: 'ai', description: 'Administrar configuración y conocimiento del asistente IA.' },
   { key: 'records.read', category: 'records', description: 'Ver registros.' },
   { key: 'records.create', category: 'records', description: 'Crear registros.' },
   { key: 'records.update', category: 'records', description: 'Actualizar registros.' },
@@ -88,6 +90,8 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'flows.execute',
       'flows.manage',
       'flows.audit',
+      'ai.assistant.use',
+      'ai.assistant.manage',
       'records.read',
       'records.create',
       'records.update',
@@ -106,6 +110,7 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'forms.submit',
       'services.read',
       'services.execute',
+      'ai.assistant.use',
       'records.read',
       'records.create',
       'records.update',
@@ -117,7 +122,7 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     key: 'viewer',
     name: 'Viewer',
     description: 'Consulta de información sin modificación.',
-    permissions: ['menus.read', 'forms.read', 'records.read', 'files.read']
+    permissions: ['menus.read', 'forms.read', 'ai.assistant.use', 'records.read', 'files.read']
   },
   {
     key: 'client',

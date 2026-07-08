@@ -9,22 +9,24 @@ backend.
 Read these files in order:
 
 1. `docs/ai-ready-authoring.md`
-2. `docs/dynamic-services-contract.md`
-3. `docs/flow-contract.md`
-4. `docs/examples/dynamic-services.examples.json`
-5. `docs/examples/flows.examples.json`
-6. `docs/examples/flow-step-catalog.examples.json`
-7. `docs/examples/flow-runtime.examples.json`
-8. `docs/dynamic-forms-contract.md`
-9. `docs/examples/dynamic-forms.examples.json`
-10. `docs/ui-components.md`
-11. `docs/ui-component-inventory.md`
-12. `docs/ui-presentation-architecture.md`
-13. `docs/examples/ui-presentation.examples.json`
-14. `docs/formly-architecture.md`
-15. `docs/examples/dynamic-form-formly.examples.json`
-16. `docs/angular-20-migration-roadmap.md`
-17. `docs/angular-20-migration-report.md`
+2. `docs/ai-rag-architecture.md`
+3. `docs/ai-local-ollama.md`
+4. `docs/dynamic-services-contract.md`
+5. `docs/flow-contract.md`
+6. `docs/examples/dynamic-services.examples.json`
+7. `docs/examples/flows.examples.json`
+8. `docs/examples/flow-step-catalog.examples.json`
+9. `docs/examples/flow-runtime.examples.json`
+10. `docs/dynamic-forms-contract.md`
+11. `docs/examples/dynamic-forms.examples.json`
+12. `docs/ui-components.md`
+13. `docs/ui-component-inventory.md`
+14. `docs/ui-presentation-architecture.md`
+15. `docs/examples/ui-presentation.examples.json`
+16. `docs/formly-architecture.md`
+17. `docs/examples/dynamic-form-formly.examples.json`
+18. `docs/angular-20-migration-roadmap.md`
+19. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -50,6 +52,8 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Give every flow step a unique `key`, `position` and `outputKey`.
 - JSON-only and guided visual editing are equivalent authoring paths. Future assistants should use the JSON-only
   endpoints in `docs/ai-ready-authoring.md`.
+- RAG context must come from the versioned Knowledge Pack described in `docs/ai-rag-architecture.md`; do not invent
+  unavailable tables, fields, permissions, services, flows or template concepts.
 - Create or update JSON first, test it when possible, publish it and only then execute it from another component.
 - Keep forms and screens library-neutral. Use the optional `presentation` contract; never emit Angular selectors,
   PrimeNG/Ionic component tags or library CSS classes in stored JSON.
@@ -62,6 +66,28 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Dynamic forms never write arbitrary tables directly from the frontend. Use `create_record`, `execute_service` or
   `execute_flow`, and document every field/service/flow dependency through bindings.
 - Never store Formly functions or JavaScript expressions. Conditional fields use the documented `visibleWhen` object.
+
+## In-App Assistant Entry Point
+
+The frontend exposes a global floating assistant through `AiAssistantLauncherComponent`.
+
+Current V1 behavior:
+
+- Accepts a natural-language request from any screen.
+- Detects the current screen context from the route.
+- Keeps the assistant UI as chat only.
+- Emits the user request to the frontend assistant bus.
+- Leaves JSON editing, validation, save, version and publish controls inside the current designer screen.
+- Does not save, publish or execute anything automatically.
+
+Future AI behavior:
+
+- Replace local templates with a backend-assisted proposal endpoint.
+- Load the official Knowledge Pack before generating.
+- Validate generated JSON against the relevant contract.
+- Explain table, service, flow, permission and runtime dependencies.
+- Send proposed changes back to the active screen so its existing visual and JSON editors can show the diff.
+- Require explicit user approval before saving, versioning or publishing.
 
 ## Validation checklist
 

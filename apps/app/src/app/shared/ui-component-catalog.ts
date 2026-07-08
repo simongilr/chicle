@@ -82,6 +82,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-catalog-header title="Formularios" summary="3 formularios">...</app-catalog-header>'
   },
   {
+    name: 'DesignerCatalogPanelComponent',
+    selector: 'app-designer-catalog-panel',
+    category: 'Diseñadores',
+    purpose:
+      'Contenedor reutilizable para catálogos laterales de diseñadores: título, contador, acciones Nuevo/Papelera, loading, error, vacío y lista.',
+    importPath: 'shared/designer-catalog-panel/designer-catalog-panel.component',
+    usedBy: ['Services', 'Flows', 'Dynamic forms'],
+    status: 'stable',
+    example:
+      '<app-designer-catalog-panel title="Servicios" summary="2 servicios"><button catalog-actions>Nuevo</button>...</app-designer-catalog-panel>'
+  },
+  {
     name: 'CatalogItemComponent',
     selector: 'app-catalog-item',
     category: 'Diseñadores',
@@ -133,6 +145,17 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     status: 'stable',
     example:
       '<app-context-assistant title="Entrada" description="Define los datos." example="email"></app-context-assistant>'
+  },
+  {
+    name: 'AiAssistantLauncherComponent',
+    selector: 'app-ai-assistant-launcher',
+    category: 'Guía y estados',
+    purpose:
+      'Botón flotante global de chat para pedir ayuda en lenguaje natural y enviar la intención a la pantalla actual.',
+    importPath: 'shared/ai-assistant-launcher/ai-assistant-launcher.component',
+    usedBy: ['AppComponent'],
+    status: 'initial',
+    example: '<app-ai-assistant-launcher></app-ai-assistant-launcher>'
   },
   {
     name: 'StatusNoticeComponent',

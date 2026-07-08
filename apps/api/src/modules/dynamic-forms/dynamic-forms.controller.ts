@@ -27,6 +27,13 @@ export class DynamicFormsController {
     return this.dynamicForms.findAll(auth);
   }
 
+  @Get('trash')
+  @RequirePermissions('forms.read')
+  @ApiOperation({ summary: 'Listar formularios en papelera' })
+  findTrash(@CurrentAuth() auth: AuthContext) {
+    return this.dynamicForms.findTrashed(auth);
+  }
+
   @Get('by-key/:key/runtime')
   @RequirePermissions('forms.read')
   @ApiOperation({ summary: 'Obtener schema runtime publicado por key' })
@@ -71,6 +78,20 @@ export class DynamicFormsController {
   @ApiOperation({ summary: 'Actualizar borrador de formulario del tenant actual' })
   update(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string, @Body() body: UpdateDynamicFormRequest) {
     return this.dynamicForms.update(auth, formId, body);
+  }
+
+  @Post(':formId/trash')
+  @RequirePermissions('forms.manage')
+  @ApiOperation({ summary: 'Enviar formulario a papelera' })
+  trash(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string) {
+    return this.dynamicForms.trash(auth, formId);
+  }
+
+  @Post(':formId/restore')
+  @RequirePermissions('forms.manage')
+  @ApiOperation({ summary: 'Restaurar formulario desde papelera' })
+  restore(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string) {
+    return this.dynamicForms.restore(auth, formId);
   }
 
   @Post(':formId/versions')

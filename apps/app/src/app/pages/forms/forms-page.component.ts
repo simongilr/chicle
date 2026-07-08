@@ -11,13 +11,12 @@ import {
   DynamicFlowClientService
 } from '../../core/services/dynamic-flow-client.service';
 import { FormRuntimeService, RuntimeForm } from '../../engine/forms/form-runtime.service';
-import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
-import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { PreviewViewportComponent, PreviewViewportMode } from '../../shared/preview-viewport/preview-viewport.component';
@@ -81,6 +80,8 @@ interface DynamicFormItem {
   published: boolean;
   status?: FormLifecycleStatus;
   publishedVersionId?: string | null;
+  trashedAt?: string | null;
+  trashedByUserId?: string | null;
 }
 
 interface DynamicFormVersion {
@@ -287,13 +288,12 @@ const FORM_TEMPLATES: FormTemplate[] = [
   standalone: true,
   imports: [
     FormsModule,
-    CatalogHeaderComponent,
     CatalogItemComponent,
+    DesignerCatalogPanelComponent,
     DesignerWorkspaceComponent,
     FieldShellComponent,
     FormlyRuntimeComponent,
     JsonAuthoringPanelComponent,
-    LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
     PreviewViewportComponent,
@@ -861,34 +861,43 @@ const FORM_TEMPLATES: FormTemplate[] = [
           [tone]="guide.tone"
         >
           <button type="button" (click)="refresh()">Refrescar</button>
-          <button class="primary" type="button" (click)="newForm()">Nuevo formulario</button>
           <button type="button" (click)="goNext()" [disabled]="!nextPhase">Continuar</button>
         </app-workflow-guide>
 
         <app-designer-workspace>
           <div designer-navigation>
-            <app-catalog-header
-              title="Formularios"
+            <app-designer-catalog-panel
+              [title]="viewingTrash ? 'Papelera' : 'Formularios'"
               [summary]="forms.length + (forms.length === 1 ? ' formulario' : ' formularios')"
-            ></app-catalog-header>
-
-            @if (loading) {
-              <app-loading-skeleton variant="list" label="Cargando formularios" [rows]="5"></app-loading-skeleton>
-            } @else if (!forms.length) {
-              <app-status-notice tone="info">
-                No hay formularios todavía. Crea el primero y publícalo para usarlo desde pantallas, flows o apps móviles.
-              </app-status-notice>
-            } @else {
+              [loading]="loading"
+              loadingLabel="Cargando formularios"
+              [loadingRows]="5"
+              [empty]="!forms.length"
+              [emptyTitle]="viewingTrash ? 'Papelera vacía' : 'Sin formularios todavía'"
+              [emptyMessage]="
+                viewingTrash
+                  ? 'Los formularios enviados a papelera aparecerán aquí.'
+                  : 'Crea el primero y publícalo para usarlo desde pantallas, flows o apps móviles.'
+              "
+              emptyTone="info"
+              [showRetry]="false"
+            >
+              <button catalog-actions type="button" (click)="toggleTrash()">
+                {{ viewingTrash ? 'Activos' : 'Papelera' }}
+              </button>
+              @if (!viewingTrash) {
+                <button catalog-actions class="primary" type="button" (click)="newForm()">Nuevo</button>
+              }
               @for (form of forms; track form.id) {
                 <app-catalog-item
                   [title]="form.title"
-                  [meta]="form.key + ' · v' + form.version"
+                  [meta]="form.key + ' · ' + (form.trashedAt ? 'en papelera' : 'v' + form.version)"
                   [detail]="statusLabel(form)"
                   [active]="selected?.id === form.id"
                   (selected)="select(form)"
                 ></app-catalog-item>
               }
-            }
+            </app-designer-catalog-panel>
           </div>
 
           <div designer-workspace>
@@ -897,6 +906,21 @@ const FORM_TEMPLATES: FormTemplate[] = [
             }
             @if (error) {
               <app-status-notice tone="error">{{ error }}</app-status-notice>
+            }
+            @if (selected?.trashedAt) {
+              <app-status-notice tone="warning" title="Formulario en papelera">
+                Restaura este formulario para editar, versionar, publicar o probarlo.
+                <button notice-action class="primary" type="button" (click)="restoreForm()" [disabled]="saving">
+                  Restaurar formulario
+                </button>
+              </app-status-notice>
+            } @else if (selected) {
+              <app-status-notice tone="neutral" title="Administración del formulario">
+                Puedes enviarlo a papelera sin perder su schema, versiones ni historial.
+                <button notice-action type="button" (click)="trashForm()" [disabled]="saving">
+                  Enviar a papelera
+                </button>
+              </app-status-notice>
             }
 
             <section class="readiness-card">
@@ -1662,7 +1686,12 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   >
                     <button type="button" (click)="usePreviewAsFixture()">Usar datos del preview</button>
                     <button type="button" (click)="generateExampleFixture()">Generar ejemplo</button>
-                    <button class="primary" type="button" (click)="runSubmitTest()" [disabled]="testing || !selected">
+                    <button
+                      class="primary"
+                      type="button"
+                      (click)="runSubmitTest()"
+                      [disabled]="testing || !selected || !!selected.trashedAt"
+                    >
                       Probar submit
                     </button>
                   </app-section-header>
@@ -1703,8 +1732,8 @@ const FORM_TEMPLATES: FormTemplate[] = [
               [error]="jsonAuthoringError"
               [ready]="jsonAuthoringReady"
               [isBusy]="saving"
-              [draftDisabled]="saving"
-              [publishDisabled]="saving"
+              [draftDisabled]="saving || !!selected?.trashedAt"
+              [publishDisabled]="saving || !!selected?.trashedAt"
               (valueChange)="jsonText = $event; onJsonEdited()"
               (resetJson)="syncJson()"
               (applyJson)="applyJson()"
@@ -1745,6 +1774,7 @@ export class FormsPageComponent implements OnInit {
   submitTestError = '';
   testing = false;
   submitTestPassed = false;
+  viewingTrash = false;
   jsonText = '';
   draft: FormDraft = this.blankDraft();
   previewPresentation: UiPresentationConfig = this.buildPreviewPresentation();
@@ -2040,7 +2070,8 @@ export class FormsPageComponent implements OnInit {
 
   refresh() {
     this.loading = true;
-    this.api.get<DynamicFormItem[]>('forms').subscribe({
+    const endpoint = this.viewingTrash ? 'forms/trash' : 'forms';
+    this.api.get<DynamicFormItem[]>(endpoint).subscribe({
       next: (forms) => {
         this.forms = forms;
         this.loading = false;
@@ -2048,9 +2079,18 @@ export class FormsPageComponent implements OnInit {
           const fresh = forms.find((form) => form.id === this.selected?.id);
           if (fresh) {
             this.select(fresh);
+          } else if (forms.length) {
+            this.select(forms[0]);
+          } else if (this.viewingTrash) {
+            this.selected = undefined;
+            this.latestVersion = undefined;
+          } else {
+            this.newForm();
           }
         } else if (forms.length) {
           this.select(forms[0]);
+        } else if (!this.viewingTrash) {
+          this.newForm();
         }
       },
       error: () => {
@@ -2074,6 +2114,7 @@ export class FormsPageComponent implements OnInit {
   }
 
   newForm() {
+    this.viewingTrash = false;
     this.selected = undefined;
     this.latestVersion = undefined;
     this.draft = this.blankDraft();
@@ -2087,6 +2128,57 @@ export class FormsPageComponent implements OnInit {
     this.submitTestPassed = false;
     this.phase = 'define';
     this.syncJson();
+  }
+
+  toggleTrash() {
+    this.viewingTrash = !this.viewingTrash;
+    this.selected = undefined;
+    this.latestVersion = undefined;
+    this.message = '';
+    this.error = '';
+    this.refresh();
+  }
+
+  trashForm() {
+    if (!this.selected) {
+      return;
+    }
+    this.saving = true;
+    this.error = '';
+    this.api.post<DynamicFormItem>(`forms/${this.selected.id}/trash`, {}).subscribe({
+      next: () => {
+        this.saving = false;
+        this.message = 'Formulario enviado a papelera.';
+        this.selected = undefined;
+        this.latestVersion = undefined;
+        this.refresh();
+      },
+      error: () => {
+        this.saving = false;
+        this.error = 'No se pudo enviar el formulario a papelera.';
+      }
+    });
+  }
+
+  restoreForm() {
+    if (!this.selected) {
+      return;
+    }
+    this.saving = true;
+    this.error = '';
+    this.api.post<DynamicFormItem>(`forms/${this.selected.id}/restore`, {}).subscribe({
+      next: (form) => {
+        this.saving = false;
+        this.viewingTrash = false;
+        this.message = 'Formulario restaurado.';
+        this.selected = form;
+        this.refresh();
+      },
+      error: () => {
+        this.saving = false;
+        this.error = 'No se pudo restaurar el formulario.';
+      }
+    });
   }
 
   applyTemplate(templateKey: FormTemplate['key']) {
@@ -2405,6 +2497,10 @@ export class FormsPageComponent implements OnInit {
   }
 
   saveJsonOnly(publish: boolean) {
+    if (this.selected?.trashedAt) {
+      this.error = 'Restaura el formulario antes de guardar o publicar.';
+      return;
+    }
     this.message = '';
     this.error = '';
     this.jsonError = '';
@@ -2445,6 +2541,10 @@ export class FormsPageComponent implements OnInit {
   }
 
   save() {
+    if (this.selected?.trashedAt) {
+      this.error = 'Restaura el formulario antes de guardar cambios.';
+      return;
+    }
     this.message = '';
     this.error = '';
     this.jsonError = '';
@@ -2488,6 +2588,10 @@ export class FormsPageComponent implements OnInit {
   }
 
   createVersion() {
+    if (this.selected?.trashedAt) {
+      this.error = 'Restaura el formulario antes de crear una versión.';
+      return;
+    }
     if (!this.selected || !this.canCreateVersion) {
       this.error = 'Antes de versionar guarda el borrador y corrige todos los pendientes.';
       return;
@@ -2509,6 +2613,10 @@ export class FormsPageComponent implements OnInit {
   }
 
   publishLatest() {
+    if (this.selected?.trashedAt) {
+      this.error = 'Restaura el formulario antes de publicar.';
+      return;
+    }
     if (!this.selected || !this.latestVersion || !this.canPublish) {
       this.error = 'Antes de publicar necesitas un borrador guardado, sin pendientes, con versión creada y con prueba exitosa.';
       return;
@@ -2533,6 +2641,9 @@ export class FormsPageComponent implements OnInit {
   }
 
   statusLabel(form: DynamicFormItem) {
+    if (form.trashedAt) {
+      return 'en papelera';
+    }
     if (form.published || form.status === 'published') {
       return 'publicado';
     }

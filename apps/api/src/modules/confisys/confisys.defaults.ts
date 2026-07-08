@@ -213,6 +213,76 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
       'Permite llamar localhost o redes privadas desde servicios dinámicos. Debe permanecer apagado salvo desarrollo controlado.'
   },
   {
+    key: 'ai.enabled',
+    value: true,
+    valueType: 'boolean',
+    category: 'ai',
+    description: 'Activa el asistente IA. Si el runtime local o cloud no está disponible, la API sigue arrancando.'
+  },
+  {
+    key: 'ai.provider',
+    value: 'ollama',
+    valueType: 'string',
+    category: 'ai',
+    description: 'Provider IA por defecto. V1 local-first usa ollama; cloud futuro puede usar openai u otro adapter.'
+  },
+  {
+    key: 'ai.baseUrl',
+    value: 'http://localhost:11434/v1',
+    valueType: 'string',
+    category: 'ai',
+    description: 'URL OpenAI-compatible del provider IA. Para Docker Compose local usar http://ollama:11434/v1.'
+  },
+  {
+    key: 'ai.chatModel',
+    value: 'qwen3-coder:30b',
+    valueType: 'string',
+    category: 'ai',
+    description: 'Modelo local recomendado para generar configuración declarativa de Chicle.'
+  },
+  {
+    key: 'ai.embeddingModel',
+    value: 'nomic-embed-text:v1.5',
+    valueType: 'string',
+    category: 'ai',
+    description: 'Modelo local recomendado para embeddings RAG cuando se active búsqueda semántica.'
+  },
+  {
+    key: 'ai.timeoutMs',
+    value: 60000,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Timeout máximo para llamadas al provider IA.'
+  },
+  {
+    key: 'ai.rag.enabled',
+    value: true,
+    valueType: 'boolean',
+    category: 'ai',
+    description: 'Activa la capa RAG. V1 usa tags/keywords; embeddings llegan en la siguiente fase.'
+  },
+  {
+    key: 'ai.rag.mode',
+    value: 'keyword',
+    valueType: 'string',
+    category: 'ai',
+    description: 'Modo RAG activo: keyword en V1, hybrid cuando agreguemos embeddings locales.'
+  },
+  {
+    key: 'ai.maxContextChunks',
+    value: 12,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Cantidad máxima de fragmentos de conocimiento que el asistente puede usar por solicitud.'
+  },
+  {
+    key: 'ai.allowPublish',
+    value: false,
+    valueType: 'boolean',
+    category: 'ai',
+    description: 'La IA no debe publicar directamente. Debe proponer drafts y el usuario aprueba.'
+  },
+  {
     key: 'flow.enabled',
     value: true,
     valueType: 'boolean',

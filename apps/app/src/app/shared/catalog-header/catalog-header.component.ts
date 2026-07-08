@@ -10,11 +10,11 @@ import { Component, Input } from '@angular/core';
       }
 
       .header {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
       }
 
       .copy {
@@ -38,14 +38,28 @@ import { Component, Input } from '@angular/core';
       .actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        justify-content: flex-end;
+        gap: 6px;
         align-items: center;
       }
 
       :host ::ng-deep .actions button {
         width: auto;
+        min-height: 34px;
         min-width: 0;
         flex: 0 0 auto;
+        border-radius: 7px;
+        padding: 7px 10px;
+      }
+
+      @media (max-width: 340px) {
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
       }
     `
   ],

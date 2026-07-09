@@ -1,5 +1,5 @@
 import { JsonPipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -14,6 +14,10 @@ import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-ste
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
+import {
+  AiAssistantService,
+  ApplyDynamicServiceJsonAction
+} from '../../shared/ai-assistant-launcher/ai-assistant.service';
 
 type DynamicServiceStatus = 'draft' | 'published' | 'archived';
 type ServiceIntent = 'query' | 'get_one' | 'create' | 'update' | 'delete' | 'validate' | 'sync' | 'notify' | 'custom';
@@ -604,7 +608,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 }
               </section>
 
-              @if (selected) {
+              @if (hasServiceDraft) {
                 <section class="panel" id="service-design">
                   <app-section-header
                     title="Qué hace este servicio"
@@ -970,18 +974,18 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     [error]="definitionAuthoringError"
                     [ready]="definitionAuthoringReady"
                     [isBusy]="saving"
-                    [resetDisabled]="!selected.publishedVersion"
+                    [resetDisabled]="!selected?.publishedVersion"
                     [draftDisabled]="!canEditSelected"
                     [publishDisabled]="!canEditSelected"
-                    (valueChange)="definitionText = $event; formError = ''"
+                    (valueChange)="onDefinitionTextChange($event)"
                     (resetJson)="loadPublishedDefinition()"
                     (applyJson)="applyServiceJsonToGuide()"
                     (saveDraft)="saveServiceJsonOnly(false)"
                     (saveAndPublish)="saveServiceJsonOnly(true)"
                   >
-                    @if (selected.latestVersion) {
+                    @if (selected?.latestVersion; as latestVersion) {
                       <p class="meta">
-                        Última versión: v{{ selected.latestVersion.version }} · {{ selected.latestVersion.status }}
+                        Última versión: v{{ latestVersion.version }} · {{ latestVersion.status }}
                       </p>
                     } @else {
                       <p class="meta">Aún no hay versiones. Guardar draft crea una versión con la definición actual.</p>
@@ -1017,9 +1021,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <div class="field-label">Última respuesta</div>
                       @if (lastRun) {
                         <pre>{{ lastRun | json }}</pre>
-                      } @else if (!selected.publishedVersion) {
+                      } @else if (!selected?.publishedVersion) {
                         <div class="notice">
-                          Primero crea una versión y publícala. La prueba solo ejecuta versiones publicadas.
+                          Primero guarda/publica el servicio. La prueba solo ejecuta versiones publicadas.
                         </div>
                       } @else {
                         <div class="notice">Ejecuta una prueba para ver request, response, duración y errores.</div>
@@ -1069,10 +1073,31 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
     </app-page-shell>
   `
 })
-export class ServicesPageComponent implements OnInit {
+export class ServicesPageComponent implements OnDestroy, OnInit {
   private readonly api = inject(ApiClientService);
   private readonly serviceClient = inject(DynamicServiceClientService);
+  private readonly assistant = inject(AiAssistantService);
   readonly auth = inject(AuthService);
+  private appliedAssistantProposalId = 0;
+  private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('services', () =>
+    this.assistantScreenState()
+  );
+  private readonly assistantProposalEffect = effect(() => {
+    const proposal = this.assistant.proposal();
+    if (!proposal || proposal.id === this.appliedAssistantProposalId || proposal.scope !== 'services') {
+      return;
+    }
+
+    const action = proposal.actions.find(
+      (item): item is ApplyDynamicServiceJsonAction => item.type === 'apply_dynamic_service_json'
+    );
+    if (!action) {
+      return;
+    }
+
+    this.appliedAssistantProposalId = proposal.id;
+    this.applyAssistantServiceProposal(action);
+  });
 
   services: DynamicServiceItem[] = [];
   tableOptions: DatabaseTable[] = [...FALLBACK_TABLE_OPTIONS];
@@ -1091,6 +1116,7 @@ export class ServicesPageComponent implements OnInit {
   formError = '';
   message = '';
   viewingTrash = false;
+  assistantDraftMode = false;
   private savedDraftSnapshot = '';
   readonly customNoteValue = CUSTOM_NOTE_VALUE;
   readonly relationPresetOptions: NoteOption[] = [
@@ -1224,17 +1250,30 @@ export class ServicesPageComponent implements OnInit {
     return this.canManage && !this.selected?.trashedAt;
   }
 
+  get hasServiceDraft() {
+    return Boolean(this.selected || this.assistantDraftMode);
+  }
+
   get serviceActiveStep() {
-    if (!this.selected || this.serviceMetadataChanged) {
+    if (!this.hasServiceDraft) {
+      return 'data';
+    }
+    if (this.assistantDraftMode && this.guideWarnings.length) {
+      return 'design';
+    }
+    if (this.assistantDraftMode && !this.selected && !this.guideWarnings.length) {
+      return 'version';
+    }
+    if (this.serviceMetadataChanged) {
       return 'data';
     }
     if (this.guideWarnings.length) {
       return 'design';
     }
-    if (!this.selected.latestVersion) {
+    if (!this.selected?.latestVersion) {
       return 'version';
     }
-    if (!this.selected.publishedVersion) {
+    if (!this.selected?.publishedVersion) {
       return 'publication';
     }
     return 'test';
@@ -1242,12 +1281,13 @@ export class ServicesPageComponent implements OnInit {
 
   get serviceProcessSteps(): ProcessStepItem[] {
     const selected = this.selected;
+    const hasDraft = this.hasServiceDraft;
     return [
       {
         key: 'data',
         label: 'Datos',
         summary: selected && !this.serviceMetadataChanged ? 'Guardados' : 'Nombre y estado',
-        state: this.serviceActiveStep === 'data' ? 'active' : selected ? 'complete' : 'pending'
+        state: this.serviceActiveStep === 'data' ? 'active' : hasDraft ? 'complete' : 'pending'
       },
       {
         key: 'design',
@@ -1256,17 +1296,17 @@ export class ServicesPageComponent implements OnInit {
         state:
           this.serviceActiveStep === 'design'
             ? 'active'
-            : selected && !this.guideWarnings.length
+            : hasDraft && !this.guideWarnings.length
               ? 'complete'
               : 'pending',
-        disabled: !selected
+        disabled: !hasDraft
       },
       {
         key: 'version',
         label: 'Versionar',
         summary: selected?.latestVersion ? `v${selected.latestVersion.version}` : 'Crear snapshot',
         state: this.serviceActiveStep === 'version' ? 'active' : selected?.latestVersion ? 'complete' : 'pending',
-        disabled: !selected
+        disabled: !hasDraft
       },
       {
         key: 'publication',
@@ -1291,7 +1331,7 @@ export class ServicesPageComponent implements OnInit {
       {
         key: 'service',
         label: 'Servicio',
-        summary: this.selected ? 'Guardado' : 'Pendiente',
+        summary: this.selected ? 'Guardado' : this.assistantDraftMode ? 'Borrador listo' : 'Pendiente',
         state: this.selected ? 'complete' : 'active'
       },
       {
@@ -1524,6 +1564,10 @@ export class ServicesPageComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    this.unregisterAssistantState();
+  }
+
   load() {
     this.loading = true;
     this.error = '';
@@ -1553,6 +1597,7 @@ export class ServicesPageComponent implements OnInit {
   newService() {
     this.viewingTrash = false;
     this.selected = undefined;
+    this.assistantDraftMode = false;
     this.runs = [];
     this.lastRun = undefined;
     this.draft = { key: '', name: '', description: '', active: true };
@@ -1561,6 +1606,7 @@ export class ServicesPageComponent implements OnInit {
 
   select(service: DynamicServiceItem) {
     this.selected = service;
+    this.assistantDraftMode = false;
     this.draft = {
       key: service.key,
       name: service.name,
@@ -1611,6 +1657,7 @@ export class ServicesPageComponent implements OnInit {
         this.saving = false;
         this.message = 'Servicio guardado.';
         this.selected = service;
+        this.assistantDraftMode = false;
         this.draft = {
           key: service.key,
           name: service.name,
@@ -1635,6 +1682,7 @@ export class ServicesPageComponent implements OnInit {
   toggleTrash() {
     this.viewingTrash = !this.viewingTrash;
     this.selected = undefined;
+    this.assistantDraftMode = false;
     this.runs = [];
     this.lastRun = undefined;
     this.load();
@@ -1652,6 +1700,7 @@ export class ServicesPageComponent implements OnInit {
         this.saving = false;
         this.message = 'Servicio enviado a papelera.';
         this.selected = undefined;
+        this.assistantDraftMode = false;
         this.runs = [];
         this.lastRun = undefined;
         this.load();
@@ -1779,6 +1828,7 @@ export class ServicesPageComponent implements OnInit {
             ? this.services.map((item) => (item.id === service.id ? service : item))
             : [service, ...this.services];
           this.loadGuideFromDefinition();
+          this.syncContextProposal(response.version.definition);
           this.message = publish
             ? `Servicio ${response.key} guardado y publicado.`
             : `Servicio ${response.key} guardado como draft.`;
@@ -1794,11 +1844,89 @@ export class ServicesPageComponent implements OnInit {
     if (this.selected?.publishedVersion) {
       this.definitionText = JSON.stringify(this.selected.publishedVersion.definition, null, 2);
       this.loadGuideFromDefinition();
+      this.syncContextProposal(this.selected.publishedVersion.definition);
     }
   }
 
   applyServiceJsonToGuide() {
     this.loadGuideFromDefinition();
+    this.syncContextProposal(this.parseDefinitionOrDefault());
+  }
+
+  onDefinitionTextChange(value: string) {
+    this.definitionText = value;
+    this.formError = '';
+    try {
+      this.syncContextProposal(JSON.parse(value) as DynamicServiceDefinition);
+    } catch {
+      // The authoring panel already shows JSON validation feedback while typing.
+    }
+  }
+
+  private applyAssistantServiceProposal(action: ApplyDynamicServiceJsonAction) {
+    this.viewingTrash = false;
+    this.selected = undefined;
+    this.assistantDraftMode = true;
+    this.runs = [];
+    this.lastRun = undefined;
+    this.draft = {
+      key: action.key,
+      name: action.name,
+      description: action.description ?? '',
+      active: true
+    };
+    this.definitionText = JSON.stringify(action.document, null, 2);
+    this.loadGuideFromDefinition();
+    this.syncContextProposal(this.parseDefinitionOrDefault());
+    this.ensureTableCatalog();
+    this.ensurePrimaryTable();
+    this.savedDraftSnapshot = this.draftSnapshot();
+    this.formError = '';
+    this.message =
+      'Chicle AI aplicó una propuesta al diseñador. Revisa la guía y el JSON; luego usa Guardar draft o Guardar y publicar.';
+  }
+
+  private assistantScreenState() {
+    return {
+      mode: this.selected ? 'editing_existing_service' : this.assistantDraftMode ? 'editing_ai_draft' : 'new_service',
+      selected: this.selected
+        ? {
+            key: this.selected.key,
+            name: this.selected.name,
+            active: this.selected.active,
+            hasLatestVersion: Boolean(this.selected.latestVersion),
+            hasPublishedVersion: Boolean(this.selected.publishedVersion)
+          }
+        : null,
+      draft: {
+        key: this.draft.key,
+        name: this.draft.name,
+        description: this.draft.description,
+        active: this.draft.active
+      },
+      guide: {
+        intent: this.guide.intent,
+        source: this.guide.source,
+        resultKind: this.guide.resultKind,
+        queryMode: this.guide.queryMode,
+        primaryTable: this.guide.primaryTable,
+        filters: this.selectedGuideFilters,
+        warnings: this.guideWarnings
+      },
+      definition: this.parseDefinitionOrDefault(),
+      testContext: this.readCurrentContext(),
+      lastRun: this.lastRun
+        ? {
+            status: this.lastRun.status,
+            error: this.lastRun.error ?? null,
+            durationMs: this.lastRun.durationMs
+          }
+        : null,
+      availableTables: this.tableOptions.map((table) => ({
+        name: table.name,
+        columns: table.columns.map((column) => column.name)
+      }))
+    };
   }
 
   testService() {
@@ -2311,6 +2439,9 @@ export class ServicesPageComponent implements OnInit {
     }
     if (normalized.includes('serial')) {
       return 'ABC-123';
+    }
+    if (normalized === 'key' || normalized.endsWith('key')) {
+      return 'ai.';
     }
     if (normalized.includes('token')) {
       return 'solo-para-prueba';

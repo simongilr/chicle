@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AiAssistantScope, AiAssistantService } from './ai-assistant.service';
@@ -142,6 +143,23 @@ interface ChatMessage {
         font-size: 0.82rem;
       }
 
+      .thinking-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .spinner {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(21, 84, 162, 0.22);
+        border-top-color: #1554a2;
+        border-radius: 999px;
+        animation: chicle-ai-spin 0.75s linear infinite;
+      }
+
       .composer {
         display: grid;
         gap: 8px;
@@ -183,6 +201,10 @@ interface ChatMessage {
 
       .send {
         flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         min-height: 34px;
         border: 1px solid #1554a2;
         border-radius: 8px;
@@ -196,6 +218,19 @@ interface ChatMessage {
       .send:disabled {
         cursor: not-allowed;
         opacity: 0.55;
+      }
+
+      .send .spinner {
+        width: 13px;
+        height: 13px;
+        border-color: rgba(255, 255, 255, 0.36);
+        border-top-color: #ffffff;
+      }
+
+      @keyframes chicle-ai-spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       @media (max-width: 620px) {
@@ -228,7 +263,7 @@ interface ChatMessage {
       <section class="panel" aria-label="Chat asistente de Chicle">
         <header class="header">
           <span class="identity">
-            <strong>Chicle IA</strong>
+            <strong>Chicle AI</strong>
             <span>{{ scopeLabel() }} · asistente de configuración</span>
           </span>
           <button class="close" type="button" title="Cerrar asistente" (click)="toggle()">
@@ -239,8 +274,13 @@ interface ChatMessage {
         <div class="messages" aria-live="polite">
           @for (message of messages(); track $index) {
             <article class="message" [class.assistant]="message.role === 'assistant'" [class.user]="message.role === 'user'">
-              <small>{{ message.role === 'assistant' ? 'Chicle IA' : 'Tú' }}</small>
-              <p>{{ message.text }}</p>
+              <small>{{ message.role === 'assistant' ? 'Chicle AI' : 'Tú' }}</small>
+              <p [class.thinking-line]="isThinkingMessage($index, message)">
+                @if (isThinkingMessage($index, message)) {
+                  <span class="spinner" aria-hidden="true"></span>
+                }
+                <span>{{ message.text }}</span>
+              </p>
             </article>
           }
         </div>
@@ -250,11 +290,15 @@ interface ChatMessage {
             name="assistantPrompt"
             [(ngModel)]="prompt"
             [placeholder]="placeholder()"
+            (keydown)="onPromptKeydown($event)"
           ></textarea>
           <div class="send-row">
             <span class="hint">La IA propondrá cambios en la pantalla actual; tú apruebas antes de guardar.</span>
             <button class="send" type="submit" [disabled]="!canSend() || sending()">
-              {{ sending() ? 'Pensando' : 'Enviar' }}
+              @if (sending()) {
+                <span class="spinner" aria-hidden="true"></span>
+              }
+              <span>{{ sending() ? 'Pensando' : 'Enviar' }}</span>
             </button>
           </div>
         </form>
@@ -269,7 +313,7 @@ interface ChatMessage {
       (click)="toggle()"
     >
       <i class="pi pi-sparkles" aria-hidden="true"></i>
-      <span>Chicle IA</span>
+      <span>Chicle AI</span>
     </button>
   `
 })
@@ -285,15 +329,30 @@ export class AiAssistantLauncherComponent {
         'Estoy listo para ayudarte en esta pantalla. Dime qué quieres crear o ajustar y lo convertiré en una propuesta para el diseñador correspondiente.'
     }
   ]);
-  readonly canSend = computed(() => this.prompt.trim().length >= 3);
   readonly scopeLabel = computed(() => this.describeScope(this.currentScope()));
   readonly placeholder = computed(() => this.placeholderForScope(this.currentScope()));
   readonly sending = signal(false);
+  private progressTimers: number[] = [];
 
   prompt = '';
 
   toggle() {
-    this.open.update((value) => !value);
+    this.open.update((value) => {
+      const next = !value;
+      if (next) {
+        void this.checkStatus();
+      }
+
+      return next;
+    });
+  }
+
+  canSend() {
+    return this.prompt.trim().length >= 3;
+  }
+
+  isThinkingMessage(index: number, message: ChatMessage) {
+    return this.sending() && message.role === 'assistant' && index === this.messages().length - 1;
   }
 
   async send() {
@@ -303,31 +362,112 @@ export class AiAssistantLauncherComponent {
     }
 
     const scope = this.currentScope();
-    this.assistant.submit(text, this.router.url, scope);
+    const submitted = this.assistant.submit(text, this.router.url, scope);
     this.messages.update((messages) => [
       ...messages,
       { role: 'user', text },
       { role: 'assistant', text: 'Estoy consultando el runtime IA local con el contexto de esta pantalla.' }
     ]);
     this.prompt = '';
+    this.startProgress();
 
     try {
       this.sending.set(true);
+      const request = {
+        prompt: text,
+        route: this.router.url,
+        scope,
+        screenState: submitted.screenState
+      };
       const response = await firstValueFrom(
-        this.assistant.chat({
-          prompt: text,
-          route: this.router.url,
-          scope
-        })
+        this.assistant.chat(request)
       );
+      this.clearProgress();
+      if (response.actions?.length) {
+        this.assistant.publishProposal(request, response.actions);
+      }
       this.replaceLastAssistantMessage(response.message);
     } catch (error) {
-      this.replaceLastAssistantMessage(
-        'No pude conectar con el asistente IA todavía. Revisa que Ollama esté activo y que los modelos estén descargados. La pantalla sigue funcionando sin IA.'
-      );
+      this.clearProgress();
+      this.replaceLastAssistantMessage(this.describeError(error));
     } finally {
       this.sending.set(false);
     }
+  }
+
+  onPromptKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Enter' || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    void this.send();
+  }
+
+  private startProgress() {
+    this.clearProgress();
+    const steps = [
+      { delay: 0, text: 'Entendiendo lo que necesitas en esta pantalla.' },
+      { delay: 4500, text: 'Revisando el contexto y preparando una propuesta segura.' },
+      { delay: 14000, text: 'Generando el JSON editable para que puedas revisarlo.' },
+      { delay: 32000, text: 'El modelo local sigue pensando. No he guardado nada; solo estoy armando el draft.' },
+      { delay: 65000, text: 'Sigue procesando en local. Estos modelos pueden tardar más en Docker la primera vez.' }
+    ];
+
+    this.progressTimers = steps.map((step) =>
+      window.setTimeout(() => {
+        if (this.sending()) {
+          this.replaceLastAssistantMessage(step.text);
+        }
+      }, step.delay)
+    );
+  }
+
+  private clearProgress() {
+    for (const timer of this.progressTimers) {
+      window.clearTimeout(timer);
+    }
+    this.progressTimers = [];
+  }
+
+  private async checkStatus() {
+    try {
+      const status = await firstValueFrom(this.assistant.status());
+      const provider = status.providerStatus;
+      if (!status.enabled) {
+        this.appendAssistantMessage('La IA está desactivada por configuración. Activa ai.enabled o AI_ENABLED para usarla.');
+        return;
+      }
+
+      if (!provider?.reachable) {
+        this.appendAssistantMessage(
+          `No puedo ver el runtime IA todavía. Provider: ${status.provider}. Modelo: ${status.chatModel}. ${provider?.error ?? 'Sin detalle del provider.'}`
+        );
+        return;
+      }
+
+      if (!provider.chatModelAvailable) {
+        this.appendAssistantMessage(
+          `Ollama responde, pero no tiene el modelo configurado (${status.chatModel}). Modelos disponibles: ${provider.models.join(', ') || 'ninguno'}.`
+        );
+        return;
+      }
+
+      this.appendAssistantMessage(
+        `IA local activa con ${status.chatModel}. Ya puedes pedirme una propuesta para esta pantalla.`
+      );
+    } catch (error) {
+      this.appendAssistantMessage(this.describeError(error));
+    }
+  }
+
+  private appendAssistantMessage(text: string) {
+    const last = this.messages().at(-1);
+    if (last?.role === 'assistant' && last.text === text) {
+      return;
+    }
+
+    this.messages.update((messages) => [...messages, { role: 'assistant', text }]);
   }
 
   private replaceLastAssistantMessage(text: string) {
@@ -342,6 +482,35 @@ export class AiAssistantLauncherComponent {
 
       return [...next, { role: 'assistant', text }];
     });
+  }
+
+  private describeError(error: unknown) {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'No puedo alcanzar la API desde el navegador. Revisa que el backend esté arriba en el puerto configurado.';
+      }
+
+      if (error.status === 401) {
+        return 'Tu sesión no está activa o el token venció. Cierra sesión, vuelve a entrar e intenta de nuevo.';
+      }
+
+      if (error.status === 403) {
+        return 'Tu usuario no tiene el permiso ai.assistant.use. Sincroniza seguridad o asigna el permiso al rol.';
+      }
+
+      const message =
+        typeof error.error?.message === 'string'
+          ? error.error.message
+          : Array.isArray(error.error?.message)
+            ? error.error.message.join(', ')
+            : error.message;
+
+      return `La API respondió ${error.status}: ${message}`;
+    }
+
+    return error instanceof Error
+      ? `No pude usar el asistente IA: ${error.message}`
+      : 'No pude usar el asistente IA. La pantalla sigue funcionando sin IA.';
   }
 
   private currentScope(): AiAssistantScope {

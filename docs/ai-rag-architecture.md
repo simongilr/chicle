@@ -12,7 +12,8 @@ contracts.
 
 The assistant can propose. Chicle validates and the user publishes.
 
-- Local-first provider stack starts with Ollama, `qwen3-coder:30b` and `nomic-embed-text:v1.5`.
+- Local-first provider stack starts with Ollama, `qwen2.5-coder:7b` for development, optional
+  `qwen3-coder:30b` for higher-capacity local machines, and `nomic-embed-text:v1.5`.
 - Cloud providers are optional adapters, not mandatory platform dependencies.
 - RAG provides current knowledge.
 - The model generates a draft JSON artifact.
@@ -195,6 +196,42 @@ Internal flow:
 7. Backend validates the draft.
 8. Frontend opens the proposal in `JsonAuthoringPanelComponent`.
 9. User saves draft or publishes.
+
+## Reliability Strategy
+
+The assistant is not a single direct call to a model. It is an authoring pipeline:
+
+```txt
+user prompt
+  -> scope and intent router
+  -> deterministic generator when the request matches a safe pattern
+  -> RAG context when Chicle knowledge is needed
+  -> LLM provider only for reasoning gaps
+  -> backend validation
+  -> frontend draft proposal
+  -> explicit user save or publish
+```
+
+This matters because services, flows and forms have different failure modes:
+
+| Scope | Fast path | LLM path | Required validation |
+| --- | --- | --- | --- |
+| Dynamic Services | Internal table + field + filter + result type | Ambiguous integrations, complex joins, SOAP/WebSocket guidance | Table, fields, URL policy, timeouts, response map |
+| Dynamic Forms | Title + steps + fields + actions | Complex UX grouping, conditional steps, cross-field rules | Schema, field types, actions, bindings, presentation |
+| Flows | Ordered service chain, simple validation branch | Multi-branch orchestration, retries, async triggers | Step catalog, service refs, next keys, timeouts, loop limits |
+
+Timeouts are expected with local models, especially inside Docker. A timeout must not invalidate the screen state or
+delete a draft. The backend returns a controlled assistant message, and the frontend keeps the current editor untouched.
+
+The assistant should prefer smaller operations:
+
+- create the first safe draft;
+- ask for one missing detail;
+- apply the proposal to the current screen;
+- let the user test;
+- continue with the next refinement.
+
+This lets Chicle feel conversational without making the LLM a fragile runtime dependency.
 
 ## Phased Implementation
 

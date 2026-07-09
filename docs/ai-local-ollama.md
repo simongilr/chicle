@@ -4,7 +4,8 @@ Chicle AI starts local-first. The first supported local stack is:
 
 ```txt
 Runtime: Ollama
-LLM: qwen3-coder:30b
+LLM local default: qwen2.5-coder:7b
+LLM recommended when Docker has enough memory: qwen3-coder:30b
 Embeddings: nomic-embed-text:v1.5
 ```
 
@@ -12,8 +13,9 @@ The assistant is optional. Chicle must keep starting even when Ollama is not ins
 
 ## Why This Stack
 
-- `qwen3-coder:30b` is the recommended local model for generating structured Chicle configuration, JSON drafts and
-  assistant responses.
+- `qwen2.5-coder:7b` is the default local development model because it runs on smaller Docker Desktop memory limits.
+- `qwen3-coder:30b` is the recommended higher-quality local model for generating structured Chicle configuration,
+  JSON drafts and assistant responses when the machine has enough memory assigned to Docker.
 - `nomic-embed-text:v1.5` is the recommended local embedding model for future semantic RAG.
 - Ollama gives Chicle a local runtime and an OpenAI-compatible API shape, so the backend can later switch between
   local and cloud providers through adapters.
@@ -24,6 +26,7 @@ Install and start Ollama, then pull the models:
 
 ```bash
 ollama pull qwen3-coder:30b
+ollama pull qwen2.5-coder:7b
 ollama pull nomic-embed-text:v1.5
 ```
 
@@ -38,7 +41,7 @@ If the API runs directly on the host, use:
 ```bash
 AI_PROVIDER=ollama
 AI_BASE_URL=http://localhost:11434/v1
-AI_CHAT_MODEL=qwen3-coder:30b
+AI_CHAT_MODEL=qwen2.5-coder:7b
 AI_EMBEDDING_MODEL=nomic-embed-text:v1.5
 ```
 
@@ -50,7 +53,7 @@ From `infra/docker`:
 
 ```bash
 docker compose --env-file .env --profile ai-local up -d ollama
-docker compose --env-file .env --profile ai-local exec ollama ollama pull qwen3-coder:30b
+docker compose --env-file .env --profile ai-local exec ollama ollama pull qwen2.5-coder:7b
 docker compose --env-file .env --profile ai-local exec ollama ollama pull nomic-embed-text:v1.5
 docker compose --env-file .env --profile ai-local up -d
 ```
@@ -70,9 +73,9 @@ The API seeds these defaults:
 | `ai.enabled` | `true` |
 | `ai.provider` | `ollama` |
 | `ai.baseUrl` | `http://localhost:11434/v1` |
-| `ai.chatModel` | `qwen3-coder:30b` |
+| `ai.chatModel` | `qwen2.5-coder:7b` |
 | `ai.embeddingModel` | `nomic-embed-text:v1.5` |
-| `ai.timeoutMs` | `60000` |
+| `ai.timeoutMs` | `180000` |
 | `ai.rag.enabled` | `true` |
 | `ai.rag.mode` | `keyword` |
 | `ai.maxContextChunks` | `12` |
@@ -108,6 +111,29 @@ Both require `ai.assistant.use`.
 available.
 
 `chat` sends the current screen scope and prompt to the provider. It does not save, publish or execute changes.
+
+## Timeout Mitigation
+
+Chicle AI must remain useful even when the local model is slow. The assistant uses a layered path:
+
+1. Fast deterministic generators for common Chicle objects.
+2. RAG/context retrieval for requests that need project knowledge.
+3. Ollama only when reasoning is needed.
+4. Backend validation before any draft reaches the screen.
+5. Friendly fallback when the provider times out.
+
+Examples that should not require the LLM:
+
+- service over an internal table and field;
+- basic query service with one or more filters;
+- simple form from title, steps and field names;
+- basic flow chain with ordered services.
+
+If Ollama times out, the API returns a normal assistant message instead of breaking the chat with a raw 503. The message
+asks for the missing structure and reminds the user that nothing was saved.
+
+`GET /api/ai-assistant/status` intentionally uses a short provider check so opening the chat never waits for the full
+generation timeout.
 
 ## RAG Plan
 

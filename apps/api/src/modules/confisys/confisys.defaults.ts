@@ -235,7 +235,7 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
   },
   {
     key: 'ai.chatModel',
-    value: 'qwen3-coder:30b',
+    value: 'qwen2.5-coder:7b',
     valueType: 'string',
     category: 'ai',
     description: 'Modelo local recomendado para generar configuración declarativa de Chicle.'
@@ -249,7 +249,7 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
   },
   {
     key: 'ai.timeoutMs',
-    value: 60000,
+    value: 180000,
     valueType: 'number',
     category: 'ai',
     description: 'Timeout máximo para llamadas al provider IA.'

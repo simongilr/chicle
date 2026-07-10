@@ -67,6 +67,61 @@ The TypeScript contracts remain authoritative when documentation and code differ
   `execute_flow`, and document every field/service/flow dependency through bindings.
 - Never store Formly functions or JavaScript expressions. Conditional fields use the documented `visibleWhen` object.
 
+## Progressive AI authoring for services
+
+For Dynamic Services, the assistant must not jump directly from a broad prompt to JSON. It should feed itself with small
+validated decisions:
+
+1. Normalize the user's request into a precise service prompt and ask for confirmation.
+2. Show the real tables involved from `GET /api/dynamic-services/catalog/tables` or the current screen state.
+3. Show only fields that exist in those tables.
+4. Ask the user to pick the field that receives input.
+5. Generate or apply JSON only after explicit confirmation such as `crear draft`.
+
+Example: if the user asks for "usuarios que tienen asignado cierto rol", normalize it as:
+
+```txt
+Create a read-only Dynamic Service that receives a role identifier, such as cliente, and returns users that have that
+role assigned through users -> user_roles -> roles.
+```
+
+Then guide the user:
+
+```txt
+Tables: users, user_roles, roles.
+Relation: users.id -> user_roles.userId -> roles.id.
+Role input field options: roles.key, roles.id, roles.name only if those columns exist.
+Recommended input: roles.key when the user will send values such as cliente.
+```
+
+The final JSON should use `queryMode=multi_table`, a filter on the chosen `roles` alias field, and explicit selected
+columns. Do not invent `name` or any other field if it is not present in the table catalog.
+
+### Stateful decision protocol
+
+This protocol applies to every guided authoring screen, not only to role services:
+
+- Keep the original intent across the whole conversation.
+- Treat short user answers as decisions inside the previous question, not as standalone prompts.
+- The latest explicit user selection wins over earlier options listed by the assistant.
+- If the user answered a question, never ask the same question again unless the answer is invalid.
+- Use the full assistant/user conversation to know which flow is active.
+- Use only user messages to decide what the user selected.
+- Use assistant messages only to recover context, not to choose values.
+- Generate JSON only after the required decisions are complete and the user confirms with an action such as `crear draft`.
+
+Examples:
+
+```txt
+Assistant: elige resultado: lista, un registro o sí/no
+User: lista
+Next: show draft summary, do not ask result again.
+
+Assistant: campos reales: roles.key, roles.id, roles.name
+User: roles.name
+Next: use roles.name, even if roles.key appeared earlier in the assistant options.
+```
+
 ## In-App Assistant Entry Point
 
 The frontend exposes a global floating assistant through `AiAssistantLauncherComponent`.

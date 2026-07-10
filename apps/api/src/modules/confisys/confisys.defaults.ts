@@ -255,6 +255,13 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     description: 'Timeout máximo para llamadas al provider IA.'
   },
   {
+    key: 'ai.fastTimeoutMs',
+    value: 8000,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Timeout corto para respuestas interactivas del asistente antes de continuar con modo ligero.'
+  },
+  {
     key: 'ai.rag.enabled',
     value: true,
     valueType: 'boolean',

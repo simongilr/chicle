@@ -204,9 +204,9 @@ The assistant is not a single direct call to a model. It is an authoring pipelin
 ```txt
 user prompt
   -> scope and intent router
-  -> deterministic generator when the request matches a safe pattern
-  -> RAG context when Chicle knowledge is needed
-  -> LLM provider only for reasoning gaps
+  -> RAG/screen context when Chicle knowledge is needed
+  -> LLM provider for interpretation and authoring reasoning
+  -> deterministic generator only after explicit confirmation or as marked fallback
   -> backend validation
   -> frontend draft proposal
   -> explicit user save or publish
@@ -219,6 +219,16 @@ This matters because services, flows and forms have different failure modes:
 | Dynamic Services | Internal table + field + filter + result type | Ambiguous integrations, complex joins, SOAP/WebSocket guidance | Table, fields, URL policy, timeouts, response map |
 | Dynamic Forms | Title + steps + fields + actions | Complex UX grouping, conditional steps, cross-field rules | Schema, field types, actions, bindings, presentation |
 | Flows | Ordered service chain, simple validation branch | Multi-branch orchestration, retries, async triggers | Step catalog, service refs, next keys, timeouts, loop limits |
+
+For authoring conversations, Chicle AI should analyze with the configured model before showing a conclusion. Backend
+templates are allowed only when the user has explicitly confirmed an action (`crear draft`, `aplica`, `continúa`) or
+when the provider fails; provider failures must be labeled as `Modo respaldo` so the user knows it was not full model
+reasoning.
+
+Interactive turns use a short model budget. The local model should receive compact prompts and small output limits for
+analysis; if it does not answer before `ai.fastTimeoutMs`, Chicle continues in `Modo ligero` using guided authoring,
+catalog metadata and examples. The long `ai.timeoutMs` remains reserved for future background generation, indexing or
+explicit heavy tasks. This keeps the chat responsive even when Docker runs the LLM on CPU.
 
 Timeouts are expected with local models, especially inside Docker. A timeout must not invalidate the screen state or
 delete a draft. The backend returns a controlled assistant message, and the frontend keeps the current editor untouched.
@@ -259,6 +269,11 @@ When Chicle AI asks for a decision, the API may return `suggestions`. The floati
 as buttons. Selecting a button sends that text as the next user message, preserves conversation context, clears the old
 buttons and lets the backend ask the next smallest question. This keeps non-technical users out of prompt wording and
 lets the assistant move one decision at a time.
+
+The backend must treat short answers as stateful decisions, not as isolated prompts. Examples such as `solo roles`,
+`usuario + roles`, `por nombre`, `por email` or `user.id -> user_roles.userId` close the matching pending question. If
+the latest answer satisfies the last assistant question, Chicle AI must either ask the next missing decision or generate
+the draft; it must not repeat the same question. This anti-loop guard is part of the assistant contract.
 
 For Dynamic Services, even simple requests use a preflight turn. Chicle AI first returns interpretation, route, review,
 proposal and next step. The frontend should receive an `apply_dynamic_service_json` action only after the user confirms

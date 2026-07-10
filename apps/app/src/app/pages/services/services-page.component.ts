@@ -87,7 +87,23 @@ interface DynamicServiceDefinition {
   dataTarget?: {
     queryMode: ServiceQueryMode;
     primaryTable?: string;
+    primaryAlias?: string;
     involvedTables?: string[];
+    joins?: Array<{
+      type?: 'inner' | 'left';
+      table: string;
+      alias: string;
+      on: Array<{
+        left: string;
+        operator?: 'equals';
+        right: string;
+      }>;
+    }>;
+    select?: Array<{
+      field: string;
+      alias?: string;
+    }>;
+    limit?: number;
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;
@@ -180,6 +196,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   { name: 'tenants', scope: 'current_tenant', source: 'entity', columns: [] },
   { name: 'menus', scope: 'tenant', source: 'entity', columns: [] },
   { name: 'roles', scope: 'tenant', source: 'entity', columns: [] },
+  { name: 'user_roles', scope: 'tenant', source: 'entity', columns: [] },
   { name: 'confisys', scope: 'global', source: 'entity', columns: [] }
 ];
 
@@ -743,9 +760,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                           id="involved-tables"
                           multiple
                           [(ngModel)]="guide.involvedTableList"
-                          (ngModelChange)="syncGuideToDefinition()"
+                          (ngModelChange)="onInvolvedTablesChange()"
                         >
-                          @for (table of tableSelectOptions; track table.name) {
+                          @for (table of involvedTableOptions; track table.name) {
                             <option [value]="table.name">
                               {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
                             </option>
@@ -883,7 +900,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                             [(ngModel)]="guide.relationPreset"
                             (ngModelChange)="onRelationPresetChange($event)"
                           >
-                            @for (option of relationPresetOptions; track option.value) {
+                            @for (option of availableRelationPresetOptions; track option.value) {
                               <option [value]="option.value">{{ option.label }}</option>
                             }
                             <option [value]="customNoteValue">Otro</option>
@@ -903,7 +920,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                             [(ngModel)]="guide.filterPreset"
                             (ngModelChange)="onFilterPresetChange($event)"
                           >
-                            @for (option of filterPresetOptions; track option.value) {
+                            @for (option of availableFilterPresetOptions; track option.value) {
                               <option [value]="option.value">{{ option.label }}</option>
                             }
                             <option [value]="customNoteValue">Otro</option>
@@ -1448,6 +1465,79 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     return (this.selectedPrimaryTable?.columns ?? []).filter(
       (column) => !/password|token|secret|hash/i.test(column.name)
     );
+  }
+
+  get involvedTableOptions() {
+    return this.tableSelectOptions.filter((table) => table.name !== this.guide.primaryTable);
+  }
+
+  get selectedInvolvedTables() {
+    return this.guide.involvedTableList
+      .map((name) => this.tableSelectOptions.find((table) => table.name === name))
+      .filter((table): table is DatabaseTable => Boolean(table));
+  }
+
+  get availableRelationPresetOptions() {
+    return this.uniqueNoteOptions([
+      { label: 'Selecciona relación', value: '' },
+      ...this.dynamicRelationPresetOptions,
+      ...this.relationPresetOptions.filter((option) => option.value)
+    ]);
+  }
+
+  get availableFilterPresetOptions() {
+    return this.uniqueNoteOptions([
+      { label: 'Selecciona filtros', value: '' },
+      ...this.dynamicFilterPresetOptions,
+      ...this.filterPresetOptions.filter((option) => option.value)
+    ]);
+  }
+
+  get dynamicRelationPresetOptions(): NoteOption[] {
+    const primary = this.guide.primaryTable;
+    const involved = new Set(this.guide.involvedTableList);
+    const options: NoteOption[] = [];
+
+    if (primary === 'users' && involved.has('user_roles') && involved.has('roles')) {
+      options.push({
+        label: 'Usuario a roles asignados',
+        value: 'users.id -> user_roles.userId -> roles.id'
+      });
+    }
+
+    if (primary === 'records' && involved.has('users')) {
+      options.push({
+        label: 'Record a usuario',
+        value: 'records.data.userId = users.id'
+      });
+    }
+
+    if (primary === 'records' && this.guide.involvedTableList.some((table) => table.startsWith('custom_'))) {
+      options.push({
+        label: 'Record a tabla custom',
+        value: 'records.data.customId = custom_table.id'
+      });
+    }
+
+    return options;
+  }
+
+  get dynamicFilterPresetOptions(): NoteOption[] {
+    const alias = this.primaryAliasForGuide();
+    const columns = this.filterColumnOptions;
+    const options: NoteOption[] = [];
+
+    for (const columnName of ['name', 'email', 'key', 'id', 'status', 'active']) {
+      if (columns.some((column) => column.name === columnName)) {
+        const operator = columnName === 'name' ? 'contains' : 'equals';
+        options.push({
+          label: `${this.guide.primaryTable}.${columnName} ${this.operatorLabel(operator)}`,
+          value: `${alias}.${columnName} ${operator} input.${columnName}`
+        });
+      }
+    }
+
+    return options;
   }
 
   get selectedGuideFilters() {
@@ -2124,6 +2214,75 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     };
   }
 
+  private advancedPlanFromGuide(): Partial<NonNullable<DynamicServiceDefinition['dataTarget']>> {
+    if (
+      this.guide.primaryTable === 'users' &&
+      this.guide.involvedTableList.includes('user_roles') &&
+      this.guide.involvedTableList.includes('roles') &&
+      this.guide.relationNotes === 'users.id -> user_roles.userId -> roles.id'
+    ) {
+      const filter = this.filterFromAdvancedPreset() ?? {
+        field: 'u.name',
+        operator: 'contains' as ServiceFilterOperator,
+        valueSource: 'input' as ServiceFilterValueSource,
+        inputKey: 'name',
+        required: true
+      };
+
+      return {
+        primaryAlias: 'u',
+        joins: [
+          {
+            type: 'left',
+            table: 'user_roles',
+            alias: 'ur',
+            on: [{ left: 'u.id', operator: 'equals', right: 'ur.userId' }]
+          },
+          {
+            type: 'left',
+            table: 'roles',
+            alias: 'r',
+            on: [{ left: 'ur.roleId', operator: 'equals', right: 'r.id' }]
+          }
+        ],
+        select: [
+          { field: 'u.id', alias: 'userId' },
+          { field: 'u.email', alias: 'userEmail' },
+          { field: 'u.name', alias: 'userName' },
+          { field: 'r.id', alias: 'roleId' },
+          { field: 'r.key', alias: 'roleKey' },
+          { field: 'r.name', alias: 'roleName' }
+        ],
+        filters: [filter],
+        limit: 100
+      };
+    }
+
+    const filter = this.filterFromAdvancedPreset();
+    return {
+      primaryAlias: this.primaryAliasForGuide(),
+      filters: filter ? [filter] : []
+    };
+  }
+
+  private filterFromAdvancedPreset(): ServiceFilter | null {
+    const value = this.guide.filterNotes.trim();
+    const match = value.match(
+      /^([A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*)\s+(equals|contains|starts_with|greater_than|greater_or_equal|less_than|less_or_equal)\s+input\.([A-Za-z][A-Za-z0-9_]*)$/
+    );
+    if (!match) {
+      return null;
+    }
+
+    return {
+      field: match[1],
+      operator: match[2] as ServiceFilterOperator,
+      valueSource: 'input',
+      inputKey: match[3],
+      required: true
+    };
+  }
+
   private guideFilterField(filter: ServiceGuideFilter) {
     return filter.field === CUSTOM_NOTE_VALUE ? filter.customField.trim() : filter.field;
   }
@@ -2186,6 +2345,13 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       filters
     };
 
+    if (this.guide.queryMode !== 'single_table') {
+      definition.dataTarget = {
+        ...definition.dataTarget,
+        ...this.advancedPlanFromGuide()
+      };
+    }
+
     if (this.guide.intent === 'query' || this.guide.intent === 'get_one') {
       definition.method = 'GET';
       definition.body = null;
@@ -2227,20 +2393,32 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       this.guide.involvedTableList = [];
       this.guide.relationPreset = '';
       this.guide.relationNotes = '';
+      this.guide.filterPreset = '';
+      this.guide.filterNotes = '';
     }
 
     this.syncGuideToDefinition();
   }
 
   onPrimaryTableChange() {
+    this.guide.involvedTableList = this.guide.involvedTableList.filter((table) => table !== this.guide.primaryTable);
+    this.refreshAdvancedPresets();
     this.ensureFilterField(true);
+    this.syncGuideToDefinition();
+  }
+
+  onInvolvedTablesChange() {
+    this.guide.involvedTableList = [...new Set(this.guide.involvedTableList)].filter(
+      (table) => table !== this.guide.primaryTable
+    );
+    this.refreshAdvancedPresets();
     this.syncGuideToDefinition();
   }
 
   onRelationPresetChange(value: string) {
     if (value !== CUSTOM_NOTE_VALUE) {
       this.guide.relationNotes = value;
-    } else if (this.matchesPreset(this.guide.relationNotes, this.relationPresetOptions)) {
+    } else if (this.matchesPreset(this.guide.relationNotes, this.availableRelationPresetOptions)) {
       this.guide.relationNotes = '';
     }
 
@@ -2250,11 +2428,74 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
   onFilterPresetChange(value: string) {
     if (value !== CUSTOM_NOTE_VALUE) {
       this.guide.filterNotes = value;
-    } else if (this.matchesPreset(this.guide.filterNotes, this.filterPresetOptions)) {
+    } else if (this.matchesPreset(this.guide.filterNotes, this.availableFilterPresetOptions)) {
       this.guide.filterNotes = '';
     }
 
     this.syncGuideToDefinition();
+  }
+
+  private refreshAdvancedPresets() {
+    if (this.guide.queryMode === 'single_table') {
+      return;
+    }
+
+    if (
+      this.guide.relationPreset &&
+      this.guide.relationPreset !== CUSTOM_NOTE_VALUE &&
+      !this.availableRelationPresetOptions.some((option) => option.value === this.guide.relationPreset)
+    ) {
+      this.guide.relationPreset = '';
+      this.guide.relationNotes = '';
+    }
+
+    if (
+      this.guide.filterPreset &&
+      this.guide.filterPreset !== CUSTOM_NOTE_VALUE &&
+      !this.availableFilterPresetOptions.some((option) => option.value === this.guide.filterPreset)
+    ) {
+      this.guide.filterPreset = '';
+      this.guide.filterNotes = '';
+    }
+  }
+
+  private uniqueNoteOptions(options: NoteOption[]) {
+    const seen = new Set<string>();
+    return options.filter((option) => {
+      const key = option.value || '__empty__';
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private primaryAliasForGuide() {
+    if (this.guide.primaryTable === 'users') {
+      return 'u';
+    }
+    if (this.guide.primaryTable === 'roles') {
+      return 'r';
+    }
+    if (this.guide.primaryTable === 'records') {
+      return 'rec';
+    }
+    return 'base';
+  }
+
+  private operatorLabel(operator: string) {
+    const labels: Record<string, string> = {
+      equals: 'igual a',
+      contains: 'contiene',
+      starts_with: 'empieza por',
+      greater_than: 'mayor que',
+      greater_or_equal: 'mayor o igual',
+      less_than: 'menor que',
+      less_or_equal: 'menor o igual'
+    };
+
+    return labels[operator] ?? operator;
   }
 
   ensureTableCatalog() {
@@ -2289,15 +2530,17 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       involvedTableList: dataTarget?.involvedTables ?? this.guide.involvedTableList,
       matchMode: dataTarget?.matchMode ?? this.guide.matchMode,
       filters,
-      relationPreset: this.presetValueFor(relationNotes, this.relationPresetOptions),
+      relationPreset: '',
       relationNotes,
-      filterPreset: this.presetValueFor(filterNotes, this.filterPresetOptions),
+      filterPreset: '',
       filterNotes,
       pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
       pageSizeParam: definition.pagination?.pageSizeParam ?? this.guide.pageSizeParam,
       itemsPath: definition.pagination?.itemsPath ?? this.guide.itemsPath,
       totalPath: definition.pagination?.totalPath ?? this.guide.totalPath
     };
+    this.guide.relationPreset = this.presetValueFor(relationNotes, this.availableRelationPresetOptions);
+    this.guide.filterPreset = this.presetValueFor(filterNotes, this.availableFilterPresetOptions);
   }
 
   private presetValueFor(value: string, options: NoteOption[]) {

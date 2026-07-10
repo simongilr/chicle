@@ -27,6 +27,7 @@ export interface AiAssistantConfig {
   chatModel: string;
   embeddingModel: string;
   timeoutMs: number;
+  fastTimeoutMs: number;
   ragEnabled: boolean;
   ragMode: string;
   maxContextChunks: number;

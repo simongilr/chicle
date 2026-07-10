@@ -231,6 +231,70 @@ The assistant should prefer smaller operations:
 - let the user test;
 - continue with the next refinement.
 
+For complex authoring requests, Chicle AI answers with a stable operational shape:
+
+1. Interpretation: what the user is asking for.
+2. Roadmap: how Chicle should approach it safely.
+3. Review: what the assistant checked or why it cannot proceed blindly.
+4. Proposal: concrete actions or draft pieces.
+5. Next step: the smallest user/app action that moves the work forward.
+
+This is the expected behavior for Dynamic Services lifecycle requests too. Create and edit may produce drafts. Trash,
+restore and publish remain explicit user-confirmed actions in the UI.
+
+### Incremental Dialogue
+
+Chicle AI should not try to solve broad authoring requests in one provider call. The frontend sends the recent chat
+conversation with each request, and the backend uses recent user messages as intent context.
+
+Expected flow:
+
+1. Interpret the current request.
+2. Pick the safe mechanism: service, flow, form, action or a combination.
+3. Ask only for the missing critical detail.
+4. On the next user answer, continue from the previous intent instead of treating the short answer as a new request.
+5. Apply a draft only when the shape is executable by the current runtime.
+
+When Chicle AI asks for a decision, the API may return `suggestions`. The floating assistant renders those suggestions
+as buttons. Selecting a button sends that text as the next user message, preserves conversation context, clears the old
+buttons and lets the backend ask the next smallest question. This keeps non-technical users out of prompt wording and
+lets the assistant move one decision at a time.
+
+For Dynamic Services, even simple requests use a preflight turn. Chicle AI first returns interpretation, route, review,
+proposal and next step. The frontend should receive an `apply_dynamic_service_json` action only after the user confirms
+with a continuation such as "continúa", "hazlo" or "genera el draft". This prevents the assistant from creating a generic
+service just because a fast deterministic generator recognized one table.
+
+Example:
+
+```txt
+User: necesito un servicio que consulte un usuario y si existe vaya a role...
+AI: necesito saber qué campo llega desde el front. Suggestions: por email, por nombre, por id.
+User clicks: por email
+AI: servicio avanzado con queryMode=multi_table, users -> user_roles -> roles. Suggestions: crear servicio avanzado, ajustar entrada, explicar join.
+User clicks: crear servicio avanzado
+AI: emits apply_dynamic_service_json for consultar_usuario_roles_por_email.
+```
+
+This small-step approach keeps local models from timing out and makes future RAG safer because each turn has a narrower
+question.
+
+### Composite Services
+
+Requests such as "create a service with two queries" must not be forced into the simple table/filter generator. They use
+a separate reasoning route:
+
+1. If the prompt does not identify the input fields, the two queries, their relationship or the expected frontend
+   response, Chicle AI asks for the missing pieces.
+2. If enough information exists, Chicle checks whether the runtime can execute the requested shape.
+3. If the request is a read-only join, Chicle can create one Dynamic Service with `queryMode=multi_table`.
+4. If the request needs branching, side effects, retries, async work or multiple command steps, Chicle should still
+   use a Flow to orchestrate services.
+5. If model reasoning is still needed, Chicle sends a compact prompt to the configured model with limited output tokens.
+6. If the model times out, Chicle returns a continuation checklist instead of a raw provider error.
+7. If a service is already open, the assistant receives the current draft, definition, test context, available tables and
+   last run error so it can repair or continue from the existing state.
+
 This lets Chicle feel conversational without making the LLM a fragile runtime dependency.
 
 ## Phased Implementation

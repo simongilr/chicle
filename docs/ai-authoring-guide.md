@@ -100,6 +100,7 @@ Before proposing an object:
 5. Required input fields have realistic example values.
 6. Timeouts and retries remain within Confisys limits.
 7. Internal queries use a table and columns returned by `GET /api/dynamic-services/catalog/tables`.
+   For read-only joins, use `queryMode=multi_table` with aliases, declarative join conditions and explicit `select`.
 8. The draft passes preview and saved test cases before publication.
 9. Presentation kits are installed and valid; current values are `auto`, `inherit`, `primeng`, `ionic` and `native`.
 
@@ -108,8 +109,7 @@ Before proposing an object:
 Do not claim these capabilities are implemented until the backend contract changes:
 
 - Free SQL from the UI.
-- Internal multi-table joins or `advanced_read_model` execution. They are represented for future design but only
-  `single_table` is executed today.
+- `advanced_read_model` execution beyond safe `multi_table` joins.
 - Arbitrary JavaScript in formulas or validations.
 - Unlimited recursion, retries, response size, delay, concurrency or execution time.
 - Direct access to password, token, secret or hash columns.

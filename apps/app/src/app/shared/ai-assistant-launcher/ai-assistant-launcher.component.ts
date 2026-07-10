@@ -8,6 +8,7 @@ import { AiAssistantScope, AiAssistantService } from './ai-assistant.service';
 interface ChatMessage {
   role: 'assistant' | 'user';
   text: string;
+  suggestions?: string[];
 }
 
 @Component({
@@ -141,6 +142,37 @@ interface ChatMessage {
       .message p {
         margin: 0;
         font-size: 0.82rem;
+      }
+
+      .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .suggestion {
+        min-height: 30px;
+        border: 1px solid #b7cee4;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #173b5f;
+        padding: 0 10px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .suggestion:hover,
+      .suggestion:focus-visible {
+        border-color: #1554a2;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(21, 84, 162, 0.12);
+      }
+
+      .suggestion:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
       }
 
       .thinking-line {
@@ -281,6 +313,20 @@ interface ChatMessage {
                 }
                 <span>{{ message.text }}</span>
               </p>
+              @if (message.role === 'assistant' && message.suggestions?.length) {
+                <div class="suggestions" aria-label="Respuestas sugeridas">
+                  @for (suggestion of message.suggestions; track suggestion) {
+                    <button
+                      class="suggestion"
+                      type="button"
+                      [disabled]="sending()"
+                      (click)="sendSuggestion(suggestion)"
+                    >
+                      {{ suggestion }}
+                    </button>
+                  }
+                </div>
+              }
             </article>
           }
         </div>
@@ -357,12 +403,21 @@ export class AiAssistantLauncherComponent {
 
   async send() {
     const text = this.prompt.trim();
+    await this.sendText(text);
+  }
+
+  async sendSuggestion(text: string) {
+    await this.sendText(text);
+  }
+
+  private async sendText(text: string) {
     if (!text || this.sending()) {
       return;
     }
 
     const scope = this.currentScope();
     const submitted = this.assistant.submit(text, this.router.url, scope);
+    this.clearSuggestions();
     this.messages.update((messages) => [
       ...messages,
       { role: 'user', text },
@@ -377,7 +432,8 @@ export class AiAssistantLauncherComponent {
         prompt: text,
         route: this.router.url,
         scope,
-        screenState: submitted.screenState
+        screenState: submitted.screenState,
+        conversation: this.conversationContext(text)
       };
       const response = await firstValueFrom(
         this.assistant.chat(request)
@@ -386,7 +442,7 @@ export class AiAssistantLauncherComponent {
       if (response.actions?.length) {
         this.assistant.publishProposal(request, response.actions);
       }
-      this.replaceLastAssistantMessage(response.message);
+      this.replaceLastAssistantMessage(response.message, response.suggestions);
     } catch (error) {
       this.clearProgress();
       this.replaceLastAssistantMessage(this.describeError(error));
@@ -430,6 +486,26 @@ export class AiAssistantLauncherComponent {
     this.progressTimers = [];
   }
 
+  private conversationContext(currentPrompt: string) {
+    const recent = this.messages()
+      .filter((message) => !this.isProgressText(message.text))
+      .slice(-10)
+      .map((message) => ({ role: message.role, text: message.text }));
+
+    return [...recent, { role: 'user' as const, text: currentPrompt }];
+  }
+
+  private isProgressText(text: string) {
+    return [
+      'Estoy consultando el runtime IA local con el contexto de esta pantalla.',
+      'Entendiendo lo que necesitas en esta pantalla.',
+      'Revisando el contexto y preparando una propuesta segura.',
+      'Generando el JSON editable para que puedas revisarlo.',
+      'El modelo local sigue pensando. No he guardado nada; solo estoy armando el draft.',
+      'Sigue procesando en local. Estos modelos pueden tardar más en Docker la primera vez.'
+    ].includes(text);
+  }
+
   private async checkStatus() {
     try {
       const status = await firstValueFrom(this.assistant.status());
@@ -470,18 +546,24 @@ export class AiAssistantLauncherComponent {
     this.messages.update((messages) => [...messages, { role: 'assistant', text }]);
   }
 
-  private replaceLastAssistantMessage(text: string) {
+  private replaceLastAssistantMessage(text: string, suggestions: string[] = []) {
     this.messages.update((messages) => {
       const next = [...messages];
       for (let index = next.length - 1; index >= 0; index -= 1) {
         if (next[index].role === 'assistant') {
-          next[index] = { role: 'assistant', text };
+          next[index] = { role: 'assistant', text, suggestions };
           return next;
         }
       }
 
-      return [...next, { role: 'assistant', text }];
+      return [...next, { role: 'assistant', text, suggestions }];
     });
+  }
+
+  private clearSuggestions() {
+    this.messages.update((messages) =>
+      messages.map((message) => (message.suggestions?.length ? { ...message, suggestions: [] } : message))
+    );
   }
 
   private describeError(error: unknown) {

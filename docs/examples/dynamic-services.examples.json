@@ -161,6 +161,108 @@
       }
     },
     {
+      "id": "internal_query_multi_table_user_roles",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "query",
+          "source": "internal_table",
+          "resultKind": "list",
+          "method": "GET",
+          "url": "internal://query/users_roles",
+          "headers": {},
+          "query": {
+            "name": "{{input.name}}"
+          },
+          "body": null,
+          "dataTarget": {
+            "queryMode": "multi_table",
+            "primaryTable": "users",
+            "primaryAlias": "u",
+            "involvedTables": [
+              "user_roles",
+              "roles"
+            ],
+            "joins": [
+              {
+                "type": "left",
+                "table": "user_roles",
+                "alias": "ur",
+                "on": [
+                  {
+                    "left": "u.id",
+                    "operator": "equals",
+                    "right": "ur.userId"
+                  }
+                ]
+              },
+              {
+                "type": "left",
+                "table": "roles",
+                "alias": "r",
+                "on": [
+                  {
+                    "left": "ur.roleId",
+                    "operator": "equals",
+                    "right": "r.id"
+                  }
+                ]
+              }
+            ],
+            "select": [
+              {
+                "field": "u.id",
+                "alias": "userId"
+              },
+              {
+                "field": "u.email",
+                "alias": "userEmail"
+              },
+              {
+                "field": "u.name",
+                "alias": "userName"
+              },
+              {
+                "field": "r.key",
+                "alias": "roleKey"
+              },
+              {
+                "field": "r.name",
+                "alias": "roleName"
+              }
+            ],
+            "matchMode": "all",
+            "filters": [
+              {
+                "field": "u.name",
+                "operator": "contains",
+                "valueSource": "input",
+                "inputKey": "name",
+                "required": true
+              }
+            ],
+            "relationNotes": "users.id -> user_roles.userId -> roles.id",
+            "filterNotes": "El tenant actual se aplica automáticamente a las tres tablas.",
+            "limit": 100
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "items": "{{response.rows}}",
+            "count": "{{response.count}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "external_paginated_list",
       "endpoint": "POST /api/dynamic-services/:serviceId/versions",
       "request": {

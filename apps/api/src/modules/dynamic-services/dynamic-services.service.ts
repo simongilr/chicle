@@ -17,6 +17,8 @@ import {
   DynamicServiceDefinition,
   DynamicServiceFilter,
   DynamicServiceHttpMethod,
+  DynamicServiceJoin,
+  DynamicServiceSelectField,
   DynamicServiceVersion
 } from './dynamic-service-version.entity';
 import { DynamicServiceRun, DynamicServiceRunStatus, DynamicServiceRunTrigger } from './dynamic-service-run.entity';
@@ -58,10 +60,18 @@ interface ServiceLimits {
 }
 
 interface InternalQueryPlan {
-  table: ServiceCatalogTable;
+  primaryTable: ServiceCatalogTable;
+  tables: ServiceCatalogTable[];
+  selectSql: string;
+  fromSql: string;
   whereSql: string[];
   params: unknown[];
   limit: number;
+}
+
+interface QueryAliasContext {
+  primaryAlias: string;
+  tablesByAlias: Map<string, ServiceCatalogTable>;
 }
 
 interface RenderContext {
@@ -127,7 +137,6 @@ const SERVICE_CATALOG_BLOCKED_TABLES = new Set([
   'role_resource_grants',
   'role_resource_policies',
   'schema_changes',
-  'user_roles'
 ]);
 
 @Injectable()
@@ -520,13 +529,15 @@ export class DynamicServicesService {
     const started = Date.now();
     try {
       const plan = await this.internalQueryPlan(auth, definition, input);
-      const sql = `SELECT * FROM ${this.escapeIdentifier(plan.table.name)}${
+      const sql = `SELECT ${plan.selectSql} FROM ${plan.fromSql}${
         plan.whereSql.length ? ` WHERE ${plan.whereSql.join(' AND ')}` : ''
       } LIMIT ?`;
       const rows = (await this.dataSource.query(sql, [...plan.params, plan.limit])) as Record<string, unknown>[];
       const safeRows = rows.map((row) => this.maskSecrets(row));
       const baseResponseSnapshot = {
-        table: plan.table.name,
+        table: plan.primaryTable.name,
+        tables: plan.tables.map((table) => table.name),
+        queryMode: definition.dataTarget?.queryMode ?? 'single_table',
         count: safeRows.length,
         rows: safeRows,
         result:
@@ -543,7 +554,13 @@ export class DynamicServicesService {
         action: 'dynamic_service.executed',
         resourceType: 'dynamic_service',
         resourceId: service.id,
-        metadata: { runId: run.id, mode: 'internal_table', table: plan.table.name, count: safeRows.length }
+        metadata: {
+          runId: run.id,
+          mode: 'internal_table',
+          queryMode: definition.dataTarget?.queryMode ?? 'single_table',
+          tables: plan.tables.map((table) => table.name),
+          count: safeRows.length
+        }
       });
       return saved;
     } catch (error) {
@@ -676,34 +693,52 @@ export class DynamicServicesService {
     definition: DynamicServiceDefinition,
     input: Record<string, unknown>
   ): Promise<InternalQueryPlan> {
-    if (definition.dataTarget?.queryMode !== 'single_table') {
-      throw new BadRequestException('Only single table internal queries are implemented');
+    const dataTarget = definition.dataTarget;
+    if (!dataTarget) {
+      throw new BadRequestException('Internal query dataTarget is required');
     }
 
-    const tableName = definition.dataTarget.primaryTable?.trim();
+    const queryMode = dataTarget.queryMode ?? 'single_table';
+    const tableName = dataTarget.primaryTable?.trim();
     if (!tableName) {
       throw new BadRequestException('Internal query table is required');
     }
 
     const table = await this.visibleServiceTable(tableName);
+    const primaryAlias = this.cleanAlias(dataTarget.primaryAlias ?? table.name);
+    const aliases = new Map<string, ServiceCatalogTable>([[primaryAlias, table]]);
+    const fromSql = [`${this.escapeIdentifier(table.name)} ${this.escapeIdentifier(primaryAlias)}`];
+    const tables = [table];
+
+    if (queryMode === 'multi_table' || queryMode === 'advanced_read_model') {
+      for (const join of dataTarget.joins ?? []) {
+        const joined = await this.visibleServiceTable(join.table);
+        const alias = this.cleanAlias(join.alias);
+        if (aliases.has(alias)) {
+          throw new BadRequestException(`Duplicate table alias ${alias}`);
+        }
+        aliases.set(alias, joined);
+        tables.push(joined);
+        fromSql.push(this.joinSql(join, joined, aliases));
+      }
+    } else if (queryMode !== 'single_table') {
+      throw new BadRequestException('Unsupported internal query mode');
+    }
+
+    const aliasContext: QueryAliasContext = {
+      primaryAlias,
+      tablesByAlias: aliases
+    };
     const whereSql: string[] = [];
     const params: unknown[] = [];
 
-    if (table.scope === 'tenant') {
-      this.requireColumn(table, 'tenantId');
-      whereSql.push(`${this.escapeIdentifier('tenantId')} = ?`);
-      params.push(auth.tenant.id);
-    } else if (table.scope === 'current_tenant') {
-      this.requireColumn(table, 'id');
-      whereSql.push(`${this.escapeIdentifier('id')} = ?`);
-      params.push(auth.tenant.id);
-    }
+    this.applyScopeFilters(auth, aliasContext, whereSql, params);
 
-    const filters = definition.dataTarget.filters ?? [];
+    const filters = dataTarget.filters ?? [];
     const filterSql: string[] = [];
     const filterParams: unknown[] = [];
     for (const filter of filters) {
-      const field = this.requireFilterColumn(table, filter.field);
+      const field = this.requireFilterColumn(aliasContext, filter.field);
       const value = this.resolveFilterValue(auth, input, filter);
       const expression = this.filterSql(field, filter, value);
       if (!expression) {
@@ -717,7 +752,7 @@ export class DynamicServicesService {
       throw new BadRequestException('At least one filter value is required');
     }
 
-    if ((definition.dataTarget.matchMode ?? 'all') === 'any' && filterSql.length > 1) {
+    if ((dataTarget.matchMode ?? 'all') === 'any' && filterSql.length > 1) {
       whereSql.push(`(${filterSql.join(' OR ')})`);
       params.push(...filterParams);
     } else {
@@ -726,11 +761,77 @@ export class DynamicServicesService {
     }
 
     return {
-      table,
+      primaryTable: table,
+      tables,
+      selectSql: this.selectSql(dataTarget.select, aliasContext),
+      fromSql: fromSql.join(' '),
       whereSql,
       params,
-      limit: definition.resultKind === 'list' || definition.resultKind === 'paginated_list' ? 100 : 1
+      limit: this.internalQueryLimit(definition)
     };
+  }
+
+  private joinSql(join: DynamicServiceJoin, joined: ServiceCatalogTable, aliases: Map<string, ServiceCatalogTable>) {
+    const type = join.type === 'left' ? 'LEFT JOIN' : 'INNER JOIN';
+    const alias = this.cleanAlias(join.alias);
+    if (!join.on?.length) {
+      throw new BadRequestException(`Join ${alias} requires at least one condition`);
+    }
+
+    const conditions = join.on.map((condition) => {
+      if (condition.operator && condition.operator !== 'equals') {
+        throw new BadRequestException('Only equals join conditions are supported');
+      }
+      const left = this.requireJoinColumn(aliases, condition.left);
+      const right = this.requireJoinColumn(new Map([...aliases, [alias, joined]]), condition.right);
+      return `${left.sql} = ${right.sql}`;
+    });
+
+    return `${type} ${this.escapeIdentifier(joined.name)} ${this.escapeIdentifier(alias)} ON ${conditions.join(' AND ')}`;
+  }
+
+  private applyScopeFilters(
+    auth: AuthContext,
+    context: QueryAliasContext,
+    whereSql: string[],
+    params: unknown[]
+  ) {
+    for (const [alias, table] of context.tablesByAlias.entries()) {
+      if (table.scope === 'tenant') {
+        this.requireColumn(table, 'tenantId');
+        whereSql.push(`${this.qualifiedColumnSql(alias, 'tenantId')} = ?`);
+        params.push(auth.tenant.id);
+      } else if (table.scope === 'current_tenant') {
+        this.requireColumn(table, 'id');
+        whereSql.push(`${this.qualifiedColumnSql(alias, 'id')} = ?`);
+        params.push(auth.tenant.id);
+      }
+    }
+  }
+
+  private selectSql(select: DynamicServiceSelectField[] | undefined, context: QueryAliasContext) {
+    if (!select?.length) {
+      return `${this.escapeIdentifier(context.primaryAlias)}.*`;
+    }
+
+    if (select.length > 80) {
+      throw new BadRequestException('Internal query select list is too large');
+    }
+
+    return select
+      .map((item) => {
+        const column = this.requireFilterColumn(context, item.field);
+        const alias = this.cleanAlias(item.alias || item.field.replace('.', '_'));
+        return `${column.sql} AS ${this.escapeIdentifier(alias)}`;
+      })
+      .join(', ');
+  }
+
+  private internalQueryLimit(definition: DynamicServiceDefinition) {
+    const requested = Number(definition.dataTarget?.limit ?? 0);
+    const defaultLimit = definition.resultKind === 'list' || definition.resultKind === 'paginated_list' ? 100 : 1;
+    const limit = Number.isFinite(requested) && requested > 0 ? requested : defaultLimit;
+    return Math.min(limit, 100);
   }
 
   private async visibleServiceTable(tableName: string) {
@@ -777,12 +878,33 @@ export class DynamicServicesService {
     return column;
   }
 
-  private requireFilterColumn(table: ServiceCatalogTable, columnName: string) {
-    if (!this.safeIdentifier(columnName) || /password|token|secret|hash/i.test(columnName)) {
+  private requireFilterColumn(context: QueryAliasContext, fieldRef: string) {
+    const ref = this.parseFieldRef(fieldRef, context);
+    if (/password|token|secret|hash/i.test(ref.columnName)) {
       throw new BadRequestException('Internal query filter column is not allowed');
     }
 
-    return this.requireColumn(table, columnName);
+    const column = this.requireColumn(ref.table, ref.columnName);
+    return {
+      ...column,
+      sql: this.qualifiedColumnSql(ref.alias, column.name)
+    };
+  }
+
+  private requireJoinColumn(tablesByAlias: Map<string, ServiceCatalogTable>, fieldRef: string) {
+    const context: QueryAliasContext = {
+      primaryAlias: tablesByAlias.keys().next().value ?? '',
+      tablesByAlias
+    };
+    const ref = this.parseFieldRef(fieldRef, context);
+    if (/password|token|secret|hash/i.test(ref.columnName)) {
+      throw new BadRequestException('Internal query join column is not allowed');
+    }
+    const column = this.requireColumn(ref.table, ref.columnName);
+    return {
+      ...column,
+      sql: this.qualifiedColumnSql(ref.alias, column.name)
+    };
   }
 
   private resolveFilterValue(auth: AuthContext, input: Record<string, unknown>, filter: DynamicServiceFilter) {
@@ -802,7 +924,7 @@ export class DynamicServicesService {
     return input[inputKey];
   }
 
-  private filterSql(column: ServiceCatalogColumn, filter: DynamicServiceFilter, value: unknown) {
+  private filterSql(column: ServiceCatalogColumn & { sql?: string }, filter: DynamicServiceFilter, value: unknown) {
     if (value === undefined || value === null || value === '') {
       if (filter.required === false) {
         return null;
@@ -810,7 +932,7 @@ export class DynamicServicesService {
       throw new BadRequestException(`Filter value for ${column.name} is required`);
     }
 
-    const field = this.escapeIdentifier(column.name);
+    const field = column.sql ?? this.escapeIdentifier(column.name);
     if (filter.operator === 'contains') {
       return { sql: `${field} LIKE ?`, param: `%${String(value)}%` };
     }
@@ -837,8 +959,37 @@ export class DynamicServicesService {
     return `\`${identifier}\``;
   }
 
+  private qualifiedColumnSql(alias: string, columnName: string) {
+    return `${this.escapeIdentifier(alias)}.${this.escapeIdentifier(columnName)}`;
+  }
+
   private safeIdentifier(identifier: string) {
     return /^[A-Za-z][A-Za-z0-9_]*$/.test(identifier);
+  }
+
+  private cleanAlias(alias: string) {
+    const value = alias.trim();
+    if (!this.safeIdentifier(value)) {
+      throw new BadRequestException('Invalid internal query alias');
+    }
+    return value;
+  }
+
+  private parseFieldRef(fieldRef: string, context: QueryAliasContext) {
+    const value = fieldRef.trim();
+    const parts = value.split('.');
+    const alias = parts.length === 2 ? parts[0] : context.primaryAlias;
+    const columnName = parts.length === 2 ? parts[1] : value;
+    if (!this.safeIdentifier(alias) || !this.safeIdentifier(columnName)) {
+      throw new BadRequestException('Invalid internal query field reference');
+    }
+
+    const table = context.tablesByAlias.get(alias);
+    if (!table) {
+      throw new BadRequestException(`Unknown table alias ${alias}`);
+    }
+
+    return { alias, table, columnName };
   }
 
   private async tableColumns(tableName: string): Promise<ServiceCatalogColumn[]> {
@@ -906,7 +1057,11 @@ export class DynamicServicesService {
       dataTarget: {
         queryMode: definition.dataTarget?.queryMode ?? 'single_table',
         primaryTable: definition.dataTarget?.primaryTable,
+        primaryAlias: definition.dataTarget?.primaryAlias,
         involvedTables: definition.dataTarget?.involvedTables ?? [],
+        joins: definition.dataTarget?.joins ?? [],
+        select: definition.dataTarget?.select ?? [],
+        limit: definition.dataTarget?.limit,
         recordKey: definition.dataTarget?.recordKey,
         relationNotes: definition.dataTarget?.relationNotes,
         filterNotes: definition.dataTarget?.filterNotes,

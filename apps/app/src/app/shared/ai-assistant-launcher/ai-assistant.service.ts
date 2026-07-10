@@ -11,6 +11,12 @@ export interface AiAssistantRequest {
   scope: AiAssistantScope;
   createdAt: string;
   screenState?: unknown;
+  conversation?: AiAssistantConversationMessage[];
+}
+
+export interface AiAssistantConversationMessage {
+  role: 'assistant' | 'user';
+  text: string;
 }
 
 export interface AiAssistantChatResponse {
@@ -19,6 +25,7 @@ export interface AiAssistantChatResponse {
   model: string;
   scope: AiAssistantScope;
   message: string;
+  suggestions?: string[];
   actions?: AiAssistantUiAction[];
 }
 
@@ -83,7 +90,7 @@ export class AiAssistantService {
   }
 
   chat(
-    request: Pick<AiAssistantRequest, 'prompt' | 'route' | 'scope' | 'screenState'>
+    request: Pick<AiAssistantRequest, 'prompt' | 'route' | 'scope' | 'screenState' | 'conversation'>
   ): Observable<AiAssistantChatResponse> {
     return this.api.post<AiAssistantChatResponse>('ai-assistant/chat', request);
   }

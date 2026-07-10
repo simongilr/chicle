@@ -12,6 +12,12 @@ export interface AiAssistantRequest {
   route?: string;
   scope?: AiAssistantScope;
   screenState?: unknown;
+  conversation?: AiAssistantConversationMessage[];
+}
+
+export interface AiAssistantConversationMessage {
+  role: 'assistant' | 'user';
+  text: string;
 }
 
 export interface AiAssistantConfig {
@@ -33,6 +39,7 @@ export interface AiAssistantResponse {
   model: string;
   scope: AiAssistantScope;
   message: string;
+  suggestions?: string[];
   actions?: AiAssistantUiAction[];
   raw?: unknown;
 }

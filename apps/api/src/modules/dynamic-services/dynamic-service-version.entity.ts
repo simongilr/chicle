@@ -10,6 +10,7 @@ export type DynamicServiceQueryMode = 'single_table' | 'multi_table' | 'advanced
 export type DynamicServiceFilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'greater_or_equal' | 'less_than' | 'less_or_equal';
 export type DynamicServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
 export type DynamicServiceFilterMatchMode = 'all' | 'any';
+export type DynamicServiceJoinType = 'inner' | 'left';
 
 export interface DynamicServiceFilter {
   field: string;
@@ -18,6 +19,24 @@ export interface DynamicServiceFilter {
   inputKey?: string;
   value?: string;
   required?: boolean;
+}
+
+export interface DynamicServiceJoinCondition {
+  left: string;
+  operator?: 'equals';
+  right: string;
+}
+
+export interface DynamicServiceJoin {
+  type?: DynamicServiceJoinType;
+  table: string;
+  alias: string;
+  on: DynamicServiceJoinCondition[];
+}
+
+export interface DynamicServiceSelectField {
+  field: string;
+  alias?: string;
 }
 
 export interface DynamicServiceDefinition {
@@ -40,7 +59,11 @@ export interface DynamicServiceDefinition {
   dataTarget?: {
     queryMode: DynamicServiceQueryMode;
     primaryTable?: string;
+    primaryAlias?: string;
     involvedTables?: string[];
+    joins?: DynamicServiceJoin[];
+    select?: DynamicServiceSelectField[];
+    limit?: number;
     recordKey?: string;
     relationNotes?: string;
     filterNotes?: string;

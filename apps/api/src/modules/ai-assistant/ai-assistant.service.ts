@@ -11,6 +11,13 @@ import {
 import { OllamaProviderService } from './ollama-provider.service';
 
 interface AssistantServiceScreenState {
+  selected?: {
+    key?: string;
+    name?: string;
+    active?: boolean;
+    hasLatestVersion?: boolean;
+    hasPublishedVersion?: boolean;
+  } | null;
   draft?: {
     key?: string;
     name?: string;
@@ -125,6 +132,18 @@ export class AiAssistantService {
       };
     }
 
+    const lifecycle = this.serviceLifecycleResponse(scope, request);
+    if (lifecycle) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message: lifecycle,
+        suggestions: this.serviceSuggestions(lifecycle)
+      };
+    }
+
     const screenAware = this.buildScreenAwareResponse(scope, request);
     if (screenAware) {
       return {
@@ -133,6 +152,46 @@ export class AiAssistantService {
         model: config.chatModel,
         scope,
         ...screenAware
+      };
+    }
+
+    const firstCompositeAction = this.advancedCompositeServiceAction(scope, request);
+    if (firstCompositeAction) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message: [
+          'Preparé un servicio avanzado con join como draft visual.',
+          'Este servicio resuelve la consulta compuesta dentro de Services usando queryMode=multi_table. No necesita Flow para esta lectura.',
+          'No guardé ni publiqué nada automáticamente.'
+        ].join('\n\n'),
+        actions: [firstCompositeAction]
+      };
+    }
+
+    if (scope === 'services' && this.looksLikeCompositeService(this.servicePromptContext(request))) {
+      const serviceReasoning = await this.reasonAboutServiceAuthoring(auth, request, config);
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message: serviceReasoning,
+        suggestions: this.serviceSuggestions(serviceReasoning)
+      };
+    }
+
+    if (scope === 'services' && this.looksLikeServiceAuthoring(this.servicePromptContext(request)) && !this.shouldApplyServiceDraft(request)) {
+      const preflight = this.serviceAuthoringPreflight(request);
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message: preflight,
+        suggestions: this.serviceSuggestions(preflight)
       };
     }
 
@@ -153,13 +212,14 @@ export class AiAssistantService {
     }
 
     if (scope === 'services' && this.looksLikeServiceAuthoring(request.prompt)) {
+      const serviceReasoning = await this.reasonAboutServiceAuthoring(auth, request, config);
       return {
         ok: true,
         provider: config.provider,
         model: config.chatModel,
         scope,
-        message:
-          'Todavía no pude convertir esa solicitud en un draft seguro. Indícame la tabla y el campo, por ejemplo: "servicio de la tabla permissions para listar por key".'
+        message: serviceReasoning,
+        suggestions: this.serviceSuggestions(serviceReasoning)
       };
     }
 
@@ -229,10 +289,315 @@ export class AiAssistantService {
         prompt: request.prompt,
         route: request.route,
         scope: request.scope,
+        conversation: this.compactConversation(request),
         screenState: request.screenState ?? null
       },
       null,
       2
+    );
+  }
+
+  private async reasonAboutServiceAuthoring(
+    auth: AuthContext,
+    request: AiAssistantRequest,
+    config: AiAssistantConfig
+  ) {
+    const compositePlan = this.compositeServicePlan(request);
+    if (compositePlan) {
+      return compositePlan;
+    }
+
+    const clarification = this.serviceAuthoringClarification(request);
+    if (clarification) {
+      return clarification;
+    }
+
+    const state = this.serviceScreenState(request.screenState);
+    const system = [
+      'Eres Chicle AI, asistente experto en Dynamic Services de Chicle Engine.',
+      'Responde en español, breve y operativo.',
+      'Tu meta es ayudar a crear un servicio declarativo seguro.',
+      'No inventes tablas, campos, secretos, SQL libre ni JavaScript.',
+      'Si falta un dato crítico, haz preguntas concretas en vez de generar JSON dudoso.',
+      'Para servicios compuestos, explica entrada, consultas, relación entre resultados, respuesta final y riesgos.',
+      'No digas que guardaste o publicaste. El usuario aprueba en la pantalla.'
+    ].join('\n');
+    const user = JSON.stringify(
+      {
+        prompt: request.prompt,
+        tenant: auth.tenant.slug,
+        route: request.route,
+        currentDraft: state
+          ? {
+              draft: state.draft ?? null,
+              guide: state.guide ?? null,
+              definition: state.definition ?? null,
+              lastRun: state.lastRun ?? null,
+              availableTables: this.compactTables(state.availableTables)
+            }
+          : null,
+        expectedAnswer:
+          'Devuelve una respuesta conversacional. Si hay suficiente información, describe el plan del servicio y el siguiente paso en el diseñador. Si falta información, pregunta máximo 4 datos.'
+      },
+      null,
+      2
+    );
+
+    const response = await this.ollama
+      .chat(
+        config,
+        [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
+        {
+          temperature: 0.1,
+          maxTokens: 700,
+          timeoutMs: Math.min(config.timeoutMs, 90000)
+        }
+      )
+      .catch(() => null);
+
+    return response?.message ?? this.serviceReasoningFallback(request);
+  }
+
+  private compositeServicePlan(request: AiAssistantRequest) {
+    const normalized = this.servicePromptContext(request).toLowerCase();
+    if (!this.looksLikeCompositeService(normalized)) {
+      return null;
+    }
+
+    const clarification = this.serviceAuthoringClarification(request);
+    if (clarification) {
+      return clarification;
+    }
+
+    const tables = this.detectTables(normalized);
+    const fields = this.detectFields(normalized);
+    const firstTable = tables[0] ?? 'primera tabla o servicio';
+    const secondTable = tables[1] ?? 'segunda tabla o servicio';
+    const inputField =
+      fields.find((field) => field !== 'id' && !field.toLowerCase().endsWith('id')) ??
+      this.inferInputField(normalized) ??
+      'campo de búsqueda del usuario';
+    const explicitRelationField = fields.find((field) => field.toLowerCase().endsWith('id'));
+    const relationField = explicitRelationField ?? this.inferRelationField(normalized) ?? 'id del resultado anterior';
+    const closing = explicitRelationField || this.inferRelationField(normalized)
+      ? 'Con esos datos ya puedo preparar un servicio avanzado con join declarativo.'
+      : 'Para avanzar sin ambigüedad necesito que confirmes el campo exacto que conecta las tablas, por ejemplo userId, roleId o tenantId.';
+
+    return this.serviceWorkResponse({
+      interpretation: 'Quieres una consulta avanzada con más de una tabla.',
+      route:
+        'La resolveré como un Dynamic Service avanzado con queryMode=multi_table, joins declarativos y filtros parametrizados.',
+      investigation:
+        'Services ya puede ejecutar joins seguros desde JSON: tablas visibles, aliases, columnas reales, filtros con parámetros y sin SQL libre.',
+      proposal: [
+        `Tabla base: ${firstTable}, filtrada por ${inputField}.`,
+        `Join: ${secondTable} usando ${relationField}.`,
+        'Respuesta: filas combinadas para que el front reciba el usuario con la información relacionada.'
+      ],
+      nextStep: `Puedo crear el JSON avanzado en esta pantalla. ${closing}`
+    });
+  }
+
+  private serviceAuthoringClarification(request: AiAssistantRequest) {
+    const normalized = this.servicePromptContext(request).toLowerCase();
+    if (!this.looksLikeCompositeService(normalized)) {
+      const table = this.detectTable(normalized);
+      const field = this.detectField(normalized);
+      const missing = !table
+        ? 'la tabla principal'
+        : !field
+          ? 'el campo de búsqueda'
+          : 'si esperas lista, un registro o sí/no';
+
+      return this.serviceWorkResponse({
+        interpretation: 'Quieres crear o ajustar un servicio, pero la solicitud todavía no tiene suficiente estructura.',
+        route: 'Necesito tomar una decisión a la vez para generar un draft seguro.',
+        investigation:
+          'No debo inventar tablas custom ni campos. El diseñador puede consultar tablas reales visibles desde el catálogo.',
+        proposal: [`Necesito saber ${missing}.`],
+        nextStep: this.nextStepForMissingServiceDecision(missing)
+      });
+    }
+
+    const tables = this.detectTables(normalized);
+    const fields = this.detectFields(normalized);
+    const mentionsRelation = /relaci[oó]n|join|unir|cruzar|conectar|asignad|pertenece|por .*id|tenantid|userid|roleid|id/.test(
+      normalized
+    );
+    const mentionsResponse = /responder|respuesta|devuelve|devuelva|retorna|retorne|mostrar|front/.test(normalized);
+
+    const missing: string[] = [];
+    if (tables.length < 2 && !/servicios?\s+publicados?|servicio\s+\w+/.test(normalized)) {
+      missing.push('cuáles son las dos tablas o servicios que quieres consultar');
+    }
+    if (!fields.length) {
+      missing.push('qué campos llegan como entrada desde el front');
+    }
+    if (!mentionsRelation && !this.inferRelationField(normalized)) {
+      missing.push('cómo se relaciona la primera consulta con la segunda');
+    }
+    if (!mentionsResponse) {
+      missing.push('qué debe devolver exactamente al front');
+    }
+
+    if (!missing.length) {
+      return null;
+    }
+
+    const currentMissing = missing[0];
+    return this.serviceWorkResponse({
+      interpretation: 'Quieres un servicio compuesto con más de una consulta.',
+      route: 'Antes de generar configuración necesito cerrar los datos mínimos para no inventar un JSON que falle.',
+      investigation: 'No tengo completa la entrada, relación o salida final del proceso.',
+      proposal: [`Necesito saber ${currentMissing}.`],
+      nextStep: this.nextStepForMissingServiceDecision(currentMissing)
+    });
+  }
+
+  private serviceReasoningFallback(request: AiAssistantRequest) {
+    if (this.looksLikeCompositeService(this.servicePromptContext(request))) {
+      return this.serviceWorkResponse({
+        interpretation: 'Quieres una operación compuesta.',
+        route: 'No voy a bloquear la pantalla esperando al modelo local.',
+        investigation: 'Ollama no respondió a tiempo en este equipo, así que continúo con el flujo guiado.',
+        proposal: [
+          'Definir primera consulta: tabla/servicio, campo de entrada y resultado esperado.',
+          'Definir segunda consulta: tabla/servicio y cómo usa el resultado de la primera.',
+          'Definir respuesta final: qué objeto vuelve al front.'
+        ],
+        nextStep: 'Con esos datos preparo el draft o corrijo el servicio abierto.'
+      });
+    }
+
+    return this.providerFailureMessage('services');
+  }
+
+  private servicePromptContext(request: AiAssistantRequest) {
+    const userConversation = (request.conversation ?? [])
+      .filter((message) => message.role === 'user')
+      .map((message) => message.text.trim())
+      .filter(Boolean)
+      .slice(-4);
+    const prompt = request.prompt.trim();
+    if (userConversation.at(-1) === prompt) {
+      return userConversation.join('\n');
+    }
+
+    return [...userConversation, prompt].filter(Boolean).join('\n');
+  }
+
+  private compactConversation(request: AiAssistantRequest) {
+    return (request.conversation ?? [])
+      .map((message) => ({
+        role: message.role,
+        text: message.text.trim().slice(0, 900)
+      }))
+      .filter((message) => message.text)
+      .slice(-8);
+  }
+
+  private serviceLifecycleResponse(scope: AiAssistantScope, request: AiAssistantRequest) {
+    if (scope !== 'services') {
+      return null;
+    }
+
+    const normalized = request.prompt.toLowerCase();
+    const state = this.serviceScreenState(request.screenState);
+    const selectedKey = state?.selected?.key || state?.draft?.key || this.serviceKeyFromPrompt(request.prompt);
+
+    if (/restaur|recuper/.test(normalized)) {
+      return this.serviceWorkResponse({
+        interpretation: selectedKey
+          ? `Quieres restaurar el servicio ${selectedKey}.`
+          : 'Quieres restaurar un servicio desde papelera.',
+        route: 'La restauración debe confirmarse desde la pantalla para evitar cambios accidentales.',
+        investigation: 'Los servicios en papelera conservan versiones e historial.',
+        proposal: ['Abre Papelera.', selectedKey ? `Selecciona ${selectedKey}.` : 'Selecciona el servicio exacto.', 'Usa Restaurar.'],
+        nextStep: 'Después de restaurarlo puedo ayudarte a revisar o publicar una nueva versión.'
+      });
+    }
+
+    if (/elimin|borrar|desactivar|archivar|enviar\s+a\s+papelera/.test(normalized)) {
+      return this.serviceWorkResponse({
+        interpretation: selectedKey
+          ? `Quieres retirar el servicio ${selectedKey}.`
+          : 'Quieres retirar un servicio.',
+        route: 'Por seguridad Chicle AI no elimina ni envía a papelera automáticamente.',
+        investigation:
+          'El módulo usa papelera, no borrado físico. Las versiones e historial quedan recuperables si el usuario confirma.',
+        proposal: [
+          selectedKey
+            ? `Selecciona ${selectedKey} en el catálogo de Servicios.`
+            : 'Selecciona el servicio exacto en el catálogo o dime su key.',
+          'Usa Enviar a papelera para retirarlo.',
+          'Si fue un error, entra a Papelera y usa Restaurar.'
+        ],
+        nextStep: selectedKey
+          ? 'Cuando lo tengas seleccionado puedo revisar el estado antes de enviarlo a papelera.'
+          : 'Dime la key del servicio o selecciónalo para revisarlo.'
+      });
+    }
+
+    return null;
+  }
+
+  private serviceAuthoringPreflight(request: AiAssistantRequest) {
+    const context = this.servicePromptContext(request);
+    const proposal = this.serviceDraftFromPrompt(context);
+    if (!proposal) {
+      return (
+        this.serviceAuthoringClarification(request) ??
+        this.serviceWorkResponse({
+          interpretation: 'Quieres crear o ajustar un servicio.',
+          route: 'Necesito más datos antes de generar un draft seguro.',
+          investigation: 'No logré identificar una tabla y filtro ejecutables.',
+          proposal: ['Dime tabla principal.', 'Dime campo de búsqueda.', 'Dime si esperas lista, un registro o sí/no.'],
+          nextStep: 'Ejemplo: "servicio de la tabla users para listar por email".'
+        })
+      );
+    }
+
+    const dataTarget = proposal.document.dataTarget ?? {};
+    const filters = Array.isArray(dataTarget['filters'])
+      ? (dataTarget['filters'] as Array<Record<string, unknown>>)
+      : [];
+    const filterText = filters.length
+      ? filters.map((filter) => `${filter['field']} ${filter['operator']} input.${filter['inputKey']}`).join(', ')
+      : 'sin filtros detectados';
+
+    return this.serviceWorkResponse({
+      interpretation: `Quieres crear un servicio llamado ${proposal.name}.`,
+      route:
+        'Primero estructuro la intención y valido si es un servicio simple, compuesto o si debe convertirse en flow.',
+      investigation:
+        'La solicitud sí parece ejecutable como Dynamic Service simple porque apunta a una sola tabla interna con filtros seguros.',
+      proposal: [
+        `Tabla principal: ${dataTarget['primaryTable'] ?? 'pendiente'}.`,
+        `Resultado esperado: ${proposal.document.resultKind ?? 'list'}.`,
+        `Filtros: ${filterText}.`,
+        'El JSON se aplicará como borrador visual, no se guardará ni publicará automáticamente.'
+      ],
+      nextStep:
+        'Si esta interpretación es correcta, responde "continúa" o "genera el draft". Si no, corrige tabla, campo o resultado esperado.'
+    });
+  }
+
+  private shouldApplyServiceDraft(request: AiAssistantRequest) {
+    const prompt = request.prompt.toLowerCase().trim();
+    const confirms = /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea el draft|genera el draft)(\b|[.!\s])/.test(
+      prompt
+    );
+    if (!confirms) {
+      return false;
+    }
+
+    return (request.conversation ?? []).some(
+      (message) =>
+        message.role === 'assistant' &&
+        /Interpretación:|Hoja de ruta:|Si esta interpretación es correcta|genera el draft/i.test(message.text)
     );
   }
 
@@ -241,12 +606,12 @@ export class AiAssistantService {
       return [];
     }
 
-    const service = this.serviceDraftFromPrompt(request.prompt);
+    const service = this.serviceDraftFromPrompt(this.servicePromptContext(request));
     return service ? [service] : [];
   }
 
   private looksLikeReview(prompt: string) {
-    return /revis|corrig|arregl|fall[oó]|falla|error|no funciona|ajusta|mejora|contin[uú]a|retoma/i.test(prompt);
+    return /revis|corrig|arregl|fall[oó]|falla|error|no funciona|ajusta|mejora|retoma|edit|modific|actualiz|cambia/i.test(prompt);
   }
 
   private serviceScreenState(value: unknown): AssistantServiceScreenState | null {
@@ -335,7 +700,17 @@ export class AiAssistantService {
 
     const operator = /igual|exact|exacto|por id|por key exact/.test(normalized) ? 'equals' : 'contains';
     const resultKind = this.stringValue(current.resultKind) || (/uno|un registro|detalle/.test(normalized) ? 'single' : 'list');
-    const filters = currentFilters.length
+    const filters = fieldFromPrompt
+      ? [
+          {
+            field,
+            operator,
+            valueSource: 'input',
+            inputKey: field,
+            required: true
+          }
+        ]
+      : currentFilters.length
       ? currentFilters.map((filter) =>
           this.normalizeServiceFilter(filter, field, operator)
         )
@@ -442,6 +817,197 @@ export class AiAssistantService {
 
   private stringValue(value: unknown) {
     return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private serviceWorkResponse(parts: {
+    interpretation: string;
+    route: string;
+    investigation: string;
+    proposal: string[];
+    nextStep: string;
+  }) {
+    return [
+      `Interpretación: ${parts.interpretation}`,
+      `Hoja de ruta: ${parts.route}`,
+      `Revisión: ${parts.investigation}`,
+      'Propuesta:',
+      ...parts.proposal.map((item, index) => `${index + 1}. ${item}`),
+      `Siguiente paso: ${parts.nextStep}`
+    ].join('\n');
+  }
+
+  private nextStepForMissingServiceDecision(missing: string) {
+    if (/campos llegan como entrada|campo/.test(missing)) {
+      return 'Elige el campo de entrada principal para continuar. Después te preguntaré la siguiente decisión si hace falta.';
+    }
+
+    if (/dos tablas|servicios/.test(missing)) {
+      return 'Elige o escribe las tablas/servicios que participan. Después definimos cómo se conectan.';
+    }
+
+    if (/relaciona|relaci/.test(missing)) {
+      return 'Elige cómo se conecta la primera consulta con la segunda.';
+    }
+
+    if (/devolver/.test(missing)) {
+      return 'Elige qué debe recibir el front al final del proceso.';
+    }
+
+    return 'Elige una opción o escribe la respuesta exacta para continuar.';
+  }
+
+  private serviceSuggestions(message: string) {
+    if (/campo de entrada|campos llegan como entrada|campo de b[uú]squeda/i.test(message)) {
+      return ['por email', 'por nombre', 'por id'];
+    }
+
+    if (/dos tablas|tablas o servicios|tabla principal/i.test(message)) {
+      return ['users y user_roles', 'users y roles', 'dynamic_services'];
+    }
+
+    if (/c[oó]mo se conecta|c[oó]mo se relaciona|relaciona la primera consulta/i.test(message)) {
+      return ['user.id -> user_roles.userId', 'user.roleId -> roles.id', 'tenantId'];
+    }
+
+    if (/qu[eé] debe recibir el front|qu[eé] debe devolver|devolver exactamente/i.test(message)) {
+      return ['usuario + roles', 'solo roles', 'sí/no'];
+    }
+
+    if (/lista, un registro o s[ií]\/no|resultado esperado/i.test(message)) {
+      return ['lista', 'un registro', 'sí/no'];
+    }
+
+    if (/Si esta interpretaci[oó]n es correcta|genera el draft|aplicar[aá] como borrador/i.test(message)) {
+      return ['continúa', 'cambiar tabla', 'cambiar campo'];
+    }
+
+    if (/papelera|restaurar/i.test(message)) {
+      return ['abrir Papelera', 'seleccionar servicio', 'cancelar'];
+    }
+
+    if (/queryMode=multi_table|servicio avanzado|Join:/i.test(message)) {
+      return ['crear servicio avanzado', 'ajustar entrada', 'explicar join'];
+    }
+
+    return [];
+  }
+
+  private advancedCompositeServiceAction(scope: AiAssistantScope, request: AiAssistantRequest) {
+    if (scope !== 'services' || !/crear servicio avanzado|consulta avanzada|servicio con join|crear join/i.test(request.prompt)) {
+      return null;
+    }
+
+    const context = this.servicePromptContext(request).toLowerCase();
+    if (!this.looksLikeCompositeService(context)) {
+      return null;
+    }
+
+    const userRoleDraft = this.userRoleJoinServiceDraft(context);
+    if (userRoleDraft) {
+      return userRoleDraft;
+    }
+
+    return null;
+  }
+
+  private userRoleJoinServiceDraft(context: string): AiAssistantUiAction | null {
+    const tables = this.detectTables(context);
+    if (!tables.includes('users') || !tables.includes('roles')) {
+      return null;
+    }
+
+    const fields = this.detectFields(context);
+    const field =
+      fields.find((item) => !item.toLowerCase().endsWith('id') || item === 'id') ||
+      this.inferInputField(context).split(' ')[0] ||
+      'name';
+    const operator = ['email', 'id', 'key'].includes(field) ? 'equals' : 'contains';
+    const key = `consultar_usuario_roles_por_${field}`;
+
+    return {
+      type: 'apply_dynamic_service_json',
+      label: 'Aplicar servicio avanzado con join',
+      key,
+      name: `Consultar usuario y roles por ${field}`,
+      description: `Consulta usuarios y sus roles relacionados filtrando por ${field}.`,
+      publish: false,
+      document: {
+        intent: 'query',
+        source: 'internal_table',
+        resultKind: 'list',
+        pagination: {
+          enabled: false
+        },
+        effects: [
+          {
+            type: 'show_response'
+          }
+        ],
+        dataTarget: {
+          queryMode: 'multi_table',
+          primaryTable: 'users',
+          primaryAlias: 'u',
+          involvedTables: ['user_roles', 'roles'],
+          joins: [
+            {
+              type: 'left',
+              table: 'user_roles',
+              alias: 'ur',
+              on: [{ left: 'u.id', operator: 'equals', right: 'ur.userId' }]
+            },
+            {
+              type: 'left',
+              table: 'roles',
+              alias: 'r',
+              on: [{ left: 'ur.roleId', operator: 'equals', right: 'r.id' }]
+            }
+          ],
+          select: [
+            { field: 'u.id', alias: 'userId' },
+            { field: 'u.email', alias: 'userEmail' },
+            { field: 'u.name', alias: 'userName' },
+            { field: 'r.id', alias: 'roleId' },
+            { field: 'r.key', alias: 'roleKey' },
+            { field: 'r.name', alias: 'roleName' }
+          ],
+          relationNotes: 'users.id -> user_roles.userId -> roles.id',
+          filterNotes: `u.${field} ${operator} input.${field}`,
+          matchMode: 'all',
+          filters: [
+            {
+              field: `u.${field}`,
+              operator,
+              valueSource: 'input',
+              inputKey: field,
+              required: true
+            }
+          ],
+          limit: 100
+        },
+        method: 'GET',
+        url: 'internal://query/users_roles',
+        headers: {},
+        query: {
+          [field]: `{{input.${field}}}`
+        },
+        body: null,
+        timeoutMs: 8000,
+        retry: {
+          attempts: 0,
+          backoffMs: 0
+        },
+        responseMap: {}
+      }
+    };
+  }
+
+  private serviceKeyFromPrompt(prompt: string) {
+    const quoted = prompt.match(/["'`]([a-zA-Z0-9_-]{3,120})["'`]/)?.[1];
+    if (quoted) {
+      return quoted;
+    }
+
+    return prompt.match(/\b([a-z][a-z0-9_]{2,119})\b/i)?.[1] ?? '';
   }
 
   private serviceDraftFromPrompt(prompt: string): AiAssistantUiAction | null {
@@ -652,10 +1218,28 @@ export class AiAssistantService {
   }
 
   private detectTable(normalizedPrompt: string) {
-    const candidates: Array<{ table: string; patterns: RegExp[] }> = [
+    return this.tableCandidates().find((candidate) =>
+      candidate.patterns.some((pattern) => pattern.test(normalizedPrompt))
+    )?.table;
+  }
+
+  private detectTables(normalizedPrompt: string) {
+    return this.tableCandidates()
+      .map((candidate) => ({
+        table: candidate.table,
+        index: this.firstPatternIndex(normalizedPrompt, candidate.patterns)
+      }))
+      .filter((candidate) => candidate.index >= 0)
+      .sort((left, right) => left.index - right.index)
+      .map((candidate) => candidate.table);
+  }
+
+  private tableCandidates(): Array<{ table: string; patterns: RegExp[] }> {
+    return [
       { table: 'permissions', patterns: [/\bpermissions?\b/, /\bpermisos?\b/] },
-      { table: 'roles', patterns: [/\broles?\b/] },
-      { table: 'users', patterns: [/\busers?\b/, /\busuarios?\b/] },
+      { table: 'user_roles', patterns: [/\buser_roles?\b/, /\broles?\s+de\s+usuario\b/, /\broles?\s+por\s+userid\b/] },
+      { table: 'roles', patterns: [/\broles?\b/, /\btabla\s+role\b/, /\btabla\s+roles\b/] },
+      { table: 'users', patterns: [/\busers?\b/, /\busuarios?\b/, /\busuario\b/] },
       { table: 'tenants', patterns: [/\btenants?\b/, /\borganizaciones?\b/] },
       { table: 'menus', patterns: [/\bmenus?\b/, /\bmen[uú]s?\b/] },
       { table: 'records', patterns: [/\brecords?\b/, /\bregistros?\b/] },
@@ -664,13 +1248,88 @@ export class AiAssistantService {
       { table: 'flows', patterns: [/\bflows?\b/, /\bflujos?\b/] },
       { table: 'confisys', patterns: [/\bconfisys\b/] }
     ];
+  }
 
-    return candidates.find((candidate) => candidate.patterns.some((pattern) => pattern.test(normalizedPrompt)))?.table;
+  private firstPatternIndex(value: string, patterns: RegExp[]) {
+    const indexes = patterns
+      .map((pattern) => {
+        pattern.lastIndex = 0;
+        const match = pattern.exec(value);
+        return match?.index ?? -1;
+      })
+      .filter((index) => index >= 0);
+
+    return indexes.length ? Math.min(...indexes) : -1;
   }
 
   private detectField(normalizedPrompt: string) {
-    const candidates = ['key', 'name', 'email', 'slug', 'id', 'category', 'status', 'description'];
-    return candidates.find((field) => new RegExp(`\\b${field}\\b`).test(normalizedPrompt));
+    return this.detectFields(normalizedPrompt)[0];
+  }
+
+  private detectFields(normalizedPrompt: string) {
+    const candidates: Array<{ field: string; patterns: RegExp[] }> = [
+      { field: 'key', patterns: [/\bkey\b/, /\bclave\b/] },
+      { field: 'name', patterns: [/\bname\b/, /\bnombre\b/] },
+      { field: 'email', patterns: [/\bemail\b/, /\bmail\b/, /\bcorreo\b/] },
+      { field: 'slug', patterns: [/\bslug\b/] },
+      { field: 'id', patterns: [/\bid\b/, /\bidentificador\b/] },
+      { field: 'tenantId', patterns: [/\btenantid\b/, /\btenant_id\b/] },
+      { field: 'userId', patterns: [/\buserid\b/, /\buser_id\b/, /\bid\s+del\s+usuario\b/] },
+      { field: 'roleId', patterns: [/\broleid\b/, /\brole_id\b/, /\bid\s+del\s+rol\b/] },
+      { field: 'category', patterns: [/\bcategory\b/, /\bcategor[ií]a\b/] },
+      { field: 'status', patterns: [/\bstatus\b/, /\bestado\b/] },
+      { field: 'description', patterns: [/\bdescription\b/, /\bdescripci[oó]n\b/] }
+    ];
+    const normalizedCandidates = candidates
+      .filter((candidate) => candidate.patterns.some((pattern) => pattern.test(normalizedPrompt)))
+      .map((candidate) => candidate.field);
+
+    return [...new Set(normalizedCandidates)];
+  }
+
+  private looksLikeCompositeService(prompt: string) {
+    const normalized = prompt.toLowerCase();
+    const tables = this.detectTables(normalized);
+    return (
+      tables.length > 1 ||
+      /dos|varias|m[uú]ltiples|compuest|encaden|primero|luego|despu[eé]s|join|unir|cruzar|relacion|si\s+existe|si\s+encuentra|vaya\s+a|ir\s+a\s+la\s+tabla|tabla\s+\w+\s+y\s+devuelva|asignad/.test(
+        normalized
+      )
+    );
+  }
+
+  private hasConditionalPhrase(prompt: string) {
+    return /si\s+existe|si\s+encuentra|si\s+hay|cuando\s+exista/.test(prompt);
+  }
+
+  private inferInputField(prompt: string) {
+    if (/correo|email|mail/.test(prompt)) {
+      return 'email';
+    }
+    if (/nombre|name/.test(prompt)) {
+      return 'name';
+    }
+    if (/usuario/.test(prompt)) {
+      return 'name o email';
+    }
+    return '';
+  }
+
+  private inferRelationField(prompt: string) {
+    if (/role|rol|asignad/.test(prompt)) {
+      return 'userId / roleId según la tabla puente user_roles';
+    }
+    if (/tenant|organizaci[oó]n/.test(prompt)) {
+      return 'tenantId';
+    }
+    return '';
+  }
+
+  private compactTables(tables?: Array<{ name?: string; columns?: string[] }>) {
+    return (tables ?? []).slice(0, 20).map((table) => ({
+      name: table.name,
+      columns: (table.columns ?? []).slice(0, 18)
+    }));
   }
 
   private labelForTable(table: string) {

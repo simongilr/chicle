@@ -13,6 +13,12 @@ interface OpenAiCompatibleModelsResponse {
   data?: Array<{ id?: string }>;
 }
 
+interface OllamaChatOptions {
+  temperature?: number;
+  maxTokens?: number;
+  timeoutMs?: number;
+}
+
 @Injectable()
 export class OllamaProviderService {
   async status(config: AiAssistantConfig) {
@@ -42,8 +48,15 @@ export class OllamaProviderService {
     }
   }
 
-  async chat(config: AiAssistantConfig, messages: Array<{ role: 'system' | 'user'; content: string }>) {
-    const response = await this.request<OpenAiCompatibleChatResponse>(config, '/chat/completions', {
+  async chat(
+    config: AiAssistantConfig,
+    messages: Array<{ role: 'system' | 'user'; content: string }>,
+    options: OllamaChatOptions = {}
+  ) {
+    const response = await this.request<OpenAiCompatibleChatResponse>(
+      { ...config, timeoutMs: options.timeoutMs ?? config.timeoutMs },
+      '/chat/completions',
+      {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -52,9 +65,11 @@ export class OllamaProviderService {
         model: config.chatModel,
         messages,
         stream: false,
-        temperature: 0.2
+          temperature: options.temperature ?? 0.2,
+          max_tokens: options.maxTokens ?? 900
       })
-    });
+      }
+    );
 
     const message = response.choices?.[0]?.message?.content?.trim();
     if (!message) {

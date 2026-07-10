@@ -80,7 +80,7 @@ contract; production values should come from a future approved secret source.
 - Validates identifiers against the real schema.
 - Blocks columns matching password, token, secret or hash.
 - Uses bound parameters.
-- Executes only `queryMode=single_table` today.
+- Executes `queryMode=single_table` and `queryMode=multi_table` for safe internal reads.
 - Limits lists to 100 rows.
 
 `matchMode=all` joins present filters with `AND`. `matchMode=any` joins them with `OR`. An optional filter can be
@@ -102,6 +102,70 @@ Value sources:
 - `literal`: use `value`.
 - `tenant`: authenticated tenant id.
 - `current_user`: authenticated user id.
+
+### Multi-table joins
+
+`queryMode=multi_table` lets one dynamic service read across related internal tables without creating a Flow. It is
+intended for read models such as "user with roles" or "record with catalog labels". It still does not accept SQL.
+
+Rules:
+
+- `primaryTable` and every joined table must be visible in `GET /api/dynamic-services/catalog/tables`.
+- `primaryAlias`, join aliases, selected fields and filter fields must be safe identifiers.
+- Join conditions use column references such as `u.id` and `ur.userId`.
+- Only equality join conditions are supported.
+- Filters can reference aliased columns such as `u.name`.
+- Tenant scope is applied automatically to every tenant-scoped table in the plan.
+- Select only the fields needed by the consumer; if `select` is omitted, only the primary alias is selected.
+- `limit` is capped at 100.
+
+Example:
+
+```json
+{
+  "source": "internal_table",
+  "resultKind": "list",
+  "method": "GET",
+  "url": "internal://query/users_roles",
+  "dataTarget": {
+    "queryMode": "multi_table",
+    "primaryTable": "users",
+    "primaryAlias": "u",
+    "involvedTables": ["user_roles", "roles"],
+    "joins": [
+      {
+        "type": "left",
+        "table": "user_roles",
+        "alias": "ur",
+        "on": [{ "left": "u.id", "operator": "equals", "right": "ur.userId" }]
+      },
+      {
+        "type": "left",
+        "table": "roles",
+        "alias": "r",
+        "on": [{ "left": "ur.roleId", "operator": "equals", "right": "r.id" }]
+      }
+    ],
+    "select": [
+      { "field": "u.id", "alias": "userId" },
+      { "field": "u.email", "alias": "userEmail" },
+      { "field": "u.name", "alias": "userName" },
+      { "field": "r.key", "alias": "roleKey" },
+      { "field": "r.name", "alias": "roleName" }
+    ],
+    "filters": [
+      {
+        "field": "u.name",
+        "operator": "contains",
+        "valueSource": "input",
+        "inputKey": "name",
+        "required": true
+      }
+    ],
+    "limit": 100
+  }
+}
+```
 
 ## Response shape and mapping
 

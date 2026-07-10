@@ -1667,8 +1667,8 @@ export class DocsPageComponent {
       swagger:
         'En /api/docs usa Dynamic Services -> GET /api/dynamic-services/catalog/tables para ver el catálogo que alimenta los selects.',
       command:
-        'Consulta simple:\n  dataTarget.queryMode: single_table\n  dataTarget.primaryTable: custom_clients\n\nConsulta compleja:\n  dataTarget.queryMode: multi_table\n  dataTarget.primaryTable: custom_orders\n  dataTarget.involvedTables: [custom_clients, records, users]\n  dataTarget.relationNotes: custom_orders.clientId = custom_clients.id\n  dataTarget.filterNotes: tenant actual, estado activo, rango de fechas',
-      note: 'No usamos SQL libre desde la UI. Las consultas complejas se describen como plan seguro para que luego un runner controlado las ejecute.'
+        'Consulta simple:\n  dataTarget.queryMode: single_table\n  dataTarget.primaryTable: custom_clients\n\nConsulta avanzada con join:\n  dataTarget.queryMode: multi_table\n  dataTarget.primaryTable: users\n  dataTarget.primaryAlias: u\n  dataTarget.involvedTables: [user_roles, roles]\n  joins:\n    u.id = ur.userId\n    ur.roleId = r.id\n  select:\n    u.id as userId\n    r.key as roleKey\n  filters:\n    u.name contains input.name',
+      note: 'No usamos SQL libre desde la UI. Las consultas complejas se ejecutan desde un plan seguro: tablas visibles, aliases, columnas reales, parámetros y límite máximo.'
     },
     {
       title: 'Combinaciones de filtros',
@@ -1717,7 +1717,7 @@ export class DocsPageComponent {
     {
       title: 'Mapa de evolución',
       command:
-        'V1 actual:\n  tablas internas simples\n  HTTP externo\n  prueba en vivo\n  historial de runs\n  consumo frontend por key\n\nSiguientes capacidades:\n  joins guiados\n  uniones y read models\n  paginación avanzada\n  SOAP\n  WebSocket\n  webhooks\n  colas asincrónicas\n  retries configurables\n  secretos administrados\n  mapping visual de request/response',
+        'V1 actual:\n  tablas internas simples\n  joins declarativos multi_table\n  HTTP externo\n  prueba en vivo\n  historial de runs\n  consumo frontend por key\n\nSiguientes capacidades:\n  diseñador visual completo de joins\n  uniones y read models\n  paginación avanzada\n  SOAP\n  WebSocket\n  webhooks\n  colas asincrónicas\n  retries configurables\n  secretos administrados\n  mapping visual de request/response',
       note: 'El objetivo es que el creador sea cada vez mas completo sin romper el contrato del front: ejecutar por key con un contexto.'
     }
   ];

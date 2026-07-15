@@ -1,7 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { UiPresentationConfig } from '../../core/ui/ui-presentation.types';
+import { INSTALLED_UI_THEMES } from '../../core/ui/ui-theme.service';
 import {
   AvailableDynamicService,
   DynamicServiceClientService
@@ -16,10 +18,18 @@ import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-pan
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
+import {
+  AiAssistantService,
+  AiAssistantUiAction,
+  ApplyDynamicFormJsonAction,
+  ApplyDynamicServiceJsonAction,
+  ApplySchemaChangeAction
+} from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { PreviewViewportComponent, PreviewViewportMode } from '../../shared/preview-viewport/preview-viewport.component';
+import { MobileFormShellComponent } from '../../shared/mobile-form/mobile-form-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
@@ -27,7 +37,7 @@ import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-gui
 
 type FormLifecycleStatus = 'draft' | 'published' | 'archived';
 type DesignerPhase = 'define' | 'fields' | 'publish' | 'preview';
-type PersistenceMode = 'record' | 'service' | 'flow' | 'hybrid' | 'none';
+type PersistenceMode = 'record' | 'service' | 'flow' | 'hybrid' | 'auth' | 'none' | 'submit_action';
 type FieldType =
   | 'text'
   | 'email'
@@ -54,6 +64,12 @@ type ThemeMode = 'system' | 'light' | 'dark';
 type DensityMode = 'comfortable' | 'compact' | 'spacious';
 type DesktopLayoutMode = 'step_cards' | 'single_form' | 'wizard' | 'auto';
 type MobileLayoutMode = 'step_screens' | 'single_scroll' | 'auto';
+type FormWidth = 'compact' | 'standard' | 'wide' | 'full';
+type FormAlign = 'left' | 'center' | 'right' | 'stretch';
+type ActionPosition = 'inline' | 'footer' | 'bottom_sticky';
+type ActionAlign = 'left' | 'center' | 'right' | 'stretch';
+type ActionSize = 'sm' | 'md' | 'lg' | 'full' | 'field';
+type ButtonTone = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral';
 type FormCommandType = 'execute_service' | 'execute_flow' | 'show_message';
 type HybridActionType = 'none' | 'execute_service' | 'execute_flow';
 
@@ -101,6 +117,31 @@ interface DynamicFormAuthoringResponse {
   form: DynamicFormItem;
   version?: DynamicFormVersion | null;
   published: boolean;
+}
+
+interface DynamicServiceAuthoringResponse {
+  artifactType: 'dynamic_service';
+  id: string;
+  key: string;
+  published: boolean;
+}
+
+interface ServiceCatalogColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary: boolean;
+}
+
+interface ServiceCatalogTable {
+  name: string;
+  scope: 'tenant' | 'current_tenant' | 'global';
+  source: 'entity' | 'schema';
+  columns: ServiceCatalogColumn[];
+}
+
+interface ServiceCatalogResponse {
+  tables: ServiceCatalogTable[];
 }
 
 interface FieldDraft {
@@ -159,9 +200,23 @@ interface FormDraft {
   theme: string;
   themeMode: ThemeMode;
   density: DensityMode;
+  formWidth: FormWidth;
+  formAlign: FormAlign;
   desktopMode: DesktopLayoutMode;
   desktopColumns: number;
+  desktopFieldColumns: number;
+  desktopActionPosition: ActionPosition;
+  desktopActionAlign: ActionAlign;
+  desktopActionSize: ActionSize;
+  tabletFieldColumns: number;
+  tabletActionPosition: ActionPosition;
+  tabletActionAlign: ActionAlign;
+  tabletActionSize: ActionSize;
   mobileMode: MobileLayoutMode;
+  mobileActionPosition: ActionPosition;
+  mobileActionAlign: ActionAlign;
+  mobileActionSize: ActionSize;
+  buttonTone: ButtonTone;
   autosave: boolean;
   offlineEnabled: boolean;
   timeoutMs: number;
@@ -173,6 +228,14 @@ interface FormDraft {
   hybridActionType: HybridActionType;
   hybridServiceKey: string;
   hybridFlowKey: string;
+  authUserField: string;
+  authPasswordField: string;
+  authSuccessRoute: string;
+  authErrorMessage: string;
+  showSubmitFeedback: boolean;
+  submitSuccessMessage: string;
+  submitErrorMessage: string;
+  customSubmitActionText: string;
   payloadMapText: string;
   responseMapText: string;
   idempotencyKey: string;
@@ -294,6 +357,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     FieldShellComponent,
     FormlyRuntimeComponent,
     JsonAuthoringPanelComponent,
+    MobileFormShellComponent,
     ModuleHeaderComponent,
     PageShellComponent,
     PreviewViewportComponent,
@@ -629,14 +693,13 @@ const FORM_TEMPLATES: FormTemplate[] = [
         display: grid;
         gap: 16px;
         min-height: 340px;
-        padding: 18px;
+        align-content: start;
+        padding: clamp(16px, 2vw, 24px);
       }
 
       .preview-form-header {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: start;
+        gap: 10px;
         border-bottom: 1px solid #d9e2ec;
         padding-bottom: 14px;
       }
@@ -653,20 +716,18 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
       .preview-form-title h2 {
         color: #143653;
-        font-size: clamp(1.2rem, 1.6vw, 1.55rem);
+        font-size: clamp(1.15rem, 1.45vw, 1.45rem);
         line-height: 1.15;
       }
 
       .preview-form-title p {
+        max-width: 680px;
         color: #52677a;
         line-height: 1.45;
       }
 
-      .preview-form-meta {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 7px;
+      .preview-form-shell.tablet-preview {
+        padding: 16px;
       }
 
       .test-output {
@@ -822,13 +883,8 @@ const FORM_TEMPLATES: FormTemplate[] = [
         .builder-grid,
         .test-grid,
         .preview-contract,
-        .preview-form-header,
         .field-row {
           grid-template-columns: 1fr;
-        }
-
-        .preview-form-meta {
-          justify-content: flex-start;
         }
 
         .palette-grid,
@@ -1004,7 +1060,11 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     </select>
                   </app-field-shell>
                   <app-field-shell label="Tema" forId="form-theme">
-                    <input id="form-theme" [(ngModel)]="draft.theme" (ngModelChange)="syncJson()" />
+                    <select id="form-theme" [(ngModel)]="draft.theme" (ngModelChange)="syncJson()">
+                      @for (theme of installedThemes; track theme.key) {
+                        <option [value]="theme.key">{{ theme.label }}</option>
+                      }
+                    </select>
                   </app-field-shell>
                   <app-field-shell label="Modo" forId="form-theme-mode">
                     <select id="form-theme-mode" [(ngModel)]="draft.themeMode" (ngModelChange)="syncJson()">
@@ -1037,13 +1097,88 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   </app-field-shell>
                 </div>
 
+                <div class="grid three">
+                  <app-field-shell label="Ancho formulario" forId="form-width">
+                    <select id="form-width" [(ngModel)]="draft.formWidth" (ngModelChange)="syncJson()">
+                      <option value="compact">Compacto</option>
+                      <option value="standard">Estándar</option>
+                      <option value="wide">Amplio</option>
+                      <option value="full">Todo el ancho</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Alineación" forId="form-align">
+                    <select id="form-align" [(ngModel)]="draft.formAlign" (ngModelChange)="syncJson()">
+                      <option value="left">Izquierda</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Derecha</option>
+                      <option value="stretch">Estirar</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Color botón" forId="form-button-tone">
+                    <select id="form-button-tone" [(ngModel)]="draft.buttonTone" (ngModelChange)="syncJson()">
+                      <option value="primary">Primario azul</option>
+                      <option value="secondary">Secundario</option>
+                      <option value="success">Verde</option>
+                      <option value="danger">Rojo</option>
+                      <option value="neutral">Neutral</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Columnas web" forId="form-desktop-field-columns">
+                    <select id="form-desktop-field-columns" [(ngModel)]="draft.desktopFieldColumns" (ngModelChange)="syncJson()">
+                      <option [ngValue]="1">1 columna</option>
+                      <option [ngValue]="2">2 columnas</option>
+                      <option [ngValue]="3">3 columnas</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Botón web" forId="form-desktop-action-align">
+                    <select id="form-desktop-action-align" [(ngModel)]="draft.desktopActionAlign" (ngModelChange)="syncJson()">
+                      <option value="left">Izquierda</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Derecha</option>
+                      <option value="stretch">Ancho completo</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Tamaño botón web" forId="form-desktop-action-size">
+                    <select id="form-desktop-action-size" [(ngModel)]="draft.desktopActionSize" (ngModelChange)="syncJson()">
+                      <option value="sm">Pequeño</option>
+                      <option value="md">Medio</option>
+                      <option value="lg">Grande</option>
+                      <option value="field">Igual que inputs</option>
+                      <option value="full">Completo</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Botón tablet" forId="form-tablet-action-align">
+                    <select id="form-tablet-action-align" [(ngModel)]="draft.tabletActionAlign" (ngModelChange)="syncJson()">
+                      <option value="right">Derecha</option>
+                      <option value="center">Centro</option>
+                      <option value="stretch">Ancho completo</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Botón móvil" forId="form-mobile-action-align">
+                    <select id="form-mobile-action-align" [(ngModel)]="draft.mobileActionAlign" (ngModelChange)="syncJson()">
+                      <option value="stretch">Ancho completo</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Derecha</option>
+                    </select>
+                  </app-field-shell>
+                  <app-field-shell label="Posición móvil" forId="form-mobile-action-position">
+                    <select id="form-mobile-action-position" [(ngModel)]="draft.mobileActionPosition" (ngModelChange)="syncJson()">
+                      <option value="bottom_sticky">Fijo abajo</option>
+                      <option value="footer">Al final</option>
+                      <option value="inline">En línea</option>
+                    </select>
+                  </app-field-shell>
+                </div>
+
                 <div class="grid">
                   <app-field-shell label="Qué hace al enviar" forId="form-persistence" help="Record es el default seguro para capturar datos. Service o Flow conectan lógica de negocio.">
                     <select id="form-persistence" [(ngModel)]="draft.persistenceMode" (ngModelChange)="syncJson()">
                       <option value="record">Guardar record genérico</option>
                       <option value="service">Ejecutar servicio dinámico</option>
                       <option value="flow">Ejecutar flow</option>
+                      <option value="auth">Iniciar sesión</option>
                       <option value="hybrid">Guardar record y orquestar después</option>
+                      <option value="submit_action">Acción segura del backend</option>
                       <option value="none">Solo validar / consultar</option>
                     </select>
                   </app-field-shell>
@@ -1071,6 +1206,33 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   </label>
                   <app-field-shell label="Timeout ms" forId="form-timeout">
                     <input id="form-timeout" type="number" [(ngModel)]="draft.timeoutMs" (ngModelChange)="syncJson()" />
+                  </app-field-shell>
+                </div>
+
+                <div class="grid three">
+                  <label class="toggle-card">
+                    <input type="checkbox" [(ngModel)]="draft.showSubmitFeedback" (ngModelChange)="syncJson()" />
+                    <span class="toggle-mark">✓</span>
+                    <span class="toggle-copy">
+                      <strong>Mostrar respuesta</strong>
+                      <small>Presenta una alerta genérica después del submit.</small>
+                    </span>
+                  </label>
+                  <app-field-shell label="Mensaje si guarda" forId="form-success-message">
+                    <input
+                      id="form-success-message"
+                      [(ngModel)]="draft.submitSuccessMessage"
+                      (ngModelChange)="syncJson()"
+                      [disabled]="!draft.showSubmitFeedback"
+                    />
+                  </app-field-shell>
+                  <app-field-shell label="Mensaje si falla" forId="form-error-message">
+                    <input
+                      id="form-error-message"
+                      [(ngModel)]="draft.submitErrorMessage"
+                      (ngModelChange)="syncJson()"
+                      [disabled]="!draft.showSubmitFeedback"
+                    />
                   </app-field-shell>
                 </div>
 
@@ -1106,6 +1268,40 @@ const FORM_TEMPLATES: FormTemplate[] = [
                       <input id="form-flow-key" [(ngModel)]="draft.flowKey" (ngModelChange)="syncJson()" />
                     }
                   </app-field-shell>
+                }
+                @if (draft.persistenceMode === 'auth') {
+                  <div class="grid">
+                    <app-field-shell
+                      label="Campo usuario"
+                      forId="form-auth-user-field"
+                      help="Selecciona el campo del formulario que se enviará como usuario, correo o username."
+                    >
+                      <select id="form-auth-user-field" [(ngModel)]="draft.authUserField" (ngModelChange)="syncJson()">
+                        <option value="">Selecciona un campo</option>
+                        @for (field of allDraftFields; track field.key) {
+                          <option [value]="field.key">{{ field.label || field.key }}</option>
+                        }
+                      </select>
+                    </app-field-shell>
+                    <app-field-shell
+                      label="Campo contraseña"
+                      forId="form-auth-password-field"
+                      help="Selecciona el campo tipo password o el campo que contiene la contraseña."
+                    >
+                      <select id="form-auth-password-field" [(ngModel)]="draft.authPasswordField" (ngModelChange)="syncJson()">
+                        <option value="">Selecciona un campo</option>
+                        @for (field of allDraftFields; track field.key) {
+                          <option [value]="field.key">{{ field.label || field.key }}</option>
+                        }
+                      </select>
+                    </app-field-shell>
+                    <app-field-shell label="Ir a ruta" forId="form-auth-success-route" help="Destino después de iniciar sesión correctamente.">
+                      <input id="form-auth-success-route" [(ngModel)]="draft.authSuccessRoute" (ngModelChange)="syncJson()" />
+                    </app-field-shell>
+                    <app-field-shell label="Mensaje si falla" forId="form-auth-error-message">
+                      <input id="form-auth-error-message" [(ngModel)]="draft.authErrorMessage" (ngModelChange)="syncJson()" />
+                    </app-field-shell>
+                  </div>
                 }
                 @if (draft.persistenceMode === 'hybrid') {
                   <div class="grid">
@@ -1648,34 +1844,54 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
                   <app-preview-viewport [(mode)]="previewMode">
                     @if (previewForm) {
-                      <section class="preview-form-shell">
-                        <header class="preview-form-header">
-                          <div class="preview-form-title">
-                            <span class="pill">{{ previewDeviceLabel }}</span>
-                            <h2>{{ previewForm.title }}</h2>
-                            <p>{{ draft.description || 'Formulario sin descripción todavía.' }}</p>
-                          </div>
-                          <div class="preview-form-meta" aria-label="Metadatos visuales">
-                            <span class="pill">{{ draft.kit }}</span>
-                            <span class="pill">{{ draft.theme }}</span>
-                            <span class="pill">{{ draft.density }}</span>
-                          </div>
-                        </header>
-                        <app-formly-runtime
-                          [definition]="previewForm"
-                          [model]="previewModel"
-                          [presentation]="previewPresentation"
-                          [viewportWidth]="previewWidth"
-                          submitLabel="Validar preview"
-                          (modelChange)="previewModel = $event"
-                        ></app-formly-runtime>
-                      </section>
+                      @if (previewMode === 'mobile') {
+                        <app-mobile-form-shell
+                          [eyebrow]="previewDeviceLabel"
+                          [title]="previewForm.title"
+                          [description]="draft.description || 'Formulario sin descripción todavía.'"
+                        >
+                          <app-formly-runtime
+                            [definition]="previewForm"
+                            [model]="previewModel"
+                            [presentation]="previewPresentation"
+                            [viewportWidth]="previewWidth"
+                            [submitLabel]="previewSubmitLabel"
+                            (modelChange)="previewModel = $event"
+                            (submitted)="submitPreview($event)"
+                          ></app-formly-runtime>
+                        </app-mobile-form-shell>
+                      } @else {
+                        <section class="preview-form-shell" [class.tablet-preview]="previewMode === 'tablet'">
+                          <header class="preview-form-header">
+                            <div class="preview-form-title">
+                              <span class="pill">{{ previewDeviceLabel }}</span>
+                              <h2>{{ previewForm.title }}</h2>
+                              <p>{{ draft.description || 'Formulario sin descripción todavía.' }}</p>
+                            </div>
+                          </header>
+                          <app-formly-runtime
+                            [definition]="previewForm"
+                            [model]="previewModel"
+                            [presentation]="previewPresentation"
+                            [viewportWidth]="previewWidth"
+                            [submitLabel]="previewSubmitLabel"
+                            (modelChange)="previewModel = $event"
+                            (submitted)="submitPreview($event)"
+                          ></app-formly-runtime>
+                        </section>
+                      }
                     } @else {
                       <app-status-notice tone="warning">
                         Agrega campos para construir una vista previa real.
                       </app-status-notice>
                     }
                   </app-preview-viewport>
+                  @if (previewSubmitError) {
+                    <app-status-notice tone="error">{{ previewSubmitError }}</app-status-notice>
+                  }
+                  @if (previewSubmitMessage) {
+                    <app-status-notice tone="success">{{ previewSubmitMessage }}</app-status-notice>
+                  }
                 </div>
 
                 <section class="test-panel">
@@ -1746,15 +1962,18 @@ const FORM_TEMPLATES: FormTemplate[] = [
     </app-page-shell>
   `
 })
-export class FormsPageComponent implements OnInit {
+export class FormsPageComponent implements OnDestroy, OnInit {
   private readonly api = inject(ApiClientService);
   private readonly runtime = inject(FormRuntimeService);
   private readonly serviceClient = inject(DynamicServiceClientService);
   private readonly flowClient = inject(DynamicFlowClientService);
+  private readonly assistant = inject(AiAssistantService);
 
   forms: DynamicFormItem[] = [];
   availableServices: AvailableDynamicService[] = [];
   availableFlows: AvailableDynamicFlow[] = [];
+  tableCatalog: ServiceCatalogTable[] = [];
+  tableCatalogStatus: 'idle' | 'loaded' | 'error' = 'idle';
   selected?: DynamicFormItem;
   latestVersion?: DynamicFormVersion;
   loading = true;
@@ -1772,6 +1991,8 @@ export class FormsPageComponent implements OnInit {
   submitTestOutputText = '';
   submitTestMessage = '';
   submitTestError = '';
+  previewSubmitMessage = '';
+  previewSubmitError = '';
   testing = false;
   submitTestPassed = false;
   viewingTrash = false;
@@ -1780,6 +2001,20 @@ export class FormsPageComponent implements OnInit {
   previewPresentation: UiPresentationConfig = this.buildPreviewPresentation();
   readonly fieldPalette = FIELD_PALETTE;
   readonly formTemplates = FORM_TEMPLATES;
+  readonly installedThemes = INSTALLED_UI_THEMES;
+  private appliedAssistantProposalId = 0;
+  private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('forms', () =>
+    this.assistantScreenState()
+  );
+  private readonly assistantProposalEffect = effect(() => {
+    const proposal = this.assistant.proposal();
+    if (!proposal || proposal.id === this.appliedAssistantProposalId || proposal.scope !== 'forms') {
+      return;
+    }
+
+    this.appliedAssistantProposalId = proposal.id;
+    void this.applyAssistantProposal(proposal.actions);
+  });
 
   readonly processItems: ProcessStepItem[] = [
     { key: 'define', label: 'Definir', summary: 'Identidad y salida' },
@@ -1822,12 +2057,18 @@ export class FormsPageComponent implements OnInit {
     return this.draft.steps.reduce((count, step) => count + step.fields.length, 0);
   }
 
+  get allDraftFields() {
+    return this.draft.steps.flatMap((step) => step.fields);
+  }
+
   get persistenceLabel() {
     const labels: Record<PersistenceMode, string> = {
       record: 'guarda record',
       service: 'usa servicio',
       flow: 'usa flow',
+      auth: 'inicia sesión',
       hybrid: 'record + orquestación',
+      submit_action: 'acción segura',
       none: 'sin persistencia'
     };
     return labels[this.draft.persistenceMode];
@@ -1928,6 +2169,14 @@ export class FormsPageComponent implements OnInit {
     }
     if (this.draft.persistenceMode === 'flow' && !this.draft.flowKey) {
       issues.push('Selecciona el flow publicado que se ejecutará al enviar.');
+    }
+    if (this.draft.persistenceMode === 'auth') {
+      if (!this.draft.authUserField) {
+        issues.push('Selecciona el campo que se enviará como usuario para iniciar sesión.');
+      }
+      if (!this.draft.authPasswordField) {
+        issues.push('Selecciona el campo que se enviará como contraseña.');
+      }
     }
     if ((this.draft.persistenceMode === 'record' || this.draft.persistenceMode === 'hybrid') && !this.draft.recordType.trim()) {
       issues.push('Define el tipo de record donde se guardarán los datos.');
@@ -2044,16 +2293,30 @@ export class FormsPageComponent implements OnInit {
       record: `Crea record tipo ${this.draft.recordType || 'dynamic_form'}.`,
       service: `Ejecuta servicio ${this.draft.serviceKey || 'pendiente de seleccionar'}.`,
       flow: `Dispara flow ${this.draft.flowKey || 'pendiente de seleccionar'}.`,
+      auth: `Inicia sesión con ${this.draft.authUserField || 'usuario'} y navega a ${this.draft.authSuccessRoute || '/home'}.`,
       hybrid: 'Guarda record y luego ejecuta orquestación.',
+      submit_action: 'Ejecuta una acción segura del backend.',
       none: 'Solo devuelve payload validado al componente.'
     };
     return details[this.draft.persistenceMode];
+  }
+
+  get previewSubmitLabel() {
+    const runtimeLabel = this.previewForm?.runtime?.['submitLabel'];
+    return typeof runtimeLabel === 'string' && runtimeLabel.trim()
+      ? runtimeLabel
+      : this.draft.submitLabel || 'Enviar';
   }
 
   ngOnInit() {
     this.syncJson();
     this.loadDynamicTargets();
     this.refresh();
+  }
+
+  ngOnDestroy() {
+    this.unregisterAssistantState();
+    this.assistantProposalEffect.destroy();
   }
 
   get selectedField() {
@@ -2160,13 +2423,13 @@ export class FormsPageComponent implements OnInit {
     });
   }
 
-  restoreForm() {
+  restoreForm(overwrite = false) {
     if (!this.selected) {
       return;
     }
     this.saving = true;
     this.error = '';
-    this.api.post<DynamicFormItem>(`forms/${this.selected.id}/restore`, {}).subscribe({
+    this.api.post<DynamicFormItem>(`forms/${this.selected.id}/restore`, { overwrite }).subscribe({
       next: (form) => {
         this.saving = false;
         this.viewingTrash = false;
@@ -2174,9 +2437,18 @@ export class FormsPageComponent implements OnInit {
         this.selected = form;
         this.refresh();
       },
-      error: () => {
+      error: (error) => {
         this.saving = false;
-        this.error = 'No se pudo restaurar el formulario.';
+        if (!overwrite && this.isRestoreConflict(error)) {
+          const accepted = window.confirm(
+            'Ya existe un formulario activo con esa key. ¿Quieres enviar el activo a papelera y restaurar este formulario?'
+          );
+          if (accepted) {
+            this.restoreForm(true);
+            return;
+          }
+        }
+        this.error = this.errorMessage(error);
       }
     });
   }
@@ -2400,6 +2672,89 @@ export class FormsPageComponent implements OnInit {
     this.submitTestPassed = false;
   }
 
+  submitPreview(input: Record<string, unknown>) {
+    this.previewModel = { ...input };
+    this.submitTestInputText = JSON.stringify(this.previewModel, null, 2);
+    this.previewSubmitMessage = '';
+    this.previewSubmitError = '';
+    this.submitTestMessage = '';
+    this.submitTestError = '';
+    this.submitTestOutputText = '';
+    this.submitTestPassed = false;
+
+    let document: Record<string, unknown>;
+    try {
+      document = JSON.parse(this.jsonText || '{}') as Record<string, unknown>;
+    } catch {
+      this.previewSubmitError = 'El JSON del formulario no es válido. Corrígelo antes de probar.';
+      return;
+    }
+
+    this.testing = true;
+    this.saving = true;
+    this.previewSubmitMessage = 'Guardando draft antes de ejecutar...';
+    this.api
+      .post<DynamicFormAuthoringResponse>('forms/authoring/json', {
+        document,
+        publish: false
+      })
+      .subscribe({
+        next: (response) => {
+          this.selected = response.form;
+          this.latestVersion = response.version ?? undefined;
+          this.forms = this.upsertForm(this.forms, response.form);
+          this.draft = this.draftFromSchema(response.form);
+          this.jsonText = JSON.stringify(response.form.schema, null, 2);
+          this.saving = false;
+          this.executePreviewSubmit(response.form.key, input);
+        },
+        error: (error) => {
+          this.saving = false;
+          this.testing = false;
+          this.previewSubmitMessage = '';
+          this.previewSubmitError = `No se pudo guardar el draft antes de ejecutar. ${this.errorMessage(error)}`;
+        }
+      });
+  }
+
+  private executePreviewSubmit(formKey: string, input: Record<string, unknown>) {
+    const startedAt = performance.now();
+    this.api
+      .post<Record<string, unknown>>(`forms/by-key/${encodeURIComponent(formKey)}/submit`, {
+        input,
+        idempotencyKey: `designer:${formKey}:${Date.now()}`
+      })
+      .subscribe({
+        next: (output) => {
+          const durationMs = Math.round(performance.now() - startedAt);
+          this.submitTestOutputText = JSON.stringify({ ok: true, durationMs, output }, null, 2);
+          this.submitTestMessage = this.submitSuccessMessage(durationMs, output);
+          this.previewSubmitMessage = this.submitSuccessMessage(durationMs, output, this.submitFeedbackMessage('success'));
+          this.previewSubmitError = '';
+          this.submitTestPassed = true;
+          this.testing = false;
+        },
+        error: (response) => {
+          const durationMs = Math.round(performance.now() - startedAt);
+          const detail = this.errorMessage(response);
+          this.submitTestOutputText = JSON.stringify(
+            {
+              ok: false,
+              durationMs,
+              error: response?.error ?? response?.message ?? 'Error desconocido'
+            },
+            null,
+            2
+          );
+          this.submitTestError = 'El backend rechazó la prueba. Revisa permisos, schema, servicio, flow o persistencia.';
+          this.previewSubmitMessage = '';
+          this.previewSubmitError = `${this.submitFeedbackMessage('error') || 'No se pudo ejecutar el formulario.'} ${detail}`;
+          this.submitTestPassed = false;
+          this.testing = false;
+        }
+      });
+  }
+
   runSubmitTest() {
     this.submitTestError = '';
     this.submitTestMessage = '';
@@ -2429,7 +2784,7 @@ export class FormsPageComponent implements OnInit {
         next: (output) => {
           const durationMs = Math.round(performance.now() - startedAt);
           this.submitTestOutputText = JSON.stringify({ ok: true, durationMs, output }, null, 2);
-          this.submitTestMessage = `Submit ejecutado correctamente en ${durationMs} ms.`;
+          this.submitTestMessage = this.submitSuccessMessage(durationMs, output);
           this.submitTestPassed = true;
           this.testing = false;
         },
@@ -2458,6 +2813,113 @@ export class FormsPageComponent implements OnInit {
     this.submitTestPassed = false;
     this.previewPresentation = this.buildPreviewPresentation();
     this.rebuildPreview();
+  }
+
+  private async applyAssistantProposal(actions: AiAssistantUiAction[]) {
+    const schemaActions = actions.filter((item): item is ApplySchemaChangeAction => item.type === 'apply_schema_change');
+    for (const action of schemaActions) {
+      try {
+        await firstValueFrom(
+          this.api.post('database/schema/apply', action.request)
+        );
+        this.message = `Chicle AI creó la tabla ${action.tableName}, registró el historial y generó la migración TypeORM.`;
+      } catch (error) {
+        this.error = `No se pudo crear la tabla ${action.tableName}. ${this.errorMessage(error)}`;
+        return;
+      }
+    }
+
+    if (schemaActions.length) {
+      this.loadDynamicTargets();
+    }
+
+    const serviceActions = actions.filter(
+      (item): item is ApplyDynamicServiceJsonAction => item.type === 'apply_dynamic_service_json'
+    );
+    if (serviceActions.length) {
+      this.applyAssistantCompanionServices(serviceActions);
+    }
+
+    const action = actions.find((item): item is ApplyDynamicFormJsonAction => item.type === 'apply_dynamic_form_json');
+    if (action) {
+      this.applyAssistantFormProposal(action);
+    }
+  }
+
+  private applyAssistantFormProposal(action: ApplyDynamicFormJsonAction) {
+    this.viewingTrash = false;
+    this.selected = undefined;
+    this.latestVersion = undefined;
+    this.jsonText = JSON.stringify(action.document, null, 2);
+    this.applyJson();
+    this.phase = 'define';
+    this.error = '';
+    this.jsonError = '';
+    this.message =
+      'Chicle AI aplicó una propuesta al diseñador. Revisa la guía, el preview y el JSON; luego usa Guardar draft o Guardar y publicar.';
+  }
+
+  private applyAssistantCompanionServices(actions: ApplyDynamicServiceJsonAction[]) {
+    for (const action of actions) {
+      this.api
+        .post<DynamicServiceAuthoringResponse>('dynamic-services/authoring/json', {
+          key: action.key,
+          name: action.name,
+          description: action.description ?? null,
+          active: true,
+          document: action.document,
+          publish: action.publish
+        })
+        .subscribe({
+          next: () => {
+            this.loadDynamicTargets();
+          },
+          error: (error) => {
+            this.error = `No se pudo preparar el servicio companion ${action.key}. ${this.errorMessage(error)}`;
+          }
+        });
+    }
+  }
+
+  private assistantScreenState() {
+    return {
+      mode: this.selected ? 'editing_existing_form' : 'new_form',
+      selected: this.selected
+        ? {
+            key: this.selected.key,
+            title: this.selected.title,
+            published: this.selected.published
+          }
+        : null,
+      draft: {
+        key: this.draft.key,
+        title: this.draft.title,
+        description: this.draft.description,
+        category: this.draft.category
+      },
+      schema: this.safeJson(),
+      availableServices: this.availableServices.map((service) => ({
+        key: service.key,
+        name: service.name,
+        hasPublishedVersion: service.version > 0
+      })),
+      availableFlows: this.availableFlows.map((flow) => ({
+        key: flow.key,
+        name: flow.name,
+        hasPublishedVersion: Boolean(flow.publishedVersionId)
+      })),
+      tables: this.tableCatalog.map((table) => ({
+        name: table.name,
+        scope: table.scope,
+        columns: table.columns.map((column) => ({
+          name: column.name,
+          type: column.type,
+          nullable: column.nullable,
+          primary: column.primary
+        }))
+      })),
+      tableCatalogStatus: this.tableCatalogStatus
+    };
   }
 
   applyJson() {
@@ -2531,10 +2993,11 @@ export class FormsPageComponent implements OnInit {
           this.saving = false;
           this.rebuildPreview();
         },
-        error: () => {
+        error: (error) => {
+          const detail = this.errorMessage(error);
           this.error = publish
-            ? 'No se pudo guardar y publicar desde JSON. Revisa el contrato.'
-            : 'No se pudo guardar el draft desde JSON. Revisa el contrato.';
+            ? `No se pudo guardar y publicar desde JSON. ${detail}`
+            : `No se pudo guardar el draft desde JSON. ${detail}`;
           this.saving = false;
         }
       });
@@ -2698,6 +3161,16 @@ export class FormsPageComponent implements OnInit {
         this.availableFlows = [];
       }
     });
+    this.api.get<ServiceCatalogResponse>('forms/catalog/tables').subscribe({
+      next: (response) => {
+        this.tableCatalog = response.tables ?? [];
+        this.tableCatalogStatus = 'loaded';
+      },
+      error: () => {
+        this.tableCatalog = [];
+        this.tableCatalogStatus = 'error';
+      }
+    });
   }
 
   private safeJson() {
@@ -2773,6 +3246,28 @@ export class FormsPageComponent implements OnInit {
     return [...new Set(issues)].slice(0, 8);
   }
 
+  private errorMessage(error: unknown) {
+    const response = error as { error?: { message?: string | string[] }; message?: string };
+    const message = response.error?.message ?? response.message;
+    const text = Array.isArray(message) ? message.join(', ') : message || 'Error inesperado.';
+    const translations: Record<string, string> = {
+      'Restore the form before updating it from JSON':
+        'Ese key ya existe en papelera. Restaura el formulario antes de actualizarlo desde JSON, o usa una key nueva.',
+      'document is required': 'El cuerpo debe incluir document con el JSON del formulario.',
+      'document.key and document.title are required': 'El JSON necesita key y title.',
+      'schema.kind must be dynamic_form': 'schema.kind debe ser dynamic_form.',
+      'schema key, title and steps are required': 'El JSON necesita key, title y al menos un step.'
+    };
+    return translations[text] ?? text;
+  }
+
+  private isRestoreConflict(error: unknown) {
+    const response = error as { status?: number; error?: { message?: string | string[] }; message?: string };
+    const message = response.error?.message ?? response.message ?? '';
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    return response.status === 409 || text.includes('Confirm overwrite');
+  }
+
   private schemaFromDraft(): Record<string, unknown> {
     const normalizedKey = this.normalizeKey(this.draft.key);
     return {
@@ -2807,26 +3302,54 @@ export class FormsPageComponent implements OnInit {
           { kit: 'ionic', platforms: ['ios', 'android'] },
           { kit: 'primeng', platforms: ['web'] }
         ],
-        tokens: {}
+        tokens: {
+          buttonPrimary: {
+            background: this.draft.buttonTone,
+            text: 'primaryContrast',
+            radius: 'md'
+          }
+        }
       },
       layout: {
         strategy: 'adaptive_steps',
+        form: {
+          width: this.draft.formWidth,
+          align: this.draft.formAlign
+        },
         desktop: {
           mode: this.draft.desktopMode,
+          fieldColumns: Number(this.draft.desktopFieldColumns) || 2,
           cardColumns: Number(this.draft.desktopColumns) || 2,
           allowSingleLongForm: true,
-          maxFieldsPerSection: 8
+          maxFieldsPerSection: 8,
+          actions: {
+            position: this.draft.desktopActionPosition,
+            align: this.draft.desktopActionAlign,
+            size: this.draft.desktopActionSize
+          }
         },
         tablet: {
           mode: this.draft.desktopMode === 'single_form' ? 'single_form' : 'step_cards',
+          fieldColumns: Number(this.draft.tabletFieldColumns) || 1,
           cardColumns: 1,
-          maxFieldsPerSection: 6
+          maxFieldsPerSection: 6,
+          actions: {
+            position: this.draft.tabletActionPosition,
+            align: this.draft.tabletActionAlign,
+            size: this.draft.tabletActionSize
+          }
         },
         mobile: {
           mode: this.draft.mobileMode,
           progress: 'compact',
           navigation: 'bottom_actions',
-          maxFieldsPerScreen: 6
+          fieldColumns: 1,
+          maxFieldsPerScreen: 6,
+          actions: {
+            position: this.draft.mobileActionPosition,
+            align: this.draft.mobileActionAlign,
+            size: this.draft.mobileActionSize
+          }
         },
         autoSplit: {
           enabled: true,
@@ -2931,6 +3454,15 @@ export class FormsPageComponent implements OnInit {
         }
       };
     }
+    if (this.draft.persistenceMode === 'auth') {
+      return {
+        mode: 'auth',
+        defaultTarget: {
+          type: 'dynamic_service',
+          serviceKey: 'auth.login'
+        }
+      };
+    }
     if (this.draft.persistenceMode === 'record' || this.draft.persistenceMode === 'hybrid') {
       return {
         mode: this.draft.persistenceMode,
@@ -2940,41 +3472,71 @@ export class FormsPageComponent implements OnInit {
         }
       };
     }
+    if (this.draft.persistenceMode === 'submit_action') {
+      return { mode: 'submit_action' };
+    }
     return { mode: 'none' };
   }
 
   private actionsFromDraft() {
-    if (this.draft.persistenceMode === 'service' && this.draft.serviceKey) {
+    if (this.draft.persistenceMode === 'auth') {
+      const userField = this.draft.authUserField || this.firstFieldKey(['usuario', 'email', 'correo', 'username']) || 'usuario';
+      const passwordField = this.draft.authPasswordField || this.firstPasswordFieldKey() || 'password';
       return [
         {
+          event: 'onSubmit',
+          type: 'execute_service',
+          serviceKey: 'auth.login',
+          resultKey: 'session',
+          payloadMap: {
+            username: `{{input.${userField}}}`,
+            password: `{{input.${passwordField}}}`
+          },
+          onSuccess: [
+            { type: 'set_session', from: '{{result}}' },
+            { type: 'navigate', to: this.draft.authSuccessRoute || '/home' }
+          ],
+          onError: [
+            {
+              type: 'show_message',
+              tone: 'danger',
+              message: this.draft.authErrorMessage || 'Credenciales incorrectas'
+            }
+          ]
+        }
+      ];
+    }
+    if (this.draft.persistenceMode === 'service' && this.draft.serviceKey) {
+      return [
+        this.withSubmitFeedback({
           event: 'onSubmit',
           type: 'execute_service',
           serviceKey: this.draft.serviceKey,
           payloadMap: this.safeMapFromText(this.draft.payloadMapText, { input: '{{input}}' }),
           responseMap: this.safeMapFromText(this.draft.responseMapText, {})
-        }
+        })
       ];
     }
     if (this.draft.persistenceMode === 'flow' && this.draft.flowKey) {
       return [
-        {
+        this.withSubmitFeedback({
           event: 'onSubmit',
           type: 'execute_flow',
           flowKey: this.draft.flowKey,
           payloadMap: this.safeMapFromText(this.draft.payloadMapText, { input: '{{input}}' }),
           responseMap: this.safeMapFromText(this.draft.responseMapText, {})
-        }
+        })
       ];
     }
     if (this.draft.persistenceMode === 'hybrid') {
       const actions: Array<Record<string, unknown>> = [
-        {
+        this.withSubmitFeedback({
           event: 'onSubmit',
           type: 'create_record',
           recordType: this.draft.recordType || this.normalizeKey(this.draft.key),
           resultKey: 'record',
           payloadMap: { input: '{{input}}' }
-        }
+        })
       ];
       if (this.draft.hybridActionType === 'execute_service' && this.draft.hybridServiceKey) {
         actions.push({
@@ -2998,14 +3560,63 @@ export class FormsPageComponent implements OnInit {
       }
       return actions;
     }
+    if (this.draft.persistenceMode === 'submit_action') {
+      const action = this.safeMapFromText(this.draft.customSubmitActionText, {});
+      return [
+        this.withSubmitFeedback({
+          ...action,
+          event: action['event'] || 'onSubmit'
+        })
+      ];
+    }
     return [
-      {
+      this.withSubmitFeedback({
         event: 'onSubmit',
         type: this.draft.persistenceMode === 'none' ? 'show_message' : 'create_record',
         recordType: this.draft.recordType || this.normalizeKey(this.draft.key),
         payloadMap: { input: '{{input}}' }
-      }
+      })
     ];
+  }
+
+  private withSubmitFeedback<T extends Record<string, unknown>>(action: T): T {
+    if (!this.draft.showSubmitFeedback) {
+      return this.withoutSubmitFeedback(action);
+    }
+    return {
+      ...action,
+      onSuccess: [
+        {
+          type: 'show_message',
+          tone: 'success',
+          message: this.draft.submitSuccessMessage || 'Formulario ejecutado correctamente.'
+        }
+      ],
+      onError: [
+        {
+          type: 'show_message',
+          tone: 'danger',
+          message: this.draft.submitErrorMessage || 'No se pudo ejecutar el formulario.'
+        }
+      ]
+    };
+  }
+
+  private withoutSubmitFeedback<T extends Record<string, unknown>>(action: T): T {
+    const next: Record<string, unknown> = { ...action };
+    for (const key of ['onSuccess', 'onError']) {
+      const effects = Array.isArray(next[key]) ? (next[key] as unknown[]) : null;
+      if (!effects) {
+        continue;
+      }
+      const filtered = effects.filter((item) => this.asObject(item)?.['type'] !== 'show_message');
+      if (filtered.length) {
+        next[key] = filtered;
+      } else {
+        delete next[key];
+      }
+    }
+    return next as T;
   }
 
   private commandsFromDraft() {
@@ -3047,20 +3658,40 @@ export class FormsPageComponent implements OnInit {
     });
   }
 
+  private firstFieldKey(candidates: string[]) {
+    const normalizedCandidates = candidates.map((candidate) => this.normalizeKey(candidate));
+    const field = this.allDraftFields.find((item) => normalizedCandidates.includes(this.normalizeKey(item.key)));
+    return field?.key ?? '';
+  }
+
+  private firstPasswordFieldKey() {
+    const field = this.allDraftFields.find((item) => item.type === 'password' || /pass|clave|contrase/.test(this.normalizeKey(item.key)));
+    return field?.key ?? '';
+  }
+
   private draftFromSchema(form: DynamicFormItem): FormDraft {
     const schema = form.schema ?? {};
     const runtime = this.asObject(schema['runtime']);
     const offline = this.asObject(runtime?.['offline']);
     const limits = this.asObject(runtime?.['limits']);
     const presentation = this.asObject(schema['presentation']);
+    const tokens = this.asObject(presentation?.['tokens']);
+    const buttonPrimary = this.asObject(tokens?.['buttonPrimary']);
     const layout = this.asObject(schema['layout']);
+    const formLayout = this.asObject(layout?.['form']);
     const desktopLayout = this.asObject(layout?.['desktop']);
+    const desktopActions = this.asObject(desktopLayout?.['actions']);
+    const tabletLayout = this.asObject(layout?.['tablet']);
+    const tabletActions = this.asObject(tabletLayout?.['actions']);
     const mobileLayout = this.asObject(layout?.['mobile']);
+    const mobileActions = this.asObject(mobileLayout?.['actions']);
     const persistence = this.asObject(schema['persistence']);
     const target = this.asObject(persistence?.['defaultTarget']);
     const submitAction = this.submitActionFromSchema(schema);
+    const submitPayloadMap = this.asObject(submitAction?.['payloadMap']) ?? {};
     const hybridAction = this.hybridActionFromSchema(schema);
     const steps = Array.isArray(schema['steps']) ? (schema['steps'] as Array<Record<string, unknown>>) : [];
+    const persistenceMode = this.asPersistenceMode(persistence?.['mode'], submitAction);
     return {
       templateKey: 'blank',
       key: String(schema['key'] ?? form.key ?? ''),
@@ -3072,21 +3703,43 @@ export class FormsPageComponent implements OnInit {
       theme: String(presentation?.['theme'] ?? 'chicle'),
       themeMode: this.asThemeMode(presentation?.['themeMode']),
       density: this.asDensityMode(presentation?.['density']),
+      formWidth: this.asFormWidth(formLayout?.['width']),
+      formAlign: this.asFormAlign(formLayout?.['align']),
       desktopMode: this.asDesktopLayoutMode(desktopLayout?.['mode']),
       desktopColumns: this.asNumber(desktopLayout?.['cardColumns']) ?? 2,
+      desktopFieldColumns: this.asColumnCount(desktopLayout?.['fieldColumns'], 2),
+      desktopActionPosition: this.asActionPosition(desktopActions?.['position'], 'inline'),
+      desktopActionAlign: this.asActionAlign(desktopActions?.['align'], 'right'),
+      desktopActionSize: this.asActionSize(desktopActions?.['size'], 'md'),
+      tabletFieldColumns: this.asColumnCount(tabletLayout?.['fieldColumns'], 1),
+      tabletActionPosition: this.asActionPosition(tabletActions?.['position'], 'footer'),
+      tabletActionAlign: this.asActionAlign(tabletActions?.['align'], 'stretch'),
+      tabletActionSize: this.asActionSize(tabletActions?.['size'], 'full'),
       mobileMode: this.asMobileLayoutMode(mobileLayout?.['mode']),
+      mobileActionPosition: this.asActionPosition(mobileActions?.['position'], 'bottom_sticky'),
+      mobileActionAlign: this.asActionAlign(mobileActions?.['align'], 'stretch'),
+      mobileActionSize: this.asActionSize(mobileActions?.['size'], 'full'),
+      buttonTone: this.asButtonTone(buttonPrimary?.['background']),
       autosave: runtime?.['autosave'] === true,
       offlineEnabled: offline?.['enabled'] !== false,
       timeoutMs: this.asNumber(limits?.['timeoutMs']) ?? 10000,
       maxPayloadKb: this.asNumber(limits?.['maxPayloadKb']) ?? 512,
-      persistenceMode: this.asPersistenceMode(persistence?.['mode']),
+      persistenceMode,
       recordType: String(target?.['recordType'] ?? form.key ?? ''),
       serviceKey: String(target?.['serviceKey'] ?? ''),
       flowKey: String(target?.['flowKey'] ?? ''),
       hybridActionType: this.asHybridActionType(hybridAction?.['type']),
       hybridServiceKey: String(hybridAction?.['serviceKey'] ?? ''),
       hybridFlowKey: String(hybridAction?.['flowKey'] ?? ''),
-      payloadMapText: JSON.stringify(this.asObject(submitAction?.['payloadMap']) ?? { input: '{{input}}' }, null, 2),
+      authUserField: this.fieldKeyFromTemplate(submitPayloadMap['username']) || this.fieldKeyFromTemplate(submitPayloadMap['email']),
+      authPasswordField: this.fieldKeyFromTemplate(submitPayloadMap['password']),
+      authSuccessRoute: this.authSuccessRouteFromAction(submitAction),
+      authErrorMessage: this.authErrorMessageFromAction(submitAction),
+      showSubmitFeedback: this.submitFeedbackEnabled(submitAction),
+      submitSuccessMessage: this.submitFeedbackText(submitAction, 'success') || 'Formulario ejecutado correctamente.',
+      submitErrorMessage: this.submitFeedbackText(submitAction, 'error') || 'No se pudo ejecutar el formulario.',
+      customSubmitActionText: JSON.stringify(submitAction ?? {}, null, 2),
+      payloadMapText: JSON.stringify(submitPayloadMap ?? { input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify(this.asObject(submitAction?.['responseMap']) ?? {}, null, 2),
       idempotencyKey: String(offline?.['idempotencyKey'] ?? '{{input.email}}'),
       commands: this.commandsFromSchema(schema),
@@ -3146,9 +3799,23 @@ export class FormsPageComponent implements OnInit {
       theme: 'chicle',
       themeMode: 'system',
       density: 'comfortable',
+      formWidth: 'standard',
+      formAlign: 'stretch',
       desktopMode: 'step_cards',
       desktopColumns: 2,
+      desktopFieldColumns: 2,
+      desktopActionPosition: 'inline',
+      desktopActionAlign: 'right',
+      desktopActionSize: 'md',
+      tabletFieldColumns: 1,
+      tabletActionPosition: 'footer',
+      tabletActionAlign: 'stretch',
+      tabletActionSize: 'full',
       mobileMode: 'step_screens',
+      mobileActionPosition: 'bottom_sticky',
+      mobileActionAlign: 'stretch',
+      mobileActionSize: 'full',
+      buttonTone: 'primary',
       autosave: false,
       offlineEnabled: true,
       timeoutMs: 10000,
@@ -3160,6 +3827,14 @@ export class FormsPageComponent implements OnInit {
       hybridActionType: 'none',
       hybridServiceKey: '',
       hybridFlowKey: '',
+      authUserField: 'usuario',
+      authPasswordField: 'password',
+      authSuccessRoute: '/home',
+      authErrorMessage: 'Credenciales incorrectas',
+      showSubmitFeedback: true,
+      submitSuccessMessage: 'Formulario ejecutado correctamente.',
+      submitErrorMessage: 'No se pudo ejecutar el formulario.',
+      customSubmitActionText: JSON.stringify({}, null, 2),
       payloadMapText: JSON.stringify({ input: '{{input}}' }, null, 2),
       responseMapText: JSON.stringify({}, null, 2),
       idempotencyKey: '{{input.email}}',
@@ -3398,9 +4073,9 @@ export class FormsPageComponent implements OnInit {
         key: this.normalizeKey(String(command['key'] ?? `accion_${index + 1}`)),
         label: String(command['label'] ?? command['key'] ?? `Acción ${index + 1}`),
         type: this.asCommandType(command['type']),
-      serviceKey: String(command['serviceKey'] ?? ''),
-      flowKey: String(command['flowKey'] ?? ''),
-      payloadMapText: JSON.stringify(this.asObject(command['payloadMap']) ?? { input: '{{input}}' }, null, 2),
+        serviceKey: String(command['serviceKey'] ?? ''),
+        flowKey: String(command['flowKey'] ?? ''),
+        payloadMapText: JSON.stringify(this.asObject(command['payloadMap']) ?? { input: '{{input}}' }, null, 2),
         responseMode: command['responseMode'] === 'silent' ? 'silent' : 'show_response',
         requiredPermission: this.firstAccessValue(command, 'permissions'),
         requiredRole: this.firstAccessValue(command, 'roles'),
@@ -3479,8 +4154,121 @@ export class FormsPageComponent implements OnInit {
       : null;
   }
 
-  private asPersistenceMode(value: unknown): PersistenceMode {
-    return ['record', 'service', 'flow', 'hybrid', 'none'].includes(String(value))
+  private fieldKeyFromTemplate(value: unknown) {
+    const match = String(value ?? '').match(/\{\{\s*input\.([a-zA-Z0-9_]+)\s*\}\}/);
+    return match?.[1] ?? '';
+  }
+
+  private authSuccessRouteFromAction(action?: Record<string, unknown> | null) {
+    const onSuccess = Array.isArray(action?.['onSuccess']) ? (action?.['onSuccess'] as unknown[]) : [];
+    const navigate = onSuccess.find((item): item is Record<string, unknown> => {
+      const object = this.asObject(item);
+      return object?.['type'] === 'navigate';
+    });
+    return String(navigate?.['to'] ?? '/home');
+  }
+
+  private authErrorMessageFromAction(action?: Record<string, unknown> | null) {
+    const onError = Array.isArray(action?.['onError']) ? (action?.['onError'] as unknown[]) : [];
+    const message = onError.find((item): item is Record<string, unknown> => {
+      const object = this.asObject(item);
+      return object?.['type'] === 'show_message';
+    });
+    return String(message?.['message'] ?? 'Credenciales incorrectas');
+  }
+
+  private submitFeedbackMessage(kind: 'success' | 'error') {
+    const schema = this.safeJson();
+    const action = schema ? this.submitActionFromSchema(schema) : null;
+    const key = kind === 'success' ? 'onSuccess' : 'onError';
+    const effects = Array.isArray(action?.[key]) ? (action?.[key] as unknown[]) : [];
+    const message = effects.find((item): item is Record<string, unknown> => {
+      const object = this.asObject(item);
+      return object?.['type'] === 'show_message';
+    });
+    if (message?.['show'] === false || message?.['visible'] === false) {
+      return '';
+    }
+    return typeof message?.['message'] === 'string' ? message['message'] : '';
+  }
+
+  private submitSuccessMessage(durationMs: number, output: unknown, customMessage = '') {
+    const target = this.submitOutputTarget(output);
+    if (customMessage) {
+      return target ? `${customMessage} ${target}.` : customMessage;
+    }
+    return target
+      ? `Submit ejecutado correctamente en ${durationMs} ms. ${target}.`
+      : `Submit ejecutado correctamente en ${durationMs} ms.`;
+  }
+
+  private submitOutputTarget(output: unknown, depth = 0): string {
+    if (depth > 2) {
+      return '';
+    }
+    const object = this.asObject(output);
+    if (!object) {
+      return '';
+    }
+
+    const responseSnapshot = this.asObject(object['responseSnapshot']);
+    const table = responseSnapshot?.['table'];
+    if (typeof table === 'string' && table.trim()) {
+      const operation = typeof responseSnapshot?.['operation'] === 'string' ? responseSnapshot['operation'] : 'write';
+      return `${this.submitOperationLabel(operation)} en tabla ${table}`;
+    }
+
+    const recordType = object['recordType'];
+    if (typeof recordType === 'string' && recordType.trim()) {
+      return `Guardado en records (${recordType})`;
+    }
+
+    const last = this.asObject(object['last']);
+    if (last) {
+      return this.submitOutputTarget(last, depth + 1);
+    }
+    const result = this.asObject(object['result']);
+    if (result) {
+      return this.submitOutputTarget(result, depth + 1);
+    }
+    return '';
+  }
+
+  private submitOperationLabel(operation: string) {
+    switch (operation) {
+      case 'create':
+        return 'Guardado';
+      case 'update':
+        return 'Actualizado';
+      case 'delete':
+        return 'Eliminado';
+      default:
+        return 'Ejecutado';
+    }
+  }
+
+  private submitFeedbackEnabled(action?: Record<string, unknown> | null) {
+    return Boolean(this.submitFeedbackText(action, 'success') || this.submitFeedbackText(action, 'error'));
+  }
+
+  private submitFeedbackText(action: Record<string, unknown> | null | undefined, kind: 'success' | 'error') {
+    const key = kind === 'success' ? 'onSuccess' : 'onError';
+    const effects = Array.isArray(action?.[key]) ? (action?.[key] as unknown[]) : [];
+    const message = effects.find((item): item is Record<string, unknown> => {
+      const object = this.asObject(item);
+      return object?.['type'] === 'show_message';
+    });
+    if (message?.['show'] === false || message?.['visible'] === false) {
+      return '';
+    }
+    return typeof message?.['message'] === 'string' ? message['message'] : '';
+  }
+
+  private asPersistenceMode(value: unknown, submitAction?: Record<string, unknown> | null): PersistenceMode {
+    if (String(value) === 'none' && submitAction?.['type'] === 'execute_service' && submitAction?.['serviceKey'] === 'auth.login') {
+      return 'auth';
+    }
+    return ['record', 'service', 'flow', 'hybrid', 'auth', 'none', 'submit_action'].includes(String(value))
       ? (value as PersistenceMode)
       : 'record';
   }
@@ -3519,6 +4307,10 @@ export class FormsPageComponent implements OnInit {
   }
 
   private asFieldLayout(value: unknown): FieldLayout {
+    const object = this.asObject(value);
+    if (object) {
+      return this.asFieldLayout(object['desktop']);
+    }
     return value === 'full' || value === 'third' ? value : 'half';
   }
 
@@ -3554,6 +4346,37 @@ export class FormsPageComponent implements OnInit {
     return ['step_screens', 'single_scroll', 'auto'].includes(String(value))
       ? (value as MobileLayoutMode)
       : 'step_screens';
+  }
+
+  private asFormWidth(value: unknown): FormWidth {
+    return ['compact', 'standard', 'wide', 'full'].includes(String(value)) ? (value as FormWidth) : 'standard';
+  }
+
+  private asFormAlign(value: unknown): FormAlign {
+    return ['left', 'center', 'right', 'stretch'].includes(String(value)) ? (value as FormAlign) : 'stretch';
+  }
+
+  private asActionPosition(value: unknown, fallback: ActionPosition): ActionPosition {
+    return ['inline', 'footer', 'bottom_sticky'].includes(String(value)) ? (value as ActionPosition) : fallback;
+  }
+
+  private asActionAlign(value: unknown, fallback: ActionAlign): ActionAlign {
+    return ['left', 'center', 'right', 'stretch'].includes(String(value)) ? (value as ActionAlign) : fallback;
+  }
+
+  private asActionSize(value: unknown, fallback: ActionSize): ActionSize {
+    return ['sm', 'md', 'lg', 'full', 'field'].includes(String(value)) ? (value as ActionSize) : fallback;
+  }
+
+  private asButtonTone(value: unknown): ButtonTone {
+    return ['primary', 'secondary', 'success', 'danger', 'neutral'].includes(String(value))
+      ? (value as ButtonTone)
+      : 'primary';
+  }
+
+  private asColumnCount(value: unknown, fallback: number) {
+    const number = this.asNumber(value) ?? fallback;
+    return Math.max(1, Math.min(3, Math.trunc(number)));
   }
 
   private asNumber(value: unknown): number | null {

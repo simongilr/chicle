@@ -1,10 +1,11 @@
 import { JsonPipe } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AiAssistantService, ApplySchemaChangeAction } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
@@ -20,7 +21,7 @@ import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.
 type TableScope = 'tenant' | 'current_tenant' | 'global';
 type TableSource = 'entity' | 'schema';
 type PageMode = 'data' | 'designer' | 'history';
-type SchemaOperation = 'create_table' | 'add_column' | 'alter_column' | 'drop_column';
+type SchemaOperation = 'create_table' | 'add_column' | 'alter_column' | 'drop_column' | 'drop_table';
 type SchemaColumnType = 'string' | 'text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'uuid';
 
 interface DatabaseColumn {
@@ -58,6 +59,12 @@ interface DatabaseRowsResponse {
 interface DatabaseUpdateResponse {
   table: DatabaseTable;
   row: Record<string, unknown>;
+}
+
+interface DatabaseDeleteResponse {
+  table: DatabaseTable;
+  id: string;
+  deleted: true;
 }
 
 interface SchemaFieldDraft {
@@ -614,22 +621,57 @@ interface SchemaHistoryResponse {
 
                 <div class="form-row">
                   <label for="operation">Operación</label>
-                  <select id="operation" [(ngModel)]="schemaOperation" (ngModelChange)="resetPreview()">
+                  <select id="operation" [(ngModel)]="schemaOperation" (ngModelChange)="onSchemaOperationChange()">
                     <option value="create_table">Crear tabla</option>
                     <option value="add_column">Agregar campo</option>
                     <option value="alter_column">Editar campo</option>
                     <option value="drop_column">Eliminar campo</option>
+                    @if (canDropTables) {
+                      <option value="drop_table">Eliminar tabla completa</option>
+                    }
                   </select>
                 </div>
 
                 <div class="form-row">
                   <label for="schema-table">Tabla</label>
-                  <input
-                    id="schema-table"
-                    [(ngModel)]="schemaTableName"
-                    placeholder="custom_clients"
-                    (ngModelChange)="resetPreview()"
-                  />
+                  @if (schemaOperation === 'create_table') {
+                    <input
+                      id="schema-table"
+                      [(ngModel)]="schemaTableName"
+                      placeholder="custom_clients"
+                      (ngModelChange)="resetPreview()"
+                    />
+                  } @else {
+                    @if (loadingTables) {
+                      <div class="notice">
+                        <strong>Cargando tablas custom</strong>
+                        <span>Estoy consultando el catálogo disponible para el diseñador.</span>
+                      </div>
+                    } @else if (tablesError) {
+                      <div class="notice error">
+                        <strong>No se pudo cargar el catálogo</strong>
+                        <span>{{ tablesError }}</span>
+                        <button type="button" (click)="loadTables()">Reintentar</button>
+                      </div>
+                    } @else {
+                      <select id="schema-table" [(ngModel)]="schemaTableName" (ngModelChange)="onSchemaTableChange()">
+                        <option value="">Selecciona una tabla custom</option>
+                        @for (table of designableTables; track table.name) {
+                          <option [value]="table.name">{{ table.name }} · {{ table.columns.length }} columnas</option>
+                        }
+                      </select>
+                      @if (!designableTables.length) {
+                        <div class="notice">
+                          <strong>No hay tablas custom disponibles</strong>
+                          <span>
+                            El historial puede tener tablas eliminadas, pero solo aparecen aquí las que existen
+                            físicamente en la base de datos.
+                          </span>
+                          <button type="button" (click)="startCreateCustomTable()">Crear tabla custom</button>
+                        </div>
+                      }
+                    }
+                  }
                 </div>
 
                 @if (schemaOperation === 'create_table') {
@@ -677,7 +719,7 @@ interface SchemaHistoryResponse {
                     }
                     <button type="button" (click)="addCreateColumn()">Agregar campo</button>
                   </div>
-                } @else {
+                } @else if (schemaOperation !== 'drop_table') {
                   <div class="form-row">
                     <label for="current-column">Campo actual</label>
                     <input
@@ -725,6 +767,14 @@ interface SchemaHistoryResponse {
                       </p>
                     </div>
                   }
+                } @else {
+                  <div class="form-row">
+                    <label for="table-confirmation">Confirmación owner</label>
+                    <input id="table-confirmation" [(ngModel)]="dropConfirmation" [placeholder]="dropPhrase" />
+                    <p class="meta">
+                      Opción solo desarrollo. Escribe exactamente: <code>{{ dropPhrase }}</code>
+                    </p>
+                  </div>
                 }
 
                 @if (schemaError) {
@@ -876,9 +926,17 @@ interface SchemaHistoryResponse {
                 <div class="modal-actions">
                   <button type="button" (click)="detailVisible = false">Cerrar</button>
                   <button
+                    class="danger"
+                    type="button"
+                    [disabled]="!canDeleteSelectedRow || savingRow || deletingRow"
+                    (click)="deleteRow()"
+                  >
+                    {{ deletingRow ? 'Eliminando...' : 'Eliminar fila' }}
+                  </button>
+                  <button
                     class="primary"
                     type="button"
-                    [disabled]="!selectedTable.editable || savingRow || !editableColumns.length"
+                    [disabled]="!selectedTable.editable || savingRow || deletingRow || !editableColumns.length"
                     (click)="saveRow()"
                   >
                     {{ savingRow ? 'Guardando...' : 'Guardar cambios' }}
@@ -892,9 +950,36 @@ interface SchemaHistoryResponse {
     </app-page-shell>
   `
 })
-export class DatabasePageComponent implements OnInit {
+export class DatabasePageComponent implements OnDestroy, OnInit {
   private readonly api = inject(ApiClientService);
   readonly auth = inject(AuthService);
+  private readonly assistant = inject(AiAssistantService);
+  private appliedAssistantProposalId = 0;
+  private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('database', () =>
+    this.assistantScreenState()
+  );
+  private readonly assistantProposalEffect = effect(() => {
+    const proposal = this.assistant.proposal();
+    if (!proposal || proposal.id === this.appliedAssistantProposalId || proposal.scope !== 'database') {
+      return;
+    }
+
+    const action = proposal.actions.find(
+      (item): item is ApplySchemaChangeAction => item.type === 'apply_schema_change'
+    );
+    if (!action) {
+      return;
+    }
+
+    this.appliedAssistantProposalId = proposal.id;
+    this.applyAssistantSchemaProposal(action);
+  });
+  private readonly authTablesEffect = effect(() => {
+    this.auth.state.session();
+    if (this.auth.state.isOwnerOrAdmin && !this.loadingTables && !this.tables.length) {
+      this.loadTables();
+    }
+  });
   @ViewChild('workspacePanel') private workspacePanel?: ElementRef<HTMLElement>;
 
   readonly columnTypes: SchemaColumnType[] = [
@@ -922,8 +1007,9 @@ export class DatabasePageComponent implements OnInit {
   editDraft: Record<string, string> = {};
   detailVisible = false;
   savingRow = false;
+  deletingRow = false;
   saveError = '';
-  loadingTables = true;
+  loadingTables = false;
   loadingRows = false;
   tablesError = '';
   rowsError = '';
@@ -958,7 +1044,30 @@ export class DatabasePageComponent implements OnInit {
     return this.selectedTable?.columns.filter((column) => column.editable) ?? [];
   }
 
+  get canDeleteSelectedRow() {
+    if (!this.selectedTable || !this.selectedRow?.['id']) {
+      return false;
+    }
+
+    return this.selectedTable.source === 'schema' || ['records', 'dynamic_form_runs'].includes(this.selectedTable.name);
+  }
+
+  get designableTables() {
+    return this.tables.filter((table) => table.designable || table.name.startsWith('custom_'));
+  }
+
+  get selectedSchemaTable() {
+    return this.designableTables.find((table) => table.name === this.schemaTableName);
+  }
+
+  get canDropTables() {
+    return this.auth.state.hasRole('owner');
+  }
+
   get dropPhrase() {
+    if (this.schemaOperation === 'drop_table') {
+      return `DROP TABLE ${this.schemaTableName}`;
+    }
     return `DROP ${this.schemaTableName}.${this.currentColumnName}`;
   }
 
@@ -968,11 +1077,20 @@ export class DatabasePageComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    this.unregisterAssistantState();
+  }
+
   selectTable(table: DatabaseTable, focusWorkspace = true) {
     this.selectedTable = table;
     this.selectedRow = undefined;
     this.filter = '';
     this.schemaTableName = table.designable ? table.name : this.schemaTableName;
+    if (table.designable) {
+      this.currentColumnName = table.columns.find((column) => column.editable)?.name ?? this.currentColumnName;
+      this.syncDropConfirmation();
+      this.resetPreview();
+    }
     if (focusWorkspace) {
       this.focusWorkspacePanel();
     }
@@ -988,6 +1106,7 @@ export class DatabasePageComponent implements OnInit {
         this.tables = response.tables;
         sessionStorage.setItem(DATABASE_TABLE_CACHE_KEY, JSON.stringify(response.tables));
         this.loadingTables = false;
+        this.ensureSchemaTableSelection();
         if (!this.selectedTable && this.tables.length) {
           this.selectTable(this.tables[0], false);
         }
@@ -1101,6 +1220,49 @@ export class DatabasePageComponent implements OnInit {
       });
   }
 
+  deleteRow() {
+    if (!this.selectedTable || !this.selectedRow || !this.selectedRow['id']) {
+      this.saveError = 'No se puede eliminar una fila sin id.';
+      return;
+    }
+
+    if (!this.canDeleteSelectedRow) {
+      this.saveError = 'Esta fila no se puede eliminar desde el visor. Usa el módulo administrativo correspondiente.';
+      return;
+    }
+
+    const id = String(this.selectedRow['id']);
+    const confirmed = window.confirm(`Eliminar solo esta fila de ${this.selectedTable.name}?\n\nID: ${id}`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.deletingRow = true;
+    this.saveError = '';
+    this.api
+      .delete<DatabaseDeleteResponse>(
+        `database/tables/${encodeURIComponent(this.selectedTable.name)}/${encodeURIComponent(id)}`
+      )
+      .subscribe({
+        next: (response) => {
+          this.selectedTable = response.table;
+          this.rows = this.rows.filter((row) => String(row['id']) !== response.id);
+          this.total = Math.max(0, this.total - 1);
+          this.selectedRow = undefined;
+          this.editDraft = {};
+          this.detailVisible = false;
+          this.deletingRow = false;
+          if (!this.rows.length && this.page > 1) {
+            this.loadRows(this.page - 1);
+          }
+        },
+        error: (error) => {
+          this.saveError = this.errorMessage(error);
+          this.deletingRow = false;
+        }
+      });
+  }
+
   addCreateColumn() {
     this.createColumns = [...this.createColumns, this.newField('', true)];
     this.resetPreview();
@@ -1109,6 +1271,71 @@ export class DatabasePageComponent implements OnInit {
   removeCreateColumn(index: number) {
     this.createColumns = this.createColumns.filter((_, itemIndex) => itemIndex !== index);
     this.resetPreview();
+  }
+
+  onSchemaOperationChange() {
+    if (this.schemaOperation === 'drop_table' && !this.canDropTables) {
+      this.schemaOperation = 'create_table';
+    }
+
+    if (this.schemaOperation === 'create_table') {
+      if (!this.schemaTableName.startsWith('custom_')) {
+        this.schemaTableName = 'custom_';
+      }
+      this.resetPreview();
+      return;
+    }
+
+    if (!this.selectedSchemaTable) {
+      this.schemaTableName = this.selectedTable?.designable
+        ? this.selectedTable.name
+        : this.designableTables[0]?.name ?? '';
+    }
+
+    this.syncCurrentColumnFromTable();
+    this.syncDropConfirmation();
+    this.resetPreview();
+  }
+
+  onSchemaTableChange() {
+    this.syncCurrentColumnFromTable();
+    this.syncDropConfirmation();
+    this.resetPreview();
+  }
+
+  startCreateCustomTable() {
+    this.schemaOperation = 'create_table';
+    this.schemaTableName = 'custom_';
+    this.currentColumnName = '';
+    this.dropConfirmation = '';
+    this.resetPreview();
+  }
+
+  private syncCurrentColumnFromTable() {
+    const editableColumns = this.selectedSchemaTable?.columns.filter((column) => column.editable) ?? [];
+    if (!editableColumns.length) {
+      return;
+    }
+
+    const hasCurrentColumn = editableColumns.some((column) => column.name === this.currentColumnName);
+    if (!hasCurrentColumn) {
+      this.currentColumnName = editableColumns[0].name;
+    }
+  }
+
+  private ensureSchemaTableSelection() {
+    if (this.schemaOperation === 'create_table') {
+      return;
+    }
+
+    if (!this.selectedSchemaTable) {
+      this.schemaTableName = this.selectedTable?.name.startsWith('custom_')
+        ? this.selectedTable.name
+        : this.designableTables[0]?.name ?? '';
+    }
+
+    this.syncCurrentColumnFromTable();
+    this.syncDropConfirmation();
   }
 
   syncDropConfirmation() {
@@ -1164,6 +1391,10 @@ export class DatabasePageComponent implements OnInit {
     }
     if (value === 'data' || value === 'designer') {
       this.mode = value;
+      if (this.mode === 'designer' && this.schemaOperation === 'drop_table' && !this.canDropTables) {
+        this.schemaOperation = 'create_table';
+        this.resetPreview();
+      }
     }
   }
 
@@ -1177,6 +1408,87 @@ export class DatabasePageComponent implements OnInit {
         this.historyError = this.errorMessage(error);
       }
     });
+  }
+
+  private applyAssistantSchemaProposal(action: ApplySchemaChangeAction) {
+    const request = action.request as unknown as SchemaRequest;
+    if (request.operation === 'drop_table' && !this.canDropTables) {
+      this.schemaError = 'Eliminar tablas completas solo está disponible para usuarios owner.';
+      this.mode = 'designer';
+      return;
+    }
+    this.mode = 'designer';
+    this.schemaOperation = request.operation;
+    this.schemaTableName = String(request.tableName ?? action.tableName ?? 'custom_');
+    this.currentColumnName = String(request.currentColumnName ?? '');
+    this.dropConfirmation = String(request.confirmation ?? '');
+
+    if (request.operation === 'create_table') {
+      const columns = Array.isArray(request.columns) ? request.columns : [];
+      this.createColumns = columns.length
+        ? columns.map((column) => this.fieldDraftFromRequest(column))
+        : [this.newField('name', false)];
+    } else if (request.column) {
+      this.singleColumn = this.fieldDraftFromRequest(request.column);
+    }
+
+    if (request.operation === 'drop_column' || request.operation === 'drop_table') {
+      this.syncDropConfirmation();
+    }
+
+    this.schemaSuccess = 'Chicle AI preparó el cambio en el diseñador. Revisa el preview antes de aplicar.';
+    this.previewSchema();
+  }
+
+  private assistantScreenState() {
+    return {
+      selectedTable: this.selectedTable
+        ? {
+            name: this.selectedTable.name,
+            source: this.selectedTable.source,
+            scope: this.selectedTable.scope,
+            designable: this.selectedTable.designable,
+            columns: this.selectedTable.columns.map((column) => ({
+              name: column.name,
+              type: column.type,
+              nullable: column.nullable,
+              primary: column.primary,
+              editable: column.editable
+            }))
+          }
+        : null,
+      designer: {
+        operation: this.schemaOperation,
+        tableName: this.schemaTableName,
+        currentColumnName: this.currentColumnName,
+        columns: this.createColumns.map((column) => this.fieldPayload(column))
+      },
+      tables: this.tables.map((table) => ({
+        name: table.name,
+        source: table.source,
+        scope: table.scope,
+        designable: table.designable,
+        columns: table.columns.map((column) => ({
+          name: column.name,
+          type: column.type,
+          nullable: column.nullable,
+          primary: column.primary,
+          editable: column.editable
+        }))
+      }))
+    };
+  }
+
+  private fieldDraftFromRequest(field: Partial<SchemaFieldDraft>): SchemaFieldDraft {
+    return {
+      name: String(field.name ?? ''),
+      type: (field.type as SchemaColumnType) ?? 'string',
+      length: Number(field.length ?? 180),
+      precision: Number(field.precision ?? 12),
+      scale: Number(field.scale ?? 2),
+      nullable: field.nullable ?? true,
+      defaultValue: field.defaultValue === undefined || field.defaultValue === null ? '' : String(field.defaultValue)
+    };
   }
 
   resetPreview() {
@@ -1231,7 +1543,7 @@ export class DatabasePageComponent implements OnInit {
     }
 
     request.currentColumnName = this.currentColumnName.trim();
-    if (this.schemaOperation === 'drop_column') {
+    if (this.schemaOperation === 'drop_column' || this.schemaOperation === 'drop_table') {
       request.confirmation = this.dropConfirmation;
       return request;
     }

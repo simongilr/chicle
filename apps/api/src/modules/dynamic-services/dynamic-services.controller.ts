@@ -8,6 +8,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import {
   DynamicServiceExecuteRequest,
   DynamicServiceJsonAuthoringRequest,
+  RestoreDynamicServiceRequest,
   DynamicServiceTestRequest,
   DynamicServiceUpsertRequest,
   DynamicServiceVersionRequest,
@@ -143,8 +144,12 @@ export class DynamicServicesController {
   @RequirePermissions('services.manage')
   @ApiOperation({ summary: 'Restaurar servicio dinámico desde papelera' })
   @ApiParam({ name: 'serviceId', example: 'service-id' })
-  restore(@CurrentAuth() auth: AuthContext, @Param('serviceId') serviceId: string) {
-    return this.dynamicServices.restore(auth, serviceId);
+  restore(
+    @CurrentAuth() auth: AuthContext,
+    @Param('serviceId') serviceId: string,
+    @Body() body: RestoreDynamicServiceRequest
+  ) {
+    return this.dynamicServices.restore(auth, serviceId, body);
   }
 
   @Post(':serviceId/versions')

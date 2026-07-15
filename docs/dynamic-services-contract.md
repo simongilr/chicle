@@ -81,6 +81,7 @@ contract; production values should come from a future approved secret source.
 - Blocks columns matching password, token, secret or hash.
 - Uses bound parameters.
 - Executes `queryMode=single_table` and `queryMode=multi_table` for safe internal reads.
+- Executes `intent=create`, `intent=update` and `intent=delete` for safe single-table writes with `writeMap`.
 - Limits lists to 100 rows.
 
 `matchMode=all` joins present filters with `AND`. `matchMode=any` joins them with `OR`. An optional filter can be
@@ -102,6 +103,76 @@ Value sources:
 - `literal`: use `value`.
 - `tenant`: authenticated tenant id.
 - `current_user`: authenticated user id.
+
+### Internal writes
+
+Internal writes are declarative. The UI never sends SQL and never writes a table directly. A Dynamic Service owns the
+write contract:
+
+- `intent=create`, `update` or `delete`.
+- `source=internal_table`.
+- `dataTarget.queryMode=single_table`.
+- `dataTarget.primaryTable` must be visible in `GET /api/dynamic-services/catalog/tables`.
+- `dataTarget.writeMap` maps allowed table columns to safe templates such as `{{input.name}}`.
+- `tenantId`, `id`, timestamps and sensitive columns are platform-managed and cannot be supplied by the JSON.
+- `update` and `delete` require at least one explicit filter, in addition to automatic tenant scope.
+
+Create example:
+
+```json
+{
+  "intent": "create",
+  "source": "internal_table",
+  "resultKind": "single",
+  "method": "POST",
+  "url": "internal://table/custom_clients",
+  "dataTarget": {
+    "queryMode": "single_table",
+    "primaryTable": "custom_clients",
+    "writeMap": {
+      "name": "{{input.name}}",
+      "email": "{{input.email}}",
+      "phone": "{{input.phone}}",
+      "active": "{{input.active}}"
+    }
+  },
+  "timeoutMs": 8000,
+  "retry": {
+    "attempts": 0,
+    "backoffMs": 0
+  },
+  "responseMap": {}
+}
+```
+
+Update example:
+
+```json
+{
+  "intent": "update",
+  "source": "internal_table",
+  "resultKind": "single",
+  "method": "PATCH",
+  "url": "internal://table/custom_clients",
+  "dataTarget": {
+    "queryMode": "single_table",
+    "primaryTable": "custom_clients",
+    "writeMap": {
+      "name": "{{input.name}}",
+      "email": "{{input.email}}"
+    },
+    "filters": [
+      {
+        "field": "id",
+        "operator": "equals",
+        "valueSource": "input",
+        "inputKey": "id",
+        "required": true
+      }
+    ]
+  }
+}
+```
 
 ### Multi-table joins
 

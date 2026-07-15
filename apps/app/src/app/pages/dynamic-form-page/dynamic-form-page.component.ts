@@ -15,6 +15,7 @@ import {
 } from '../../engine/forms/form-runtime.service';
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { MobileFormShellComponent } from '../../shared/mobile-form/mobile-form-shell.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import {
@@ -31,6 +32,7 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
     FormlyRuntimeComponent,
     JsonPipe,
     LoadingSkeletonComponent,
+    MobileFormShellComponent,
     ModuleHeaderComponent,
     PageShellComponent,
     PreviewViewportComponent,
@@ -134,33 +136,59 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
         ></app-ui-presentation-switcher>
 
         <app-preview-viewport [(mode)]="previewMode">
-          <div
-            class="form-surface"
-            [attr.data-ui-kit]="resolvedPresentation.kit"
-            [attr.data-ui-theme]="resolvedPresentation.theme"
-          >
-            <div>
-              <h2>{{ form.title }}</h2>
-              <p>Completa los campos marcados como obligatorios.</p>
+          @if (previewMode === 'mobile') {
+            <app-mobile-form-shell
+              eyebrow="Móvil"
+              [title]="form.title"
+              description="Completa los campos marcados como obligatorios."
+            >
+              <app-formly-runtime
+                [definition]="form"
+                [model]="values"
+                [presentation]="effectivePresentation"
+                [viewportWidth]="previewWidth"
+                [readonly]="submitting"
+                [submitLabel]="submitLabel"
+                (modelChange)="updateModel($event)"
+                (validChange)="updateValidity($event)"
+                (submitted)="completeValidation($event)"
+              ></app-formly-runtime>
+              @if (submitMessage) {
+                <app-status-notice tone="success">{{ submitMessage }}</app-status-notice>
+              }
+              @if (submitError) {
+                <app-status-notice tone="error">{{ submitError }}</app-status-notice>
+              }
+            </app-mobile-form-shell>
+          } @else {
+            <div
+              class="form-surface"
+              [attr.data-ui-kit]="resolvedPresentation.kit"
+              [attr.data-ui-theme]="resolvedPresentation.theme"
+            >
+              <div>
+                <h2>{{ form.title }}</h2>
+                <p>Completa los campos marcados como obligatorios.</p>
+              </div>
+              <app-formly-runtime
+                [definition]="form"
+                [model]="values"
+                [presentation]="effectivePresentation"
+                [viewportWidth]="previewWidth"
+                [readonly]="submitting"
+                [submitLabel]="submitLabel"
+                (modelChange)="updateModel($event)"
+                (validChange)="updateValidity($event)"
+                (submitted)="completeValidation($event)"
+              ></app-formly-runtime>
+              @if (submitMessage) {
+                <app-status-notice tone="success">{{ submitMessage }}</app-status-notice>
+              }
+              @if (submitError) {
+                <app-status-notice tone="error">{{ submitError }}</app-status-notice>
+              }
             </div>
-            <app-formly-runtime
-              [definition]="form"
-              [model]="values"
-              [presentation]="effectivePresentation"
-              [viewportWidth]="previewWidth"
-              [readonly]="submitting"
-              [submitLabel]="submitLabel"
-              (modelChange)="updateModel($event)"
-              (validChange)="updateValidity($event)"
-              (submitted)="completeValidation($event)"
-            ></app-formly-runtime>
-            @if (submitMessage) {
-              <app-status-notice tone="success">{{ submitMessage }}</app-status-notice>
-            }
-            @if (submitError) {
-              <app-status-notice tone="error">{{ submitError }}</app-status-notice>
-            }
-          </div>
+          }
         </app-preview-viewport>
 
         <section class="runtime-grid">

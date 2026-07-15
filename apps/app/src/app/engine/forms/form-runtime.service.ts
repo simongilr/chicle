@@ -27,6 +27,18 @@ export interface RuntimeFieldLength {
   exact?: number;
 }
 
+export type RuntimeFieldLayoutSize = 'full' | 'half' | 'third';
+
+export interface RuntimeFieldResponsiveLayout {
+  desktop?: RuntimeFieldLayoutSize;
+  tablet?: RuntimeFieldLayoutSize;
+  mobile?: RuntimeFieldLayoutSize;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'full';
+  desktopSpan?: number;
+  tabletSpan?: number;
+  mobileSpan?: number;
+}
+
 export interface RuntimeField {
   key?: string;
   name: string;
@@ -50,15 +62,7 @@ export interface RuntimeField {
     deniedMode?: 'hidden' | 'readonly';
   };
   readonly?: boolean;
-  layout?:
-    | 'full'
-    | 'half'
-    | 'third'
-    | {
-        desktopSpan?: number;
-        tabletSpan?: number;
-        mobileSpan?: number;
-      };
+  layout?: RuntimeFieldLayoutSize | RuntimeFieldResponsiveLayout;
 }
 
 export interface RuntimeFormStep {

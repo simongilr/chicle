@@ -41,7 +41,7 @@ export class FormlySchemaAdapterService {
     const config: FormlyFieldConfig = {
       key: this.fieldKey(field),
       type: 'chicle-field',
-      className: `ch-formly-field ch-formly-field--${this.layoutClass(field)}`,
+      className: `ch-formly-field ch-formly-field--${this.layoutClass(field, context.viewportWidth)}`,
       defaultValue: field.config?.['defaultValue'],
       props: {
         label: field.label,
@@ -144,9 +144,13 @@ export class FormlySchemaAdapterService {
     return field.key || field.name;
   }
 
-  private layoutClass(field: RuntimeField) {
+  private layoutClass(field: RuntimeField, viewportWidth = 1280) {
     if (typeof field.layout === 'string') {
       return field.layout;
+    }
+    const responsive = this.responsiveLayout(field, viewportWidth);
+    if (responsive) {
+      return responsive;
     }
     if (field.layout?.desktopSpan === 12) {
       return 'full';
@@ -155,5 +159,15 @@ export class FormlySchemaAdapterService {
       return 'third';
     }
     return 'half';
+  }
+
+  private responsiveLayout(field: RuntimeField, viewportWidth: number) {
+    const layout = field.layout;
+    if (!layout || typeof layout !== 'object') {
+      return '';
+    }
+    const device = viewportWidth <= 767 ? 'mobile' : viewportWidth <= 1024 ? 'tablet' : 'desktop';
+    const value = layout[device];
+    return value === 'full' || value === 'half' || value === 'third' ? value : '';
   }
 }

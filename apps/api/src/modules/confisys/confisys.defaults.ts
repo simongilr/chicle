@@ -256,10 +256,45 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
   },
   {
     key: 'ai.fastTimeoutMs',
-    value: 8000,
+    value: 18000,
     valueType: 'number',
     category: 'ai',
     description: 'Timeout corto para respuestas interactivas del asistente antes de continuar con modo ligero.'
+  },
+  {
+    key: 'ai.reasoningTimeoutMs',
+    value: 45000,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Timeout intermedio para razonamiento breve con el modelo local sin bloquear la pantalla por demasiado tiempo.'
+  },
+  {
+    key: 'ai.maxTokens',
+    value: 420,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Límite de tokens para respuestas generales del asistente.'
+  },
+  {
+    key: 'ai.fastMaxTokens',
+    value: 140,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Límite de tokens para análisis interactivos cortos usados antes de generar drafts.'
+  },
+  {
+    key: 'ai.contextWindow',
+    value: 4096,
+    valueType: 'number',
+    category: 'ai',
+    description: 'Ventana de contexto enviada a Ollama para mantener prompts locales livianos.'
+  },
+  {
+    key: 'ai.keepAlive',
+    value: '10m',
+    valueType: 'string',
+    category: 'ai',
+    description: 'Tiempo para mantener el modelo cargado en Ollama después de responder.'
   },
   {
     key: 'ai.rag.enabled',

@@ -12,6 +12,7 @@ import {
   FlowJsonAuthoringRequest,
   FlowMetricsQuery,
   FlowPreviewRequest,
+  RestoreFlowRequest,
   FlowTemplateCreateRequest,
   FlowTemplateInstantiateRequest,
   FlowStepRequest,
@@ -393,8 +394,8 @@ export class FlowsController {
   @RequirePermissions('flows.update')
   @ApiOperation({ summary: 'Restaurar flow desde papelera' })
   @ApiParam({ name: 'flowId', example: 'flow-id' })
-  restore(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string) {
-    return this.flows.restore(auth, flowId);
+  restore(@CurrentAuth() auth: AuthContext, @Param('flowId') flowId: string, @Body() body: RestoreFlowRequest) {
+    return this.flows.restore(auth, flowId, body);
   }
 
   @Post(':flowId/duplicate')

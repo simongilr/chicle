@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-control.component';
 
 @Component({
   selector: 'app-native-field-renderer',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, MobileEvidenceControlComponent],
   styles: [
     `
       :host {
@@ -114,39 +115,6 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
         padding: 9px 11px;
       }
 
-      .file-control,
-      .geo-control {
-        display: grid;
-        gap: 8px;
-      }
-
-      .file-control input[type='file'] {
-        width: 100%;
-        min-height: 44px;
-        border: 1px dashed #9fb7cf;
-        border-radius: var(--ch-radius);
-        background: #fbfcfe;
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-      }
-
-      .geo-control button {
-        min-height: 44px;
-        border: 1px solid #c5d6e6;
-        border-radius: var(--ch-radius);
-        background: #ffffff;
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-        font: inherit;
-        font-weight: 800;
-        text-align: left;
-      }
-
-      .value-summary {
-        color: var(--ch-color-muted);
-        font-size: 0.8rem;
-        line-height: 1.35;
-      }
     `
   ],
   template: `
@@ -224,44 +192,44 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
         </div>
       }
       @case ('file') {
-        <div class="file-control">
-          <input
-            [id]="controlId"
-            [name]="field.name"
-            type="file"
-            [attr.accept]="accept"
-            [required]="field.required === true"
-            [disabled]="disabled || readonly"
-            (change)="updateFile($event)"
-          />
-          @if (valueSummary) {
-            <span class="value-summary">{{ valueSummary }}</span>
-          }
-        </div>
+        <app-mobile-evidence-control
+          mode="file"
+          [controlId]="controlId"
+          [name]="field.name"
+          [value]="value"
+          [placeholder]="field.placeholder || ''"
+          [accept]="accept"
+          [required]="field.required === true"
+          [disabled]="disabled"
+          [readonly]="readonly"
+          (valueChange)="valueChange.emit($event)"
+        ></app-mobile-evidence-control>
       }
       @case ('image') {
-        <div class="file-control">
-          <input
-            [id]="controlId"
-            [name]="field.name"
-            type="file"
-            accept="image/*"
-            [attr.capture]="capture"
-            [required]="field.required === true"
-            [disabled]="disabled || readonly"
-            (change)="updateFile($event)"
-          />
-          @if (valueSummary) {
-            <span class="value-summary">{{ valueSummary }}</span>
-          }
-        </div>
+        <app-mobile-evidence-control
+          mode="image"
+          [controlId]="controlId"
+          [name]="field.name"
+          [value]="value"
+          [placeholder]="field.placeholder || ''"
+          [capture]="capture"
+          [required]="field.required === true"
+          [disabled]="disabled"
+          [readonly]="readonly"
+          (valueChange)="valueChange.emit($event)"
+        ></app-mobile-evidence-control>
       }
       @case ('gps') {
-        <div class="geo-control">
-          <button type="button" [disabled]="disabled || readonly" (click)="captureLocation()">
-            {{ valueSummary || field.placeholder || 'Capturar ubicación' }}
-          </button>
-        </div>
+        <app-mobile-evidence-control
+          mode="gps"
+          [controlId]="controlId"
+          [name]="field.name"
+          [value]="value"
+          [placeholder]="field.placeholder || ''"
+          [disabled]="disabled"
+          [readonly]="readonly"
+          (valueChange)="valueChange.emit($event)"
+        ></app-mobile-evidence-control>
       }
       @default {
         <input
@@ -317,46 +285,4 @@ export class NativeFieldRendererComponent {
     return typeof capture === 'string' ? capture : undefined;
   }
 
-  get valueSummary() {
-    const value = this.value;
-    if (!value) {
-      return '';
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'object') {
-      const object = value as Record<string, unknown>;
-      if (typeof object['lat'] === 'number' && typeof object['lng'] === 'number') {
-        return `${object['lat']}, ${object['lng']}`;
-      }
-      if (object['name']) {
-        return String(object['name']);
-      }
-    }
-    return 'Valor capturado';
-  }
-
-  updateFile(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    this.valueChange.emit(file ? { name: file.name, size: file.size, type: file.type } : null);
-  }
-
-  captureLocation() {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      this.valueChange.emit({ unavailable: true });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        this.valueChange.emit({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        });
-      },
-      () => this.valueChange.emit({ unavailable: true })
-    );
-  }
 }

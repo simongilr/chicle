@@ -53,7 +53,7 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
           linear-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px),
           #e8eef5;
         background-size: 24px 24px;
-        padding: 20px;
+        padding: clamp(12px, 2vw, 22px);
       }
 
       .device {
@@ -121,6 +121,14 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         min-height: 340px;
         background: var(--ch-color-surface);
         transition: min-height 160ms ease;
+      }
+
+      .device.tablet .viewport {
+        min-height: 420px;
+      }
+
+      .device.mobile .viewport {
+        min-height: 520px;
       }
 
       @media (max-width: 520px) {

@@ -180,7 +180,7 @@ Frontend form
 | Mode | Use when | Behavior |
 | --- | --- | --- |
 | `record` | You need flexible captured data without a custom table | Submit creates a row in `records` with `data` and metadata. |
-| `service` | One approved service owns the write | Submit calls a published dynamic service such as `upsert_client_profile`. |
+| `service` | One approved service owns the write | Submit calls a published dynamic service such as `crear_client_profile` or `actualizar_client_profile`. |
 | `flow` | The form must write several tables, call integrations or branch | Submit calls a published flow. This is the preferred complex path. |
 | `hybrid` | Store an audit record and then execute business writes | Runtime creates `records` entry and then executes service/flow actions. |
 | `none` | Search/filter/calculator form | Runtime validates and returns output without persisting captured data. |
@@ -271,7 +271,7 @@ Example field binding:
 A form must not write arbitrary tables by naming table and column values directly from the browser. A write target is
 approved through one of these mechanisms:
 
-1. A published dynamic service with `intent=create`, `update`, `upsert` or `delete`.
+1. A published dynamic service with `intent=create`, `update` or `delete`.
 2. A published flow that orchestrates one or more services and actions.
 3. A generic `create_record` action for flexible record capture.
 
@@ -281,8 +281,8 @@ Example controlled table write through a service:
 {
   "event": "onSubmit",
   "type": "execute_service",
-  "serviceKey": "upsert_client_profile",
-  "operation": "upsert",
+  "serviceKey": "actualizar_client_profile",
+  "operation": "update",
   "payloadMap": {
     "id": "{{input.client_id}}",
     "name": "{{input.client_name}}",
@@ -290,6 +290,88 @@ Example controlled table write through a service:
     "tenantId": "{{tenant.id}}"
   },
   "resultKey": "client"
+}
+```
+
+When the user asks Chicle AI for "a CRUD form for a table", the recommended authoring path is a companion service:
+
+1. Read the real table and columns from `GET /api/dynamic-services/catalog/tables`.
+2. Generate published companion Dynamic Services for the table: `crear_*`, `listar_*`, and when a primary column exists
+   `actualizar_*` and `eliminar_*`.
+3. The create/update services use `dataTarget.writeMap`; update/delete services must also use required filters.
+4. Generate a Dynamic Form whose `persistence.mode` is `service`.
+5. Map each form field into the create service payload.
+6. Use the form preview to run `POST /api/forms/by-key/:formKey/submit`, which then executes the published create
+   service.
+
+The form does not own the database write. The service owns table, allowed columns, tenant scope, filters and runtime
+limits.
+
+When the table does not exist yet and the user explicitly asks to create it from the form, the assistant may generate a
+schema action before the service/form actions. This still does not allow raw SQL from the form. The schema action must
+go through the DB designer:
+
+```json
+{
+  "type": "apply_schema_change",
+  "tableName": "custom_test",
+  "operation": "create_table",
+  "apply": true,
+  "request": {
+    "operation": "create_table",
+    "tableName": "custom_test",
+    "columns": [
+      { "name": "nombre", "type": "string", "length": 160, "nullable": true },
+      { "name": "email", "type": "string", "length": 180, "nullable": true },
+      { "name": "activo", "type": "boolean", "nullable": false, "defaultValue": true }
+    ]
+  }
+}
+```
+
+The UI applies this first with `POST /api/database/schema/apply`. The backend creates the `custom_*` table with `id`,
+`tenantId`, timestamps, records `schema_changes` and generates TypeORM migration source. Only after that should the UI
+apply the companion services and the dynamic form.
+
+Control inference must also come from the same catalog. The generator should prefer safe controls over raw text
+inputs: boolean columns such as `active` become toggles with defaults, enum-like platform fields such as `systemRole`
+become selects with approved values, and foreign-key-style fields such as `roleId` become selects backed by a companion
+lookup service (`listar_roles`) when the related table is visible. This keeps generated CRUD forms usable without
+forcing users to type internal ids or boolean values manually.
+
+Platform security tables can override the generic CRUD path. A form that creates users must use an action such as
+`create_user`, not a direct `writeMap` to `users`, because `passwordHash`, membership and RBAC roles are owned by the
+security module.
+
+```json
+{
+  "persistence": {
+    "mode": "service",
+    "defaultTarget": {
+      "type": "dynamic_service",
+      "serviceKey": "crear_custom_clients"
+    }
+  },
+  "actions": [
+    {
+      "event": "onSubmit",
+      "type": "execute_service",
+      "serviceKey": "crear_custom_clients",
+      "resultKey": "created",
+      "payloadMap": {
+        "name": "{{input.name}}",
+        "email": "{{input.email}}",
+        "phone": "{{input.phone}}",
+        "active": "{{input.active}}"
+      },
+      "onSuccess": [
+        { "type": "show_message", "tone": "success", "message": "Registro guardado correctamente." }
+      ],
+      "onError": [
+        { "type": "show_message", "tone": "danger", "message": "No se pudo guardar el registro." }
+      ]
+    }
+  ]
 }
 ```
 
@@ -712,11 +794,46 @@ Preferred submit actions:
 The form designer should guide users toward `execute_flow` for business processes and `execute_service` for small,
 direct lookups. Complex submit behavior belongs in flows.
 
+Authentication is a first-class submit destination. Login forms should not create records and should not use
+`show_message` as the main action. They use `persistence.mode = "auth"` and a controlled auth service/action:
+
+```json
+{
+  "persistence": {
+    "mode": "auth",
+    "defaultTarget": {
+      "type": "dynamic_service",
+      "serviceKey": "auth.login"
+    }
+  },
+  "actions": [
+    {
+      "event": "onSubmit",
+      "type": "execute_service",
+      "serviceKey": "auth.login",
+      "resultKey": "session",
+      "payloadMap": {
+        "username": "{{input.usuario}}",
+        "password": "{{input.password}}"
+      },
+      "onSuccess": [
+        { "type": "set_session", "from": "{{result}}" },
+        { "type": "navigate", "to": "/home" }
+      ],
+      "onError": [
+        { "type": "show_message", "tone": "danger", "message": "Credenciales incorrectas" }
+      ]
+    }
+  ]
+}
+```
+
 Action selection guidance:
 
 | Need | Preferred action |
 | --- | --- |
 | Save flexible form capture | `create_record` |
+| Start a session | `persistence.mode = "auth"` + `execute_service auth.login` |
 | Write one approved table or entity | `execute_service` |
 | Write multiple tables | `execute_flow` |
 | Call external API after local write | `execute_flow` with outbox/event step |

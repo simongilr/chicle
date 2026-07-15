@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -8,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
-import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
+import { IsNull, Not, Repository, SelectQueryBuilder } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
@@ -245,6 +246,10 @@ export interface FlowJsonAuthoringRequest {
   document?: FlowDefinitionReplaceRequest;
   definition?: FlowDefinitionReplaceRequest;
   publish?: boolean;
+}
+
+export interface RestoreFlowRequest {
+  overwrite?: boolean;
 }
 
 export interface FlowExecuteRequest {
@@ -530,6 +535,8 @@ export class FlowsService implements OnApplicationBootstrap {
   async create(auth: AuthContext, request: FlowUpsertRequest) {
     const key = this.normalizeKey(request.key);
     const name = this.cleanName(request.name);
+    await this.releaseTrashedKey(auth, key);
+    await this.assertActiveKeyAvailable(auth, key);
     const flow = await this.flows.save(
       this.flows.create({
         tenantId: auth.tenant.id,
@@ -557,9 +564,14 @@ export class FlowsService implements OnApplicationBootstrap {
 
   async update(auth: AuthContext, flowId: string, request: FlowUpsertRequest) {
     const flow = await this.requireFlow(auth, flowId);
+    const nextKey = request.key ? this.normalizeKey(request.key) : flow.key;
+    if (nextKey !== flow.key) {
+      await this.releaseTrashedKey(auth, nextKey);
+      await this.assertActiveKeyAvailable(auth, nextKey, flow.id);
+    }
     const saved = await this.flows.save(
       this.flows.merge(flow, {
-        key: request.key ? this.normalizeKey(request.key) : flow.key,
+        key: nextKey,
         name: request.name ? this.cleanName(request.name) : flow.name,
         description: request.description !== undefined ? request.description?.trim() || null : flow.description,
         category: request.category !== undefined ? request.category?.trim() || null : flow.category,
@@ -588,7 +600,9 @@ export class FlowsService implements OnApplicationBootstrap {
     }
     const saved = await this.flows.save(
       this.flows.merge(flow, {
+        key: this.trashKey(flow.key, flow.id),
         status: 'trashed',
+        metadata: this.withTrashOriginalKey(flow.metadata, this.originalKeyFromMetadata(flow.metadata) ?? flow.key),
         trashedAt: new Date(),
         trashedByUserId: auth.user.id
       })
@@ -605,11 +619,23 @@ export class FlowsService implements OnApplicationBootstrap {
     return saved;
   }
 
-  async restore(auth: AuthContext, flowId: string) {
+  async restore(auth: AuthContext, flowId: string, request: RestoreFlowRequest = {}) {
     const flow = await this.requireTrashedFlow(auth, flowId);
+    const restoreKey = this.originalKeyFromMetadata(flow.metadata) ?? this.originalKeyFromTrashKey(flow.key);
+    const conflict = await this.flows.findOne({
+      where: { tenantId: auth.tenant.id, key: restoreKey, trashedAt: IsNull() }
+    });
+    if (conflict && conflict.id !== flow.id) {
+      if (!request.overwrite) {
+        throw new ConflictException('A flow with this key already exists. Confirm overwrite to restore it.');
+      }
+      await this.trash(auth, conflict.id);
+    }
     const saved = await this.flows.save(
       this.flows.merge(flow, {
+        key: restoreKey,
         status: 'draft',
+        metadata: this.withoutTrashOriginalKey(flow.metadata),
         trashedAt: null,
         trashedByUserId: null
       })
@@ -630,6 +656,8 @@ export class FlowsService implements OnApplicationBootstrap {
     const source = await this.requireFlow(auth, flowId);
     const key = this.normalizeKey(request.key);
     const name = this.cleanName(request.name);
+    await this.releaseTrashedKey(auth, key);
+    await this.assertActiveKeyAvailable(auth, key);
     const sourceVersion = request.versionId ? await this.requireVersion(auth, source.id, request.versionId) : null;
     const sourceSteps = await this.steps.find({
       where: {
@@ -888,7 +916,7 @@ export class FlowsService implements OnApplicationBootstrap {
     const key = this.normalizeKey(definition.flow.key);
     const name = this.cleanName(definition.flow.name);
     const existing = await this.flows.findOne({
-      where: { tenantId: auth.tenant.id, key }
+      where: { tenantId: auth.tenant.id, key, trashedAt: IsNull() }
     });
     const flow = existing
       ? await this.update(auth, existing.id, {
@@ -2684,6 +2712,75 @@ export class FlowsService implements OnApplicationBootstrap {
       throw new NotFoundException('Flow not found in trash');
     }
     return flow;
+  }
+
+  private async assertActiveKeyAvailable(auth: AuthContext, key: string, excludeId?: string) {
+    const query = this.flows
+      .createQueryBuilder('flow')
+      .where('flow.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('flow.key = :key', { key })
+      .andWhere('flow.trashedAt IS NULL');
+    if (excludeId) {
+      query.andWhere('flow.id != :excludeId', { excludeId });
+    }
+    if (await query.getOne()) {
+      throw new ConflictException('A flow with this key already exists');
+    }
+  }
+
+  private async releaseTrashedKey(auth: AuthContext, key: string) {
+    const trashed = await this.flows.findOne({
+      where: { tenantId: auth.tenant.id, key, trashedAt: Not(IsNull()) }
+    });
+    if (!trashed) {
+      return;
+    }
+    const originalKey = this.originalKeyFromMetadata(trashed.metadata) ?? key;
+    await this.flows.save(
+      this.flows.merge(trashed, {
+        key: this.trashKey(key, trashed.id),
+        metadata: this.withTrashOriginalKey(trashed.metadata, originalKey)
+      })
+    );
+  }
+
+  private trashKey(key: string, id: string) {
+    const suffix = `__trashed_${id.replace(/-/g, '').slice(0, 8) || Date.now().toString(36)}`;
+    return `${key.slice(0, 120 - suffix.length)}${suffix}`;
+  }
+
+  private originalKeyFromTrashKey(key: string) {
+    return key.replace(/__trashed_[a-z0-9]{8}$/i, '');
+  }
+
+  private originalKeyFromMetadata(metadata?: Record<string, unknown> | null) {
+    const trash = metadata?.['trash'];
+    if (trash && typeof trash === 'object' && !Array.isArray(trash)) {
+      const originalKey = (trash as Record<string, unknown>)['originalKey'];
+      return typeof originalKey === 'string' && originalKey ? originalKey : null;
+    }
+    return null;
+  }
+
+  private withTrashOriginalKey(metadata: Record<string, unknown> | null | undefined, originalKey: string) {
+    const base = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
+    return {
+      ...base,
+      trash: {
+        ...((base['trash'] && typeof base['trash'] === 'object' && !Array.isArray(base['trash'])
+          ? base['trash']
+          : {}) as Record<string, unknown>),
+        originalKey
+      }
+    };
+  }
+
+  private withoutTrashOriginalKey(metadata: Record<string, unknown> | null | undefined) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return null;
+    }
+    const { trash: _trash, ...rest } = metadata;
+    return Object.keys(rest).length ? rest : null;
   }
 
   private async requireVersion(auth: AuthContext, flowId: string, versionId: string) {

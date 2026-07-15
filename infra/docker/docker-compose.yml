@@ -38,6 +38,9 @@ services:
       CHICLE_SWAGGER_PASSWORD: ${CHICLE_SWAGGER_PASSWORD:-}
       CHICLE_ALLOW_SYSTEM_RESET: ${CHICLE_ALLOW_SYSTEM_RESET:-false}
       CHICLE_RESET_KEY: ${CHICLE_RESET_KEY:-}
+      CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES: ${CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES:-true}
+      CHICLE_SCHEMA_MIGRATIONS_DIR: ${CHICLE_SCHEMA_MIGRATIONS_DIR:-src/database/migrations}
+      CHICLE_SCHEMA_ALLOW_DROP_TABLE: ${CHICLE_SCHEMA_ALLOW_DROP_TABLE:-true}
       FILES_ROOT: /app/storage/files
       AI_ENABLED: ${AI_ENABLED:-true}
       AI_PROVIDER: ${AI_PROVIDER:-ollama}
@@ -45,7 +48,12 @@ services:
       AI_CHAT_MODEL: ${AI_CHAT_MODEL:-qwen2.5-coder:7b}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-nomic-embed-text:v1.5}
       AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-180000}
-      AI_FAST_TIMEOUT_MS: ${AI_FAST_TIMEOUT_MS:-8000}
+      AI_FAST_TIMEOUT_MS: ${AI_FAST_TIMEOUT_MS:-18000}
+      AI_REASONING_TIMEOUT_MS: ${AI_REASONING_TIMEOUT_MS:-45000}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS:-420}
+      AI_FAST_MAX_TOKENS: ${AI_FAST_MAX_TOKENS:-140}
+      AI_CONTEXT_WINDOW: ${AI_CONTEXT_WINDOW:-4096}
+      AI_KEEP_ALIVE: ${AI_KEEP_ALIVE:-10m}
       AI_RAG_ENABLED: ${AI_RAG_ENABLED:-true}
       AI_RAG_MODE: ${AI_RAG_MODE:-keyword}
       AI_MAX_CONTEXT_CHUNKS: ${AI_MAX_CONTEXT_CHUNKS:-12}
@@ -54,6 +62,7 @@ services:
       - "${API_PORT:-3000}:${API_PORT:-3000}"
     volumes:
       - chicle_files:/app/storage/files
+      - ../../apps/api/src/database/migrations:/app/src/database/migrations
     depends_on:
       db:
         condition: service_healthy

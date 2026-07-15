@@ -47,6 +47,12 @@ export interface DatabaseUpdateResponse {
   row: ObjectLiteral;
 }
 
+export interface DatabaseDeleteResponse {
+  table: VisibleTable;
+  id: string;
+  deleted: true;
+}
+
 export interface SchemaFieldInput {
   name: string;
   type: SchemaColumnType;
@@ -112,6 +118,7 @@ const READONLY_TABLES = new Set([
   'user_roles'
 ]);
 const READONLY_COLUMNS = new Set(['id', 'tenantId', 'createdAt', 'updatedAt', 'deletedAt', 'systemRole']);
+const DELETABLE_ENTITY_TABLES = new Set(['records', 'dynamic_form_runs']);
 const SENSITIVE_COLUMNS = new Set([
   'password',
   'passwordHash',
@@ -248,14 +255,54 @@ export class DatabaseViewerService {
     };
   }
 
+  async deleteRow(auth: AuthContext, table: string, id: string): Promise<DatabaseDeleteResponse> {
+    const visible = await this.findVisibleTable(auth, table);
+    if (!visible) {
+      throw new NotFoundException('Table not available');
+    }
+
+    if (visible.source === 'schema') {
+      return this.deleteCustomRow(auth, visible, id);
+    }
+
+    if (!DELETABLE_ENTITY_TABLES.has(visible.name)) {
+      throw new ForbiddenException('Row delete is only available for records, dynamic_form_runs and custom tables');
+    }
+
+    const metadata = this.requireMetadata(table);
+    const primary = metadata.primaryColumns[0];
+    if (!primary || metadata.primaryColumns.length !== 1) {
+      throw new BadRequestException('Only single primary key tables can be deleted');
+    }
+
+    const repository = this.dataSource.getRepository<ObjectLiteral>(metadata.target);
+    const row = await repository.findOne({
+      where: {
+        ...this.scopeWhere(auth, metadata, visible.scope),
+        [primary.propertyName]: id
+      }
+    });
+    if (!row) {
+      throw new NotFoundException('Row not found');
+    }
+
+    await repository.remove(row);
+
+    return {
+      table: visible,
+      id,
+      deleted: true
+    };
+  }
+
   async previewSchemaChange(auth: AuthContext, request: SchemaDesignRequest): Promise<SchemaPreviewResponse> {
     this.assertCanDesign(auth);
-    return this.buildSchemaPlan(request);
+    return this.buildSchemaPlan(auth, request);
   }
 
   async applySchemaChange(auth: AuthContext, request: SchemaDesignRequest): Promise<SchemaApplyResponse> {
     this.assertCanDesign(auth);
-    const plan = await this.buildSchemaPlan(request);
+    const plan = await this.buildSchemaPlan(auth, request);
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -307,6 +354,19 @@ export class DatabaseViewerService {
   private assertCanDesign(auth: AuthContext) {
     if (!this.isOwnerOrAdmin(auth)) {
       throw new ForbiddenException('Database schema designer is only available for owner or admin users');
+    }
+  }
+
+  private isOwner(auth: AuthContext) {
+    return auth.user.systemRole === 'owner' || auth.roles.some((role) => role.key === 'owner');
+  }
+
+  private assertCanDropTable(auth: AuthContext) {
+    if (!this.isOwner(auth)) {
+      throw new ForbiddenException('Dropping custom tables is only available for owner users');
+    }
+    if (this.config.get<string>('CHICLE_SCHEMA_ALLOW_DROP_TABLE', 'false') !== 'true') {
+      throw new ForbiddenException('Dropping custom tables is disabled outside the local development profile');
     }
   }
 
@@ -527,7 +587,32 @@ export class DatabaseViewerService {
     return { table, row: this.maskRow(saved[0]) };
   }
 
-  private async buildSchemaPlan(request: SchemaDesignRequest): Promise<SchemaPlan> {
+  private async deleteCustomRow(auth: AuthContext, table: VisibleTable, id: string): Promise<DatabaseDeleteResponse> {
+    const row = await this.dataSource.query(
+      `SELECT ${this.escapeIdentifier('id')} FROM ${this.escapeIdentifier(table.name)} WHERE ${this.escapeIdentifier(
+        'id'
+      )} = ? AND ${this.escapeIdentifier('tenantId')} = ? LIMIT 1`,
+      [id, auth.tenant.id]
+    );
+    if (!row.length) {
+      throw new NotFoundException('Row not found');
+    }
+
+    await this.dataSource.query(
+      `DELETE FROM ${this.escapeIdentifier(table.name)} WHERE ${this.escapeIdentifier('id')} = ? AND ${this.escapeIdentifier(
+        'tenantId'
+      )} = ? LIMIT 1`,
+      [id, auth.tenant.id]
+    );
+
+    return {
+      table,
+      id,
+      deleted: true
+    };
+  }
+
+  private async buildSchemaPlan(auth: AuthContext, request: SchemaDesignRequest): Promise<SchemaPlan> {
     const operation = request.operation;
     const tableName = this.assertCustomTableName(request.tableName);
     const warnings: string[] = [
@@ -588,6 +673,14 @@ CREATE TABLE ${this.escapeIdentifier(tableName)} (
       columnName = currentColumnName;
       sql = `ALTER TABLE ${this.escapeIdentifier(tableName)} DROP COLUMN ${this.escapeIdentifier(currentColumnName)}`;
       warnings.push('Eliminar una columna borra sus datos. Esta operación no se puede recuperar desde la DB.');
+    } else if (operation === 'drop_table') {
+      this.assertCanDropTable(auth);
+      await this.assertExistingCustomTable(tableName);
+      if (request.confirmation !== `DROP TABLE ${tableName}`) {
+        throw new BadRequestException(`Confirmation must be: DROP TABLE ${tableName}`);
+      }
+      sql = `DROP TABLE ${this.escapeIdentifier(tableName)}`;
+      warnings.push('Eliminar una tabla borra todos sus datos. Esta operación solo debe usarse en desarrollo local.');
     } else {
       throw new BadRequestException('Unsupported schema operation');
     }
@@ -638,7 +731,7 @@ CREATE TABLE ${this.escapeIdentifier(tableName)} (
   }
 
   private async tryWriteMigrationFile(plan: SchemaPlan, change: SchemaChange) {
-    if (this.config.get<string>('CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES', 'false') !== 'true') {
+    if (this.config.get<string>('CHICLE_SCHEMA_MIGRATIONS_WRITE_FILES', 'true') !== 'true') {
       return;
     }
 
@@ -785,7 +878,13 @@ CREATE TABLE ${this.escapeIdentifier(tableName)} (
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
     const timestamp = className.match(/^[0-9]+/)?.[0] ?? String(Date.now());
-    const escapedSql = sql.replace(/`/g, '\\`').replace(/\${/g, '\\${');
+    const migrationSql =
+      operation === 'create_table'
+        ? sql.replace(/^CREATE TABLE\s+/i, 'CREATE TABLE IF NOT EXISTS ')
+        : operation === 'drop_table'
+          ? sql.replace(/^DROP TABLE\s+/i, 'DROP TABLE IF EXISTS ')
+          : sql;
+    const escapedSql = migrationSql.replace(/`/g, '\\`').replace(/\${/g, '\\${');
     const downSql = this.downSql(operation, tableName, columnName);
 
     return `import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -811,6 +910,10 @@ export class ${pascal}${timestamp} implements MigrationInterface {
 
     if (operation === 'add_column' && columnName) {
       return `await queryRunner.query('ALTER TABLE ${this.escapeIdentifier(tableName)} DROP COLUMN ${this.escapeIdentifier(columnName)}');`;
+    }
+
+    if (operation === 'drop_table') {
+      return '// Restaurar una tabla eliminada requiere una migracion manual con estructura y datos respaldados.';
     }
 
     return '// Reversar este cambio requiere una migracion manual porque puede afectar datos existentes.';

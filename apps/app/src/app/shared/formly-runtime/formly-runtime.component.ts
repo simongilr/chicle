@@ -26,6 +26,8 @@ import {
   ProcessStepItem,
   ProcessStepsComponent
 } from '../process-steps/process-steps.component';
+import { MobileActionBarComponent } from '../mobile-form/mobile-action-bar.component';
+import { MobileStepProgressComponent } from '../mobile-form/mobile-step-progress.component';
 import { StatusNoticeComponent } from '../status-notice/status-notice.component';
 
 interface RenderedRuntimeStep {
@@ -36,24 +38,89 @@ interface RenderedRuntimeStep {
 @Component({
   selector: 'app-formly-runtime',
   standalone: true,
-  imports: [FormlyForm, ProcessStepsComponent, ReactiveFormsModule, StatusNoticeComponent],
+  imports: [
+    FormlyForm,
+    MobileActionBarComponent,
+    MobileStepProgressComponent,
+    ProcessStepsComponent,
+    ReactiveFormsModule,
+    StatusNoticeComponent
+  ],
   styles: [
     `
       :host {
         display: grid;
-        gap: 16px;
+        gap: 14px;
         min-width: 0;
       }
 
       form {
         display: grid;
-        gap: 16px;
+        gap: 14px;
         min-width: 0;
+      }
+
+      form[data-form-width='compact'] {
+        width: min(100%, 560px);
+      }
+
+      form[data-form-width='standard'] {
+        width: min(100%, 760px);
+      }
+
+      form[data-form-width='wide'] {
+        width: min(100%, 980px);
+      }
+
+      form[data-form-width='full'] {
+        width: 100%;
+      }
+
+      form[data-form-align='left'] {
+        justify-self: start;
+      }
+
+      form[data-form-align='center'] {
+        justify-self: center;
+      }
+
+      form[data-form-align='right'] {
+        justify-self: end;
+      }
+
+      form[data-form-align='stretch'] {
+        justify-self: stretch;
+      }
+
+      form.runtime-form-short .runtime-sections.short {
+        width: 100%;
+      }
+
+      form.runtime-form-short .ch-formly-grid {
+        grid-template-columns: 1fr;
+      }
+
+      form.runtime-form-short .ch-formly-field,
+      form.runtime-form-short .ch-formly-field--full,
+      form.runtime-form-short .ch-formly-field--half,
+      form.runtime-form-short .ch-formly-field--third {
+        grid-column: 1 / -1;
+      }
+
+      form.runtime-form-short[data-action-size='field'] .runtime-sections.short,
+      form.runtime-form-short[data-action-size='field'] .step-heading,
+      form.runtime-form-short[data-action-size='field'] .ch-formly-grid {
+        width: min(100%, 420px);
+        justify-self: center;
       }
 
       .runtime-sections {
         display: grid;
         gap: 14px;
+      }
+
+      .runtime-sections.short {
+        width: min(100%, 560px);
       }
 
       .runtime-sections.cards {
@@ -85,6 +152,18 @@ interface RenderedRuntimeStep {
       .runtime-layout-compact .ch-formly-grid,
       .runtime-layout-tablet .ch-formly-grid {
         grid-template-columns: 1fr;
+      }
+
+      form[data-field-columns='1'] .ch-formly-grid {
+        grid-template-columns: 1fr;
+      }
+
+      form[data-field-columns='2'] .ch-formly-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      form[data-field-columns='3'] .ch-formly-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .runtime-layout-compact .ch-formly-field,
@@ -124,11 +203,89 @@ interface RenderedRuntimeStep {
         gap: 8px;
       }
 
+      form[data-action-position='footer'] .actions {
+        border-top: 1px solid var(--ch-color-border);
+        padding-top: 12px;
+      }
+
+      form[data-action-position='bottom_sticky'] .actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        margin-top: 2px;
+        padding-top: 10px;
+        background: linear-gradient(180deg, rgb(255 255 255 / 0.7), var(--ch-color-surface) 38%);
+      }
+
+      .actions.no-secondary {
+        justify-content: flex-end;
+      }
+
+      form[data-action-align='left'] .actions,
+      form[data-action-align='left'] .actions.no-secondary {
+        justify-content: flex-start;
+      }
+
+      form[data-action-align='center'] .actions,
+      form[data-action-align='center'] .actions.no-secondary {
+        justify-content: center;
+      }
+
+      form[data-action-align='right'] .actions,
+      form[data-action-align='right'] .actions.no-secondary {
+        justify-content: flex-end;
+      }
+
+      form[data-action-align='stretch'] .actions,
+      form[data-action-align='stretch'] .actions.no-secondary {
+        justify-content: stretch;
+      }
+
       .actions-end {
         display: flex;
         justify-content: flex-end;
         gap: 8px;
         margin-left: auto;
+      }
+
+      form[data-action-align='left'] .actions-end,
+      form[data-action-align='center'] .actions-end,
+      form[data-action-align='stretch'] .actions-end {
+        margin-left: 0;
+      }
+
+      form[data-action-align='stretch'] .actions-end,
+      form[data-action-size='full'] .actions-end {
+        flex: 1;
+      }
+
+      form[data-action-size='field'] .actions {
+        width: min(100%, 420px);
+        justify-self: center;
+      }
+
+      form[data-action-size='field'] .actions-end {
+        width: 100%;
+        flex: 1;
+        margin-left: 0;
+      }
+
+      form[data-action-size='sm'] button {
+        min-height: 34px;
+        padding: 6px 11px;
+        font-size: 0.88rem;
+      }
+
+      form[data-action-size='lg'] button {
+        min-height: 46px;
+        padding: 10px 18px;
+        font-size: 1rem;
+      }
+
+      form[data-action-align='stretch'] .actions-end button.primary,
+      form[data-action-size='field'] .actions-end button.primary,
+      form[data-action-size='full'] .actions-end button.primary {
+        width: 100%;
       }
 
       .command-actions {
@@ -155,6 +312,30 @@ interface RenderedRuntimeStep {
         color: var(--ch-color-primary-contrast);
       }
 
+      form[data-primary-tone='success'] button.primary {
+        border-color: #16865f;
+        background: #16865f;
+        color: #ffffff;
+      }
+
+      form[data-primary-tone='danger'] button.primary {
+        border-color: #b42318;
+        background: #b42318;
+        color: #ffffff;
+      }
+
+      form[data-primary-tone='secondary'] button.primary {
+        border-color: #315a90;
+        background: #315a90;
+        color: #ffffff;
+      }
+
+      form[data-primary-tone='neutral'] button.primary {
+        border-color: #344054;
+        background: #344054;
+        color: #ffffff;
+      }
+
       button.secondary {
         background: #f7fbff;
       }
@@ -165,6 +346,24 @@ interface RenderedRuntimeStep {
       }
 
       @media (max-width: 520px) {
+        :host,
+        form {
+          gap: 12px;
+        }
+
+        .step-heading {
+          gap: 3px;
+        }
+
+        h2 {
+          font-size: 1rem;
+        }
+
+        p {
+          font-size: 0.88rem;
+          line-height: 1.38;
+        }
+
         .runtime-sections.cards {
           grid-template-columns: 1fr;
         }
@@ -172,6 +371,10 @@ interface RenderedRuntimeStep {
         .actions {
           display: grid;
           grid-template-columns: 1fr;
+        }
+
+        .actions.no-secondary {
+          justify-content: stretch;
         }
 
         .actions-end {
@@ -188,7 +391,7 @@ interface RenderedRuntimeStep {
     `
   ],
   template: `
-    @if (showStepper) {
+    @if (showProcessStepper) {
       <app-process-steps
         [items]="processSteps"
         [activeKey]="currentStep.key"
@@ -196,14 +399,30 @@ interface RenderedRuntimeStep {
       ></app-process-steps>
     }
 
+    @if (showMobileStepper) {
+      <app-mobile-step-progress
+        [items]="processSteps"
+        [activeKey]="currentStep.key"
+        [interactive]="false"
+      ></app-mobile-step-progress>
+    }
+
     <form
       [formGroup]="form"
       [class.runtime-layout-compact]="isCompactViewport"
       [class.runtime-layout-tablet]="isTabletViewport"
+      [class.runtime-form-short]="isShortForm"
+      [attr.data-form-width]="formWidth"
+      [attr.data-form-align]="formAlign"
+      [attr.data-field-columns]="fieldColumns"
+      [attr.data-action-position]="actionPosition"
+      [attr.data-action-align]="actionAlign"
+      [attr.data-action-size]="actionSize"
+      [attr.data-primary-tone]="primaryTone"
       (ngSubmit)="continue()"
     >
       @if (isContinuousLayout) {
-        <div class="runtime-sections" [class.cards]="isCardLayout">
+        <div class="runtime-sections" [class.cards]="isCardLayout" [class.short]="isShortForm">
           @for (section of renderedSteps; track section.step.key) {
             <section class="runtime-section" [class.card]="isCardLayout">
               <div class="step-heading">
@@ -268,18 +487,30 @@ interface RenderedRuntimeStep {
       }
 
       @if (showActions) {
-        <div class="actions">
-          <button type="button" (click)="previous()" [disabled]="currentStepIndex === 0">
-            Anterior
-          </button>
-          <div class="actions-end">
-            @if (currentStepIndex < steps.length - 1) {
-              <button class="primary" type="submit">Continuar</button>
-            } @else {
-              <button class="primary" type="submit">{{ submitLabel }}</button>
+        @if (isCompactViewport) {
+          <app-mobile-action-bar
+            [secondaryLabel]="showPreviousAction ? 'Anterior' : ''"
+            [secondaryDisabled]="currentStepIndex === 0"
+            [primaryLabel]="currentStepIndex < steps.length - 1 ? 'Continuar' : submitLabel"
+            primaryType="submit"
+            (secondary)="previous()"
+          ></app-mobile-action-bar>
+        } @else {
+          <div class="actions" [class.no-secondary]="!showPreviousAction">
+            @if (showPreviousAction) {
+              <button type="button" (click)="previous()" [disabled]="currentStepIndex === 0">
+                Anterior
+              </button>
             }
+            <div class="actions-end">
+              @if (currentStepIndex < steps.length - 1) {
+                <button class="primary" type="submit">Continuar</button>
+              } @else {
+                <button class="primary" type="submit">{{ submitLabel }}</button>
+              }
+            </div>
           </div>
-        </div>
+        }
       }
     </form>
   `
@@ -381,8 +612,87 @@ export class FormlyRuntimeComponent implements OnChanges {
     return this.layoutMode === 'step_cards' && (this.viewportWidth ?? 1280) > 767;
   }
 
+  get isShortForm() {
+    return this.steps.length === 1 && (this.steps[0]?.fields?.length ?? 0) <= 4;
+  }
+
+  get deviceLayoutKey() {
+    const width = this.viewportWidth ?? 1280;
+    if (width <= 767) {
+      return 'mobile';
+    }
+    if (width <= 1024) {
+      return 'tablet';
+    }
+    return 'desktop';
+  }
+
+  get formWidth() {
+    const form = this.asObject(this.layoutConfig?.['form']);
+    return this.allowed(String(form?.['width'] ?? ''), ['compact', 'standard', 'wide', 'full'], this.isShortForm ? 'compact' : 'full');
+  }
+
+  get formAlign() {
+    const form = this.asObject(this.layoutConfig?.['form']);
+    return this.allowed(String(form?.['align'] ?? ''), ['left', 'center', 'right', 'stretch'], this.isShortForm ? 'left' : 'stretch');
+  }
+
+  get fieldColumns() {
+    if (this.isCompactViewport || this.isShortForm) {
+      return 1;
+    }
+    const columns = Number(this.deviceLayoutConfig?.['fieldColumns']);
+    if (Number.isFinite(columns) && columns >= 1 && columns <= 3) {
+      return Math.trunc(columns);
+    }
+    return this.isTabletViewport ? 1 : 2;
+  }
+
+  get actionPosition() {
+    return this.allowed(
+      String(this.actionLayoutConfig?.['position'] ?? ''),
+      ['inline', 'footer', 'bottom_sticky'],
+      this.isCompactViewport ? 'bottom_sticky' : 'inline'
+    );
+  }
+
+  get actionAlign() {
+    return this.allowed(
+      String(this.actionLayoutConfig?.['align'] ?? ''),
+      ['left', 'center', 'right', 'stretch'],
+      this.isCompactViewport ? 'stretch' : 'right'
+    );
+  }
+
+  get actionSize() {
+    return this.allowed(
+      String(this.actionLayoutConfig?.['size'] ?? ''),
+      ['sm', 'md', 'lg', 'full', 'field'],
+      this.isCompactViewport ? 'full' : 'md'
+    );
+  }
+
+  get primaryTone() {
+    const presentation = this.asObject(this.definition?.presentation);
+    const tokens = this.asObject(presentation?.['tokens']);
+    const buttonPrimary = this.asObject(tokens?.['buttonPrimary']);
+    return this.allowed(String(buttonPrimary?.['background'] ?? ''), ['primary', 'secondary', 'success', 'danger', 'neutral'], 'primary');
+  }
+
+  get showPreviousAction() {
+    return !this.isContinuousLayout && this.steps.length > 1;
+  }
+
   get showStepper() {
     return this.steps.length > 1 && !this.isContinuousLayout;
+  }
+
+  get showProcessStepper() {
+    return this.showStepper && !this.isCompactViewport;
+  }
+
+  get showMobileStepper() {
+    return this.showStepper && this.isCompactViewport;
   }
 
   get processSteps(): ProcessStepItem[] {
@@ -523,6 +833,22 @@ export class FormlyRuntimeComponent implements OnChanges {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
+  }
+
+  private get layoutConfig() {
+    return this.asObject(this.definition?.layout);
+  }
+
+  private get deviceLayoutConfig() {
+    return this.asObject(this.layoutConfig?.[this.deviceLayoutKey]);
+  }
+
+  private get actionLayoutConfig() {
+    return this.asObject(this.deviceLayoutConfig?.['actions']);
+  }
+
+  private allowed<T extends string>(value: string, values: readonly T[], fallback: T): T {
+    return values.includes(value as T) ? (value as T) : fallback;
   }
 
   private loadDynamicOptions() {

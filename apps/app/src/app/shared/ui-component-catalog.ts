@@ -4,7 +4,8 @@ export type UiComponentCategory =
   | 'Guía y estados'
   | 'Formularios'
   | 'Temas y presentación'
-  | 'Flow especializado';
+  | 'Flow especializado'
+  | 'Apps verticales';
 
 export interface UiComponentCatalogEntry {
   name: string;
@@ -231,6 +232,49 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-dynamic-field-library [viewportWidth]="390"></app-dynamic-field-library>'
   },
   {
+    name: 'MobileFormShellComponent',
+    selector: 'app-mobile-form-shell',
+    category: 'Formularios',
+    purpose: 'Contenedor móvil para formularios: encabezado compacto, descripción corta, metadata y cuerpo táctil.',
+    importPath: 'shared/mobile-form/mobile-form-shell.component',
+    usedBy: ['Dynamic forms preview', 'Future mobile dynamic screens'],
+    status: 'initial',
+    example:
+      '<app-mobile-form-shell title="Inspección" description="Captura evidencias.">...</app-mobile-form-shell>'
+  },
+  {
+    name: 'MobileStepProgressComponent',
+    selector: 'app-mobile-step-progress',
+    category: 'Formularios',
+    purpose: 'Progreso compacto para formularios móviles por pasos, con barra y chips horizontales.',
+    importPath: 'shared/mobile-form/mobile-step-progress.component',
+    usedBy: ['FormlyRuntimeComponent'],
+    status: 'initial',
+    example: '<app-mobile-step-progress [items]="steps" activeKey="datos"></app-mobile-step-progress>'
+  },
+  {
+    name: 'MobileActionBarComponent',
+    selector: 'app-mobile-action-bar',
+    category: 'Formularios',
+    purpose: 'Barra inferior táctil para acciones primarias y secundarias en formularios móviles.',
+    importPath: 'shared/mobile-form/mobile-action-bar.component',
+    usedBy: ['FormlyRuntimeComponent'],
+    status: 'initial',
+    example:
+      '<app-mobile-action-bar secondaryLabel="Anterior" primaryLabel="Continuar" primaryType="submit"></app-mobile-action-bar>'
+  },
+  {
+    name: 'MobileEvidenceControlComponent',
+    selector: 'app-mobile-evidence-control',
+    category: 'Formularios',
+    purpose: 'Control táctil reutilizable para archivo, foto/evidencia y GPS en formularios móviles.',
+    importPath: 'shared/mobile-form/mobile-evidence-control.component',
+    usedBy: ['IonicFieldRendererComponent', 'PrimengFieldRendererComponent', 'NativeFieldRendererComponent'],
+    status: 'initial',
+    example:
+      '<app-mobile-evidence-control mode="image" controlId="foto" name="foto" (valueChange)="value = $event"></app-mobile-evidence-control>'
+  },
+  {
     name: 'FormlyRuntimeComponent',
     selector: 'app-formly-runtime',
     category: 'Formularios',
@@ -354,5 +398,47 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Flows'],
     status: 'domain',
     example: '<app-flow-timeline [steps]="steps" [selectedStepId]="selectedStepId"></app-flow-timeline>'
+  },
+  {
+    name: 'AppMetricStripComponent',
+    selector: 'app-metric-strip',
+    category: 'Apps verticales',
+    purpose: 'Banda reutilizable de métricas para dashboards, home de apps y pantallas de operación.',
+    importPath: 'shared/app-visuals/app-metric-strip.component',
+    usedBy: ['Components', 'Future screen designer', 'Template installer'],
+    status: 'initial',
+    example: '<app-metric-strip [items]="metrics"></app-metric-strip>'
+  },
+  {
+    name: 'AppEntityCardComponent',
+    selector: 'app-entity-card',
+    category: 'Apps verticales',
+    purpose:
+      'Tarjeta reusable para elementos de negocio: eventos, inmuebles, tickets, servicios, juegos e inspecciones.',
+    importPath: 'shared/app-visuals/app-entity-card.component',
+    usedBy: ['Components', 'Future screen designer', 'Template installer'],
+    status: 'initial',
+    example: '<app-entity-card [card]="eventCard"></app-entity-card>'
+  },
+  {
+    name: 'AppTimelineComponent',
+    selector: 'app-app-timeline',
+    category: 'Apps verticales',
+    purpose: 'Timeline compacto de estado para procesos de apps verticales y operaciones móviles.',
+    importPath: 'shared/app-visuals/app-timeline.component',
+    usedBy: ['Components', 'Future screen designer', 'Template installer'],
+    status: 'initial',
+    example: '<app-app-timeline [items]="timeline"></app-app-timeline>'
+  },
+  {
+    name: 'VerticalAppShowcaseComponent',
+    selector: 'app-vertical-app-showcase',
+    category: 'Apps verticales',
+    purpose:
+      'Showcase visual por tipo de app importante: eventos, inmobiliaria, tickets, servicios, minijuegos e inspección.',
+    importPath: 'shared/app-visuals/vertical-app-showcase.component',
+    usedBy: ['Components', 'Future screen designer', 'Template installer'],
+    status: 'initial',
+    example: '<app-vertical-app-showcase vertical="events"></app-vertical-app-showcase>'
   }
 ];

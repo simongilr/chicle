@@ -5,6 +5,16 @@ import {
   UiKitPreference,
   UiPresentationConfig
 } from '../../core/ui/ui-presentation.types';
+import { AppEntityCardComponent } from '../../shared/app-visuals/app-entity-card.component';
+import { AppMetricStripComponent } from '../../shared/app-visuals/app-metric-strip.component';
+import { AppTimelineComponent } from '../../shared/app-visuals/app-timeline.component';
+import {
+  AppEntityCard,
+  AppMetricItem,
+  AppTimelineItem,
+  AppVertical
+} from '../../shared/app-visuals/app-visuals.types';
+import { VerticalAppShowcaseComponent } from '../../shared/app-visuals/vertical-app-showcase.component';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
@@ -15,6 +25,10 @@ import { DynamicFieldLibraryComponent } from '../../shared/dynamic-field-library
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
+import { MobileActionBarComponent } from '../../shared/mobile-form/mobile-action-bar.component';
+import { MobileEvidenceControlComponent } from '../../shared/mobile-form/mobile-evidence-control.component';
+import { MobileFormShellComponent } from '../../shared/mobile-form/mobile-form-shell.component';
+import { MobileStepProgressComponent } from '../../shared/mobile-form/mobile-step-progress.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PreviewViewportComponent } from '../../shared/preview-viewport/preview-viewport.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
@@ -49,6 +63,9 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
   selector: 'app-component-visual-preview',
   standalone: true,
   imports: [
+    AppEntityCardComponent,
+    AppMetricStripComponent,
+    AppTimelineComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
     ContextAssistantComponent,
@@ -62,6 +79,10 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     FlowGraphComponent,
     FlowTimelineComponent,
     LoadingSkeletonComponent,
+    MobileActionBarComponent,
+    MobileEvidenceControlComponent,
+    MobileFormShellComponent,
+    MobileStepProgressComponent,
     ModuleHeaderComponent,
     NgTemplateOutlet,
     PreviewViewportComponent,
@@ -71,6 +92,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     StatusNoticeComponent,
     UiPresentationSwitcherComponent,
     UiThemeSelectorComponent,
+    VerticalAppShowcaseComponent,
     WorkflowGuideComponent
   ],
   styles: [
@@ -208,6 +230,17 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         color: var(--ch-color-muted);
         font-size: 0.74rem;
         text-transform: uppercase;
+      }
+
+      .entity-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+      }
+
+      .showcase-stack {
+        display: grid;
+        gap: 18px;
       }
 
       .workspace-list {
@@ -397,6 +430,46 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             (modelChange)="formlyModel = $event"
           ></app-formly-runtime>
         }
+        @case ('MobileFormShellComponent') {
+          <app-mobile-form-shell
+            eyebrow="Móvil"
+            title="Inspección operativa"
+            description="Captura evidencias y ubicación en campo."
+            [metadata]="['ionic', 'offline']"
+          >
+            <div class="workspace-surface">Contenido del formulario móvil</div>
+          </app-mobile-form-shell>
+        }
+        @case ('MobileStepProgressComponent') {
+          <app-mobile-step-progress
+            [items]="mobileSteps"
+            activeKey="evidencias"
+          ></app-mobile-step-progress>
+        }
+        @case ('MobileActionBarComponent') {
+          <app-mobile-action-bar
+            secondaryLabel="Anterior"
+            primaryLabel="Continuar"
+            primaryType="button"
+          ></app-mobile-action-bar>
+        }
+        @case ('MobileEvidenceControlComponent') {
+          <app-mobile-evidence-control
+            mode="image"
+            controlId="preview-mobile-foto"
+            name="foto"
+            placeholder="Foto obligatoria"
+            [value]="mobileEvidenceValue"
+            (valueChange)="mobileEvidenceValue = $event"
+          ></app-mobile-evidence-control>
+          <app-mobile-evidence-control
+            mode="gps"
+            controlId="preview-mobile-gps"
+            name="ubicacion"
+            [value]="mobileGpsValue"
+            (valueChange)="mobileGpsValue = $event"
+          ></app-mobile-evidence-control>
+        }
         @case ('ChicleFormlyFieldTypeComponent') {
           <app-formly-runtime
             [definition]="formlyControlExample"
@@ -477,6 +550,26 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [statuses]="timelineStatuses"
           ></app-flow-timeline>
         }
+        @case ('AppMetricStripComponent') {
+          <app-metric-strip [items]="appMetrics"></app-metric-strip>
+        }
+        @case ('AppEntityCardComponent') {
+          <div class="entity-preview-grid">
+            @for (card of appEntityCards; track card.title) {
+              <app-entity-card [card]="card"></app-entity-card>
+            }
+          </div>
+        }
+        @case ('AppTimelineComponent') {
+          <app-app-timeline [items]="appTimeline"></app-app-timeline>
+        }
+        @case ('VerticalAppShowcaseComponent') {
+          <div class="showcase-stack">
+            @for (vertical of appVerticals; track vertical) {
+              <app-vertical-app-showcase [vertical]="vertical"></app-vertical-app-showcase>
+            }
+          </div>
+        }
       }
 
       <ng-template #shellPreview>
@@ -550,6 +643,13 @@ export class ComponentVisualPreviewComponent {
     { key: 'design', label: 'Diseñar', summary: 'Campos', state: 'active' },
     { key: 'publish', label: 'Publicar', summary: 'Activar', state: 'pending' }
   ];
+  readonly mobileSteps: ProcessStepItem[] = [
+    { key: 'datos', label: 'Datos', summary: '2 campos', state: 'complete' },
+    { key: 'evidencias', label: 'Evidencias', summary: '2 campos', state: 'active' },
+    { key: 'cierre', label: 'Cierre', summary: '1 campo', state: 'pending' }
+  ];
+  mobileEvidenceValue: unknown = '';
+  mobileGpsValue: unknown = { lat: 4.711, lng: -74.072, accuracy: 12 };
   readonly viewModes: SegmentedControlItem[] = [
     { key: 'visual', label: 'Visual', icon: 'pi pi-eye' },
     { key: 'json', label: 'JSON', icon: 'pi pi-code' }
@@ -620,6 +720,39 @@ export class ComponentVisualPreviewComponent {
     }
   ];
   readonly timelineStatuses: FlowTimelineStatus[] = [{ stepKey: 'validar', status: 'success' }];
+  readonly appMetrics: AppMetricItem[] = [
+    { label: 'Activos hoy', value: '128', trend: '+12%', icon: 'pi pi-chart-line' },
+    { label: 'Pendientes', value: '7', icon: 'pi pi-clock' },
+    { label: 'Conversion', value: '81%', icon: 'pi pi-check-circle' }
+  ];
+  readonly appEntityCards: AppEntityCard[] = [
+    {
+      kind: 'event',
+      title: 'Evento principal',
+      subtitle: 'Agenda, invitados y check-in',
+      status: 'Activo',
+      actionLabel: 'Abrir'
+    },
+    {
+      kind: 'property',
+      title: 'Inmueble destacado',
+      subtitle: '3 hab · visita agendada',
+      price: '$320K',
+      status: 'Publicado'
+    },
+    {
+      kind: 'inspection',
+      title: 'Inspeccion movil',
+      subtitle: 'Foto, GPS y cola offline',
+      status: 'Ready'
+    }
+  ];
+  readonly appTimeline: AppTimelineItem[] = [
+    { label: 'Captura', detail: 'Formulario o servicio inicial', state: 'complete' },
+    { label: 'Proceso', detail: 'Validacion, flujo o asignacion', state: 'active' },
+    { label: 'Cierre', detail: 'Respuesta, evidencia o sincronizacion', state: 'pending' }
+  ];
+  readonly appVerticals: AppVertical[] = ['events', 'real_estate', 'tickets', 'services', 'games', 'inspection'];
 
   get structuralPreview() {
     return ['MainNavComponent', 'PageShellComponent', 'PublicPageShellComponent'].includes(this.componentName);

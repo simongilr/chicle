@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-export type SchemaChangeOperation = 'create_table' | 'add_column' | 'alter_column' | 'drop_column';
+export type SchemaChangeOperation = 'create_table' | 'add_column' | 'alter_column' | 'drop_column' | 'drop_table';
 export type SchemaChangeStatus = 'applied' | 'failed';
 
 @Entity('schema_changes')

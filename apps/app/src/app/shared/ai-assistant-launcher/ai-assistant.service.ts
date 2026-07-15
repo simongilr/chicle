@@ -43,9 +43,33 @@ export interface AiAssistantStatusResponse {
     embeddingModelAvailable: boolean;
     error?: string;
   };
+  timeouts?: {
+    fastTimeoutMs: number;
+    reasoningTimeoutMs?: number;
+    maxTimeoutMs: number;
+  };
+  generation?: {
+    maxTokens: number;
+    fastMaxTokens: number;
+    contextWindow: number;
+    keepAlive: string;
+  };
 }
 
-export type AiAssistantUiAction = ApplyDynamicServiceJsonAction;
+export type AiAssistantUiAction =
+  | ApplySchemaChangeAction
+  | ApplyDynamicServiceJsonAction
+  | ApplyFlowJsonAction
+  | ApplyDynamicFormJsonAction;
+
+export interface ApplySchemaChangeAction {
+  type: 'apply_schema_change';
+  label: string;
+  tableName: string;
+  operation: 'create_table' | 'add_column' | 'alter_column' | 'drop_column' | 'drop_table';
+  apply: boolean;
+  request: Record<string, unknown>;
+}
 
 export interface ApplyDynamicServiceJsonAction {
   type: 'apply_dynamic_service_json';
@@ -53,7 +77,27 @@ export interface ApplyDynamicServiceJsonAction {
   key: string;
   name: string;
   description?: string;
-  publish: false;
+  publish: boolean;
+  document: Record<string, unknown>;
+}
+
+export interface ApplyFlowJsonAction {
+  type: 'apply_flow_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
+  document: Record<string, unknown>;
+}
+
+export interface ApplyDynamicFormJsonAction {
+  type: 'apply_dynamic_form_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
   document: Record<string, unknown>;
 }
 

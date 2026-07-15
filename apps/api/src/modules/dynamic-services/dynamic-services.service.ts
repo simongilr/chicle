@@ -1,13 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Not, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
@@ -50,6 +52,10 @@ export interface DynamicServiceJsonAuthoringRequest {
   document?: DynamicServiceDefinition;
   definition?: DynamicServiceDefinition;
   publish?: boolean;
+}
+
+export interface RestoreDynamicServiceRequest {
+  overwrite?: boolean;
 }
 
 interface ServiceLimits {
@@ -268,6 +274,8 @@ export class DynamicServicesService {
   async create(auth: AuthContext, request: DynamicServiceUpsertRequest) {
     const key = this.normalizeKey(request.key);
     const name = this.cleanName(request.name);
+    await this.releaseTrashedKey(auth, key);
+    await this.assertActiveKeyAvailable(auth, key);
     const service = await this.services.save(
       this.services.create({
         tenantId: auth.tenant.id,
@@ -292,8 +300,13 @@ export class DynamicServicesService {
 
   async update(auth: AuthContext, serviceId: string, request: DynamicServiceUpsertRequest) {
     const service = await this.requireService(auth, serviceId);
+    const nextKey = request.key ? this.normalizeKey(request.key) : service.key;
+    if (nextKey !== service.key) {
+      await this.releaseTrashedKey(auth, nextKey);
+      await this.assertActiveKeyAvailable(auth, nextKey, service.id);
+    }
     const next = this.services.merge(service, {
-      key: request.key ? this.normalizeKey(request.key) : service.key,
+      key: nextKey,
       name: request.name ? this.cleanName(request.name) : service.name,
       description: request.description ?? service.description,
       active: request.active ?? service.active
@@ -317,7 +330,7 @@ export class DynamicServicesService {
     const key = this.normalizeKey(request.key ?? definitionMeta['key']?.toString());
     const name = this.cleanName(request.name ?? definitionMeta['name']?.toString() ?? key);
     const existing = await this.services.findOne({
-      where: { tenantId: auth.tenant.id, key }
+      where: { tenantId: auth.tenant.id, key, trashedAt: IsNull() }
     });
     const service = existing
       ? await this.update(auth, existing.id, {
@@ -352,6 +365,7 @@ export class DynamicServicesService {
 
     const saved = await this.services.save(
       this.services.merge(service, {
+        key: this.trashKey(service.key, service.id),
         active: false,
         trashedAt: new Date(),
         trashedByUserId: auth.user.id
@@ -367,10 +381,21 @@ export class DynamicServicesService {
     return saved;
   }
 
-  async restore(auth: AuthContext, serviceId: string) {
+  async restore(auth: AuthContext, serviceId: string, request: RestoreDynamicServiceRequest = {}) {
     const service = await this.requireTrashedService(auth, serviceId);
+    const restoreKey = this.originalKeyFromTrashKey(service.key);
+    const conflict = await this.services.findOne({
+      where: { tenantId: auth.tenant.id, key: restoreKey, trashedAt: IsNull() }
+    });
+    if (conflict && conflict.id !== service.id) {
+      if (!request.overwrite) {
+        throw new ConflictException('A dynamic service with this key already exists. Confirm overwrite to restore it.');
+      }
+      await this.trash(auth, conflict.id);
+    }
     const saved = await this.services.save(
       this.services.merge(service, {
+        key: restoreKey,
         active: true,
         trashedAt: null,
         trashedByUserId: null
@@ -495,10 +520,25 @@ export class DynamicServicesService {
     }
 
     if (version.definition.source === 'internal_table') {
-      return this.executeInternalQuery(auth, service, version, input, triggerType);
+      return this.executeInternalTable(auth, service, version, input, triggerType);
     }
 
     return this.executeHttp(auth, service, version, input, triggerType);
+  }
+
+  private async executeInternalTable(
+    auth: AuthContext,
+    service: DynamicService,
+    version: DynamicServiceVersion,
+    input: Record<string, unknown>,
+    triggerType: DynamicServiceRunTrigger
+  ) {
+    const intent = version.definition.intent ?? 'query';
+    if (intent === 'create' || intent === 'update' || intent === 'delete') {
+      return this.executeInternalWrite(auth, service, version, input, triggerType);
+    }
+
+    return this.executeInternalQuery(auth, service, version, input, triggerType);
   }
 
   private async executeInternalQuery(
@@ -560,6 +600,74 @@ export class DynamicServicesService {
           queryMode: definition.dataTarget?.queryMode ?? 'single_table',
           tables: plan.tables.map((table) => table.name),
           count: safeRows.length
+        }
+      });
+      return saved;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown internal service execution error';
+      return this.finishRun(run.id, 'failed', started, { error: message });
+    }
+  }
+
+  private async executeInternalWrite(
+    auth: AuthContext,
+    service: DynamicService,
+    version: DynamicServiceVersion,
+    input: Record<string, unknown>,
+    triggerType: DynamicServiceRunTrigger
+  ) {
+    const definition = version.definition;
+    const intent = definition.intent;
+    const run = await this.runs.save(
+      this.runs.create({
+        tenantId: auth.tenant.id,
+        serviceId: service.id,
+        versionId: version.id,
+        triggerType,
+        status: 'running',
+        requestSnapshot: {
+          type: 'internal_table_write',
+          intent,
+          table: definition.dataTarget?.primaryTable,
+          writeMap: Object.keys(definition.dataTarget?.writeMap ?? {}),
+          filters: definition.dataTarget?.filters ?? [],
+          input: this.maskSecrets(input)
+        },
+        actorUserId: auth.user.id
+      })
+    );
+
+    const started = Date.now();
+    try {
+      if (definition.dataTarget?.queryMode && definition.dataTarget.queryMode !== 'single_table') {
+        throw new BadRequestException('Internal write only supports single_table mode');
+      }
+      const tableName = definition.dataTarget?.primaryTable?.trim();
+      if (!tableName) {
+        throw new BadRequestException('Internal write table is required');
+      }
+      const table = await this.visibleServiceTable(tableName);
+      const responseSnapshot =
+        intent === 'create'
+          ? await this.insertInternalRow(auth, definition, table, input)
+          : intent === 'update'
+            ? await this.updateInternalRows(auth, definition, table, input)
+            : await this.deleteInternalRows(auth, definition, table, input);
+
+      const saved = await this.finishRun(run.id, 'success', started, {
+        responseSnapshot: this.withMappedResponse(responseSnapshot, definition.responseMap)
+      });
+      await this.audit.record({
+        auth,
+        action: 'dynamic_service.executed',
+        resourceType: 'dynamic_service',
+        resourceId: service.id,
+        metadata: {
+          runId: run.id,
+          mode: 'internal_table_write',
+          intent,
+          table: table.name,
+          affectedRows: responseSnapshot['affectedRows']
         }
       });
       return saved;
@@ -675,6 +783,43 @@ export class DynamicServicesService {
     return service;
   }
 
+  private async assertActiveKeyAvailable(auth: AuthContext, key: string, excludeId?: string) {
+    const query = this.services
+      .createQueryBuilder('service')
+      .where('service.tenantId = :tenantId', { tenantId: auth.tenant.id })
+      .andWhere('service.key = :key', { key })
+      .andWhere('service.trashedAt IS NULL');
+    if (excludeId) {
+      query.andWhere('service.id != :excludeId', { excludeId });
+    }
+    if (await query.getOne()) {
+      throw new ConflictException('A dynamic service with this key already exists');
+    }
+  }
+
+  private async releaseTrashedKey(auth: AuthContext, key: string) {
+    const trashed = await this.services.findOne({
+      where: { tenantId: auth.tenant.id, key, trashedAt: Not(IsNull()) }
+    });
+    if (!trashed) {
+      return;
+    }
+    await this.services.save(
+      this.services.merge(trashed, {
+        key: this.trashKey(key, trashed.id)
+      })
+    );
+  }
+
+  private trashKey(key: string, id: string) {
+    const suffix = `__trashed_${id.replace(/-/g, '').slice(0, 8) || Date.now().toString(36)}`;
+    return `${key.slice(0, 120 - suffix.length)}${suffix}`;
+  }
+
+  private originalKeyFromTrashKey(key: string) {
+    return key.replace(/__trashed_[a-z0-9]{8}$/i, '');
+  }
+
   private catalogScope(tableName: string, hasTenantId: boolean): ServiceCatalogTable['scope'] | null {
     if (tableName === 'tenants') {
       return 'current_tenant';
@@ -769,6 +914,163 @@ export class DynamicServicesService {
       params,
       limit: this.internalQueryLimit(definition)
     };
+  }
+
+  private async insertInternalRow(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    table: ServiceCatalogTable,
+    input: Record<string, unknown>
+  ) {
+    const values = this.internalWriteValues(auth, definition, table, input, 'create');
+    if (!Object.keys(values).length) {
+      throw new BadRequestException('Internal create requires at least one writable field');
+    }
+
+    const columns = Object.keys(values);
+    const sql = `INSERT INTO ${this.escapeIdentifier(table.name)} (${columns
+      .map((column) => this.escapeIdentifier(column))
+      .join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
+    const result = (await this.dataSource.query(sql, columns.map((column) => values[column]))) as {
+      affectedRows?: number;
+      insertId?: string | number;
+    };
+
+    return {
+      table: table.name,
+      operation: 'create',
+      affectedRows: Number(result?.affectedRows ?? 1),
+      insertId: result?.insertId ?? values['id'] ?? null,
+      result: this.maskSecrets(values)
+    };
+  }
+
+  private async updateInternalRows(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    table: ServiceCatalogTable,
+    input: Record<string, unknown>
+  ) {
+    const values = this.internalWriteValues(auth, definition, table, input, 'update');
+    if (!Object.keys(values).length) {
+      throw new BadRequestException('Internal update requires at least one writable field');
+    }
+    const where = this.internalWriteWhere(auth, definition, table, input);
+    const columns = Object.keys(values);
+    const sql = `UPDATE ${this.escapeIdentifier(table.name)} SET ${columns
+      .map((column) => `${this.escapeIdentifier(column)} = ?`)
+      .join(', ')} WHERE ${where.sql.join(' AND ')}`;
+    const result = (await this.dataSource.query(sql, [
+      ...columns.map((column) => values[column]),
+      ...where.params
+    ])) as { affectedRows?: number };
+
+    return {
+      table: table.name,
+      operation: 'update',
+      affectedRows: Number(result?.affectedRows ?? 0),
+      result: this.maskSecrets(values)
+    };
+  }
+
+  private async deleteInternalRows(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    table: ServiceCatalogTable,
+    input: Record<string, unknown>
+  ) {
+    const where = this.internalWriteWhere(auth, definition, table, input);
+    const sql = `DELETE FROM ${this.escapeIdentifier(table.name)} WHERE ${where.sql.join(' AND ')}`;
+    const result = (await this.dataSource.query(sql, where.params)) as { affectedRows?: number };
+
+    return {
+      table: table.name,
+      operation: 'delete',
+      affectedRows: Number(result?.affectedRows ?? 0),
+      result: null
+    };
+  }
+
+  private internalWriteValues(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    table: ServiceCatalogTable,
+    input: Record<string, unknown>,
+    operation: 'create' | 'update'
+  ) {
+    const writeMap = definition.dataTarget?.writeMap ?? {};
+    const context: RenderContext = { tenant: auth.tenant, user: auth.user, input };
+    const values = Object.entries(writeMap).reduce<Record<string, unknown>>((result, [column, template]) => {
+      const writableColumn = this.requireWritableColumn(table, column);
+      result[writableColumn.name] = this.renderBody(template, context);
+      return result;
+    }, {});
+
+    if (operation === 'create') {
+      const idColumn = table.columns.find((column) => column.primary && column.name === 'id');
+      if (idColumn && values['id'] === undefined) {
+        values['id'] = randomUUID();
+      }
+      if (table.scope === 'tenant' && table.columns.some((column) => column.name === 'tenantId')) {
+        values['tenantId'] = auth.tenant.id;
+      }
+    }
+
+    return values;
+  }
+
+  private internalWriteWhere(
+    auth: AuthContext,
+    definition: DynamicServiceDefinition,
+    table: ServiceCatalogTable,
+    input: Record<string, unknown>
+  ) {
+    const filters = definition.dataTarget?.filters ?? [];
+    if (!filters.length) {
+      throw new BadRequestException('Internal update/delete requires at least one filter');
+    }
+
+    const context: QueryAliasContext = {
+      primaryAlias: table.name,
+      tablesByAlias: new Map([[table.name, table]])
+    };
+    const whereSql: string[] = [];
+    const params: unknown[] = [];
+    this.applyScopeFilters(auth, context, whereSql, params);
+
+    const filterSql: string[] = [];
+    const filterParams: unknown[] = [];
+    for (const filter of filters) {
+      const field = this.requireFilterColumn(context, filter.field);
+      const value = this.resolveFilterValue(auth, input, filter);
+      const expression = this.filterSql(field, filter, value);
+      if (!expression) {
+        continue;
+      }
+      filterSql.push(expression.sql);
+      filterParams.push(expression.param);
+    }
+    if (!filterSql.length) {
+      throw new BadRequestException('Internal update/delete requires at least one filter value');
+    }
+    whereSql.push(...filterSql);
+    params.push(...filterParams);
+
+    return { sql: whereSql, params };
+  }
+
+  private requireWritableColumn(table: ServiceCatalogTable, columnName: string) {
+    if (!this.safeIdentifier(columnName)) {
+      throw new BadRequestException('Invalid internal write column');
+    }
+    if (/password|token|secret|hash/i.test(columnName)) {
+      throw new BadRequestException('Internal write column is not allowed');
+    }
+    if (['id', 'tenantId', 'tenant_id', 'createdAt', 'created_at', 'updatedAt', 'updated_at'].includes(columnName)) {
+      throw new BadRequestException(`Column ${columnName} is managed by the platform`);
+    }
+
+    return this.requireColumn(table, columnName);
   }
 
   private joinSql(join: DynamicServiceJoin, joined: ServiceCatalogTable, aliases: Map<string, ServiceCatalogTable>) {
@@ -1066,7 +1368,8 @@ export class DynamicServicesService {
         relationNotes: definition.dataTarget?.relationNotes,
         filterNotes: definition.dataTarget?.filterNotes,
         matchMode: definition.dataTarget?.matchMode ?? 'all',
-        filters: definition.dataTarget?.filters ?? []
+        filters: definition.dataTarget?.filters ?? [],
+        writeMap: definition.dataTarget?.writeMap ?? {}
       },
       method: definition.method,
       url: definition.url?.trim() ?? '',
@@ -1232,7 +1535,7 @@ export class DynamicServicesService {
       method,
       url: url.toString(),
       headers: this.maskHeaders(headers),
-      body: this.truncateSnapshot(body)
+      body: this.truncateSnapshot(this.maskSecrets(body))
     };
   }
 

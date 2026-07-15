@@ -5,10 +5,12 @@ import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
 import {
   CreateDynamicFormRequest,
   DynamicFormJsonAuthoringRequest,
   DynamicFormsService,
+  RestoreDynamicFormRequest,
   SubmitDynamicFormRequest,
   UpdateDynamicFormRequest
 } from './dynamic-forms.service';
@@ -18,7 +20,10 @@ import {
 @ApiTags('Forms')
 @ApiBearerAuth('access-token')
 export class DynamicFormsController {
-  constructor(private readonly dynamicForms: DynamicFormsService) {}
+  constructor(
+    private readonly dynamicForms: DynamicFormsService,
+    private readonly dynamicServices: DynamicServicesService
+  ) {}
 
   @Get()
   @RequirePermissions('forms.read')
@@ -32,6 +37,17 @@ export class DynamicFormsController {
   @ApiOperation({ summary: 'Listar formularios en papelera' })
   findTrash(@CurrentAuth() auth: AuthContext) {
     return this.dynamicForms.findTrashed(auth);
+  }
+
+  @Get('catalog/tables')
+  @RequirePermissions('forms.manage')
+  @ApiOperation({
+    summary: 'Catálogo de tablas para diseñar formularios',
+    description:
+      'Devuelve tablas y columnas visibles para mapear formularios a servicios companion sin depender del permiso visual de Servicios.'
+  })
+  tableCatalog() {
+    return this.dynamicServices.tableCatalog();
   }
 
   @Get('by-key/:key/runtime')
@@ -90,8 +106,8 @@ export class DynamicFormsController {
   @Post(':formId/restore')
   @RequirePermissions('forms.manage')
   @ApiOperation({ summary: 'Restaurar formulario desde papelera' })
-  restore(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string) {
-    return this.dynamicForms.restore(auth, formId);
+  restore(@CurrentAuth() auth: AuthContext, @Param('formId') formId: string, @Body() body: RestoreDynamicFormRequest) {
+    return this.dynamicForms.restore(auth, formId, body);
   }
 
   @Post(':formId/versions')

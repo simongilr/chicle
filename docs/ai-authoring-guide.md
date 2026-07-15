@@ -65,6 +65,37 @@ The TypeScript contracts remain authoritative when documentation and code differ
   a safe action such as `execute_service`, `execute_flow`, `create_record`, `upload_files` or `navigate`.
 - Dynamic forms never write arbitrary tables directly from the frontend. Use `create_record`, `execute_service` or
   `execute_flow`, and document every field/service/flow dependency through bindings.
+- If the user asks for a form CRUD over a table, create the needed objects from the same prompt when the table is
+  known: companion Dynamic Services for create/list/update/delete where safe, plus a Dynamic Form with
+  `persistence.mode=service` and an `execute_service` submit action pointing to the create service. Use only columns
+  returned by the table catalog and skip id, tenantId, timestamps and sensitive columns.
+- If the user explicitly asks for a new table from a form, generate an `apply_schema_change` action before services or
+  forms. The table must be normalized to `custom_*`, the columns must be explicitly provided by the user or inferred
+  from clear field/type words, and the action must use the database schema designer contract:
+  `operation=create_table`, `tableName=custom_name`, `columns=[...]`. The UI then applies the change through
+  `/api/database/schema/apply`, which writes `schema_changes` and a TypeORM migration source. Never generate raw SQL
+  from the assistant.
+- The schema designer is only for `custom_*` tables. If a user asks to add, edit, delete or drop columns/tables in core
+  tables such as `users`, `roles`, `permissions`, `tenants`, `dynamic_forms`, `dynamic_services` or `flows`, do not
+  generate an `apply_schema_change` action. Route the request to the appropriate domain module, dynamic service,
+  security screen or a reviewed backend migration instead.
+- For CRUD forms, infer the safest visual control from the real column catalog instead of rendering every field as a
+  text input. Booleans such as `active` or `enabled` become `toggle` with a safe default, `systemRole` becomes a local
+  role select, and foreign-key-style columns such as `roleId` become `select` fields backed by a published companion
+  lookup service such as `listar_roles` when the related table exists in the catalog.
+- Sensitive platform tables may need a domain action instead of direct table CRUD. For `users`, never generate a
+  `writeMap` for `passwordHash` and never insert directly into the table. Generate a form with `type: "create_user"`,
+  fields `email`, `name`, `password` and a role select, so the backend applies password policy, hashing, membership and
+  RBAC role assignment.
+- If the user already gave an explicit table name but that table is not present in the current catalog, do not ask for
+  the same table name again. Explain whether the catalog failed to load or the table is missing, show visible table
+  alternatives when available, and ask the user to choose one or create the table first.
+- Login and auth forms use `persistence.mode = "auth"` and `execute_service` with `serviceKey: "auth.login"`.
+  Map real fields from the current form into `username` and `password`, then declare `onSuccess` effects such as
+  `set_session` and `navigate`, plus `onError` with a clear message. Never turn login into onboarding, record capture
+  or `show_message`.
+- When the user asks to change where an existing form submits, preserve `steps`, `fields`, `presentation` and `layout`
+  unless they explicitly ask to change them. Update only `persistence`, `actions`, submit labels and payload maps.
 - Never store Formly functions or JavaScript expressions. Conditional fields use the documented `visibleWhen` object.
 
 ## Progressive AI authoring for services

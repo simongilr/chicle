@@ -69,6 +69,7 @@ export interface DynamicServiceDefinition {
     filterNotes?: string;
     matchMode?: DynamicServiceFilterMatchMode;
     filters?: DynamicServiceFilter[];
+    writeMap?: Record<string, string>;
   };
   method: DynamicServiceHttpMethod;
   url: string;

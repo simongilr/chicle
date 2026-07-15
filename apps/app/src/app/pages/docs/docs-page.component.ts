@@ -1184,18 +1184,18 @@ export class DocsPageComponent {
       title: 'Servicios dinámicos',
       path: 'docs/examples/dynamic-services.examples.json',
       purpose: 'Crear, versionar, probar y ejecutar servicios sin escribir un cliente nuevo por caso.',
-      covers: 'HTTP externo, tabla interna, filtros all/any, paginación, responseMap, test y ejecución por key.',
+      covers: 'HTTP externo, tabla interna, filtros all/any, joins seguros, writeMap para CRUD controlado, responseMap, test y ejecución por key.',
       example:
-        '{\n  "definition": {\n    "source": "internal_table",\n    "method": "GET",\n    "dataTarget": {\n      "queryMode": "single_table",\n      "primaryTable": "users",\n      "filters": []\n    }\n  }\n}'
+        '{\n  "definition": {\n    "intent": "create",\n    "source": "internal_table",\n    "method": "POST",\n    "url": "internal://table/custom_clients",\n    "dataTarget": {\n      "queryMode": "single_table",\n      "primaryTable": "custom_clients",\n      "writeMap": {\n        "name": "{{input.name}}",\n        "email": "{{input.email}}"\n      }\n    }\n  }\n}'
     },
     {
       title: 'Formularios dinámicos',
       path: 'docs/examples/dynamic-forms.examples.json',
       purpose: 'Definir formularios tenant-owned que renderizan igual en web y móvil desde el mismo contrato.',
       covers:
-        'Steps, campos, validaciones, presentación adaptive, dataSources, acciones, offline, pruebas y submit hacia flows.',
+        'Steps, campos, validaciones, presentación adaptive, layout visual responsive, dataSources, acciones, auth, offline, pruebas, submit hacia servicios o flows y formularios CRUD con servicio companion.',
       example:
-        '{\n  "schemaVersion": 1,\n  "kind": "dynamic_form",\n  "key": "contact_request",\n  "presentation": { "kit": "auto" },\n  "layout": {\n    "desktop": { "mode": "step_cards", "cardColumns": 2 },\n    "mobile": { "mode": "step_screens" }\n  },\n  "steps": [\n    { "key": "identity", "title": "Datos", "fields": [] }\n  ],\n  "actions": [\n    { "event": "onSubmit", "type": "execute_flow", "flowKey": "create_contact_request" }\n  ]\n}'
+        '{\n  "schemaVersion": 1,\n  "kind": "dynamic_form",\n  "key": "login",\n  "runtime": { "submitLabel": "Iniciar sesion" },\n  "persistence": {\n    "mode": "auth",\n    "defaultTarget": { "type": "dynamic_service", "serviceKey": "auth.login" }\n  },\n  "steps": [\n    {\n      "key": "principal",\n      "title": "Principal",\n      "fields": [\n        { "key": "usuario", "type": "text", "label": "Usuario", "required": true },\n        { "key": "password", "type": "password", "label": "Contraseña", "required": true }\n      ]\n    }\n  ],\n  "actions": [\n    {\n      "event": "onSubmit",\n      "type": "execute_service",\n      "serviceKey": "auth.login",\n      "resultKey": "session",\n      "payloadMap": {\n        "username": "{{input.usuario}}",\n        "password": "{{input.password}}"\n      },\n      "onSuccess": [\n        { "type": "set_session", "from": "{{result}}" },\n        { "type": "navigate", "to": "/home" }\n      ],\n      "onError": [\n        { "type": "show_message", "tone": "danger", "message": "Credenciales incorrectas" }\n      ]\n    }\n  ]\n}'
     },
     {
       title: 'Definiciones completas de Flow',
@@ -2304,6 +2304,13 @@ export class DocsPageComponent {
   ];
 
   readonly databaseSteps: CommandStep[] = [
+    {
+      title: 'Límite del diseñador',
+      ui: 'El visor puede mostrar tablas core según permisos, pero el Diseñador solo crea, edita o elimina estructura de tablas custom_*. Las tablas core se administran desde sus módulos funcionales, no desde cambios de esquema visuales.',
+      swagger: 'Los endpoints /api/database/schema/preview y /api/database/schema/apply rechazan cualquier tableName que no empiece por custom_.',
+      command: 'Permitido: custom_clients, custom_orders, custom_test\nNo permitido: users, roles, tenants, permissions, dynamic_forms',
+      note: 'Esta regla protege auth, roles, tenants, servicios, formularios, migraciones base y compatibilidad futura.'
+    },
     {
       title: 'Abrir visor DB',
       ui: 'Desde Home o la barra superior abre Base de datos. En Datos puedes seleccionar una tabla, ver filas y editar solo campos habilitados.',

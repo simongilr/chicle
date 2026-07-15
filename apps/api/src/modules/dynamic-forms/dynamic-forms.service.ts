@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { AuthContext } from '../auth/auth.types';
 import { DynamicServicesService } from '../dynamic-services/dynamic-services.service';
 import { FlowsService } from '../flows/flows.service';
 import { RecordsService } from '../records/records.service';
+import { UsersService } from '../users/users.service';
 import { DynamicFormBinding } from './dynamic-form-binding.entity';
 import { DynamicFormRun } from './dynamic-form-run.entity';
 import { DynamicFormVersion } from './dynamic-form-version.entity';
@@ -21,6 +22,7 @@ type FormActionType =
   | 'upload_files'
   | 'set_field_value'
   | 'reset_form'
+  | 'create_user'
   | 'open_modal';
 
 interface DynamicFormAction {
@@ -60,7 +62,7 @@ interface DynamicFormSchema {
     };
   };
   persistence?: {
-    mode?: 'record' | 'service' | 'flow' | 'hybrid' | 'none' | 'submit_action';
+    mode?: 'record' | 'service' | 'flow' | 'hybrid' | 'auth' | 'none' | 'submit_action';
     defaultTarget?: {
       type?: 'record' | 'dynamic_service' | 'flow';
       recordType?: string;
@@ -109,6 +111,10 @@ export interface DynamicFormJsonAuthoringRequest {
   publish?: boolean;
 }
 
+export interface RestoreDynamicFormRequest {
+  overwrite?: boolean;
+}
+
 @Injectable()
 export class DynamicFormsService {
   constructor(
@@ -124,7 +130,8 @@ export class DynamicFormsService {
     private readonly runs: Repository<DynamicFormRun>,
     private readonly records: RecordsService,
     private readonly dynamicServices: DynamicServicesService,
-    private readonly flows: FlowsService
+    private readonly flows: FlowsService,
+    private readonly users: UsersService
   ) {}
 
   findAll(auth: AuthContext) {
@@ -184,6 +191,8 @@ export class DynamicFormsService {
     }
     const schema = this.normalizeSchema(body.schema, key, title);
     this.validateSchema(schema);
+    await this.releaseTrashedKey(auth, key);
+    await this.assertActiveKeyAvailable(auth, key);
 
     const form = await this.forms.save(
       this.forms.create({
@@ -215,12 +224,9 @@ export class DynamicFormsService {
       throw new BadRequestException('document.key and document.title are required');
     }
     const existing = await this.forms.findOne({
-      where: { tenantId: auth.tenant.id, key },
+      where: { tenantId: auth.tenant.id, key, trashedAt: IsNull() },
       order: { version: 'DESC' }
     });
-    if (existing?.trashedAt) {
-      throw new BadRequestException('Restore the form before updating it from JSON');
-    }
     const form = existing
       ? await this.update(auth, existing.id, {
           title,
@@ -341,18 +347,35 @@ export class DynamicFormsService {
     if (form.trashedAt) {
       return form;
     }
+    const originalKey = this.originalKeyFromMetadata(form.metadata) ?? form.key;
     return this.forms.save(
       this.forms.merge(form, {
+        key: this.trashKey(form.key, form.id),
+        metadata: this.withTrashOriginalKey(form.metadata, originalKey),
         trashedAt: new Date(),
         trashedByUserId: auth.user.id
       })
     );
   }
 
-  async restore(auth: AuthContext, formId: string) {
+  async restore(auth: AuthContext, formId: string, request: RestoreDynamicFormRequest = {}) {
     const form = await this.requireTrashedForm(auth, formId);
+    const restoreKey = this.originalKeyFromMetadata(form.metadata) ?? this.originalKeyFromTrashKey(form.key);
+    const conflict = await this.forms.findOne({
+      where: { tenantId: auth.tenant.id, key: restoreKey, trashedAt: IsNull() }
+    });
+    if (conflict && conflict.id !== form.id) {
+      if (!request.overwrite) {
+        throw new ConflictException('A form with this key already exists. Confirm overwrite to restore it.');
+      }
+      await this.trash(auth, conflict.id);
+    }
+    const schema = this.normalizeSchema(form.schema, restoreKey, form.title);
     return this.forms.save(
       this.forms.merge(form, {
+        key: restoreKey,
+        schema: schema as unknown as Record<string, unknown>,
+        metadata: this.withoutTrashOriginalKey(form.metadata),
         trashedAt: null,
         trashedByUserId: null
       })
@@ -460,7 +483,9 @@ export class DynamicFormsService {
         throw new BadRequestException('serviceKey is required');
       }
       const context = this.resolveMap(action.payloadMap ?? { input: '{{input}}' }, input, auth);
-      return this.dynamicServices.executeByKey(auth, serviceKey, { context });
+      const result = await this.dynamicServices.executeByKey(auth, serviceKey, { context });
+      this.assertRuntimeResultSucceeded(result, 'Dynamic service');
+      return result;
     }
 
     if (action.type === 'execute_flow') {
@@ -469,10 +494,22 @@ export class DynamicFormsService {
         throw new BadRequestException('flowKey is required');
       }
       const mappedInput = this.resolveMap(action.payloadMap ?? { input: '{{input}}' }, input, auth);
-      return this.flows.executeByKey(auth, flowKey, {
+      const result = await this.flows.executeByKey(auth, flowKey, {
         input: mappedInput,
         triggerType: 'form',
         triggerKey: form.key
+      });
+      this.assertRuntimeResultSucceeded(result, 'Flow');
+      return result;
+    }
+
+    if (action.type === 'create_user') {
+      const context = this.resolveMap(action.payloadMap ?? { input: '{{input}}' }, input, auth);
+      return this.users.create(auth, {
+        email: this.asRequiredString(context['email'], 'email'),
+        name: this.asOptionalString(context['name']),
+        password: this.asRequiredString(context['password'], 'password'),
+        roles: this.asStringArray(context['roles'])
       });
     }
 
@@ -495,6 +532,24 @@ export class DynamicFormsService {
     }
 
     throw new BadRequestException(`Unsupported form action: ${action.type}`);
+  }
+
+  private assertRuntimeResultSucceeded(result: unknown, label: string) {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      return;
+    }
+    const run = result as Record<string, unknown>;
+    if (run['status'] !== 'failed') {
+      return;
+    }
+    const error = run['error'];
+    const message =
+      typeof error === 'string'
+        ? error
+        : error && typeof error === 'object' && !Array.isArray(error) && typeof (error as Record<string, unknown>)['message'] === 'string'
+          ? String((error as Record<string, unknown>)['message'])
+          : `${label} failed`;
+    throw new BadRequestException(message);
   }
 
   private createRecord(
@@ -524,6 +579,26 @@ export class DynamicFormsService {
     });
   }
 
+  private asRequiredString(value: unknown, field: string) {
+    const text = this.asOptionalString(value);
+    if (!text) {
+      throw new BadRequestException(`${field} is required`);
+    }
+    return text;
+  }
+
+  private asOptionalString(value: unknown) {
+    return typeof value === 'string' ? value.trim() : undefined;
+  }
+
+  private asStringArray(value: unknown) {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.asOptionalString(item)).filter((item): item is string => Boolean(item));
+    }
+    const single = this.asOptionalString(value);
+    return single ? [single] : [];
+  }
+
   private resolveSubmitActions(schema: DynamicFormSchema, commandKey?: string): DynamicFormAction[] {
     if (commandKey) {
       const command = (schema.commands ?? []).find((item) => item.key === commandKey);
@@ -551,6 +626,13 @@ export class DynamicFormsService {
     }
     if (schema.persistence?.mode === 'none') {
       return [{ type: 'show_message' }];
+    }
+    if (schema.persistence?.mode === 'auth' && schema.persistence.defaultTarget?.serviceKey) {
+      return [{
+        type: 'execute_service',
+        serviceKey: schema.persistence.defaultTarget.serviceKey,
+        payloadMap: { input: '{{input}}' }
+      }];
     }
     return [{ type: 'create_record' }];
   }
@@ -620,6 +702,70 @@ export class DynamicFormsService {
     }
   }
 
+  private async assertActiveKeyAvailable(auth: AuthContext, key: string) {
+    const existing = await this.forms.findOne({
+      where: { tenantId: auth.tenant.id, key, trashedAt: IsNull() }
+    });
+    if (existing) {
+      throw new ConflictException('A form with this key already exists');
+    }
+  }
+
+  private async releaseTrashedKey(auth: AuthContext, key: string) {
+    const trashed = await this.forms.findOne({
+      where: { tenantId: auth.tenant.id, key, trashedAt: Not(IsNull()) }
+    });
+    if (!trashed) {
+      return;
+    }
+    const originalKey = this.originalKeyFromMetadata(trashed.metadata) ?? key;
+    await this.forms.save(
+      this.forms.merge(trashed, {
+        key: this.trashKey(key, trashed.id),
+        metadata: this.withTrashOriginalKey(trashed.metadata, originalKey)
+      })
+    );
+  }
+
+  private trashKey(key: string, id: string) {
+    const suffix = `__trashed_${id.replace(/-/g, '').slice(0, 8) || Date.now().toString(36)}`;
+    return `${key.slice(0, 120 - suffix.length)}${suffix}`;
+  }
+
+  private originalKeyFromTrashKey(key: string) {
+    return key.replace(/__trashed_[a-z0-9]{8}$/i, '');
+  }
+
+  private originalKeyFromMetadata(metadata?: Record<string, unknown> | null) {
+    const trash = metadata?.['trash'];
+    if (trash && typeof trash === 'object' && !Array.isArray(trash)) {
+      const originalKey = (trash as Record<string, unknown>)['originalKey'];
+      return typeof originalKey === 'string' && originalKey ? originalKey : null;
+    }
+    return null;
+  }
+
+  private withTrashOriginalKey(metadata: Record<string, unknown> | null | undefined, originalKey: string) {
+    const base = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
+    return {
+      ...base,
+      trash: {
+        ...((base['trash'] && typeof base['trash'] === 'object' && !Array.isArray(base['trash'])
+          ? base['trash']
+          : {}) as Record<string, unknown>),
+        originalKey
+      }
+    };
+  }
+
+  private withoutTrashOriginalKey(metadata: Record<string, unknown> | null | undefined) {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return null;
+    }
+    const { trash: _trash, ...rest } = metadata;
+    return Object.keys(rest).length ? rest : null;
+  }
+
   private normalizeKey(value?: string) {
     const key = value?.trim().toLowerCase();
     if (!key) {
@@ -661,6 +807,7 @@ export class DynamicFormsService {
       throw new BadRequestException('schema key, title and steps are required');
     }
     const stepKeys = new Set<string>();
+    const fieldKeys = new Set<string>();
     for (const step of schema.steps) {
       if (!step.key || stepKeys.has(step.key)) {
         throw new BadRequestException(`Invalid or duplicated step key: ${step.key}`);
@@ -669,7 +816,6 @@ export class DynamicFormsService {
       if (!Array.isArray(step.fields)) {
         throw new BadRequestException(`Step ${step.key} fields must be an array`);
       }
-      const fieldKeys = new Set<string>();
       for (const field of step.fields) {
         const key = this.asString(field['key'] ?? field['name']);
         const type = this.asString(field['type']);

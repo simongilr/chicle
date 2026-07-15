@@ -1,11 +1,12 @@
 import { JsonPipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
+import { AiAssistantService, ApplyFlowJsonAction } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
@@ -3587,9 +3588,28 @@ interface FlowJobItem {
 })
 export class FlowsPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiClientService);
+  private readonly assistant = inject(AiAssistantService);
   readonly flowLive = inject(FlowLiveClientService);
   private liveSubscription?: Subscription;
   readonly auth = inject(AuthService);
+  private appliedAssistantProposalId = 0;
+  private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('flows', () =>
+    this.assistantScreenState()
+  );
+  private readonly assistantProposalEffect = effect(() => {
+    const proposal = this.assistant.proposal();
+    if (!proposal || proposal.id === this.appliedAssistantProposalId || proposal.scope !== 'flows') {
+      return;
+    }
+
+    const action = proposal.actions.find((item): item is ApplyFlowJsonAction => item.type === 'apply_flow_json');
+    if (!action) {
+      return;
+    }
+
+    this.appliedAssistantProposalId = proposal.id;
+    this.applyAssistantFlowProposal(action);
+  });
 
   readonly stepTypes: FlowStepType[] = [
     'dynamic_service',
@@ -4433,6 +4453,7 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.unregisterAssistantState();
     this.liveSubscription?.unsubscribe();
     this.flowLive.disconnect();
   }
@@ -5117,21 +5138,44 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.load('');
   }
 
-  restoreFlow() {
+  restoreFlow(overwrite = false) {
     const flow = this.selectedFlow;
     if (!flow) {
       return;
     }
-    this.api.post<FlowItem>(`flows/${flow.id}/restore`, {}).subscribe({
+    this.api.post<FlowItem>(`flows/${flow.id}/restore`, { overwrite }).subscribe({
       next: (restored) => {
         this.viewingTrash = false;
         this.message = 'Flow restaurado.';
         this.load(restored.id);
       },
-      error: () => {
-        this.message = 'No se pudo restaurar el flow.';
+      error: (error) => {
+        if (!overwrite && this.isRestoreConflict(error)) {
+          const accepted = window.confirm(
+            'Ya existe un flow activo con esa key. ¿Quieres enviar el activo a papelera y restaurar este flow?'
+          );
+          if (accepted) {
+            this.restoreFlow(true);
+            return;
+          }
+        }
+        this.message = this.restoreErrorMessage(error);
       }
     });
+  }
+
+  private isRestoreConflict(error: unknown) {
+    const response = error as { status?: number; error?: { message?: string | string[] }; message?: string };
+    const message = response.error?.message ?? response.message ?? '';
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    return response.status === 409 || text.includes('Confirm overwrite');
+  }
+
+  private restoreErrorMessage(error: unknown) {
+    const response = error as { error?: { message?: string | string[] }; message?: string };
+    const message = response.error?.message ?? response.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    return text || 'No se pudo restaurar el flow.';
   }
 
   startNewStep() {
@@ -6173,6 +6217,61 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
   private replaceFlow(flow: FlowItem) {
     this.flows = this.flows.map((item) => (item.id === flow.id ? flow : item));
     this.selectFlow(flow, false);
+  }
+
+  private applyAssistantFlowProposal(action: ApplyFlowJsonAction) {
+    this.selectedFlowId = '';
+    this.selectedTemplateId = '';
+    this.flowRuns = [];
+    this.flowVersions = [];
+    this.lastRun = undefined;
+    this.lastPreview = undefined;
+    this.authoringDefinitionText = JSON.stringify(action.document, null, 2);
+    this.applyAuthoringDefinition(false);
+    this.activeStage = 'describe';
+    this.authoringDefinitionError = '';
+    this.message =
+      'Chicle AI aplicó una propuesta al diseñador de Flow. Revisa el resumen y el JSON; luego usa Guardar draft o Guardar y publicar.';
+  }
+
+  private assistantScreenState() {
+    return {
+      mode: this.selectedFlow ? 'editing_existing_flow' : 'new_flow',
+      selected: this.selectedFlow
+        ? {
+            key: this.selectedFlow.key,
+            name: this.selectedFlow.name,
+            hasPublishedVersion: Boolean(this.selectedFlow.publishedVersion)
+          }
+        : null,
+      draft: {
+        ...this.flowDraft
+      },
+      entry: {
+        mode: this.entryMode,
+        key: this.entryKey
+      },
+      inputFields: this.flowInputs.map((field) => ({ ...field })),
+      currentDocument: this.safeAuthoringDocument(),
+      availableServices: this.services.map((service) => ({
+        key: service.key,
+        name: service.name,
+        hasPublishedVersion: Boolean(service.publishedVersion)
+      })),
+      availableFlows: this.flows.map((flow) => ({
+        key: flow.key,
+        name: flow.name,
+        hasPublishedVersion: Boolean(flow.publishedVersion)
+      }))
+    };
+  }
+
+  private safeAuthoringDocument() {
+    try {
+      return this.readAuthoringDocument();
+    } catch {
+      return this.authoringDocument();
+    }
   }
 
   private authoringDocument(): FlowAuthoringDocument {

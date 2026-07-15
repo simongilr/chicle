@@ -28,6 +28,11 @@ export interface AiAssistantConfig {
   embeddingModel: string;
   timeoutMs: number;
   fastTimeoutMs: number;
+  reasoningTimeoutMs: number;
+  maxTokens: number;
+  fastMaxTokens: number;
+  contextWindow: number;
+  keepAlive: string;
   ragEnabled: boolean;
   ragMode: string;
   maxContextChunks: number;
@@ -45,7 +50,35 @@ export interface AiAssistantResponse {
   raw?: unknown;
 }
 
-export type AiAssistantUiAction = ApplyDynamicServiceJsonAction;
+export type AiAssistantUiAction =
+  | ApplySchemaChangeAction
+  | ApplyDynamicServiceJsonAction
+  | ApplyFlowJsonAction
+  | ApplyDynamicFormJsonAction;
+
+export interface ApplySchemaChangeAction {
+  type: 'apply_schema_change';
+  label: string;
+  tableName: string;
+  operation: 'create_table' | 'add_column' | 'alter_column' | 'drop_column' | 'drop_table';
+  apply: boolean;
+  request: {
+    operation: 'create_table' | 'add_column' | 'alter_column' | 'drop_column' | 'drop_table';
+    tableName: string;
+    columns?: Array<{
+      name: string;
+      type: 'string' | 'text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'uuid';
+      length?: number;
+      precision?: number;
+      scale?: number;
+      nullable?: boolean;
+      defaultValue?: string | number | boolean | null;
+    }>;
+    column?: Record<string, unknown>;
+    currentColumnName?: string;
+    confirmation?: string;
+  };
+}
 
 export interface ApplyDynamicServiceJsonAction {
   type: 'apply_dynamic_service_json';
@@ -53,7 +86,7 @@ export interface ApplyDynamicServiceJsonAction {
   key: string;
   name: string;
   description?: string;
-  publish: false;
+  publish: boolean;
   document: {
     intent?: string;
     source?: string;
@@ -70,4 +103,49 @@ export interface ApplyDynamicServiceJsonAction {
     retry?: Record<string, unknown>;
     responseMap?: Record<string, string>;
   };
+}
+
+export interface ApplyFlowJsonAction {
+  type: 'apply_flow_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
+  document: {
+    schemaVersion: 1;
+    flow: {
+      key: string;
+      name: string;
+      description?: string | null;
+      category?: string | null;
+    };
+    entry: {
+      mode: 'direct' | 'manual' | 'http' | 'record_event' | 'form_submit' | 'schedule';
+      key: string;
+      config: Record<string, unknown>;
+    };
+    inputFields: Array<{
+      key: string;
+      label: string;
+      type: 'text' | 'number' | 'boolean' | 'email' | 'date';
+      required: boolean;
+      example?: string;
+    }>;
+    steps: Array<Record<string, unknown>>;
+    output: {
+      stepKey: string | null;
+      responseTo: 'caller';
+    };
+  };
+}
+
+export interface ApplyDynamicFormJsonAction {
+  type: 'apply_dynamic_form_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
+  document: Record<string, unknown>;
 }

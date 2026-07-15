@@ -124,6 +124,21 @@ published flow or an offline queue. A field can call services for options, valid
 but the browser never writes arbitrary tables directly. `dynamic_form_bindings` records every field/service/flow
 dependency and pins target versions when a form is published.
 
+## Database Designer Boundary
+
+The database viewer and the database designer have different responsibilities.
+
+- The viewer may display approved core tables according to the current user's permissions.
+- The designer may only create, alter or drop schema for tables whose names start with `custom_`.
+- Core tables such as `users`, `roles`, `permissions`, `tenants`, `dynamic_forms`, `dynamic_services`, `flows` and
+  `schema_changes` are not editable at the schema level from the visual designer.
+- Core behavior must be changed through domain modules, typed services and reviewed TypeORM migrations.
+- Dynamic forms or Chicle AI may request schema changes only through the `apply_schema_change` contract and only for
+  `custom_*` tables. They must never generate raw SQL or schema mutations against core tables.
+
+This boundary keeps authentication, tenant scope, platform metadata and migration history stable while still allowing
+tenant-specific or prototype data structures to evolve from the UI.
+
 Dynamic services are tenant-owned executable objects stored in the database. A service is created once, versioned, published and then consumed by key from the frontend, workflows or actions. The frontend calls a stable contract instead of creating one HTTP method per business service:
 
 ```ts

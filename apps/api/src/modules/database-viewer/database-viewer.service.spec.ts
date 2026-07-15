@@ -123,4 +123,64 @@ describe("DatabaseViewerService schema safety", () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("allows owner users to preview dropping custom tables only in local development mode", async () => {
+    config.get.mockImplementation((key: string, fallback: string) =>
+      key === "CHICLE_SCHEMA_ALLOW_DROP_TABLE" ? "true" : fallback,
+    );
+    dataSource.query.mockResolvedValue([{ total: 1 }]);
+
+    const preview = await service.previewSchemaChange(ownerAuth, {
+      operation: "drop_table",
+      tableName: "custom_clients",
+      confirmation: "DROP TABLE custom_clients",
+    });
+
+    expect(preview.sql).toBe("DROP TABLE `custom_clients`");
+    expect(preview.warnings.join(" ")).toContain("desarrollo local");
+    expect(preview.migrationSource).toContain("DROP TABLE IF EXISTS \\`custom_clients\\`");
+  });
+
+  it("blocks dropping custom tables when the development flag is disabled", async () => {
+    config.get.mockImplementation((_key: string, fallback: string) => fallback);
+
+    await expect(
+      service.previewSchemaChange(ownerAuth, {
+        operation: "drop_table",
+        tableName: "custom_clients",
+        confirmation: "DROP TABLE custom_clients",
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("deletes only one tenant-scoped row from a custom table", async () => {
+    const table = {
+      name: "custom_clients",
+      entity: "custom_clients",
+      scope: "tenant",
+      source: "schema",
+      editable: true,
+      designable: true,
+      columns: [
+        { name: "id", type: "varchar", nullable: false, primary: true, editable: false },
+        { name: "tenantId", type: "varchar", nullable: false, primary: false, editable: false },
+        { name: "name", type: "varchar", nullable: true, primary: false, editable: true },
+      ],
+    };
+    dataSource.query.mockResolvedValueOnce([{ id: "row-1" }]).mockResolvedValueOnce({ affectedRows: 1 });
+
+    const result = await (service as unknown as { deleteCustomRow: Function }).deleteCustomRow(ownerAuth, table, "row-1");
+
+    expect(dataSource.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("SELECT `id` FROM `custom_clients`"),
+      ["row-1", "tenant-1"],
+    );
+    expect(dataSource.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("DELETE FROM `custom_clients`"),
+      ["row-1", "tenant-1"],
+    );
+    expect(result).toEqual({ table, id: "row-1", deleted: true });
+  });
 });

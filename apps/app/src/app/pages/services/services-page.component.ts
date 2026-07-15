@@ -1802,14 +1802,14 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     });
   }
 
-  restoreService() {
+  restoreService(overwrite = false) {
     if (!this.selected) {
       return;
     }
 
     this.saving = true;
     this.formError = '';
-    this.api.post<DynamicServiceItem>(`dynamic-services/${this.selected.id}/restore`, {}).subscribe({
+    this.api.post<DynamicServiceItem>(`dynamic-services/${this.selected.id}/restore`, { overwrite }).subscribe({
       next: (service) => {
         this.saving = false;
         this.viewingTrash = false;
@@ -1819,6 +1819,15 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       },
       error: (error) => {
         this.saving = false;
+        if (!overwrite && this.isRestoreConflict(error)) {
+          const accepted = window.confirm(
+            'Ya existe un servicio activo con esa key. ¿Quieres enviar el activo a papelera y restaurar este servicio?'
+          );
+          if (accepted) {
+            this.restoreService(true);
+            return;
+          }
+        }
         this.formError = this.errorMessage(error);
       }
     });
@@ -2762,5 +2771,12 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
         'Las redes privadas están bloqueadas para servicios dinámicos.'
     };
     return translations[text] ?? text;
+  }
+
+  private isRestoreConflict(error: unknown) {
+    const response = error as { status?: number; error?: { message?: string | string[] }; message?: string };
+    const message = response.error?.message ?? response.message ?? '';
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    return response.status === 409 || text.includes('Confirm overwrite');
   }
 }

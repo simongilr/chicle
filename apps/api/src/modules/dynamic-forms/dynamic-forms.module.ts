@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DynamicServicesModule } from '../dynamic-services/dynamic-services.module';
 import { FlowsModule } from '../flows/flows.module';
 import { RecordsModule } from '../records/records.module';
+import { UsersModule } from '../users/users.module';
 import { DynamicFormBinding } from './dynamic-form-binding.entity';
 import { DynamicFormRun } from './dynamic-form-run.entity';
 import { DynamicFormVersion } from './dynamic-form-version.entity';
@@ -22,7 +23,8 @@ import { DynamicFormsService } from './dynamic-forms.service';
     ]),
     DynamicServicesModule,
     FlowsModule,
-    RecordsModule
+    RecordsModule,
+    UsersModule
   ],
   controllers: [DynamicFormsController],
   providers: [DynamicFormsService],

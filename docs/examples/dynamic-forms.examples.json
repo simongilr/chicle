@@ -2,6 +2,251 @@
   "version": 1,
   "examples": [
     {
+      "name": "auth_login_form",
+      "description": "A login form that maps real form fields into the platform auth action without creating records.",
+      "form": {
+        "schemaVersion": 1,
+        "kind": "dynamic_form",
+        "key": "login",
+        "title": "Iniciar sesion",
+        "description": "Permite iniciar sesion con credenciales.",
+        "category": "seguridad",
+        "runtime": {
+          "mode": "guided",
+          "submitLabel": "Iniciar sesion",
+          "autosave": false,
+          "offline": {
+            "enabled": false,
+            "queueKey": "login",
+            "idempotencyKey": "{{input.usuario}}"
+          },
+          "limits": {
+            "timeoutMs": 10000,
+            "maxPayloadKb": 512
+          }
+        },
+        "presentation": {
+          "profileKey": "adaptive",
+          "kit": "auto",
+          "theme": "chicle",
+          "themeMode": "system",
+          "density": "comfortable",
+          "radius": "md",
+          "rules": [
+            { "kit": "ionic", "platforms": ["ios", "android"] },
+            { "kit": "primeng", "platforms": ["web"] }
+          ],
+          "tokens": {
+            "buttonPrimary": {
+              "background": "primary",
+              "text": "primaryContrast",
+              "radius": "md"
+            }
+          }
+        },
+        "layout": {
+          "strategy": "adaptive_steps",
+          "form": { "width": "compact", "align": "center" },
+          "desktop": {
+            "mode": "single_form",
+            "fieldColumns": 1,
+            "actions": { "position": "inline", "align": "center", "size": "field" }
+          },
+          "tablet": {
+            "mode": "single_form",
+            "fieldColumns": 1,
+            "actions": { "position": "footer", "align": "center", "size": "field" }
+          },
+          "mobile": {
+            "mode": "step_screens",
+            "progress": "compact",
+            "navigation": "bottom_actions",
+            "fieldColumns": 1,
+            "actions": { "position": "bottom_sticky", "align": "stretch", "size": "full" }
+          }
+        },
+        "persistence": {
+          "mode": "auth",
+          "defaultTarget": {
+            "type": "dynamic_service",
+            "serviceKey": "auth.login"
+          }
+        },
+        "steps": [
+          {
+            "key": "principal",
+            "title": "Principal",
+            "description": "Completa tus credenciales.",
+            "fields": [
+              {
+                "key": "usuario",
+                "name": "usuario",
+                "type": "text",
+                "label": "Usuario",
+                "required": true,
+                "placeholder": "Usuario o correo"
+              },
+              {
+                "key": "password",
+                "name": "password",
+                "type": "password",
+                "label": "Contraseña",
+                "required": true,
+                "placeholder": "Ingresa tu contraseña"
+              }
+            ]
+          }
+        ],
+        "commands": [],
+        "actions": [
+          {
+            "event": "onSubmit",
+            "type": "execute_service",
+            "serviceKey": "auth.login",
+            "resultKey": "session",
+            "payloadMap": {
+              "username": "{{input.usuario}}",
+              "password": "{{input.password}}"
+            },
+            "onSuccess": [
+              { "type": "set_session", "from": "{{result}}" },
+              { "type": "navigate", "to": "/home" }
+            ],
+            "onError": [
+              { "type": "show_message", "tone": "danger", "message": "Credenciales incorrectas" }
+            ]
+          }
+        ],
+        "dataSources": [],
+        "tests": [
+          {
+            "name": "Login preview",
+            "input": {
+              "usuario": "admin@example.com",
+              "password": "secret"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "crud_form_with_companion_service",
+      "description": "A form generated from a real table catalog that submits through a published companion Dynamic Service instead of writing directly from the frontend.",
+      "companionService": {
+        "key": "crear_custom_clients",
+        "name": "Crear Custom Clients",
+        "publish": true,
+        "document": {
+          "intent": "create",
+          "source": "internal_table",
+          "resultKind": "single",
+          "pagination": {
+            "enabled": false
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ],
+          "dataTarget": {
+            "queryMode": "single_table",
+            "primaryTable": "custom_clients",
+            "writeMap": {
+              "name": "{{input.name}}",
+              "email": "{{input.email}}",
+              "phone": "{{input.phone}}",
+              "active": "{{input.active}}"
+            }
+          },
+          "method": "POST",
+          "url": "internal://table/custom_clients",
+          "headers": {},
+          "query": {},
+          "body": null,
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {}
+        }
+      },
+      "form": {
+        "schemaVersion": 1,
+        "kind": "dynamic_form",
+        "key": "form_custom_clients",
+        "title": "Formulario Custom Clients",
+        "description": "Crea registros en custom_clients usando un servicio dinámico seguro.",
+        "category": "tablas",
+        "runtime": {
+          "mode": "guided",
+          "submitLabel": "Guardar",
+          "autosave": false,
+          "offline": {
+            "enabled": false,
+            "queueKey": "form_custom_clients",
+            "idempotencyKey": "{{input.email}}"
+          },
+          "limits": {
+            "timeoutMs": 10000,
+            "maxPayloadKb": 512
+          }
+        },
+        "persistence": {
+          "mode": "service",
+          "defaultTarget": {
+            "type": "dynamic_service",
+            "serviceKey": "crear_custom_clients"
+          }
+        },
+        "steps": [
+          {
+            "key": "principal",
+            "title": "Principal",
+            "description": "Completa la información requerida.",
+            "fields": [
+              { "key": "name", "name": "name", "type": "text", "label": "Name", "required": true },
+              { "key": "email", "name": "email", "type": "email", "label": "Email", "required": true },
+              { "key": "phone", "name": "phone", "type": "tel", "label": "Phone", "required": false },
+              { "key": "active", "name": "active", "type": "toggle", "label": "Active", "required": true }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "event": "onSubmit",
+            "type": "execute_service",
+            "serviceKey": "crear_custom_clients",
+            "resultKey": "created",
+            "payloadMap": {
+              "name": "{{input.name}}",
+              "email": "{{input.email}}",
+              "phone": "{{input.phone}}",
+              "active": "{{input.active}}"
+            },
+            "onSuccess": [
+              { "type": "show_message", "tone": "success", "message": "Registro guardado correctamente." }
+            ],
+            "onError": [
+              { "type": "show_message", "tone": "danger", "message": "No se pudo guardar el registro." }
+            ]
+          }
+        ],
+        "dataSources": [],
+        "tests": [
+          {
+            "name": "Crear registro",
+            "input": {
+              "name": "Cliente demo",
+              "email": "cliente@example.com",
+              "phone": "+573001112233",
+              "active": true
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "single_step_contact_request",
       "description": "A small form that renders on web and mobile from the same schema.",
       "form": {

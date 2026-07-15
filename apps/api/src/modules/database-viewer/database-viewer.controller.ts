@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -64,6 +64,18 @@ export class DatabaseViewerController {
     @Body() body: { values?: Record<string, unknown> }
   ) {
     return this.databaseViewer.updateRow(auth, table, id, body.values ?? {});
+  }
+
+  @Delete('tables/:table/:id')
+  @ApiOperation({
+    summary: 'Eliminar una fila desde el visor DB',
+    description:
+      'Borrado controlado fila por fila para owner/admin. Solo aplica a tablas custom y datos operativos seguros, siempre filtrando por tenant.'
+  })
+  @ApiParam({ name: 'table', example: 'records' })
+  @ApiParam({ name: 'id', example: 'row-id' })
+  deleteRow(@CurrentAuth() auth: AuthContext, @Param('table') table: string, @Param('id') id: string) {
+    return this.databaseViewer.deleteRow(auth, table, id);
   }
 
   @Post('schema/preview')

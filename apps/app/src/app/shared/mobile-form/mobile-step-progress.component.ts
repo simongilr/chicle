@@ -1,9 +1,13 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProcessStepItem } from '../process-steps/process-steps.component';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-mobile-step-progress',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -30,7 +34,7 @@ import { ProcessStepItem } from '../process-steps/process-steps.component';
         overflow: hidden;
         height: 5px;
         border-radius: 999px;
-        background: #dbe6f0;
+        background: var(--ch-color-surface-muted);
       }
 
       .fill {
@@ -62,7 +66,7 @@ import { ProcessStepItem } from '../process-steps/process-steps.component';
         min-height: 34px;
         border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #f7fbff;
+        background: var(--ch-color-surface-alt);
         color: var(--ch-color-text);
         padding: 6px 10px;
         font: inherit;
@@ -70,9 +74,27 @@ import { ProcessStepItem } from '../process-steps/process-steps.component';
         font-weight: 850;
       }
 
+      :host([data-ui-kit='material']) button {
+        border-radius: 4px;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 10%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) button {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) button {
+        min-height: 38px;
+        border-radius: 999px;
+      }
+
+      :host([data-ui-kit='ionic']) .track {
+        height: 4px;
+      }
+
       button.active {
         border-color: var(--ch-color-primary);
-        background: #eef6ff;
+        background: var(--ch-color-primary-soft);
         color: var(--ch-color-primary);
       }
 
@@ -87,7 +109,7 @@ import { ProcessStepItem } from '../process-steps/process-steps.component';
         width: 20px;
         height: 20px;
         border-radius: 999px;
-        background: #e3edf7;
+        background: var(--ch-color-surface-muted);
         color: var(--ch-color-text);
         font-size: 0.72rem;
       }
@@ -130,7 +152,7 @@ import { ProcessStepItem } from '../process-steps/process-steps.component';
     </nav>
   `
 })
-export class MobileStepProgressComponent {
+export class MobileStepProgressComponent extends UiKitAwareComponent {
   @Input() items: ProcessStepItem[] = [];
   @Input() activeKey = '';
   @Input() interactive = false;

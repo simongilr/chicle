@@ -1,10 +1,14 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
 
 @Component({
   selector: 'app-loading-skeleton',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -31,7 +35,7 @@ export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
       .spinner {
         width: 14px;
         height: 14px;
-        border: 2px solid #cbd9e7;
+        border: 2px solid var(--ch-color-border);
         border-top-color: var(--ch-color-primary);
         border-radius: 50%;
         animation: spin 700ms linear infinite;
@@ -46,6 +50,25 @@ export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
         padding: 18px;
       }
 
+      :host([data-ui-kit='material']) .surface {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .surface {
+        border-radius: 6px;
+        box-shadow: none;
+      }
+
+      :host([data-ui-kit='ionic']) .surface {
+        border-radius: 16px;
+        padding: 16px;
+      }
+
+      :host([data-ui-kit='native']) .surface {
+        border-radius: 2px;
+      }
+
       .line,
       .block,
       .control,
@@ -53,7 +76,7 @@ export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
         overflow: hidden;
         position: relative;
         border-radius: 6px;
-        background: #e8eef5;
+        background: var(--ch-color-surface-muted);
       }
 
       .line::after,
@@ -65,7 +88,7 @@ export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
         background: linear-gradient(
           90deg,
           transparent 0%,
-          rgba(255, 255, 255, 0.72) 48%,
+          color-mix(in srgb, var(--ch-color-surface) 72%, transparent) 48%,
           transparent 100%
         );
         content: '';
@@ -180,7 +203,7 @@ export type LoadingSkeletonVariant = 'page' | 'list' | 'form' | 'table';
     </section>
   `
 })
-export class LoadingSkeletonComponent {
+export class LoadingSkeletonComponent extends UiKitAwareComponent {
   @Input() variant: LoadingSkeletonVariant = 'page';
   @Input() label = 'Cargando contenido';
   @Input() rows = 4;

@@ -11,7 +11,7 @@ import {
 import { IonApp } from '@ionic/angular/standalone';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoadingSkeletonComponent } from './shared/loading-skeleton/loading-skeleton.component';
-import { UiThemeService } from './core/ui/ui-theme.service';
+import { UiPreferencesService } from './core/ui/ui-preferences.service';
 import { AiAssistantLauncherComponent } from './shared/ai-assistant-launcher/ai-assistant-launcher.component';
 
 @Component({
@@ -153,12 +153,12 @@ import { AiAssistantLauncherComponent } from './shared/ai-assistant-launcher/ai-
 export class AppComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly theme = inject(UiThemeService);
+  private readonly preferences = inject(UiPreferencesService);
   private hideTimer?: ReturnType<typeof setTimeout>;
   readonly navigationLoading = signal(false);
 
   constructor() {
-    this.theme.initialize();
+    this.preferences.initialize();
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
       if (event instanceof NavigationStart) {
         this.cancelHide();

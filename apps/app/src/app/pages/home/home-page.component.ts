@@ -21,8 +21,8 @@ interface HomeModule {
       .module-card,
       .panel,
       .status-item {
-        border: 1px solid #d9e2ec;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
       }
 
       .shell {
@@ -39,9 +39,9 @@ interface HomeModule {
 
       .welcome,
       .session-card {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 18px;
       }
 
@@ -51,7 +51,7 @@ interface HomeModule {
       }
 
       .eyebrow {
-        color: #147d64;
+        color: var(--ch-color-success);
         font-size: 0.78rem;
         font-weight: 850;
         text-transform: uppercase;
@@ -65,25 +65,25 @@ interface HomeModule {
       }
 
       h1 {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-size: 2.05rem;
         line-height: 1.15;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.12rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       p,
       .muted,
       .meta {
-        color: #4d5c6c;
+        color: var(--ch-color-muted);
         line-height: 1.5;
       }
 
@@ -98,14 +98,14 @@ interface HomeModule {
       }
 
       .label {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         font-weight: 850;
         text-transform: uppercase;
       }
 
       .value {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-weight: 800;
         overflow-wrap: anywhere;
       }
@@ -143,20 +143,20 @@ interface HomeModule {
       .module-card:hover,
       .module-card:focus-visible {
         outline: none;
-        border-color: #1554a2;
-        box-shadow: 0 0 0 3px rgba(21, 84, 162, 0.12);
+        border-color: var(--ch-color-primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 12%, transparent);
       }
 
       .module-card strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       .status-pill {
         width: fit-content;
         border-radius: 999px;
-        background: #e8f2ff;
-        color: #1554a2;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 5px 8px;
         font-size: 0.78rem;
         font-weight: 850;
@@ -175,13 +175,13 @@ interface HomeModule {
       }
 
       .status-item strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
       }
 
       .empty-state {
-        border: 1px dashed #b8c7d6;
+        border: 1px dashed var(--ch-color-border);
         border-radius: 8px;
-        color: #4d5c6c;
+        color: var(--ch-color-muted);
         padding: 16px;
       }
 
@@ -199,19 +199,19 @@ interface HomeModule {
       }
 
       .quick-actions a {
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 9px 12px;
         text-decoration: none;
         font-weight: 850;
       }
 
       .quick-actions a.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       @media (max-width: 860px) {

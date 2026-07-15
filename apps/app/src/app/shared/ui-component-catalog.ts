@@ -201,6 +201,17 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-segmented-control [items]="modes" [value]="mode" (valueChange)="mode = $event"></app-segmented-control>'
   },
   {
+    name: 'UiKitButtonComponent',
+    selector: 'app-ui-kit-button',
+    category: 'Temas y presentación',
+    purpose:
+      'Botón multikit real: renderiza con PrimeNG, Ionic, Angular Material, Bootstrap o HTML base según la presentación activa.',
+    importPath: 'shared/ui-kit-button/ui-kit-button.component',
+    usedBy: ['Components', 'Future shared actions'],
+    status: 'initial',
+    example: '<app-ui-kit-button label="Guardar" kit="material" tone="primary"></app-ui-kit-button>'
+  },
+  {
     name: 'FieldShellComponent',
     selector: 'app-field-shell',
     category: 'Formularios',
@@ -269,7 +280,13 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     category: 'Formularios',
     purpose: 'Control táctil reutilizable para archivo, foto/evidencia y GPS en formularios móviles.',
     importPath: 'shared/mobile-form/mobile-evidence-control.component',
-    usedBy: ['IonicFieldRendererComponent', 'PrimengFieldRendererComponent', 'NativeFieldRendererComponent'],
+    usedBy: [
+      'IonicFieldRendererComponent',
+      'PrimengFieldRendererComponent',
+      'MaterialFieldRendererComponent',
+      'BootstrapFieldRendererComponent',
+      'NativeFieldRendererComponent'
+    ],
     status: 'initial',
     example:
       '<app-mobile-evidence-control mode="image" controlId="foto" name="foto" (valueChange)="value = $event"></app-mobile-evidence-control>'
@@ -331,7 +348,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     name: 'NativeFieldRendererComponent',
     selector: 'app-native-field-renderer',
     category: 'Formularios',
-    purpose: 'Adaptador HTML base y dependencia mínima para controles dinámicos, evidencias y ubicación.',
+    purpose: 'Adaptador HTML base y dependencia mínima para controles dinámicos cuando no se desea una librería visual.',
     importPath: 'shared/field-renderers/native-field-renderer.component',
     usedBy: ['DynamicFieldControlComponent'],
     status: 'initial',
@@ -339,10 +356,33 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
       '<app-native-field-renderer [field]="field" controlId="field-id" [value]="value"></app-native-field-renderer>'
   },
   {
+    name: 'MaterialFieldRendererComponent',
+    selector: 'app-material-field-renderer',
+    category: 'Formularios',
+    purpose: 'Adaptador real de controles dinámicos usando Angular Material.',
+    importPath: 'shared/field-renderers/material-field-renderer.component',
+    usedBy: ['DynamicFieldControlComponent'],
+    status: 'initial',
+    example:
+      '<app-material-field-renderer [field]="field" controlId="field-id" [value]="value"></app-material-field-renderer>'
+  },
+  {
+    name: 'BootstrapFieldRendererComponent',
+    selector: 'app-bootstrap-field-renderer',
+    category: 'Formularios',
+    purpose: 'Adaptador real de controles dinámicos usando estructura y clases Bootstrap.',
+    importPath: 'shared/field-renderers/bootstrap-field-renderer.component',
+    usedBy: ['DynamicFieldControlComponent'],
+    status: 'initial',
+    example:
+      '<app-bootstrap-field-renderer [field]="field" controlId="field-id" [value]="value"></app-bootstrap-field-renderer>'
+  },
+  {
     name: 'UiPresentationSwitcherComponent',
     selector: 'app-ui-presentation-switcher',
     category: 'Temas y presentación',
-    purpose: 'Alterna entre resolución adaptativa, PrimeNG, Ionic y controles base durante diseño y pruebas.',
+    purpose:
+      'Alterna entre resolución adaptativa, PrimeNG, Ionic, Material, Bootstrap y controles base durante diseño y pruebas.',
     importPath: 'shared/ui-presentation-switcher/ui-presentation-switcher.component',
     usedBy: ['Dynamic forms'],
     status: 'initial',

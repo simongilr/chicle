@@ -45,7 +45,7 @@ import { UiPresentationSwitcherComponent } from '../ui-presentation-switcher/ui-
     <div class="library-heading">
       <h2>Campos dinámicos disponibles</h2>
       <p>
-        Cambia la presentación para comprobar el mismo esquema en PrimeNG, Ionic o controles base.
+        Cambia la presentación para comprobar el mismo esquema en PrimeNG, Ionic, Material, Bootstrap o controles base.
       </p>
     </div>
 

@@ -38,19 +38,19 @@ interface ConfisysSaveResponse {
     `
       button {
         min-height: 38px;
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 12px;
         font: inherit;
         font-weight: 800;
       }
 
       button.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button:disabled {
@@ -65,10 +65,10 @@ interface ConfisysSaveResponse {
 
       .toolbar,
       .param-row {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        background: var(--ch-color-surface);
+        box-shadow: 0 16px 42px color-mix(in srgb, var(--ch-color-text) 6%, transparent);
       }
 
       .toolbar {
@@ -83,20 +83,20 @@ interface ConfisysSaveResponse {
       }
 
       h1 {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 1.7rem;
         line-height: 1.18;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       p,
       .meta,
       .hint {
-        color: #526577;
+        color: var(--ch-color-muted);
         line-height: 1.5;
       }
 
@@ -110,10 +110,10 @@ interface ConfisysSaveResponse {
       select,
       textarea {
         width: 100%;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         font: inherit;
       }
@@ -126,8 +126,8 @@ interface ConfisysSaveResponse {
       input:focus,
       select:focus,
       textarea:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.18);
-        border-color: #1554a2;
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+        border-color: var(--ch-color-primary);
       }
 
       .params {
@@ -151,7 +151,7 @@ interface ConfisysSaveResponse {
       }
 
       .key-name {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-weight: 850;
         overflow-wrap: anywhere;
       }
@@ -164,27 +164,27 @@ interface ConfisysSaveResponse {
 
       .badge {
         border-radius: 999px;
-        background: #eaf3fc;
-        color: #16496f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 5px 8px;
         font-size: 0.75rem;
         font-weight: 800;
       }
 
       .badge.private {
-        background: #f1edf8;
-        color: #5a367a;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-primary);
       }
 
       .state {
         min-height: 20px;
-        color: #2e6f48;
+        color: var(--ch-color-success);
         font-size: 0.85rem;
         font-weight: 800;
       }
 
       .error {
-        color: #a33a2b;
+        color: var(--ch-color-danger);
       }
 
       @media (max-width: 760px) {

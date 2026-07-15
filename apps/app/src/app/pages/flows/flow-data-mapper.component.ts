@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { UiKitAwareComponent } from '../../shared/ui-kit/ui-kit-aware.component';
 
 export interface FlowMapRow {
   key: string;
@@ -17,6 +18,9 @@ export interface FlowDataOption {
   selector: 'app-flow-data-mapper',
   standalone: true,
   imports: [FormsModule],
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -38,7 +42,7 @@ export interface FlowDataOption {
       label {
         display: grid;
         gap: 5px;
-        color: #153b61;
+        color: var(--ch-color-text);
         font-size: 0.86rem;
         font-weight: 800;
       }
@@ -47,28 +51,47 @@ export interface FlowDataOption {
       select {
         width: 100%;
         min-height: 38px;
-        border: 1px solid #b9cfe6;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 7px;
         padding: 8px 10px;
-        background: #fff;
-        color: #153b61;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         font: inherit;
+      }
+
+      :host([data-ui-kit='material']) input,
+      :host([data-ui-kit='material']) select,
+      :host([data-ui-kit='material']) button {
+        border-radius: 4px;
+      }
+
+      :host([data-ui-kit='bootstrap']) input,
+      :host([data-ui-kit='bootstrap']) select,
+      :host([data-ui-kit='bootstrap']) button {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) input,
+      :host([data-ui-kit='ionic']) select,
+      :host([data-ui-kit='ionic']) button {
+        min-height: 42px;
+        border-radius: 12px;
       }
 
       button {
         min-height: 38px;
-        border: 1px solid #bfd2e5;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #fff;
-        color: #153b61;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         cursor: pointer;
       }
 
       .empty {
-        border: 1px dashed #b9cfe6;
+        border: 1px dashed var(--ch-color-primary-border);
         border-radius: 7px;
         padding: 11px;
-        color: #587087;
+        color: var(--ch-color-muted);
       }
 
       @media (max-width: 680px) {
@@ -122,7 +145,7 @@ export interface FlowDataOption {
     </div>
   `
 })
-export class FlowDataMapperComponent {
+export class FlowDataMapperComponent extends UiKitAwareComponent {
   @Input() rows: FlowMapRow[] = [];
   @Input() options: FlowDataOption[] = [];
   @Output() rowsChange = new EventEmitter<FlowMapRow[]>();

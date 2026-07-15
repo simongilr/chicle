@@ -40,13 +40,13 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
 
       input,
       textarea {
-        border: 1px solid #c5d6e6;
+        border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
-        background: #ffffff;
+        background: var(--ch-color-surface);
         color: var(--ch-color-text);
         box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.8) inset,
-          0 1px 2px rgba(20, 50, 80, 0.04);
+          0 1px 0 color-mix(in srgb, var(--ch-color-surface) 80%, transparent) inset,
+          0 1px 2px color-mix(in srgb, var(--ch-color-text) 5%, transparent);
         padding: 10px 12px;
         font: inherit;
         line-height: 1.35;
@@ -58,16 +58,16 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
 
       input:focus,
       textarea:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.16);
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
         border-color: var(--ch-color-primary);
         box-shadow:
-          0 0 0 1px rgba(21, 84, 162, 0.08),
-          0 8px 18px rgba(20, 50, 80, 0.08);
+          0 0 0 1px color-mix(in srgb, var(--ch-color-primary) 10%, transparent),
+          0 8px 18px color-mix(in srgb, var(--ch-color-text) 8%, transparent);
       }
 
       input::placeholder,
       textarea::placeholder {
-        color: #7b8fa3;
+        color: var(--ch-color-muted);
       }
 
       textarea {
@@ -81,13 +81,13 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         width: 100%;
         height: 44px;
         min-height: 44px;
-        border: 1px solid #c5d6e6;
+        border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
-        background: #ffffff;
+        background: var(--ch-color-surface);
         color: var(--ch-color-text);
         box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.8) inset,
-          0 1px 2px rgba(20, 50, 80, 0.04);
+          0 1px 0 color-mix(in srgb, var(--ch-color-surface) 80%, transparent) inset,
+          0 1px 2px color-mix(in srgb, var(--ch-color-text) 5%, transparent);
         transition:
           border-color 140ms ease,
           box-shadow 140ms ease,
@@ -97,8 +97,8 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
       :host ::ng-deep .p-select:not(.p-disabled).p-focus {
         border-color: var(--ch-color-primary);
         box-shadow:
-          0 0 0 3px rgba(21, 84, 162, 0.16),
-          0 8px 18px rgba(20, 50, 80, 0.08);
+          0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 18%, transparent),
+          0 8px 18px color-mix(in srgb, var(--ch-color-text) 8%, transparent);
       }
 
       :host ::ng-deep .p-select-label {
@@ -117,7 +117,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
       }
 
       :host ::ng-deep .p-placeholder {
-        color: #7b8fa3;
+        color: var(--ch-color-muted);
       }
 
       :host ::ng-deep .p-select-dropdown {
@@ -127,7 +127,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         flex: 0 0 42px;
         width: 42px;
         height: 42px;
-        color: #52677a;
+        color: var(--ch-color-muted);
       }
 
       .boolean-control {
@@ -135,9 +135,9 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         align-items: center;
         min-height: 42px;
         gap: 9px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         color: var(--ch-color-text);
         padding: 10px 12px;
         font-weight: 750;
@@ -153,9 +153,9 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         display: flex;
         align-items: center;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         color: var(--ch-color-text);
         padding: 9px 11px;
       }

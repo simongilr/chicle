@@ -214,7 +214,11 @@ interface RenderedRuntimeStep {
         z-index: 2;
         margin-top: 2px;
         padding-top: 10px;
-        background: linear-gradient(180deg, rgb(255 255 255 / 0.7), var(--ch-color-surface) 38%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--ch-color-surface) 70%, transparent),
+          var(--ch-color-surface) 38%
+        );
       }
 
       .actions.no-secondary {
@@ -313,31 +317,31 @@ interface RenderedRuntimeStep {
       }
 
       form[data-primary-tone='success'] button.primary {
-        border-color: #16865f;
-        background: #16865f;
-        color: #ffffff;
+        border-color: var(--ch-color-success);
+        background: var(--ch-color-success);
+        color: var(--ch-color-primary-contrast);
       }
 
       form[data-primary-tone='danger'] button.primary {
-        border-color: #b42318;
-        background: #b42318;
-        color: #ffffff;
+        border-color: var(--ch-color-danger);
+        background: var(--ch-color-danger);
+        color: var(--ch-color-primary-contrast);
       }
 
       form[data-primary-tone='secondary'] button.primary {
-        border-color: #315a90;
-        background: #315a90;
-        color: #ffffff;
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
       }
 
       form[data-primary-tone='neutral'] button.primary {
-        border-color: #344054;
-        background: #344054;
-        color: #ffffff;
+        border-color: var(--ch-color-border);
+        background: var(--ch-color-text);
+        color: var(--ch-color-surface);
       }
 
       button.secondary {
-        background: #f7fbff;
+        background: var(--ch-color-surface-alt);
       }
 
       button:disabled {

@@ -19,9 +19,9 @@ interface NavGroup {
         position: sticky;
         top: 0;
         z-index: 30;
-        border-bottom: 1px solid #d9e2ec;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 10px 28px rgba(20, 50, 80, 0.06);
+        border-bottom: 1px solid var(--ch-color-border);
+        background: color-mix(in srgb, var(--ch-color-surface) 94%, transparent);
+        box-shadow: var(--ch-shadow-card);
         backdrop-filter: blur(14px);
       }
 
@@ -42,13 +42,13 @@ interface NavGroup {
       }
 
       .brand {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-size: 1rem;
         font-weight: 900;
       }
 
       .context-label {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.82rem;
         font-weight: 750;
       }
@@ -71,10 +71,10 @@ interface NavGroup {
         justify-content: center;
         gap: 7px;
         min-height: 38px;
-        border: 1px solid #c8d6e4;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 12px;
         text-decoration: none;
         font: inherit;
@@ -84,9 +84,9 @@ interface NavGroup {
       }
 
       .nav-link.active {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       .logout-button,
@@ -105,8 +105,8 @@ interface NavGroup {
       }
 
       .dropdown-button.active {
-        border-color: #b7cce2;
-        background: #eaf3fc;
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
       }
 
       .dropdown-panel {
@@ -117,11 +117,11 @@ interface NavGroup {
         gap: 6px;
         min-width: 230px;
         max-width: min(320px, 90vw);
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 8px;
-        box-shadow: 0 18px 44px rgba(20, 50, 80, 0.14);
+        box-shadow: var(--ch-shadow-card);
       }
 
       .dropdown-panel .nav-link {
@@ -131,8 +131,8 @@ interface NavGroup {
       }
 
       .dropdown-panel .nav-link:hover {
-        border-color: #d9e2ec;
-        background: #f5f8fb;
+        border-color: var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
       }
 
       .menu-button {
@@ -154,7 +154,7 @@ interface NavGroup {
         position: fixed;
         inset: 0;
         z-index: 70;
-        background: rgba(10, 25, 41, 0.34);
+        background: color-mix(in srgb, var(--ch-color-text) 30%, transparent);
       }
 
       .drawer {
@@ -164,9 +164,9 @@ interface NavGroup {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
         width: min(390px, 92vw);
-        border-left: 1px solid #d9e2ec;
-        background: #ffffff;
-        box-shadow: -20px 0 48px rgba(20, 50, 80, 0.18);
+        border-left: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        box-shadow: var(--ch-shadow-card);
       }
 
       .drawer-header,
@@ -192,7 +192,7 @@ interface NavGroup {
       }
 
       .drawer-title {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         font-weight: 900;
         letter-spacing: 0;
@@ -206,7 +206,7 @@ interface NavGroup {
       }
 
       .drawer-footer {
-        border-top: 1px solid #d9e2ec;
+        border-top: 1px solid var(--ch-color-border);
       }
 
       .drawer-footer .logout-button {

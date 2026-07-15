@@ -1,8 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-catalog-header',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -25,12 +29,12 @@ import { Component, Input } from '@angular/core';
 
       h2 {
         margin: 0;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.15rem;
       }
 
       span {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.82rem;
         line-height: 1.35;
       }
@@ -41,6 +45,34 @@ import { Component, Input } from '@angular/core';
         justify-content: flex-end;
         gap: 6px;
         align-items: center;
+      }
+
+      :host([data-ui-kit='material']) .header {
+        min-height: 48px;
+      }
+
+      :host([data-ui-kit='material']) h2 {
+        font-size: 1.05rem;
+        font-weight: 500;
+      }
+
+      :host([data-ui-kit='bootstrap']) .header {
+        gap: 12px;
+      }
+
+      :host([data-ui-kit='bootstrap']) h2 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      :host([data-ui-kit='ionic']) .header {
+        align-items: flex-start;
+        min-height: 48px;
+      }
+
+      :host([data-ui-kit='ionic']) h2 {
+        font-size: 1.05rem;
+        font-weight: 700;
       }
 
       :host ::ng-deep .actions button {
@@ -77,7 +109,7 @@ import { Component, Input } from '@angular/core';
     </header>
   `
 })
-export class CatalogHeaderComponent {
+export class CatalogHeaderComponent extends UiKitAwareComponent {
   @Input({ required: true }) title = '';
   @Input() summary = '';
 }

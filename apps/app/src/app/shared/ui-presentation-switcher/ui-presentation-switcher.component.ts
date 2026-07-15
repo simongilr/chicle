@@ -75,11 +75,20 @@ export class UiPresentationSwitcherComponent {
     { key: 'auto', label: 'Adaptativo', icon: 'pi pi-sync' },
     { key: 'primeng', label: 'PrimeNG', icon: 'pi pi-desktop' },
     { key: 'ionic', label: 'Ionic', icon: 'pi pi-mobile' },
+    { key: 'material', label: 'Material', icon: 'pi pi-stop' },
+    { key: 'bootstrap', label: 'Bootstrap', icon: 'pi pi-th-large' },
     { key: 'native', label: 'Base', icon: 'pi pi-code' }
   ];
 
   select(value: string) {
-    if (value === 'auto' || value === 'primeng' || value === 'ionic' || value === 'native') {
+    if (
+      value === 'auto' ||
+      value === 'primeng' ||
+      value === 'ionic' ||
+      value === 'material' ||
+      value === 'bootstrap' ||
+      value === 'native'
+    ) {
       this.valueChange.emit(value);
     }
   }
@@ -88,8 +97,9 @@ export class UiPresentationSwitcherComponent {
     return {
       primeng: 'PrimeNG',
       ionic: 'Ionic',
+      material: 'Material',
+      bootstrap: 'Bootstrap',
       native: 'Base'
     }[kit];
   }
 }
-

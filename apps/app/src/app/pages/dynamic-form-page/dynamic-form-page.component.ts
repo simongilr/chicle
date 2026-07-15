@@ -98,7 +98,7 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
         border: 1px solid var(--ch-color-primary);
         border-radius: var(--ch-radius);
         background: var(--ch-color-primary);
-        color: #ffffff;
+        color: var(--ch-color-surface);
         padding: 8px 14px;
         font: inherit;
         font-weight: 800;

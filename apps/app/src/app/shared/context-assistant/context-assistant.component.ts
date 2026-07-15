@@ -1,10 +1,14 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type ContextAssistantTone = 'info' | 'success' | 'warning';
 
 @Component({
   selector: 'app-context-assistant',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -16,19 +20,47 @@ export type ContextAssistantTone = 'info' | 'success' | 'warning';
         grid-template-columns: 32px minmax(0, 1fr) auto;
         gap: 10px;
         align-items: start;
-        border-left: 4px solid #1554a2;
-        background: #eef6ff;
+        border-left: 4px solid var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
         padding: 11px 12px;
       }
 
+      :host([data-ui-kit='material']) .assistant {
+        border-left-width: 0;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .assistant {
+        border: 1px solid var(--ch-color-primary-border);
+        border-left-width: 4px;
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .assistant {
+        grid-template-columns: 34px minmax(0, 1fr);
+        border-left-width: 0;
+        border-radius: 16px;
+        padding: 13px;
+      }
+
+      :host([data-ui-kit='ionic']) .state {
+        grid-column: 2;
+        justify-self: start;
+      }
+
+      :host([data-ui-kit='native']) .assistant {
+        border-radius: 2px;
+      }
+
       .assistant.success {
-        border-left-color: #238152;
-        background: #f1faf5;
+        border-left-color: var(--ch-color-success);
+        background: var(--ch-color-success-soft);
       }
 
       .assistant.warning {
-        border-left-color: #b87515;
-        background: #fff8ec;
+        border-left-color: var(--ch-color-warning);
+        background: var(--ch-color-warning-soft);
       }
 
       .icon {
@@ -38,16 +70,16 @@ export type ContextAssistantTone = 'info' | 'success' | 'warning';
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #ffffff;
-        color: #1554a2;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
       }
 
       .success .icon {
-        color: #238152;
+        color: var(--ch-color-success);
       }
 
       .warning .icon {
-        color: #9a6412;
+        color: var(--ch-color-warning);
       }
 
       .copy {
@@ -57,14 +89,14 @@ export type ContextAssistantTone = 'info' | 'success' | 'warning';
       }
 
       strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.88rem;
       }
 
       p,
       small {
         margin: 0;
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.4;
       }
 
@@ -78,23 +110,23 @@ export type ContextAssistantTone = 'info' | 'success' | 'warning';
 
       .state {
         white-space: nowrap;
-        border: 1px solid #b9cfe5;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #ffffff;
-        color: #174f91;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
         padding: 5px 8px;
         font-size: 0.72rem;
         font-weight: 900;
       }
 
       .success .state {
-        border-color: #9fd2b0;
-        color: #167044;
+        border-color: var(--ch-color-success-border);
+        color: var(--ch-color-success);
       }
 
       .warning .state {
-        border-color: #e6bd7d;
-        color: #8a570e;
+        border-color: var(--ch-color-warning-border);
+        color: var(--ch-color-warning);
       }
 
       @media (max-width: 620px) {
@@ -128,7 +160,7 @@ export type ContextAssistantTone = 'info' | 'success' | 'warning';
     </aside>
   `
 })
-export class ContextAssistantComponent {
+export class ContextAssistantComponent extends UiKitAwareComponent {
   @Input() title = 'Asistente';
   @Input() description = '';
   @Input() example = '';

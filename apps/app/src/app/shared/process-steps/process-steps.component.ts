@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type ProcessStepState = 'pending' | 'active' | 'complete' | 'warning';
 
@@ -15,6 +16,9 @@ export interface ProcessStepItem {
   selector: 'app-process-steps',
   standalone: true,
   imports: [NgTemplateOutlet],
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -34,13 +38,35 @@ export interface ProcessStepItem {
         align-items: center;
         width: 100%;
         min-height: 58px;
-        border: 1px solid #c8d6e4;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 9px 10px;
         text-align: left;
         font: inherit;
+      }
+
+      :host([data-ui-kit='material']) .process-step {
+        border-radius: 4px;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='material']) .process-step.active {
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--ch-color-primary) 20%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .process-step {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .process-step {
+        min-height: 62px;
+        border-radius: 14px;
+      }
+
+      :host([data-ui-kit='native']) .process-step {
+        border-radius: 2px;
       }
 
       button.process-step {
@@ -48,18 +74,18 @@ export interface ProcessStepItem {
       }
 
       .process-step.active {
-        border-color: #1554a2;
-        background: #edf5ff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .process-step.complete {
-        border-color: #9fd2b0;
-        background: #f2faf5;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
       }
 
       .process-step.warning {
-        border-color: #e6bd7d;
-        background: #fff9ef;
+        border-color: var(--ch-color-warning-border);
+        background: var(--ch-color-warning-soft);
       }
 
       .process-step:disabled {
@@ -74,25 +100,25 @@ export interface ProcessStepItem {
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background: #e8eef5;
-        color: #173b5f;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-text);
         font-size: 0.82rem;
         font-weight: 900;
       }
 
       .active .marker {
-        background: #1554a2;
-        color: #ffffff;
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       .complete .marker {
-        background: #238152;
-        color: #ffffff;
+        background: var(--ch-color-success);
+        color: var(--ch-color-primary-contrast);
       }
 
       .warning .marker {
-        background: #b87515;
-        color: #ffffff;
+        background: var(--ch-color-warning);
+        color: var(--ch-color-primary-contrast);
       }
 
       .copy {
@@ -108,21 +134,21 @@ export interface ProcessStepItem {
       }
 
       .copy span {
-        color: #5b7187;
+        color: var(--ch-color-muted);
         font-size: 0.78rem;
         line-height: 1.3;
       }
 
       .compact .process-step {
         min-height: 50px;
-        border-color: #d7e2ed;
-        background: #f8fbfe;
+        border-color: var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         padding: 8px 9px;
       }
 
       .compact .process-step.complete {
-        border-color: #9fd2b0;
-        background: #f2faf5;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
       }
 
       @media (max-width: 620px) {
@@ -187,7 +213,7 @@ export interface ProcessStepItem {
     </ng-template>
   `
 })
-export class ProcessStepsComponent {
+export class ProcessStepsComponent extends UiKitAwareComponent {
   @Input() items: ProcessStepItem[] = [];
   @Input() activeKey = '';
   @Input() compact = false;

@@ -455,8 +455,8 @@ interface FlowJobItem {
       :host {
         display: block;
         min-height: 100vh;
-        color: #173b5f;
-        background: #f5f7fb;
+        color: var(--ch-color-text);
+        background: var(--ch-color-background);
       }
 
       .page {
@@ -466,7 +466,7 @@ interface FlowJobItem {
 
       .eyebrow,
       .meta {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.86rem;
       }
 
@@ -484,12 +484,12 @@ interface FlowJobItem {
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.15rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
@@ -499,8 +499,8 @@ interface FlowJobItem {
         align-content: start;
         min-width: 0;
         max-width: 100%;
-        background: #fff;
-        border: 1px solid #d9e2ec;
+        background: var(--ch-color-surface);
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
         padding: 18px;
         overflow-wrap: anywhere;
@@ -527,13 +527,13 @@ interface FlowJobItem {
       }
 
       .starter i {
-        color: #1554a2;
+        color: var(--ch-color-primary);
         font-size: 1.15rem;
       }
 
       .starter.active {
-        border-color: #1554a2;
-        background: #eaf3fc;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .authoring-grid {
@@ -548,9 +548,9 @@ interface FlowJobItem {
         display: grid;
         gap: 12px;
         min-width: 0;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -565,9 +565,9 @@ interface FlowJobItem {
         grid-template-columns: 30px minmax(0, 1fr);
         gap: 10px;
         align-items: start;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 12px;
       }
 
@@ -578,8 +578,8 @@ interface FlowJobItem {
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background: #1554a2;
-        color: #fff;
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
         font-size: 0.8rem;
         font-weight: 900;
       }
@@ -599,7 +599,7 @@ interface FlowJobItem {
       .configuration-section {
         display: grid;
         gap: 14px;
-        border-bottom: 1px solid #d9e2ec;
+        border-bottom: 1px solid var(--ch-color-border);
         padding-bottom: 18px;
       }
 
@@ -622,8 +622,8 @@ interface FlowJobItem {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #e8f1fb;
-        color: #1554a2;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         font-size: 0.82rem;
         font-weight: 900;
       }
@@ -640,8 +640,8 @@ interface FlowJobItem {
       }
 
       .callout {
-        border-left: 4px solid #1554a2;
-        background: #eef6ff;
+        border-left: 4px solid var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
         padding: 12px 14px;
         margin-bottom: 14px;
         line-height: 1.45;
@@ -659,7 +659,7 @@ interface FlowJobItem {
         gap: 9px;
         align-items: start;
         padding: 10px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
       }
 
@@ -668,7 +668,7 @@ interface FlowJobItem {
       }
 
       .check-mark {
-        color: #167044;
+        color: var(--ch-color-success);
         font-weight: 900;
       }
 
@@ -712,16 +712,16 @@ interface FlowJobItem {
       .step-configuration {
         display: grid;
         gap: 16px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 16px;
       }
 
       .step-json {
         display: grid;
         gap: 12px;
-        border-top: 1px solid #d9e2ec;
+        border-top: 1px solid var(--ch-color-border);
         padding-top: 16px;
       }
 
@@ -736,19 +736,19 @@ interface FlowJobItem {
       .connection-summary {
         display: grid;
         gap: 8px;
-        border-left: 4px solid #1554a2;
-        background: #eef6ff;
+        border-left: 4px solid var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
         padding: 10px 12px;
       }
 
       .connection-summary strong {
-        color: #174f91;
+        color: var(--ch-color-primary);
       }
 
       label {
         display: grid;
         gap: 5px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 850;
         font-size: 0.9rem;
         line-height: 1.25;
@@ -759,12 +759,12 @@ interface FlowJobItem {
       textarea {
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
         min-height: 38px;
         padding: 8px 10px;
-        color: #173b5f;
-        background: #fff;
+        color: var(--ch-color-text);
+        background: var(--ch-color-surface);
         font: inherit;
       }
 
@@ -777,9 +777,9 @@ interface FlowJobItem {
 
       button {
         box-sizing: border-box;
-        border: 1px solid #b9c9d8;
-        background: #fff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         border-radius: 8px;
         min-height: 36px;
         padding: 8px 12px;
@@ -788,14 +788,14 @@ interface FlowJobItem {
       }
 
       button.primary {
-        background: #1554a2;
-        border-color: #1554a2;
-        color: #fff;
+        background: var(--ch-color-primary);
+        border-color: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button.danger {
-        color: #a51d24;
-        border-color: #efb4b8;
+        color: var(--ch-color-danger);
+        border-color: var(--ch-color-danger-border);
       }
 
       button:disabled {
@@ -813,8 +813,8 @@ interface FlowJobItem {
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 10px;
-        border: 1px solid #c8d6e4;
-        background: #f8fbff;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         border-radius: 8px;
         padding: 10px;
         cursor: pointer;
@@ -822,8 +822,8 @@ interface FlowJobItem {
       }
 
       .step-card.active {
-        border-color: #1554a2;
-        background: #eaf3fc;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .badge {
@@ -833,8 +833,8 @@ interface FlowJobItem {
         min-width: 42px;
         height: 28px;
         border-radius: 999px;
-        background: #e9eef5;
-        color: #173b5f;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-text);
         font-size: 0.78rem;
         font-weight: 900;
       }
@@ -853,16 +853,16 @@ interface FlowJobItem {
       }
 
       .type-button.active {
-        border-color: #1554a2;
-        background: #eaf3fc;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .guided-panel {
         display: grid;
         gap: 10px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbff;
+        background: var(--ch-color-surface-alt);
         margin-top: 10px;
         padding: 12px;
       }
@@ -902,7 +902,7 @@ interface FlowJobItem {
         gap: 16px;
         margin-top: 14px;
         padding-top: 14px;
-        border-top: 1px solid #d9e2ec;
+        border-top: 1px solid var(--ch-color-border);
       }
 
       .capability-grid {
@@ -915,22 +915,22 @@ interface FlowJobItem {
         display: grid;
         align-content: start;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 12px;
       }
 
       .capability-group.supported {
-        border-top: 3px solid #238152;
+        border-top: 3px solid var(--ch-color-success);
       }
 
       .capability-group.delegated {
-        border-top: 3px solid #1554a2;
+        border-top: 3px solid var(--ch-color-primary);
       }
 
       .capability-group.pending {
-        border-top: 3px solid #b87515;
+        border-top: 3px solid var(--ch-color-warning);
       }
 
       .capability-item {
@@ -938,14 +938,14 @@ interface FlowJobItem {
         grid-template-columns: 18px minmax(0, 1fr);
         gap: 7px;
         align-items: start;
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.84rem;
         line-height: 1.4;
       }
 
       .capability-item i {
         margin-top: 2px;
-        color: #1554a2;
+        color: var(--ch-color-primary);
       }
 
       .map-row {
@@ -999,10 +999,10 @@ interface FlowJobItem {
         grid-template-columns: 22px minmax(0, 1fr);
         gap: 8px;
         padding: 9px 10px;
-        border: 1px solid #efc5a5;
+        border: 1px solid var(--ch-color-warning-border);
         border-radius: 7px;
-        background: #fff8ef;
-        color: #71400f;
+        background: var(--ch-color-surface)8ef;
+        color: var(--ch-color-warning);
       }
 
       .assistant-actions {
@@ -1014,10 +1014,10 @@ interface FlowJobItem {
         gap: 8px;
         align-items: center;
         padding: 10px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.97);
-        box-shadow: 0 8px 24px rgba(30, 80, 130, 0.14);
+        background: color-mix(in srgb, var(--ch-color-surface) 97%, transparent);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--ch-color-text) 14%, transparent);
       }
 
       .assistant-actions .meta {
@@ -1025,16 +1025,16 @@ interface FlowJobItem {
       }
 
       .hint {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #52677a;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-muted);
         padding: 9px 10px;
         line-height: 1.45;
       }
 
       .mini-title {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.9rem;
         font-weight: 900;
       }
@@ -1042,9 +1042,9 @@ interface FlowJobItem {
       .run-card {
         display: grid;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
@@ -1057,7 +1057,7 @@ interface FlowJobItem {
 
       .test-suite-panel {
         margin-top: 18px;
-        border-top: 1px solid #d9e2ec;
+        border-top: 1px solid var(--ch-color-border);
         padding-top: 14px;
       }
 
@@ -1080,7 +1080,7 @@ interface FlowJobItem {
       }
 
       .test-suite-panel > summary small {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.8rem;
         font-weight: 500;
       }
@@ -1098,8 +1098,8 @@ interface FlowJobItem {
       }
 
       .test-case.active {
-        border-color: #1554a2;
-        background: #eaf3fc;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .test-result-bar {
@@ -1111,10 +1111,10 @@ interface FlowJobItem {
       .test-result-bar > div {
         display: grid;
         gap: 2px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
         padding: 9px;
-        background: #fff;
+        background: var(--ch-color-surface);
       }
 
       .assertion-row {
@@ -1144,9 +1144,9 @@ interface FlowJobItem {
         display: grid;
         gap: 12px;
         align-content: start;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -1160,9 +1160,9 @@ interface FlowJobItem {
         display: grid;
         gap: 3px;
         min-width: 0;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #fff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
@@ -1182,9 +1182,9 @@ interface FlowJobItem {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px;
         align-items: center;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #fff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
@@ -1200,15 +1200,15 @@ interface FlowJobItem {
       .runtime-item {
         display: grid;
         gap: 6px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
       .runtime-item.selected {
-        border-color: #1554a2;
-        background: #f2f7ff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .runtime-state {
@@ -1223,50 +1223,50 @@ interface FlowJobItem {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #9aaaba;
+        background: var(--ch-color-muted);
         content: '';
       }
 
       .runtime-state.connected::before,
       .runtime-state.success::before {
-        background: #23945b;
+        background: var(--ch-color-success);
       }
 
       .runtime-state.running::before,
       .runtime-state.queued::before {
-        background: #cc861c;
+        background: var(--ch-color-warning);
       }
 
       .runtime-state.failed::before,
       .runtime-state.cancelled::before {
-        background: #ca4149;
+        background: var(--ch-color-danger);
       }
 
       .code-line {
         overflow-wrap: anywhere;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #f7fafc;
+        background: var(--ch-color-surface-alt);
         padding: 8px 10px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 0.8rem;
       }
 
       .status-success {
-        background: #e8f8ef;
-        color: #116b3b;
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .status-failed,
       .status-timeout {
-        background: #fff0f0;
-        color: #9b1c24;
+        background: var(--ch-color-surface)0f0;
+        color: var(--ch-color-danger);
       }
 
       .step-run {
         display: grid;
         gap: 4px;
-        border-left: 3px solid #b9c9d8;
+        border-left: 3px solid var(--ch-color-border);
         padding-left: 9px;
       }
 
@@ -1283,8 +1283,8 @@ interface FlowJobItem {
 
       .message {
         margin: 10px 0;
-        border: 1px solid #b9d5f0;
-        background: #eef7ff;
+        border: 1px solid var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
         border-radius: 8px;
         padding: 10px 12px;
       }

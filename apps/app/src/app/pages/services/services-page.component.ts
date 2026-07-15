@@ -225,10 +225,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       .panel {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        background: var(--ch-color-surface);
+        box-shadow: 0 16px 42px color-mix(in srgb, var(--ch-color-text) 6%, transparent);
       }
 
       .panel {
@@ -249,30 +249,30 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       h1 {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-size: 1.85rem;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.15rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       .meta {
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
       .badge {
-        border: 1px solid #c7d8e8;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #eef6ff;
-        color: #173b5f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
         padding: 6px 10px;
         font-size: 0.82rem;
         font-weight: 850;
@@ -319,9 +319,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         grid-template-columns: minmax(150px, 1fr) minmax(135px, 0.8fr) minmax(155px, 0.9fr) minmax(160px, 1fr) auto;
         gap: 10px;
         align-items: end;
-        border: 1px solid #d4e0ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
@@ -337,7 +337,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         gap: 8px;
         align-items: center;
         width: auto;
-        color: #435b73;
+        color: var(--ch-color-muted);
         font-size: 0.82rem;
         font-weight: 800;
       }
@@ -357,7 +357,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
       label,
       .field-label {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.9rem;
         font-weight: 850;
         line-height: 1.25;
@@ -370,10 +370,10 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         box-sizing: border-box;
         width: 100%;
         min-height: 38px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 10px;
         font: inherit;
       }
@@ -397,7 +397,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       button {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 850;
         cursor: pointer;
       }
@@ -409,9 +409,9 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       button.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button:disabled {
@@ -422,33 +422,33 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       .notice {
         display: grid;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
-        color: #254057;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 14px;
       }
 
       .notice.error {
-        border-color: #f1b4b4;
-        background: #fff6f6;
-        color: #8b2323;
+        border-color: var(--ch-color-danger-border);
+        background: var(--ch-color-surface)6f6;
+        color: var(--ch-color-danger);
       }
 
       .notice.success {
-        border-color: #a9ddb7;
-        background: #f4fbf6;
-        color: #17643a;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .summary-box {
         display: grid;
         gap: 8px;
-        border: 1px solid #b7cce2;
-        border-left: 4px solid #1554a2;
+        border: 1px solid var(--ch-color-primary-border);
+        border-left: 4px solid var(--ch-color-primary);
         border-radius: 8px;
-        background: #f7fbff;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 14px;
       }
 
@@ -457,7 +457,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       }
 
       .summary-box strong {
-        color: #12324f;
+        color: var(--ch-color-text);
       }
 
       .run-list {
@@ -468,7 +468,7 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
       .run-item {
         display: grid;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
         padding: 12px;
       }

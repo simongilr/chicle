@@ -104,8 +104,8 @@ type RolePanelMode = 'create' | 'edit';
     `
       .panel,
       .row {
-        border: 1px solid #d9e2ec;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
       }
 
       .actions {
@@ -117,10 +117,10 @@ type RolePanelMode = 'create' | 'edit';
       a,
       button {
         min-height: 36px;
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 12px;
         text-decoration: none;
         font: inherit;
@@ -128,14 +128,14 @@ type RolePanelMode = 'create' | 'edit';
       }
 
       button.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button.danger {
-        border-color: #b84234;
-        color: #8b2f25;
+        border-color: var(--ch-color-danger);
+        color: var(--ch-color-danger);
       }
 
       button:disabled {
@@ -172,14 +172,14 @@ type RolePanelMode = 'create' | 'edit';
         display: grid;
         gap: 6px;
         min-height: 94px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
       .stat-card strong {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 1.1rem;
         overflow-wrap: anywhere;
       }
@@ -197,23 +197,23 @@ type RolePanelMode = 'create' | 'edit';
       }
 
       h1 {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 1.8rem;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.1rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.95rem;
       }
 
       p,
       .meta {
-        color: #526577;
+        color: var(--ch-color-muted);
         line-height: 1.5;
       }
 
@@ -221,7 +221,7 @@ type RolePanelMode = 'create' | 'edit';
         display: grid;
         align-content: start;
         gap: 7px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 750;
       }
 
@@ -231,10 +231,10 @@ type RolePanelMode = 'create' | 'edit';
         width: 100%;
         min-height: 40px;
         height: 40px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 9px 11px;
         font: inherit;
       }
@@ -266,9 +266,9 @@ type RolePanelMode = 'create' | 'edit';
       }
 
       .tab.active {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       .security-layout {
@@ -301,17 +301,17 @@ type RolePanelMode = 'create' | 'edit';
         display: grid;
         gap: 6px;
         width: 100%;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 12px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         text-align: left;
       }
 
       .user-card.active {
-        border-color: #1554a2;
-        background: #eef5ff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .user-card strong,
@@ -327,21 +327,21 @@ type RolePanelMode = 'create' | 'edit';
 
       .pill {
         border-radius: 999px;
-        background: #edf4fb;
-        color: #173b5f;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-text);
         padding: 4px 8px;
         font-size: 0.8rem;
         font-weight: 800;
       }
 
       .pill.warn {
-        background: #fff2e5;
-        color: #84531b;
+        background: var(--ch-color-surface)2e5;
+        color: var(--ch-color-warning);
       }
 
       .pill.ok {
-        background: #e9f8ef;
-        color: #17643a;
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .detail-head {
@@ -382,9 +382,9 @@ type RolePanelMode = 'create' | 'edit';
         align-items: center;
         gap: 6px;
         border-radius: 999px;
-        background: #edf4fb;
+        background: var(--ch-color-surface-muted);
         padding: 6px 9px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.86rem;
       }
 
@@ -398,9 +398,9 @@ type RolePanelMode = 'create' | 'edit';
         display: grid;
         align-content: start;
         gap: 10px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
@@ -416,9 +416,9 @@ type RolePanelMode = 'create' | 'edit';
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 8px;
         align-items: center;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 9px;
       }
 
@@ -429,18 +429,18 @@ type RolePanelMode = 'create' | 'edit';
       }
 
       .resource-option small {
-        color: #526577;
+        color: var(--ch-color-muted);
         overflow-wrap: anywhere;
       }
 
       .resource-state {
-        color: #17643a;
+        color: var(--ch-color-success);
         font-size: 0.74rem;
         font-weight: 850;
       }
 
       .resource-state.inactive {
-        color: #84531b;
+        color: var(--ch-color-warning);
       }
 
       .audit {

@@ -1,10 +1,14 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type MobileEvidenceMode = 'file' | 'image' | 'gps';
 
 @Component({
   selector: 'app-mobile-evidence-control',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -34,13 +38,33 @@ export type MobileEvidenceMode = 'file' | 'image' | 'gps';
         align-items: center;
         width: 100%;
         min-height: 52px;
-        border: 1px dashed #9fb7cf;
+        border: 1px dashed var(--ch-color-primary-border);
         border-radius: var(--ch-radius);
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         color: var(--ch-color-text);
         padding: 10px 12px;
         font: inherit;
         text-align: left;
+      }
+
+      :host([data-ui-kit='material']) .surface,
+      :host([data-ui-kit='material']) button {
+        border-style: solid;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .surface,
+      :host([data-ui-kit='bootstrap']) button {
+        border-style: solid;
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .surface,
+      :host([data-ui-kit='ionic']) button {
+        min-height: 56px;
+        border-style: solid;
+        border-radius: 14px;
       }
 
       button {
@@ -71,9 +95,9 @@ export type MobileEvidenceMode = 'file' | 'image' | 'gps';
 
       .action {
         flex: 0 0 auto;
-        border: 1px solid #b8cce0;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         color: var(--ch-color-primary);
         padding: 5px 9px;
         font-size: 0.78rem;
@@ -122,7 +146,7 @@ export type MobileEvidenceMode = 'file' | 'image' | 'gps';
     </div>
   `
 })
-export class MobileEvidenceControlComponent {
+export class MobileEvidenceControlComponent extends UiKitAwareComponent {
   @Input() mode: MobileEvidenceMode = 'file';
   @Input() controlId = '';
   @Input() name = '';

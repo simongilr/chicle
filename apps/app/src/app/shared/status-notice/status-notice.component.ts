@@ -1,10 +1,14 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type StatusNoticeTone = 'neutral' | 'info' | 'success' | 'warning' | 'error';
 
 @Component({
   selector: 'app-status-notice',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -14,34 +18,54 @@ export type StatusNoticeTone = 'neutral' | 'info' | 'success' | 'warning' | 'err
       .notice {
         display: grid;
         gap: 8px;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #f8fbfe;
-        color: #254057;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 14px;
       }
 
+      :host([data-ui-kit='material']) .notice {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .notice {
+        border-radius: 6px;
+        padding: 12px 14px;
+      }
+
+      :host([data-ui-kit='ionic']) .notice {
+        border-radius: 14px;
+        padding: 13px 14px;
+      }
+
+      :host([data-ui-kit='native']) .notice {
+        border-radius: 2px;
+        box-shadow: none;
+      }
+
       .notice.info {
-        border-color: #b7cce2;
-        background: #f2f8ff;
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
       }
 
       .notice.success {
-        border-color: #a9ddb7;
-        background: #f4fbf6;
-        color: #17643a;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .notice.warning {
-        border-color: #e6bd7d;
-        background: #fff9ef;
-        color: #71400f;
+        border-color: var(--ch-color-warning-border);
+        background: var(--ch-color-warning-soft);
+        color: var(--ch-color-warning);
       }
 
       .notice.error {
-        border-color: #f1b4b4;
-        background: #fff6f6;
-        color: #8b2323;
+        border-color: var(--ch-color-danger-border);
+        background: var(--ch-color-danger-soft);
+        color: var(--ch-color-danger);
       }
 
       strong {
@@ -75,7 +99,7 @@ export type StatusNoticeTone = 'neutral' | 'info' | 'success' | 'warning' | 'err
     </section>
   `
 })
-export class StatusNoticeComponent {
+export class StatusNoticeComponent extends UiKitAwareComponent {
   @Input() title = '';
   @Input() tone: StatusNoticeTone = 'neutral';
 }

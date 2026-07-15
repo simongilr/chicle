@@ -41,6 +41,7 @@ import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-switcher/ui-presentation-switcher.component';
 import { UiThemeSelectorComponent } from '../../shared/ui-theme-selector/ui-theme-selector.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import {
   FlowDataMapperComponent,
   FlowDataOption,
@@ -92,6 +93,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     StatusNoticeComponent,
     UiPresentationSwitcherComponent,
     UiThemeSelectorComponent,
+    UiKitButtonComponent,
     VerticalAppShowcaseComponent,
     WorkflowGuideComponent
   ],
@@ -108,14 +110,14 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         min-height: 120px;
         max-height: 390px;
         overflow: auto;
-        border: 1px dashed #b9c9d8;
+        border: 1px dashed var(--ch-color-border);
         border-radius: 8px;
-        background: #f7f9fc;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
       .preview-label {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.72rem;
         font-weight: 850;
         text-transform: uppercase;
@@ -123,9 +125,9 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
 
       .shell-preview {
         overflow: hidden;
-        border: 1px solid #ccd9e5;
+        border: 1px solid var(--ch-color-border);
         border-radius: 7px;
-        background: #eef3f8;
+        background: var(--ch-color-surface-muted);
       }
 
       .shell-nav {
@@ -134,21 +136,21 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         justify-content: space-between;
         gap: 8px;
         min-height: 42px;
-        border-bottom: 1px solid #ccd9e5;
-        background: #ffffff;
+        border-bottom: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
         padding: 8px 10px;
       }
 
       .shell-brand {
         display: grid;
         gap: 2px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.72rem;
         font-weight: 850;
       }
 
       .shell-brand small {
-        color: #64748b;
+        color: var(--ch-color-muted);
       }
 
       .shell-actions {
@@ -158,10 +160,10 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
 
       .shell-action,
       .preview-button {
-        border: 1px solid #bfd0e0;
+        border: 1px solid var(--ch-color-border);
         border-radius: 6px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         font: inherit;
         font-weight: 800;
       }
@@ -180,7 +182,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
       .shell-line,
       .shell-panel {
         border-radius: 5px;
-        background: #dce6ef;
+        background: var(--ch-color-border);
       }
 
       .shell-line {
@@ -191,7 +193,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
       .shell-panel {
         height: 54px;
         border: 1px solid #d0dce7;
-        background: #ffffff;
+        background: var(--ch-color-surface);
       }
 
       .preview-button {
@@ -202,9 +204,9 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
       .preview-input {
         width: 100%;
         min-height: 40px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 8px 10px;
         font: inherit;
       }
@@ -244,16 +246,16 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
       }
 
       .workspace-list {
-        background: #e8f2ff;
-        color: #173b5f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
         font-weight: 800;
       }
 
       .workspace-surface {
         min-height: 120px;
-        border: 1px dashed #bfd0e0;
-        background: #ffffff;
-        color: #52677a;
+        border: 1px dashed var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-muted);
       }
 
       app-designer-workspace {
@@ -291,6 +293,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             title="Formularios dinámicos"
             description="Diseña campos, validaciones y acciones."
             badge="V1"
+            [kit]="previewKit"
           ></app-module-header>
         }
         @case ('DesignerWorkspaceComponent') {
@@ -300,21 +303,22 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           </app-designer-workspace>
         }
         @case ('CatalogHeaderComponent') {
-          <app-catalog-header title="Formularios" summary="3 formularios">
-            <button class="preview-button" type="button">Nuevo</button>
+          <app-catalog-header title="Formularios" summary="3 formularios" [kit]="previewKit">
+            <app-ui-kit-button label="Nuevo" [kit]="previewKit"></app-ui-kit-button>
           </app-catalog-header>
         }
         @case ('DesignerCatalogPanelComponent') {
-          <app-designer-catalog-panel title="Servicios" summary="2 servicios">
-            <button catalog-actions class="preview-button" type="button">Papelera</button>
-            <button catalog-actions class="preview-button" type="button">Nuevo</button>
+          <app-designer-catalog-panel title="Servicios" summary="2 servicios" [kit]="previewKit">
+            <app-ui-kit-button catalog-actions label="Papelera" [kit]="previewKit" variant="outline"></app-ui-kit-button>
+            <app-ui-kit-button catalog-actions label="Nuevo" [kit]="previewKit"></app-ui-kit-button>
             <app-catalog-item
               title="Buscar usuario"
               meta="buscar_usuario · activo"
               detail="publicada: v4"
               [active]="true"
+              [kit]="previewKit"
             ></app-catalog-item>
-            <app-catalog-item title="Buscar roles" meta="roles · activo" detail="publicada: v1"></app-catalog-item>
+            <app-catalog-item title="Buscar roles" meta="roles · activo" detail="publicada: v1" [kit]="previewKit"></app-catalog-item>
           </app-designer-catalog-panel>
         }
         @case ('CatalogItemComponent') {
@@ -323,6 +327,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             meta="draft · v2"
             detail="Actualizado recientemente"
             [active]="true"
+            [kit]="previewKit"
           ></app-catalog-item>
         }
         @case ('SectionHeaderComponent') {
@@ -330,8 +335,9 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             stepLabel="Paso 2"
             title="Configura los campos"
             description="Define tipos, etiquetas y validaciones."
+            [kit]="previewKit"
           >
-            <button class="preview-button" type="button">Agregar</button>
+            <app-ui-kit-button label="Agregar" [kit]="previewKit"></app-ui-kit-button>
           </app-section-header>
         }
         @case ('ProcessStepsComponent') {
@@ -339,6 +345,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [items]="processSteps"
             activeKey="design"
             [interactive]="false"
+            [kit]="previewKit"
           ></app-process-steps>
         }
         @case ('WorkflowGuideComponent') {
@@ -346,6 +353,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             stepLabel="Paso 2 de 4"
             title="Diseña el formulario"
             description="Agrega campos y revisa la vista previa."
+            [kit]="previewKit"
           ></app-workflow-guide>
         }
         @case ('ContextAssistantComponent') {
@@ -354,10 +362,11 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             description="Selecciona un campo para configurar sus propiedades."
             example="Correo, fecha o selector"
             nextAction="Agrega el primer campo"
+            [kit]="previewKit"
           ></app-context-assistant>
         }
         @case ('StatusNoticeComponent') {
-          <app-status-notice tone="success" title="Definición válida">
+          <app-status-notice tone="success" title="Definición válida" [kit]="previewKit">
             El componente está listo para continuar.
           </app-status-notice>
         }
@@ -366,6 +375,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             variant="list"
             label="Cargando catálogo"
             [rows]="2"
+            [kit]="previewKit"
           ></app-loading-skeleton>
         }
         @case ('SegmentedControlComponent') {
@@ -373,6 +383,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [items]="viewModes"
             value="visual"
             ariaLabel="Vista del diseñador"
+            [kit]="previewKit"
           ></app-segmented-control>
         }
         @case ('FieldShellComponent') {
@@ -381,6 +392,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             forId="preview-email"
             help="Usaremos este correo para notificaciones."
             [required]="true"
+            [kit]="previewKit"
           >
             <input id="preview-email" class="preview-input" type="email" placeholder="persona@example.com" />
           </app-field-shell>
@@ -400,6 +412,22 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
               <app-dynamic-field-control
                 [field]="ionicDynamicField"
                 [presentation]="{ kit: 'ionic' }"
+                value="client"
+              ></app-dynamic-field-control>
+            </div>
+            <div class="renderer-example">
+              <strong>Material</strong>
+              <app-dynamic-field-control
+                [field]="materialDynamicField"
+                [presentation]="{ kit: 'material' }"
+                value="client"
+              ></app-dynamic-field-control>
+            </div>
+            <div class="renderer-example">
+              <strong>Bootstrap</strong>
+              <app-dynamic-field-control
+                [field]="bootstrapDynamicField"
+                [presentation]="{ kit: 'bootstrap' }"
                 value="client"
               ></app-dynamic-field-control>
             </div>
@@ -436,6 +464,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             title="Inspección operativa"
             description="Captura evidencias y ubicación en campo."
             [metadata]="['ionic', 'offline']"
+            [kit]="previewKit"
           >
             <div class="workspace-surface">Contenido del formulario móvil</div>
           </app-mobile-form-shell>
@@ -444,6 +473,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           <app-mobile-step-progress
             [items]="mobileSteps"
             activeKey="evidencias"
+            [kit]="previewKit"
           ></app-mobile-step-progress>
         }
         @case ('MobileActionBarComponent') {
@@ -451,6 +481,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             secondaryLabel="Anterior"
             primaryLabel="Continuar"
             primaryType="button"
+            [kit]="previewKit"
           ></app-mobile-action-bar>
         }
         @case ('MobileEvidenceControlComponent') {
@@ -460,6 +491,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             name="foto"
             placeholder="Foto obligatoria"
             [value]="mobileEvidenceValue"
+            [kit]="previewKit"
             (valueChange)="mobileEvidenceValue = $event"
           ></app-mobile-evidence-control>
           <app-mobile-evidence-control
@@ -467,6 +499,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             controlId="preview-mobile-gps"
             name="ubicacion"
             [value]="mobileGpsValue"
+            [kit]="previewKit"
             (valueChange)="mobileGpsValue = $event"
           ></app-mobile-evidence-control>
         }
@@ -506,6 +539,20 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             value="client"
           ></app-dynamic-field-control>
         }
+        @case ('MaterialFieldRendererComponent') {
+          <app-dynamic-field-control
+            [field]="materialDynamicField"
+            [presentation]="{ kit: 'material' }"
+            value="client"
+          ></app-dynamic-field-control>
+        }
+        @case ('BootstrapFieldRendererComponent') {
+          <app-dynamic-field-control
+            [field]="bootstrapDynamicField"
+            [presentation]="{ kit: 'bootstrap' }"
+            value="client"
+          ></app-dynamic-field-control>
+        }
         @case ('UiPresentationSwitcherComponent') {
           <app-ui-presentation-switcher
             [value]="previewKit"
@@ -519,6 +566,28 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             value="client"
           ></app-dynamic-field-control>
         }
+        @case ('UiKitButtonComponent') {
+          <div class="renderer-comparison">
+            @for (kit of kitExamples; track kit) {
+              <div class="renderer-example">
+                <strong>{{ kit }}</strong>
+                <app-ui-kit-button
+                  label="Guardar"
+                  icon="pi pi-save"
+                  [kit]="kit"
+                  tone="primary"
+                ></app-ui-kit-button>
+                <app-ui-kit-button
+                  label="Eliminar"
+                  icon="pi pi-trash"
+                  [kit]="kit"
+                  tone="danger"
+                  variant="outline"
+                ></app-ui-kit-button>
+              </div>
+            }
+          </div>
+        }
         @case ('UiThemeSelectorComponent') {
           <app-ui-theme-selector
             label="Tema de la pantalla"
@@ -526,7 +595,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           ></app-ui-theme-selector>
         }
         @case ('PreviewViewportComponent') {
-          <app-preview-viewport mode="mobile">
+          <app-preview-viewport mode="mobile" [kit]="previewKit">
             <div class="workspace-surface">Vista móvil del formulario</div>
           </app-preview-viewport>
         }
@@ -534,6 +603,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           <app-flow-data-mapper
             [rows]="flowMapRows"
             [options]="flowDataOptions"
+            [kit]="previewKit"
           ></app-flow-data-mapper>
         }
         @case ('FlowGraphComponent') {
@@ -541,6 +611,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [steps]="flowSteps"
             selectedStepId="step-1"
             [statuses]="flowStatuses"
+            [kit]="previewKit"
           ></app-flow-graph>
         }
         @case ('FlowTimelineComponent') {
@@ -548,25 +619,26 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [steps]="timelineSteps"
             selectedStepId="step-1"
             [statuses]="timelineStatuses"
+            [kit]="previewKit"
           ></app-flow-timeline>
         }
         @case ('AppMetricStripComponent') {
-          <app-metric-strip [items]="appMetrics"></app-metric-strip>
+          <app-metric-strip [items]="appMetrics" [kit]="previewKit"></app-metric-strip>
         }
         @case ('AppEntityCardComponent') {
           <div class="entity-preview-grid">
             @for (card of appEntityCards; track card.title) {
-              <app-entity-card [card]="card"></app-entity-card>
+              <app-entity-card [card]="card" [kit]="previewKit"></app-entity-card>
             }
           </div>
         }
         @case ('AppTimelineComponent') {
-          <app-app-timeline [items]="appTimeline"></app-app-timeline>
+          <app-app-timeline [items]="appTimeline" [kit]="previewKit"></app-app-timeline>
         }
         @case ('VerticalAppShowcaseComponent') {
           <div class="showcase-stack">
             @for (vertical of appVerticals; track vertical) {
-              <app-vertical-app-showcase [vertical]="vertical"></app-vertical-app-showcase>
+              <app-vertical-app-showcase [vertical]="vertical" [kit]="previewKit"></app-vertical-app-showcase>
             }
           </div>
         }
@@ -592,8 +664,13 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
 })
 export class ComponentVisualPreviewComponent {
   @Input({ required: true }) componentName = '';
-  previewKit: UiKitPreference = 'auto';
-  previewPresentation: UiPresentationConfig = { kit: 'auto' };
+  @Input()
+  set kit(value: UiKitPreference) {
+    this.selectPreviewKit(value || 'primeng');
+  }
+
+  previewKit: UiKitPreference = 'primeng';
+  previewPresentation: UiPresentationConfig = { kit: 'primeng' };
   readonly formlyExample = FORMLY_RUNTIME_EXAMPLE;
   formlyModel: Record<string, unknown> = {};
   formlyControlModel: Record<string, unknown> = {};
@@ -654,6 +731,7 @@ export class ComponentVisualPreviewComponent {
     { key: 'visual', label: 'Visual', icon: 'pi pi-eye' },
     { key: 'json', label: 'JSON', icon: 'pi pi-code' }
   ];
+  readonly kitExamples: UiKitId[] = ['primeng', 'ionic', 'material', 'bootstrap', 'native'];
   readonly primeDynamicField = {
     name: 'customerTypePrime',
     type: 'select',
@@ -671,6 +749,14 @@ export class ComponentVisualPreviewComponent {
   readonly nativeDynamicField = {
     ...this.primeDynamicField,
     name: 'customerTypeNative'
+  };
+  readonly materialDynamicField = {
+    ...this.primeDynamicField,
+    name: 'customerTypeMaterial'
+  };
+  readonly bootstrapDynamicField = {
+    ...this.primeDynamicField,
+    name: 'customerTypeBootstrap'
   };
   readonly adaptiveDynamicField = {
     ...this.primeDynamicField,

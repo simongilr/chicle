@@ -16,15 +16,15 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
       .json-authoring {
         display: grid;
         gap: 14px;
-        border: 1px solid #cfe0f0;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 16px;
       }
 
       .json-authoring.invalid {
-        border-color: #f0b5b5;
-        background: #fffafa;
+        border-color: var(--ch-color-danger-border);
+        background: var(--ch-color-danger-soft);
       }
 
       .tools {
@@ -37,19 +37,19 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
 
       button {
         min-height: 38px;
-        border: 1px solid #bfd2e5;
-        border-radius: 7px;
-        background: #ffffff;
-        color: #123a5f;
+        border: 1px solid var(--ch-color-border);
+        border-radius: max(4px, calc(var(--ch-radius) - 1px));
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         cursor: pointer;
         font-weight: 850;
         padding: 0 14px;
       }
 
       button.primary {
-        border-color: #1f62ad;
-        background: #1f62ad;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       button:disabled {
@@ -65,34 +65,34 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
       }
 
       .chip {
-        border: 1px solid #cfe0f0;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #f7fbff;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         font-size: 0.78rem;
         font-weight: 850;
         padding: 5px 10px;
       }
 
       .chip.success {
-        border-color: #9bd2aa;
-        background: #f3fbf5;
-        color: #17643a;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .chip.warning {
-        border-color: #e6bd7d;
-        background: #fff8ed;
-        color: #71400f;
+        border-color: var(--ch-color-warning-border);
+        background: var(--ch-color-warning-soft);
+        color: var(--ch-color-warning);
       }
 
       textarea {
         width: 100%;
         min-height: 300px;
         resize: vertical;
-        border: 1px solid #bed2e5;
-        border-radius: 8px;
-        background: #0f2236;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: color-mix(in srgb, var(--ch-color-text) 92%, black);
         color: #eaf4ff;
         font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
         font-size: 0.86rem;
@@ -102,12 +102,12 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
       }
 
       textarea:focus {
-        border-color: #1f62ad;
-        box-shadow: 0 0 0 3px rgba(31, 98, 173, 0.14);
+        border-color: var(--ch-color-primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
       }
 
       .hint {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.88rem;
         line-height: 1.45;
       }

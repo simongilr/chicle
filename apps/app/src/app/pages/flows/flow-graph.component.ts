@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitAwareComponent } from '../../shared/ui-kit/ui-kit-aware.component';
 
 export interface FlowGraphStep {
   id: string;
@@ -30,6 +31,9 @@ interface FlowGraphConnection {
 @Component({
   selector: 'app-flow-graph',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -48,19 +52,36 @@ interface FlowGraphConnection {
 
       .node {
         width: 100%;
-        border: 1px solid #bfd2e5;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fff;
-        color: #12365a;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 0;
         text-align: left;
         cursor: pointer;
         overflow: hidden;
       }
 
+      :host([data-ui-kit='material']) .node {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .node {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .node {
+        border-radius: 16px;
+      }
+
+      :host([data-ui-kit='native']) .node {
+        border-radius: 2px;
+      }
+
       .node.active {
-        border-color: #1f5ca8;
-        box-shadow: 0 0 0 2px rgba(31, 92, 168, 0.12);
+        border-color: var(--ch-color-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--ch-color-primary) 12%, transparent);
       }
 
       .node-head {
@@ -69,7 +90,7 @@ interface FlowGraphConnection {
         gap: 9px;
         align-items: center;
         padding: 10px;
-        background: #f8fbff;
+        background: var(--ch-color-surface-alt);
       }
 
       .index {
@@ -79,7 +100,7 @@ interface FlowGraphConnection {
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        background: #e7eef6;
+        background: var(--ch-color-surface-muted);
         font-weight: 900;
       }
 
@@ -97,26 +118,26 @@ interface FlowGraphConnection {
       }
 
       .title small {
-        color: #5a7086;
+        color: var(--ch-color-muted);
       }
 
       .status {
         border-radius: 999px;
         padding: 4px 7px;
-        background: #e9eef5;
+        background: var(--ch-color-surface-muted);
         font-size: 0.72rem;
         font-weight: 900;
       }
 
       .status.success {
-        background: #e6f6ed;
-        color: #126b3b;
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .status.failed,
       .status.timeout {
-        background: #fff0f0;
-        color: #9b1c24;
+        background: var(--ch-color-surface)0f0;
+        color: var(--ch-color-danger);
       }
 
       .connections {
@@ -136,23 +157,23 @@ interface FlowGraphConnection {
       .connection-label {
         border-left: 3px solid #9db3c9;
         padding-left: 7px;
-        color: #526a82;
+        color: var(--ch-color-muted);
         font-weight: 800;
       }
 
       .connection-label.success {
-        border-color: #26935a;
-        color: #17683e;
+        border-color: var(--ch-color-success);
+        color: var(--ch-color-success);
       }
 
       .connection-label.danger {
-        border-color: #d34d55;
-        color: #96252c;
+        border-color: var(--ch-color-danger);
+        color: var(--ch-color-danger);
       }
 
       .connection-label.warning {
-        border-color: #c48719;
-        color: #7a5109;
+        border-color: var(--ch-color-warning);
+        color: var(--ch-color-warning);
       }
 
       .connection-target {
@@ -169,28 +190,28 @@ interface FlowGraphConnection {
       }
 
       .connection-target small {
-        color: #6a7f93;
+        color: var(--ch-color-muted);
       }
 
       .spine {
         display: grid;
         justify-items: center;
         height: 24px;
-        color: #668098;
+        color: var(--ch-color-muted);
       }
 
       .spine::before {
         width: 1px;
         height: 14px;
-        background: #9eb4c9;
+        background: var(--ch-color-muted);
         content: '';
       }
 
       .empty {
-        border: 1px dashed #b9cfe6;
+        border: 1px dashed var(--ch-color-primary-border);
         border-radius: 8px;
         padding: 18px;
-        color: #526a82;
+        color: var(--ch-color-muted);
         text-align: center;
       }
 
@@ -257,7 +278,7 @@ interface FlowGraphConnection {
     </div>
   `
 })
-export class FlowGraphComponent {
+export class FlowGraphComponent extends UiKitAwareComponent {
   @Input() steps: FlowGraphStep[] = [];
   @Input() selectedStepId = '';
   @Input() statuses: FlowGraphStatus[] = [];

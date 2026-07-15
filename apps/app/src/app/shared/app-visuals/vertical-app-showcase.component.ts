@@ -3,6 +3,7 @@ import { AppEntityCardComponent } from './app-entity-card.component';
 import { AppMetricStripComponent } from './app-metric-strip.component';
 import { AppTimelineComponent } from './app-timeline.component';
 import { AppEntityCard, AppMetricItem, AppTimelineItem, AppVertical } from './app-visuals.types';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 interface VerticalShowcaseConfig {
   title: string;
@@ -18,6 +19,9 @@ interface VerticalShowcaseConfig {
   selector: 'app-vertical-app-showcase',
   standalone: true,
   imports: [AppEntityCardComponent, AppMetricStripComponent, AppTimelineComponent],
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -46,7 +50,7 @@ interface VerticalShowcaseConfig {
       }
 
       .eyebrow {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.72rem;
         font-weight: 850;
         text-transform: uppercase;
@@ -54,27 +58,40 @@ interface VerticalShowcaseConfig {
 
       h3 {
         margin: 0;
-        color: #12385c;
+        color: var(--ch-color-text);
         font-size: 1.18rem;
         line-height: 1.1;
       }
 
       p {
         margin: 0;
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.83rem;
         line-height: 1.35;
       }
 
       .badge {
         flex: 0 0 auto;
-        border: 1px solid #bfd0e0;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #f5f9fd;
-        color: #12385c;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 6px 10px;
         font-size: 0.72rem;
         font-weight: 850;
+      }
+
+      :host([data-ui-kit='material']) .badge {
+        border-radius: 4px;
+      }
+
+      :host([data-ui-kit='bootstrap']) .badge {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .badge {
+        border-radius: 999px;
+        padding: 7px 11px;
       }
 
       .content {
@@ -99,7 +116,7 @@ interface VerticalShowcaseConfig {
 
       .timeline-panel h4 {
         margin: 0;
-        color: #12385c;
+        color: var(--ch-color-text);
         font-size: 0.86rem;
       }
 
@@ -127,23 +144,23 @@ interface VerticalShowcaseConfig {
         <span class="badge">{{ verticalLabel }}</span>
       </header>
 
-      <app-metric-strip [items]="data.metrics"></app-metric-strip>
+      <app-metric-strip [items]="data.metrics" [kit]="kit"></app-metric-strip>
 
       <div class="content">
         <div class="cards">
           @for (card of data.cards; track card.title) {
-            <app-entity-card [card]="card"></app-entity-card>
+            <app-entity-card [card]="card" [kit]="kit"></app-entity-card>
           }
         </div>
         <aside class="timeline-panel">
           <h4>{{ data.timelineTitle }}</h4>
-          <app-app-timeline [items]="data.timeline"></app-app-timeline>
+          <app-app-timeline [items]="data.timeline" [kit]="kit"></app-app-timeline>
         </aside>
       </div>
     </section>
   `
 })
-export class VerticalAppShowcaseComponent {
+export class VerticalAppShowcaseComponent extends UiKitAwareComponent {
   @Input() vertical: AppVertical = 'events';
 
   readonly configs: Record<AppVertical, VerticalShowcaseConfig> = {

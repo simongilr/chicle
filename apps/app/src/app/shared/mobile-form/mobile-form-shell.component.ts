@@ -1,8 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-mobile-form-shell',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -15,6 +19,21 @@ import { Component, Input } from '@angular/core';
         gap: 12px;
         min-height: 0;
         padding: 14px;
+      }
+
+      :host([data-ui-kit='material']) .shell {
+        gap: 14px;
+        border-radius: 4px;
+      }
+
+      :host([data-ui-kit='bootstrap']) .shell {
+        gap: 12px;
+        padding: 16px;
+      }
+
+      :host([data-ui-kit='ionic']) .shell {
+        gap: 14px;
+        padding: 16px;
       }
 
       .header {
@@ -33,10 +52,10 @@ import { Component, Input } from '@angular/core';
         display: inline-flex;
         align-items: center;
         width: fit-content;
-        border: 1px solid #c9d8e6;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #f4f8fc;
-        color: #173b5f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
         padding: 3px 8px;
         font-size: 0.72rem;
         font-weight: 850;
@@ -95,7 +114,7 @@ import { Component, Input } from '@angular/core';
     </section>
   `
 })
-export class MobileFormShellComponent {
+export class MobileFormShellComponent extends UiKitAwareComponent {
   @Input() eyebrow = '';
   @Input() title = '';
   @Input() description = '';

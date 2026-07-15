@@ -31,6 +31,12 @@ export const routes: Routes = [
     data: { permissions: ['database.read'] }
   },
   {
+    path: 'preferences',
+    loadComponent: () =>
+      import('./pages/preferences/preferences-page.component').then((module) => module.PreferencesPageComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'security',
     loadComponent: () =>
       import('./pages/security/security-page.component').then((module) => module.SecurityPageComponent),

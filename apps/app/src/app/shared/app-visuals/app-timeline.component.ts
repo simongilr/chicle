@@ -1,9 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { AppTimelineItem } from './app-visuals.types';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-app-timeline',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -21,10 +25,28 @@ import { AppTimelineItem } from './app-visuals.types';
         grid-template-columns: auto 1fr;
         gap: 9px;
         min-width: 0;
-        border: 1px solid #d5e0eb;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 9px;
+      }
+
+      :host([data-ui-kit='material']) .item {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .item {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .item {
+        border-radius: 14px;
+        padding: 10px;
+      }
+
+      :host([data-ui-kit='native']) .item {
+        border-radius: 2px;
       }
 
       .dot {
@@ -32,23 +54,23 @@ import { AppTimelineItem } from './app-visuals.types';
         height: 10px;
         margin-top: 4px;
         border-radius: 999px;
-        background: #9fb2c4;
-        box-shadow: 0 0 0 4px #eef3f8;
+        background: var(--ch-color-muted);
+        box-shadow: 0 0 0 4px var(--ch-color-surface-muted);
       }
 
       .item.complete .dot {
-        background: #1f8f5f;
-        box-shadow: 0 0 0 4px #e4f6ed;
+        background: var(--ch-color-success);
+        box-shadow: 0 0 0 4px var(--ch-color-success-soft);
       }
 
       .item.active .dot {
-        background: #1f5faa;
-        box-shadow: 0 0 0 4px #e8f2ff;
+        background: var(--ch-color-primary);
+        box-shadow: 0 0 0 4px var(--ch-color-primary-soft);
       }
 
       .item.warning .dot {
-        background: #b7791f;
-        box-shadow: 0 0 0 4px #fff4db;
+        background: var(--ch-color-warning);
+        box-shadow: 0 0 0 4px var(--ch-color-warning-soft);
       }
 
       .copy {
@@ -58,13 +80,13 @@ import { AppTimelineItem } from './app-visuals.types';
       }
 
       strong {
-        color: #12385c;
+        color: var(--ch-color-text);
         font-size: 0.84rem;
         line-height: 1.2;
       }
 
       span {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         line-height: 1.3;
       }
@@ -86,6 +108,6 @@ import { AppTimelineItem } from './app-visuals.types';
     </div>
   `
 })
-export class AppTimelineComponent {
+export class AppTimelineComponent extends UiKitAwareComponent {
   @Input() items: AppTimelineItem[] = [];
 }

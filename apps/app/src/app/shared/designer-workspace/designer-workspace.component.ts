@@ -10,10 +10,10 @@ import { Component } from '@angular/core';
         grid-template-columns: 300px minmax(0, 1fr);
         min-height: 680px;
         overflow: hidden;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        box-shadow: var(--ch-shadow-card);
       }
 
       .navigation {
@@ -22,8 +22,8 @@ import { Component } from '@angular/core';
         gap: 12px;
         min-width: 0;
         overflow: auto;
-        border-right: 1px solid #d9e2ec;
-        background: #fbfcfe;
+        border-right: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -46,7 +46,7 @@ import { Component } from '@angular/core';
         .navigation {
           max-height: 340px;
           border-right: 0;
-          border-bottom: 1px solid #d9e2ec;
+          border-bottom: 1px solid var(--ch-color-border);
         }
 
         .workspace {

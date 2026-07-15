@@ -36,7 +36,7 @@ export class UiPresentationService {
       next: (entries) => {
         const configured = entries.find((entry) => entry.key === 'ui.presentation.defaultProfile')?.value;
         const profile = this.normalizeProfile(configured);
-        if (profile) {
+        if (profile && this.profileState().key !== 'admin-preferences') {
           this.profileState.set(profile);
         }
       },
@@ -163,11 +163,10 @@ export class UiPresentationService {
   }
 
   private isKit(value: unknown): value is UiKitId {
-    return value === 'native' || value === 'primeng' || value === 'ionic';
+    return value === 'native' || value === 'primeng' || value === 'ionic' || value === 'material' || value === 'bootstrap';
   }
 
   private validWidth(value: unknown) {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
   }
 }
-

@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitAwareComponent } from '../../shared/ui-kit/ui-kit-aware.component';
 
 export interface FlowTimelineStep {
   id: string;
@@ -21,6 +22,9 @@ export interface FlowTimelineStatus {
 @Component({
   selector: 'app-flow-timeline',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -35,17 +39,38 @@ export interface FlowTimelineStatus {
       .terminal,
       .step {
         width: 100%;
-        border: 1px solid #c5d7e9;
-        background: #fff;
-        color: #153b61;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         border-radius: 7px;
+      }
+
+      :host([data-ui-kit='material']) .terminal,
+      :host([data-ui-kit='material']) .step {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .terminal,
+      :host([data-ui-kit='bootstrap']) .step {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .terminal,
+      :host([data-ui-kit='ionic']) .step {
+        border-radius: 14px;
+      }
+
+      :host([data-ui-kit='native']) .terminal,
+      :host([data-ui-kit='native']) .step {
+        border-radius: 2px;
       }
 
       .terminal {
         padding: 9px 11px;
         text-align: center;
         font-weight: 800;
-        background: #eef4fa;
+        background: var(--ch-color-primary-soft);
       }
 
       .step {
@@ -59,9 +84,9 @@ export interface FlowTimelineStatus {
       }
 
       .step.active {
-        border-color: #1f5ca8;
-        box-shadow: 0 0 0 2px rgba(31, 92, 168, 0.12);
-        background: #f2f7ff;
+        border-color: var(--ch-color-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--ch-color-primary) 12%, transparent);
+        background: var(--ch-color-primary-soft);
       }
 
       .icon {
@@ -71,7 +96,7 @@ export interface FlowTimelineStatus {
         align-items: center;
         justify-content: center;
         border-radius: 6px;
-        background: #e8f0f8;
+        background: var(--ch-color-surface-muted);
       }
 
       .copy {
@@ -86,7 +111,7 @@ export interface FlowTimelineStatus {
 
       .meta,
       .branch {
-        color: #587087;
+        color: var(--ch-color-muted);
         font-size: 0.78rem;
         line-height: 1.35;
       }
@@ -100,17 +125,17 @@ export interface FlowTimelineStatus {
         font-weight: 900;
         border-radius: 999px;
         padding: 4px 7px;
-        background: #e9eef4;
+        background: var(--ch-color-surface-muted);
       }
 
       .status.success {
-        color: #116b3b;
-        background: #e5f6ec;
+        color: var(--ch-color-success);
+        background: var(--ch-color-success-soft);
       }
 
       .status.failed {
-        color: #9b1c24;
-        background: #fff0f0;
+        color: var(--ch-color-danger);
+        background: var(--ch-color-surface)0f0;
       }
 
       .connector {
@@ -122,7 +147,7 @@ export interface FlowTimelineStatus {
       .line {
         width: 2px;
         height: 14px;
-        background: #bfd0e1;
+        background: var(--ch-color-border);
       }
 
       .add {
@@ -130,10 +155,10 @@ export interface FlowTimelineStatus {
         height: 30px;
         min-height: 30px;
         padding: 0;
-        border: 1px solid #a9c3dd;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 50%;
-        background: #fff;
-        color: #1f5ca8;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
         cursor: pointer;
       }
 
@@ -146,9 +171,9 @@ export interface FlowTimelineStatus {
       .test {
         min-height: 28px;
         padding: 4px 7px;
-        border: 1px solid #bfd2e5;
-        background: #fff;
-        color: #153b61;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         border-radius: 6px;
         font-weight: 800;
         cursor: pointer;
@@ -164,10 +189,10 @@ export interface FlowTimelineStatus {
         height: 28px;
         min-height: 28px;
         padding: 0;
-        border: 1px solid #bfd2e5;
+        border: 1px solid var(--ch-color-border);
         border-radius: 6px;
-        background: #fff;
-        color: #153b61;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         cursor: pointer;
       }
 
@@ -247,7 +272,7 @@ export interface FlowTimelineStatus {
     </div>
   `
 })
-export class FlowTimelineComponent {
+export class FlowTimelineComponent extends UiKitAwareComponent {
   @Input() steps: FlowTimelineStep[] = [];
   @Input() selectedStepId = '';
   @Input() statuses: FlowTimelineStatus[] = [];

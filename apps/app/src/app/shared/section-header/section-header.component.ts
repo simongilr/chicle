@@ -1,8 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-section-header',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -17,6 +21,24 @@ import { Component, Input } from '@angular/core';
         gap: 12px;
       }
 
+      :host([data-ui-kit='material']) .header {
+        border-bottom: 1px solid var(--ch-color-border);
+        padding-bottom: 10px;
+      }
+
+      :host([data-ui-kit='bootstrap']) .header {
+        border-bottom: 1px solid var(--ch-color-border);
+        padding-bottom: 8px;
+      }
+
+      :host([data-ui-kit='ionic']) .header {
+        gap: 10px;
+      }
+
+      :host([data-ui-kit='ionic']) h2 {
+        font-size: 1.08rem;
+      }
+
       .copy {
         display: grid;
         gap: 4px;
@@ -24,7 +46,7 @@ import { Component, Input } from '@angular/core';
       }
 
       .step {
-        color: #587087;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         font-weight: 900;
         text-transform: uppercase;
@@ -36,12 +58,12 @@ import { Component, Input } from '@angular/core';
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.15rem;
       }
 
       p {
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
@@ -80,7 +102,7 @@ import { Component, Input } from '@angular/core';
     </header>
   `
 })
-export class SectionHeaderComponent {
+export class SectionHeaderComponent extends UiKitAwareComponent {
   @Input({ required: true }) title = '';
   @Input() description = '';
   @Input() stepLabel = '';

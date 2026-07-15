@@ -47,13 +47,13 @@ interface JsonContractResource {
         display: grid;
         gap: 10px;
         margin-bottom: 20px;
-        border-bottom: 1px solid #d8e3ed;
+        border-bottom: 1px solid var(--ch-color-border);
         padding-bottom: 20px;
       }
 
       .intro h1 {
         margin: 0;
-        color: #12324f;
+        color: var(--ch-color-text);
         font-size: 2.05rem;
         line-height: 1.15;
       }
@@ -61,7 +61,7 @@ interface JsonContractResource {
       .intro p,
       .section-lead {
         margin: 0;
-        color: #4d5c6c;
+        color: var(--ch-color-muted);
         line-height: 1.55;
       }
 
@@ -81,15 +81,15 @@ interface JsonContractResource {
         top: 16px;
         display: grid;
         gap: 8px;
-        border: 1px solid #d8e3ed;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
       .docs-nav-title {
         margin: 4px 6px 6px;
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.78rem;
         font-weight: 800;
         text-transform: uppercase;
@@ -102,21 +102,21 @@ interface JsonContractResource {
         border: 0;
         border-radius: 6px;
         background: transparent;
-        color: #173b5f;
+        color: var(--ch-color-text);
         padding: 9px 10px;
         text-align: left;
         cursor: pointer;
       }
 
       .docs-nav button[aria-current='true'] {
-        background: #e8f2ff;
-        box-shadow: inset 3px 0 0 #1554a2;
+        background: var(--ch-color-primary-soft);
+        box-shadow: inset 3px 0 0 var(--ch-color-primary);
       }
 
       .docs-nav button:hover,
       .docs-nav button:focus-visible {
         outline: none;
-        background: #eef6ff;
+        background: var(--ch-color-primary-soft);
       }
 
       .docs-nav strong {
@@ -124,7 +124,7 @@ interface JsonContractResource {
       }
 
       .docs-nav span {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.8rem;
         line-height: 1.35;
       }
@@ -138,27 +138,27 @@ interface JsonContractResource {
       .doc-section {
         min-width: 0;
         scroll-margin-top: 18px;
-        border: 1px solid #d8e3ed;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 18px;
         overflow-wrap: anywhere;
       }
 
       .doc-section[data-tone='critical'] {
-        border-left: 4px solid #b42318;
+        border-left: 4px solid var(--ch-color-danger);
       }
 
       .doc-section[data-tone='setup'] {
-        border-left: 4px solid #147d64;
+        border-left: 4px solid var(--ch-color-success);
       }
 
       .doc-section[data-tone='ops'] {
-        border-left: 4px solid #9a6700;
+        border-left: 4px solid var(--ch-color-warning);
       }
 
       .doc-section[data-tone='security'] {
-        border-left: 4px solid #4f46e5;
+        border-left: 4px solid var(--ch-color-primary);
       }
 
       section + section {
@@ -167,7 +167,7 @@ interface JsonContractResource {
 
       h2 {
         margin: 0 0 12px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.25rem;
       }
 
@@ -195,9 +195,9 @@ interface JsonContractResource {
       .step {
         display: grid;
         gap: 10px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 16px;
       }
 
@@ -209,14 +209,14 @@ interface JsonContractResource {
 
       .step h3 {
         margin: 0;
-        color: #16324f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       .meta {
         display: grid;
         gap: 6px;
-        color: #5a6877;
+        color: var(--ch-color-muted);
         font-size: 0.92rem;
       }
 
@@ -231,7 +231,7 @@ interface JsonContractResource {
       }
 
       .guide-label {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.75rem;
         font-weight: 850;
         text-transform: uppercase;
@@ -239,8 +239,8 @@ interface JsonContractResource {
 
       .guide-text {
         border-radius: 8px;
-        background: #f5f8fb;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         line-height: 1.45;
       }
@@ -251,10 +251,10 @@ interface JsonContractResource {
         justify-content: center;
         width: fit-content;
         min-height: 38px;
-        border: 1px solid #1554a2;
+        border: 1px solid var(--ch-color-primary);
         border-radius: 8px;
-        background: #1554a2;
-        color: #ffffff;
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
         padding: 8px 12px;
         font-weight: 800;
         text-decoration: none;
@@ -266,7 +266,7 @@ interface JsonContractResource {
       }
 
       code {
-        color: #16324f;
+        color: var(--ch-color-text);
         overflow-wrap: anywhere;
         word-break: break-word;
       }
@@ -288,7 +288,7 @@ interface JsonContractResource {
         gap: 10px;
         margin: 0;
         padding-left: 18px;
-        color: #4d5c6c;
+        color: var(--ch-color-muted);
         line-height: 1.5;
       }
 
@@ -311,7 +311,7 @@ interface JsonContractResource {
         }
 
         .section-picker label {
-          color: #64748b;
+          color: var(--ch-color-muted);
           font-size: 0.78rem;
           font-weight: 800;
           text-transform: uppercase;
@@ -320,10 +320,10 @@ interface JsonContractResource {
         .section-picker select {
           width: 100%;
           min-height: 42px;
-          border: 1px solid #c8d6e4;
+          border: 1px solid var(--ch-color-border);
           border-radius: 8px;
-          background: #ffffff;
-          color: #173b5f;
+          background: var(--ch-color-surface);
+          color: var(--ch-color-text);
           padding: 8px 10px;
           font: inherit;
           font-weight: 800;
@@ -338,15 +338,15 @@ interface JsonContractResource {
         }
 
         .docs-nav button {
-          border: 1px solid #cbd8e3;
-          background: #ffffff;
+          border: 1px solid var(--ch-color-border);
+          background: var(--ch-color-surface);
           padding: 9px 10px;
         }
 
         .docs-nav button[aria-current='true'] {
-          border-color: #1554a2;
-          background: #1554a2;
-          color: #ffffff;
+          border-color: var(--ch-color-primary);
+          background: var(--ch-color-primary);
+          color: var(--ch-color-surface);
           box-shadow: none;
         }
       }

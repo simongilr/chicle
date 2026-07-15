@@ -1,5 +1,5 @@
 export type UiRuntimePlatform = 'web' | 'ios' | 'android';
-export type UiKitId = 'native' | 'primeng' | 'ionic';
+export type UiKitId = 'native' | 'primeng' | 'ionic' | 'material' | 'bootstrap';
 export type UiKitPreference = UiKitId | 'auto' | 'inherit';
 
 export interface UiPresentationRule {

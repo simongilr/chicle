@@ -61,6 +61,37 @@ describe("UiPresentationService", () => {
     });
   });
 
+  it("accepts Material and Bootstrap as first-class visual kits", () => {
+    const presentation = TestBed.inject(UiPresentationService);
+
+    expect(
+      presentation.resolve({
+        width: 1280,
+        platform: "web",
+        local: { kit: "material", theme: "material" },
+      }),
+    ).toMatchObject({
+      kit: "material",
+      theme: "material",
+      source: "local",
+    });
+
+    presentation.setProfile({
+      key: "bootstrap-profile",
+      theme: "bootstrap",
+      defaultKit: "bootstrap",
+      rules: [{ kit: "bootstrap", platforms: ["web"] }],
+    });
+
+    expect(
+      presentation.resolve({ width: 1280, platform: "web" }),
+    ).toMatchObject({
+      kit: "bootstrap",
+      theme: "bootstrap",
+      source: "rule",
+    });
+  });
+
   it("loads and normalizes the persisted presentation profile", () => {
     api.get.mockReturnValue(
       of([

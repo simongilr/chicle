@@ -1,8 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-mobile-action-bar',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -19,7 +23,11 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         z-index: 3;
         margin-inline: -2px;
         border-top: 1px solid var(--ch-color-border);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), #ffffff 36%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--ch-color-surface) 88%, transparent),
+          var(--ch-color-surface) 36%
+        );
         padding-top: 10px;
       }
 
@@ -33,6 +41,24 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         padding: 9px 12px;
         font: inherit;
         font-weight: 850;
+      }
+
+      :host([data-ui-kit='material']) button {
+        border-radius: 4px;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) button {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) button {
+        min-height: 48px;
+        border-radius: 12px;
+      }
+
+      :host([data-ui-kit='native']) button {
+        border-radius: 2px;
       }
 
       .primary {
@@ -60,7 +86,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
     </div>
   `
 })
-export class MobileActionBarComponent {
+export class MobileActionBarComponent extends UiKitAwareComponent {
   @Input() primaryLabel = 'Continuar';
   @Input() secondaryLabel = '';
   @Input() primaryDisabled = false;

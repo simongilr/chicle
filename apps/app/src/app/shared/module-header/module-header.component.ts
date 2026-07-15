@@ -1,8 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-module-header',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -14,11 +18,35 @@ import { Component, Input } from '@angular/core';
         align-items: flex-start;
         justify-content: space-between;
         gap: 16px;
-        border: 1px solid #d9e2ec;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 18px;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        box-shadow: var(--ch-shadow-card);
+      }
+
+      :host([data-ui-kit='material']) .header {
+        border-radius: 4px;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--ch-color-text) 14%, transparent);
+      }
+
+      :host([data-ui-kit='material']) h1 {
+        font-weight: 500;
+      }
+
+      :host([data-ui-kit='bootstrap']) .header {
+        border-radius: 6px;
+        box-shadow: none;
+      }
+
+      :host([data-ui-kit='ionic']) .header {
+        border-radius: 16px;
+        box-shadow: 0 10px 28px color-mix(in srgb, var(--ch-color-primary) 9%, transparent);
+      }
+
+      :host([data-ui-kit='native']) .header {
+        border-radius: 2px;
+        box-shadow: none;
       }
 
       .copy {
@@ -28,7 +56,7 @@ import { Component, Input } from '@angular/core';
       }
 
       .eyebrow {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.78rem;
         font-weight: 850;
       }
@@ -39,23 +67,23 @@ import { Component, Input } from '@angular/core';
       }
 
       h1 {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-size: 1.85rem;
         line-height: 1.15;
       }
 
       p {
         max-width: 820px;
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
       .badge {
         flex: 0 0 auto;
-        border: 1px solid #c7d8e8;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #eef6ff;
-        color: #173b5f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
         padding: 6px 10px;
         font-size: 0.82rem;
         font-weight: 850;
@@ -92,7 +120,7 @@ import { Component, Input } from '@angular/core';
     </section>
   `
 })
-export class ModuleHeaderComponent {
+export class ModuleHeaderComponent extends UiKitAwareComponent {
   @Input({ required: true }) title = '';
   @Input({ required: true }) description = '';
   @Input() eyebrow = '';

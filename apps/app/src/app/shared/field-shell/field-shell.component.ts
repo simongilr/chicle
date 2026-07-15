@@ -1,8 +1,12 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-field-shell',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -16,6 +20,26 @@ import { Component, Input } from '@angular/core';
         min-width: 0;
       }
 
+      :host([data-ui-kit='material']) label {
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+
+      :host([data-ui-kit='bootstrap']) label {
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      :host([data-ui-kit='ionic']) .field {
+        gap: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) label {
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
       label {
         color: var(--ch-color-text);
         font-size: 0.88rem;
@@ -24,7 +48,7 @@ import { Component, Input } from '@angular/core';
       }
 
       .required {
-        color: #b84234;
+        color: var(--ch-color-danger);
       }
 
       .help,
@@ -38,7 +62,7 @@ import { Component, Input } from '@angular/core';
       }
 
       .error {
-        color: #a33428;
+        color: var(--ch-color-danger);
         font-weight: 700;
       }
 
@@ -64,7 +88,7 @@ import { Component, Input } from '@angular/core';
     </div>
   `
 })
-export class FieldShellComponent {
+export class FieldShellComponent extends UiKitAwareComponent {
   @Input({ required: true }) label = '';
   @Input() forId = '';
   @Input() help = '';

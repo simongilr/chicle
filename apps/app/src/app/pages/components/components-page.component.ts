@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { DynamicFieldLibraryComponent } from '../../shared/dynamic-field-library/dynamic-field-library.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
@@ -12,16 +13,15 @@ import {
   UiComponentCategory
 } from '../../shared/ui-component-catalog';
 import { ComponentVisualPreviewComponent } from './component-visual-preview.component';
-
-type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
+import { UiKitPreference } from '../../core/ui/ui-presentation.types';
 
 @Component({
   selector: 'app-components-page',
   standalone: true,
   imports: [
     ComponentVisualPreviewComponent,
+    DynamicFieldControlComponent,
     DynamicFieldLibraryComponent,
-    FieldShellComponent,
     FormsModule,
     ModuleHeaderComponent,
     PageShellComponent,
@@ -50,9 +50,9 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       select {
         width: 100%;
         min-height: 42px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
-        background: #ffffff;
+        background: var(--ch-color-surface);
         color: var(--ch-color-text);
         padding: 9px 11px;
         font: inherit;
@@ -60,7 +60,7 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
 
       input:focus,
       select:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.16);
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 16%, transparent);
         border-color: var(--ch-color-primary);
       }
 
@@ -102,8 +102,8 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       .field-count {
         flex: 0 0 auto;
         border-radius: 999px;
-        background: #e8f2ff;
-        color: #1554a2 !important;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary) !important;
         padding: 6px 9px;
         font-size: 0.78rem;
         font-weight: 850;
@@ -140,7 +140,7 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       .summary-item {
         display: grid;
         gap: 4px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -201,15 +201,15 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
 
       .selector {
         width: fit-content;
-        background: #e8f2ff;
-        color: #1554a2;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 5px 8px;
       }
 
       .badge {
         flex: 0 0 auto;
-        background: #eef3f8;
-        color: #52677a;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-muted);
         padding: 5px 8px;
       }
 
@@ -219,7 +219,7 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       }
 
       .detail-label {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-size: 0.74rem;
         font-weight: 850;
         text-transform: uppercase;
@@ -232,8 +232,8 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       }
 
       .consumer {
-        background: #f2f6fa;
-        color: #35526e;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-muted);
         padding: 5px 8px;
       }
 
@@ -251,7 +251,7 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       }
 
       code {
-        color: #174f91;
+        color: var(--ch-color-primary);
         overflow-wrap: anywhere;
       }
 
@@ -291,33 +291,28 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
       ></app-module-header>
 
       <section class="toolbar" aria-label="Filtros del catálogo">
-        <app-field-shell label="Buscar" forId="component-search">
-          <input
-            id="component-search"
-            type="search"
-            [(ngModel)]="search"
-            placeholder="Nombre, selector, propósito o pantalla"
-          />
-        </app-field-shell>
-        <app-field-shell label="Categoría" forId="component-category">
-          <select id="component-category" [(ngModel)]="category">
-            <option value="all">Todas</option>
-            @for (item of categories; track item) {
-              <option [value]="item">{{ item }}</option>
-            }
-          </select>
-        </app-field-shell>
-        <app-field-shell label="Estado" forId="component-status">
-          <select id="component-status" [(ngModel)]="status">
-            <option value="all">Todos</option>
-            <option value="stable">Estable</option>
-            <option value="initial">Inicial</option>
-            <option value="domain">Especializado</option>
-          </select>
-        </app-field-shell>
+        <app-dynamic-field-control
+          [field]="searchField"
+          [value]="search"
+          [presentation]="previewPresentation"
+          (valueChange)="setSearch($event)"
+        ></app-dynamic-field-control>
+        <app-dynamic-field-control
+          [field]="categoryField"
+          [value]="category"
+          [presentation]="previewPresentation"
+          (valueChange)="setCategory($event)"
+        ></app-dynamic-field-control>
+        <app-dynamic-field-control
+          [field]="kitField"
+          [value]="previewKit"
+          [presentation]="previewPresentation"
+          (valueChange)="setPreviewKit($event)"
+        ></app-dynamic-field-control>
         <app-ui-theme-selector
-          label="Tema instalado"
+          label="Colores / tema"
           controlId="component-theme"
+          [kit]="previewKit"
         ></app-ui-theme-selector>
       </section>
 
@@ -362,7 +357,8 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
           <app-dynamic-field-library></app-dynamic-field-library>
         } @else {
           <app-status-notice>
-            Abre la galería para montar los controles reales y comparar PrimeNG, Ionic y HTML base.
+            Abre la galería para montar los controles reales y comparar PrimeNG, Ionic, Material,
+            Bootstrap y HTML base.
           </app-status-notice>
         }
       </section>
@@ -402,6 +398,7 @@ type ComponentStatusFilter = 'all' | UiComponentCatalogEntry['status'];
               @if (isPreviewExpanded(component.name)) {
                 <app-component-visual-preview
                   [componentName]="component.name"
+                  [kit]="previewKit"
                 ></app-component-visual-preview>
               }
 
@@ -439,18 +436,58 @@ export class ComponentsPageComponent {
   readonly catalog = UI_COMPONENT_CATALOG;
   readonly categories = Array.from(new Set(this.catalog.map((item) => item.category))).sort();
   readonly sharedCount = this.catalog.filter((item) => item.status !== 'domain').length;
+  readonly visualKits: Array<{ value: UiKitPreference; label: string }> = [
+    { value: 'primeng', label: 'PrimeNG' },
+    { value: 'ionic', label: 'Ionic' },
+    { value: 'material', label: 'Material' },
+    { value: 'bootstrap', label: 'Bootstrap' },
+    { value: 'native', label: 'Base HTML' }
+  ];
 
   search = '';
   category: 'all' | UiComponentCategory = 'all';
-  status: ComponentStatusFilter = 'all';
+  previewKit: UiKitPreference = 'primeng';
   fieldLibraryOpen = false;
   readonly expandedPreviews = new Set<string>();
+
+  readonly searchField: RuntimeField = {
+    name: 'component-search',
+    type: 'search',
+    label: 'Buscar',
+    placeholder: 'Nombre, selector, propósito o pantalla'
+  };
+
+  get categoryField(): RuntimeField {
+    return {
+      name: 'component-category',
+      type: 'select',
+      label: 'Categoría',
+      placeholder: 'Todas',
+      options: [
+        { label: 'Todas', value: 'all' },
+        ...this.categories.map((category) => ({ label: category, value: category }))
+      ]
+    };
+  }
+
+  get kitField(): RuntimeField {
+    return {
+      name: 'component-kit',
+      type: 'select',
+      label: 'Kit visual',
+      placeholder: 'Selecciona un kit',
+      options: this.visualKits
+    };
+  }
+
+  get previewPresentation() {
+    return { kit: this.previewKit };
+  }
 
   get filteredCatalog() {
     const term = this.search.trim().toLowerCase();
     return this.catalog.filter((component) => {
       const matchesCategory = this.category === 'all' || component.category === this.category;
-      const matchesStatus = this.status === 'all' || component.status === this.status;
       const matchesSearch =
         !term ||
         [
@@ -461,7 +498,7 @@ export class ComponentsPageComponent {
           component.category,
           ...component.usedBy
         ].some((value) => value.toLowerCase().includes(term));
-      return matchesCategory && matchesStatus && matchesSearch;
+      return matchesCategory && matchesSearch;
     });
   }
 
@@ -483,5 +520,21 @@ export class ComponentsPageComponent {
       return;
     }
     this.expandedPreviews.add(componentName);
+  }
+
+  setSearch(value: unknown) {
+    this.search = typeof value === 'string' ? value : '';
+  }
+
+  setCategory(value: unknown) {
+    if (value === 'all' || this.categories.includes(value as UiComponentCategory)) {
+      this.category = value as 'all' | UiComponentCategory;
+    }
+  }
+
+  setPreviewKit(value: unknown) {
+    if (this.visualKits.some((kit) => kit.value === value)) {
+      this.previewKit = value as UiKitPreference;
+    }
   }
 }

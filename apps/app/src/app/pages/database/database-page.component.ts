@@ -140,10 +140,10 @@ interface SchemaHistoryResponse {
 
       .panel,
       .browser {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 16px 42px rgba(20, 50, 80, 0.06);
+        background: var(--ch-color-surface);
+        box-shadow: 0 16px 42px color-mix(in srgb, var(--ch-color-text) 6%, transparent);
       }
 
       .panel {
@@ -158,32 +158,32 @@ interface SchemaHistoryResponse {
       }
 
       h1 {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 1.7rem;
         line-height: 1.18;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.05rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.95rem;
       }
 
       p,
       .meta,
       .empty {
-        color: #526577;
+        color: var(--ch-color-muted);
         line-height: 1.5;
       }
 
       .badge {
         border-radius: 999px;
-        background: #eaf3fc;
-        color: #16496f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 6px 10px;
         font-size: 0.78rem;
         font-weight: 850;
@@ -212,8 +212,8 @@ interface SchemaHistoryResponse {
         align-content: start;
         gap: 10px;
         overflow: auto;
-        border-right: 1px solid #d9e2ec;
-        background: #fbfcfe;
+        border-right: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -227,7 +227,7 @@ interface SchemaHistoryResponse {
       .toolbar {
         display: grid;
         grid-template-columns: minmax(180px, 1fr) auto auto;
-        border-bottom: 1px solid #d9e2ec;
+        border-bottom: 1px solid var(--ch-color-border);
         padding: 14px;
       }
 
@@ -236,10 +236,10 @@ interface SchemaHistoryResponse {
       button,
       textarea {
         min-height: 38px;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 10px;
         font: inherit;
       }
@@ -250,20 +250,20 @@ interface SchemaHistoryResponse {
       }
 
       button {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 800;
         cursor: pointer;
       }
 
       button.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button.danger {
-        border-color: #b42318;
-        color: #b42318;
+        border-color: var(--ch-color-danger);
+        color: var(--ch-color-danger);
       }
 
       button:disabled {
@@ -282,7 +282,7 @@ interface SchemaHistoryResponse {
         display: block;
         max-width: 320px;
         overflow: hidden;
-        color: #243f57;
+        color: var(--ch-color-text);
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -331,7 +331,7 @@ interface SchemaHistoryResponse {
 
       .form-row label,
       .field-label {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 850;
       }
 
@@ -345,7 +345,7 @@ interface SchemaHistoryResponse {
         grid-template-columns: minmax(120px, 1fr) minmax(112px, 130px) minmax(72px, 86px) minmax(72px, 86px) auto auto;
         gap: 8px;
         align-items: center;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--ch-color-surface-muted);
         border-radius: 8px;
         padding: 10px;
         min-width: 0;
@@ -361,7 +361,7 @@ interface SchemaHistoryResponse {
         display: flex;
         gap: 6px;
         align-items: center;
-        color: #526577;
+        color: var(--ch-color-muted);
         font-weight: 750;
       }
 
@@ -372,23 +372,23 @@ interface SchemaHistoryResponse {
       .notice {
         display: grid;
         gap: 8px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #254057;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 14px;
       }
 
       .notice.error {
-        border-color: #f1b4b4;
-        background: #fff6f6;
-        color: #8b2323;
+        border-color: var(--ch-color-danger-border);
+        background: var(--ch-color-surface)6f6;
+        color: var(--ch-color-danger);
       }
 
       .notice.success {
-        border-color: #a9ddb7;
-        background: #f4fbf6;
-        color: #17643a;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .field-row {
@@ -396,7 +396,7 @@ interface SchemaHistoryResponse {
         grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
         gap: 12px;
         align-items: start;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--ch-color-surface-muted);
         border-radius: 8px;
         padding: 10px;
       }
@@ -407,7 +407,7 @@ interface SchemaHistoryResponse {
       }
 
       .field-label small {
-        color: #64748b;
+        color: var(--ch-color-muted);
         font-weight: 650;
       }
 
@@ -427,8 +427,8 @@ interface SchemaHistoryResponse {
       }
 
       :host ::ng-deep .p-datatable-thead > tr > th {
-        background: #f4f7fb;
-        color: #173b5f;
+        background: var(--ch-color-background);
+        color: var(--ch-color-text);
         font-weight: 850;
       }
 
@@ -455,7 +455,7 @@ interface SchemaHistoryResponse {
           max-height: 320px;
           overflow: auto;
           border-right: 0;
-          border-bottom: 1px solid #d9e2ec;
+          border-bottom: 1px solid var(--ch-color-border);
         }
 
         .workspace {

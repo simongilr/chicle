@@ -37,11 +37,11 @@ interface ChatMessage {
         justify-content: center;
         gap: 8px;
         min-height: 46px;
-        border: 1px solid #0f4f9f;
+        border: 1px solid var(--ch-color-primary);
         border-radius: 999px;
-        background: #1554a2;
-        color: #ffffff;
-        box-shadow: 0 14px 34px rgba(20, 50, 80, 0.24);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
+        box-shadow: var(--ch-shadow-card);
         padding: 0 16px;
         font-weight: 900;
         cursor: pointer;
@@ -56,10 +56,10 @@ interface ChatMessage {
         grid-template-rows: auto minmax(0, 1fr) auto;
         width: min(390px, calc(100vw - 24px));
         max-height: min(560px, calc(100dvh - 96px));
-        border: 1px solid #c5d6e6;
+        border: 1px solid var(--ch-color-border);
         border-radius: 14px;
-        background: #ffffff;
-        box-shadow: 0 24px 70px rgba(20, 50, 80, 0.24);
+        background: var(--ch-color-surface);
+        box-shadow: var(--ch-shadow-card);
         overflow: hidden;
       }
 
@@ -68,8 +68,8 @@ interface ChatMessage {
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #f7fbff;
+        border-bottom: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
@@ -80,13 +80,13 @@ interface ChatMessage {
       }
 
       .identity strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.96rem;
       }
 
       .identity span {
         overflow: hidden;
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -96,10 +96,10 @@ interface ChatMessage {
         flex: 0 0 auto;
         width: 34px;
         height: 34px;
-        border: 1px solid #c5d6e6;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         cursor: pointer;
       }
 
@@ -123,14 +123,14 @@ interface ChatMessage {
 
       .message.assistant {
         justify-self: start;
-        background: #eef6ff;
-        color: #173b5f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
       }
 
       .message.user {
         justify-self: end;
-        background: #1554a2;
-        color: #ffffff;
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       .message small {
@@ -153,10 +153,10 @@ interface ChatMessage {
 
       .suggestion {
         min-height: 30px;
-        border: 1px solid #b7cee4;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 0 10px;
         font-size: 0.76rem;
         font-weight: 800;
@@ -165,9 +165,9 @@ interface ChatMessage {
 
       .suggestion:hover,
       .suggestion:focus-visible {
-        border-color: #1554a2;
+        border-color: var(--ch-color-primary);
         outline: none;
-        box-shadow: 0 0 0 3px rgba(21, 84, 162, 0.12);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 14%, transparent);
       }
 
       .suggestion:disabled {
@@ -186,8 +186,8 @@ interface ChatMessage {
         flex: 0 0 auto;
         width: 14px;
         height: 14px;
-        border: 2px solid rgba(21, 84, 162, 0.22);
-        border-top-color: #1554a2;
+        border: 2px solid color-mix(in srgb, var(--ch-color-primary) 22%, transparent);
+        border-top-color: var(--ch-color-primary);
         border-radius: 999px;
         animation: chicle-ai-spin 0.75s linear infinite;
       }
@@ -195,8 +195,8 @@ interface ChatMessage {
       .composer {
         display: grid;
         gap: 8px;
-        border-top: 1px solid #d9e2ec;
-        background: #ffffff;
+        border-top: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
         padding: 12px;
       }
 
@@ -205,17 +205,17 @@ interface ChatMessage {
         min-width: 0;
         min-height: 76px;
         resize: vertical;
-        border: 1px solid #c5d6e6;
-        border-radius: 10px;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        border-radius: calc(var(--ch-radius) + 2px);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         line-height: 1.4;
       }
 
       textarea:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.16);
-        border-color: #1554a2;
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+        border-color: var(--ch-color-primary);
       }
 
       .send-row {
@@ -226,7 +226,7 @@ interface ChatMessage {
       }
 
       .hint {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.72rem;
         line-height: 1.35;
       }
@@ -238,10 +238,10 @@ interface ChatMessage {
         justify-content: center;
         gap: 8px;
         min-height: 34px;
-        border: 1px solid #1554a2;
-        border-radius: 8px;
-        background: #1554a2;
-        color: #ffffff;
+        border: 1px solid var(--ch-color-primary);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
         padding: 0 12px;
         font-weight: 900;
         cursor: pointer;
@@ -255,8 +255,8 @@ interface ChatMessage {
       .send .spinner {
         width: 13px;
         height: 13px;
-        border-color: rgba(255, 255, 255, 0.36);
-        border-top-color: #ffffff;
+        border-color: color-mix(in srgb, var(--ch-color-primary-contrast) 36%, transparent);
+        border-top-color: var(--ch-color-primary-contrast);
       }
 
       @keyframes chicle-ai-spin {

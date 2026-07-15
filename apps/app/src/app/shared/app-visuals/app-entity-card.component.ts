@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { AppEntityCard, AppVisualKind } from './app-visuals.types';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 const KIND_ICONS: Record<AppVisualKind, string> = {
   event: 'pi pi-calendar',
@@ -13,6 +14,9 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
 @Component({
   selector: 'app-entity-card',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -25,10 +29,28 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
         gap: 10px;
         height: 100%;
         min-width: 0;
-        border: 1px solid #cbd9e6;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 10px;
+      }
+
+      :host([data-ui-kit='material']) .entity {
+        border-radius: 4px;
+        box-shadow: 0 1px 5px color-mix(in srgb, var(--ch-color-text) 14%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .entity {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .entity {
+        border-radius: 16px;
+        padding: 12px;
+      }
+
+      :host([data-ui-kit='native']) .entity {
+        border-radius: 2px;
       }
 
       .visual {
@@ -38,8 +60,8 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
         gap: 8px;
         min-height: 58px;
         border-radius: 7px;
-        background: #edf5fb;
-        color: #12385c;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
         padding: 10px;
       }
 
@@ -48,9 +70,9 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
         place-items: center;
         width: 34px;
         height: 34px;
-        border-radius: 8px;
-        background: #ffffff;
-        color: #185a9d;
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
       }
 
       .visual-label {
@@ -80,21 +102,21 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
       h4 {
         min-width: 0;
         margin: 0;
-        color: #12385c;
+        color: var(--ch-color-text);
         font-size: 0.98rem;
         line-height: 1.18;
       }
 
       .price {
         flex: 0 0 auto;
-        color: #1f7a53;
+        color: var(--ch-color-success);
         font-size: 0.82rem;
         font-weight: 850;
       }
 
       p {
         margin: 0;
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.8rem;
         line-height: 1.35;
       }
@@ -117,54 +139,54 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
       }
 
       .status {
-        background: #edf7f1;
-        color: #1f7a53;
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .action {
-        border: 1px solid #bfd0e0;
-        background: #ffffff;
-        color: #12385c;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
       }
 
       .kind-property .visual {
-        background: #eef6ee;
+        background: var(--ch-color-success-soft);
       }
 
       .kind-property .visual i {
-        color: #2f6e3f;
+        color: var(--ch-color-success);
       }
 
       .kind-ticket .visual {
-        background: #fff5df;
+        background: var(--ch-color-warning-soft);
       }
 
       .kind-ticket .visual i {
-        color: #9a5c00;
+        color: var(--ch-color-warning);
       }
 
       .kind-service .visual {
-        background: #edf2ff;
+        background: var(--ch-color-primary-soft);
       }
 
       .kind-service .visual i {
-        color: #3457a6;
+        color: var(--ch-color-primary);
       }
 
       .kind-game .visual {
-        background: #f4efff;
+        background: var(--ch-color-surface-muted);
       }
 
       .kind-game .visual i {
-        color: #6d45a3;
+        color: var(--ch-color-primary);
       }
 
       .kind-inspection .visual {
-        background: #eaf7f5;
+        background: var(--ch-color-success-soft);
       }
 
       .kind-inspection .visual i {
-        color: #167062;
+        color: var(--ch-color-success);
       }
     `
   ],
@@ -197,7 +219,7 @@ const KIND_ICONS: Record<AppVisualKind, string> = {
     </article>
   `
 })
-export class AppEntityCardComponent {
+export class AppEntityCardComponent extends UiKitAwareComponent {
   @Input() card: AppEntityCard = {
     kind: 'service',
     title: 'Elemento',

@@ -44,10 +44,10 @@ interface SetupResponse {
   styles: [
     `
       .doc-link {
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        color: #173b5f;
-        background: #ffffff;
+        color: var(--ch-color-text);
+        background: var(--ch-color-surface);
         padding: 8px 12px;
         text-decoration: none;
         font-weight: 700;
@@ -68,10 +68,10 @@ interface SetupResponse {
 
       .eyebrow {
         width: fit-content;
-        border: 1px solid #bed4ea;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #eaf3fc;
-        color: #16496f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 6px 10px;
         font-size: 0.8rem;
         font-weight: 700;
@@ -79,23 +79,23 @@ interface SetupResponse {
 
       h1 {
         margin: 0;
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 2.25rem;
         line-height: 1.08;
       }
 
       p {
         margin: 0;
-        color: #526577;
+        color: var(--ch-color-muted);
         line-height: 1.55;
       }
 
       .state-panel,
       .setup-form {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 18px 50px rgba(20, 50, 80, 0.08);
+        background: var(--ch-color-surface);
+        box-shadow: 0 18px 50px color-mix(in srgb, var(--ch-color-text) 8%, transparent);
       }
 
       .state-panel {
@@ -108,7 +108,7 @@ interface SetupResponse {
         display: flex;
         align-items: center;
         gap: 10px;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-weight: 700;
       }
 
@@ -116,15 +116,15 @@ interface SetupResponse {
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #f0a202;
+        background: var(--ch-color-warning);
       }
 
       .dot.ready {
-        background: #14945d;
+        background: var(--ch-color-success);
       }
 
       .dot.error {
-        background: #c83232;
+        background: var(--ch-color-danger);
       }
 
       .setup-form {
@@ -140,7 +140,7 @@ interface SetupResponse {
 
       .form-header h2 {
         margin: 0;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.25rem;
       }
 
@@ -148,24 +148,24 @@ interface SetupResponse {
       select {
         min-height: 44px;
         width: 100%;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         font: inherit;
       }
 
       input:focus,
       select:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.18);
-        border-color: #1554a2;
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+        border-color: var(--ch-color-primary);
       }
 
       input:disabled,
       select:disabled {
-        background: #edf2f7;
-        color: #6c7a87;
+        background: var(--ch-color-surface-muted);
+        color: var(--ch-color-muted);
       }
 
       .actions {
@@ -191,36 +191,36 @@ interface SetupResponse {
       }
 
       .primary-button {
-        border: 1px solid #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border: 1px solid var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       .secondary-button,
       .link-button {
-        border: 1px solid #c8d6e4;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
       }
 
       .ready-panel {
         display: grid;
         gap: 14px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 18px 50px rgba(20, 50, 80, 0.08);
+        background: var(--ch-color-surface);
+        box-shadow: 0 18px 50px color-mix(in srgb, var(--ch-color-text) 8%, transparent);
         padding: 20px;
       }
 
       .ready-panel h2 {
         margin: 0;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.3rem;
       }
 
       .ready-panel.error {
-        border-color: #f1b4b4;
+        border-color: var(--ch-color-danger-border);
       }
 
       .ready-list {
@@ -233,15 +233,15 @@ interface SetupResponse {
 
       .ready-list li {
         border-radius: 8px;
-        background: #f4f7fb;
-        color: #254057;
+        background: var(--ch-color-background);
+        color: var(--ch-color-text);
         padding: 10px 12px;
       }
 
       .primary-button:disabled {
-        border-color: #c8d6e4;
+        border-color: var(--ch-color-border);
         background: #d7e1eb;
-        color: #758596;
+        color: var(--ch-color-muted);
         cursor: not-allowed;
       }
 

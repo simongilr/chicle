@@ -1,9 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { AppMetricItem } from './app-visuals.types';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-metric-strip',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -23,10 +27,28 @@ import { AppMetricItem } from './app-visuals.types';
         align-items: center;
         gap: 10px;
         min-width: 0;
-        border: 1px solid #cbd9e6;
-        border-radius: 8px;
-        background: #ffffff;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 10px;
+      }
+
+      :host([data-ui-kit='material']) .metric {
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .metric {
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .metric {
+        border-radius: 16px;
+        padding: 12px;
+      }
+
+      :host([data-ui-kit='native']) .metric {
+        border-radius: 2px;
       }
 
       .metric-icon {
@@ -34,9 +56,9 @@ import { AppMetricItem } from './app-visuals.types';
         place-items: center;
         width: 34px;
         height: 34px;
-        border-radius: 8px;
-        background: #e8f2ff;
-        color: #185a9d;
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         font-size: 0.95rem;
       }
 
@@ -47,7 +69,7 @@ import { AppMetricItem } from './app-visuals.types';
       }
 
       .metric-value {
-        color: #12385c;
+        color: var(--ch-color-text);
         font-size: 1.05rem;
         font-weight: 850;
         line-height: 1.1;
@@ -56,7 +78,7 @@ import { AppMetricItem } from './app-visuals.types';
       .metric-label,
       .metric-trend {
         overflow: hidden;
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         line-height: 1.25;
         text-overflow: ellipsis;
@@ -64,7 +86,7 @@ import { AppMetricItem } from './app-visuals.types';
       }
 
       .metric-trend {
-        color: #1f7a53;
+        color: var(--ch-color-success);
         font-weight: 800;
       }
 
@@ -97,6 +119,6 @@ import { AppMetricItem } from './app-visuals.types';
     </div>
   `
 })
-export class AppMetricStripComponent {
+export class AppMetricStripComponent extends UiKitAwareComponent {
   @Input() items: AppMetricItem[] = [];
 }

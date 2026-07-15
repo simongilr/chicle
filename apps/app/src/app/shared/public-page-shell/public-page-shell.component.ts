@@ -39,7 +39,7 @@ import { IonContent } from '@ionic/angular/standalone';
       }
 
       .brand {
-        color: #12324f;
+        color: var(--ch-color-text);
         font-weight: 850;
       }
 

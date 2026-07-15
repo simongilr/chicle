@@ -39,6 +39,16 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 30
   },
   {
+    key: 'preferences',
+    label: 'Preferencias',
+    route: '/preferences',
+    icon: 'pi pi-palette',
+    roles: ['owner', 'admin'],
+    group: 'Administración',
+    placement: 'admin',
+    sortOrder: 32
+  },
+  {
     key: 'database',
     label: 'Base de datos',
     route: '/database',

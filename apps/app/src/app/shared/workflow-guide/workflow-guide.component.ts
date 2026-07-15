@@ -1,10 +1,14 @@
 import { Component, Input } from '@angular/core';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type WorkflowGuideTone = 'info' | 'success' | 'warning';
 
 @Component({
   selector: 'app-workflow-guide',
   standalone: true,
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -16,19 +20,42 @@ export type WorkflowGuideTone = 'info' | 'success' | 'warning';
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 16px;
         align-items: center;
-        border-left: 4px solid #1554a2;
-        background: #eef6ff;
+        border-left: 4px solid var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
         padding: 13px 15px;
       }
 
+      :host([data-ui-kit='material']) .guide {
+        border-left-width: 0;
+        border-top: 3px solid var(--ch-color-primary);
+        border-radius: 4px;
+        box-shadow: 0 1px 4px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .guide {
+        border: 1px solid var(--ch-color-primary-border);
+        border-left-width: 4px;
+        border-radius: 6px;
+      }
+
+      :host([data-ui-kit='ionic']) .guide {
+        border-left-width: 0;
+        border-radius: 16px;
+        padding: 14px 15px;
+      }
+
+      :host([data-ui-kit='native']) .guide {
+        border-radius: 2px;
+      }
+
       .guide.success {
-        border-left-color: #238152;
-        background: #f1faf5;
+        border-left-color: var(--ch-color-success);
+        background: var(--ch-color-success-soft);
       }
 
       .guide.warning {
-        border-left-color: #b87515;
-        background: #fff8ec;
+        border-left-color: var(--ch-color-warning);
+        background: var(--ch-color-warning-soft);
       }
 
       .copy {
@@ -38,20 +65,20 @@ export type WorkflowGuideTone = 'info' | 'success' | 'warning';
       }
 
       .step {
-        color: #587087;
+        color: var(--ch-color-muted);
         font-size: 0.76rem;
         font-weight: 900;
         text-transform: uppercase;
       }
 
       strong {
-        color: #153b61;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       p {
         margin: 0;
-        color: #49647c;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
@@ -93,7 +120,7 @@ export type WorkflowGuideTone = 'info' | 'success' | 'warning';
     </section>
   `
 })
-export class WorkflowGuideComponent {
+export class WorkflowGuideComponent extends UiKitAwareComponent {
   @Input() stepLabel = '';
   @Input() title = '';
   @Input() description = '';

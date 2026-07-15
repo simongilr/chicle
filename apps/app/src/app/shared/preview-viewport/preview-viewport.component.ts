@@ -3,6 +3,7 @@ import {
   SegmentedControlComponent,
   SegmentedControlItem
 } from '../segmented-control/segmented-control.component';
+import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -10,6 +11,9 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
   selector: 'app-preview-viewport',
   standalone: true,
   imports: [SegmentedControlComponent],
+  host: {
+    '[attr.data-ui-kit]': 'resolvedKit'
+  },
   styles: [
     `
       :host {
@@ -49,9 +53,9 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background:
-          linear-gradient(90deg, rgba(255, 255, 255, 0.45) 1px, transparent 1px),
-          linear-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px),
-          #e8eef5;
+          linear-gradient(90deg, color-mix(in srgb, var(--ch-color-surface) 70%, transparent) 1px, transparent 1px),
+          linear-gradient(color-mix(in srgb, var(--ch-color-surface) 70%, transparent) 1px, transparent 1px),
+          color-mix(in srgb, var(--ch-color-background) 82%, var(--ch-color-border));
         background-size: 24px 24px;
         padding: clamp(12px, 2vw, 22px);
       }
@@ -60,13 +64,33 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         width: 100%;
         max-width: 1180px;
         overflow: hidden;
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 16px 40px rgba(20, 50, 80, 0.12);
+        background: var(--ch-color-surface);
+        box-shadow: var(--ch-shadow-card);
         transition:
           width 160ms ease,
           border-radius 160ms ease;
+      }
+
+      :host([data-ui-kit='material']) .device {
+        border-radius: 4px;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--ch-color-text) 16%, transparent);
+      }
+
+      :host([data-ui-kit='bootstrap']) .device {
+        border-radius: 6px;
+        box-shadow: none;
+      }
+
+      :host([data-ui-kit='ionic']) .device {
+        border-radius: 20px;
+        box-shadow: 0 16px 36px color-mix(in srgb, var(--ch-color-primary) 12%, transparent);
+      }
+
+      :host([data-ui-kit='native']) .device {
+        border-radius: 2px;
+        box-shadow: none;
       }
 
       .device.tablet {
@@ -84,8 +108,8 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         gap: 10px;
         align-items: center;
         min-height: 38px;
-        border-bottom: 1px solid #d9e2ec;
-        background: #f7fafd;
+        border-bottom: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface-alt);
         padding: 8px 12px;
       }
 
@@ -98,12 +122,12 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         width: 8px;
         height: 8px;
         border-radius: 999px;
-        background: #b8cce0;
+        background: var(--ch-color-primary-border);
       }
 
       .device-title {
         overflow: hidden;
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 0.8rem;
         font-weight: 850;
         text-overflow: ellipsis;
@@ -111,7 +135,7 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
       }
 
       .device-size {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-size: 0.75rem;
         font-weight: 750;
       }
@@ -161,6 +185,7 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
         ariaLabel="Tamaño de vista previa"
         [items]="viewportItems"
         [value]="mode"
+        [kit]="kit"
         (valueChange)="selectMode($event)"
       ></app-segmented-control>
     </div>
@@ -182,7 +207,7 @@ export type PreviewViewportMode = 'desktop' | 'tablet' | 'mobile';
     </div>
   `
 })
-export class PreviewViewportComponent {
+export class PreviewViewportComponent extends UiKitAwareComponent {
   @Input() mode: PreviewViewportMode = 'desktop';
   @Output() readonly modeChange = new EventEmitter<PreviewViewportMode>();
 

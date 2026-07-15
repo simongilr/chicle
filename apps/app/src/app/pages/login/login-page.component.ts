@@ -55,10 +55,10 @@ interface PublicAuthConfig {
   styles: [
     `
       .link {
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        color: #173b5f;
-        background: #ffffff;
+        color: var(--ch-color-text);
+        background: var(--ch-color-surface);
         padding: 8px 12px;
         text-decoration: none;
         font-weight: 700;
@@ -85,33 +85,33 @@ interface PublicAuthConfig {
       }
 
       h1 {
-        color: #102f4d;
+        color: var(--ch-color-text);
         font-size: 2.2rem;
         line-height: 1.08;
       }
 
       h2 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1.25rem;
       }
 
       h3 {
-        color: #173b5f;
+        color: var(--ch-color-text);
         font-size: 1rem;
       }
 
       p,
       .meta {
-        color: #526577;
+        color: var(--ch-color-muted);
         line-height: 1.55;
       }
 
       .badge {
         width: fit-content;
-        border: 1px solid #bed4ea;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 999px;
-        background: #eaf3fc;
-        color: #16496f;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
         padding: 6px 10px;
         font-size: 0.8rem;
         font-weight: 800;
@@ -120,10 +120,10 @@ interface PublicAuthConfig {
       .policy-card,
       .login-panel,
       .method-card {
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        box-shadow: 0 18px 50px rgba(20, 50, 80, 0.08);
+        background: var(--ch-color-surface);
+        box-shadow: 0 18px 50px color-mix(in srgb, var(--ch-color-text) 8%, transparent);
       }
 
       .policy-card,
@@ -139,7 +139,7 @@ interface PublicAuthConfig {
 
       .policy-item {
         border-radius: 8px;
-        background: #f4f7fb;
+        background: var(--ch-color-background);
         padding: 10px;
       }
 
@@ -151,17 +151,17 @@ interface PublicAuthConfig {
       input {
         min-height: 44px;
         width: 100%;
-        border: 1px solid #b9c9d8;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #102f4d;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         font: inherit;
       }
 
       input:focus {
-        outline: 3px solid rgba(21, 84, 162, 0.18);
-        border-color: #1554a2;
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+        border-color: var(--ch-color-primary);
       }
 
       .primary-button,
@@ -174,22 +174,22 @@ interface PublicAuthConfig {
       }
 
       .primary-button {
-        border: 1px solid #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border: 1px solid var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       .primary-button:disabled {
-        border-color: #c8d6e4;
+        border-color: var(--ch-color-border);
         background: #d7e1eb;
-        color: #758596;
+        color: var(--ch-color-muted);
       }
 
       .method-button {
         width: 100%;
-        border: 1px solid #c8d6e4;
-        background: #ffffff;
-        color: #173b5f;
+        border: 1px solid var(--ch-color-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
       }
 
       .methods {
@@ -211,19 +211,19 @@ interface PublicAuthConfig {
 
       .channel-tabs button {
         min-height: 34px;
-        border: 1px solid #c8d6e4;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #ffffff;
-        color: #173b5f;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 0 12px;
         font: inherit;
         font-weight: 700;
       }
 
       .channel-tabs button.active {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       @media (max-width: 820px) {

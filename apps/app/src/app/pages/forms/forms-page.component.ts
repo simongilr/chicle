@@ -59,7 +59,7 @@ type FieldType =
   | 'gps';
 type FieldLayout = 'full' | 'half' | 'third';
 type ConditionOperator = 'equals' | 'not_equals' | 'truthy' | 'falsy' | 'contains';
-type PresentationKit = 'auto' | 'primeng' | 'ionic' | 'native';
+type PresentationKit = 'auto' | 'primeng' | 'ionic' | 'material' | 'bootstrap' | 'native';
 type ThemeMode = 'system' | 'light' | 'dark';
 type DensityMode = 'comfortable' | 'compact' | 'spacious';
 type DesktopLayoutMode = 'step_cards' | 'single_form' | 'wizard' | 'auto';
@@ -379,9 +379,9 @@ const FORM_TEMPLATES: FormTemplate[] = [
         display: grid;
         gap: 16px;
         align-content: start;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 18px;
       }
 
@@ -428,29 +428,29 @@ const FORM_TEMPLATES: FormTemplate[] = [
         display: grid;
         gap: 8px;
         align-content: start;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
         text-align: left;
       }
 
       .template-card.active,
       .checklist-card.ready {
-        border-color: #8fd0a8;
-        background: #f3fbf6;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
       }
 
       .template-card strong,
       .helper-card strong,
       .checklist-card strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
       }
 
       .template-card small,
       .helper-card small,
       .checklist-card small {
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.35;
       }
 
@@ -476,16 +476,16 @@ const FORM_TEMPLATES: FormTemplate[] = [
       }
 
       .issue-list li {
-        color: #71400f;
+        color: var(--ch-color-warning);
         line-height: 1.35;
       }
 
       .field-preview {
         display: grid;
         gap: 6px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         padding: 10px;
       }
 
@@ -495,10 +495,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
         gap: 10px;
         align-items: center;
         min-height: 50px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fbfcfe;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 10px 12px;
         font-weight: 850;
         cursor: pointer;
@@ -519,22 +519,22 @@ const FORM_TEMPLATES: FormTemplate[] = [
         flex: 0 0 auto;
         width: 22px;
         height: 22px;
-        border: 1px solid #b8cce0;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 7px;
-        background: #ffffff;
+        background: var(--ch-color-surface);
         color: transparent;
         font-size: 0.82rem;
         line-height: 1;
       }
 
       .toggle-card input:checked + .toggle-mark {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       .toggle-card input:focus-visible + .toggle-mark {
-        outline: 3px solid rgba(21, 84, 162, 0.18);
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
         outline-offset: 2px;
       }
 
@@ -544,7 +544,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
       }
 
       .toggle-copy small {
-        color: #52677a;
+        color: var(--ch-color-muted);
         font-weight: 500;
         line-height: 1.3;
       }
@@ -554,19 +554,19 @@ const FORM_TEMPLATES: FormTemplate[] = [
         gap: 6px;
         align-items: center;
         width: fit-content;
-        border: 1px solid #c9d8e6;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #f4f8fc;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 4px 9px;
         font-size: 0.78rem;
         font-weight: 850;
       }
 
       .status-chip.ready {
-        border-color: #8fd0a8;
-        background: #effaf3;
-        color: #17643a;
+        border-color: var(--ch-color-success-border);
+        background: var(--ch-color-success-soft);
+        color: var(--ch-color-success);
       }
 
       .status-dot {
@@ -589,9 +589,9 @@ const FORM_TEMPLATES: FormTemplate[] = [
       .live-json-card {
         display: grid;
         gap: 10px;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
@@ -610,7 +610,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
       .palette small,
       .inspector small {
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.35;
       }
 
@@ -618,24 +618,24 @@ const FORM_TEMPLATES: FormTemplate[] = [
       .field-item {
         display: grid;
         gap: 12px;
-        border: 1px solid #dbe6f0;
+        border: 1px solid var(--ch-color-surface-muted);
         border-radius: 8px;
-        background: #f8fbfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
       .step-item.active {
-        border-color: #1554a2;
-        background: #eef6ff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .field-item {
-        background: #ffffff;
+        background: var(--ch-color-surface);
       }
 
       .field-item.selected {
-        border-color: #1554a2;
-        background: #eef6ff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .field-row {
@@ -673,19 +673,19 @@ const FORM_TEMPLATES: FormTemplate[] = [
         display: grid;
         gap: 5px;
         min-width: 0;
-        border: 1px solid #d9e2ec;
+        border: 1px solid var(--ch-color-border);
         border-radius: 8px;
-        background: #fbfcfe;
+        background: var(--ch-color-surface-alt);
         padding: 12px;
       }
 
       .preview-contract-card strong {
-        color: #173b5f;
+        color: var(--ch-color-text);
       }
 
       .preview-contract-card small {
         overflow-wrap: anywhere;
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.35;
       }
 
@@ -700,7 +700,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
       .preview-form-header {
         display: grid;
         gap: 10px;
-        border-bottom: 1px solid #d9e2ec;
+        border-bottom: 1px solid var(--ch-color-border);
         padding-bottom: 14px;
       }
 
@@ -715,14 +715,14 @@ const FORM_TEMPLATES: FormTemplate[] = [
       }
 
       .preview-form-title h2 {
-        color: #143653;
+        color: var(--ch-color-text);
         font-size: clamp(1.15rem, 1.45vw, 1.45rem);
         line-height: 1.15;
       }
 
       .preview-form-title p {
         max-width: 680px;
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
@@ -747,10 +747,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
       textarea {
         width: 100%;
         min-height: 38px;
-        border: 1px solid #b8cce0;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #143653;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 10px;
         font: inherit;
       }
@@ -787,10 +787,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
       button {
         min-height: 38px;
-        border: 1px solid #b8cce0;
+        border: 1px solid var(--ch-color-primary-border);
         border-radius: 8px;
-        background: #ffffff;
-        color: #143653;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
         padding: 8px 12px;
         font: inherit;
         font-weight: 850;
@@ -798,14 +798,14 @@ const FORM_TEMPLATES: FormTemplate[] = [
       }
 
       button.primary {
-        border-color: #1554a2;
-        background: #1554a2;
-        color: #ffffff;
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-surface);
       }
 
       button.danger {
-        border-color: #e2aaa1;
-        color: #9c2f25;
+        border-color: var(--ch-color-danger-border);
+        color: var(--ch-color-danger);
       }
 
       button:disabled {
@@ -815,7 +815,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
       .muted {
         margin: 0;
-        color: #52677a;
+        color: var(--ch-color-muted);
         line-height: 1.45;
       }
 
@@ -824,10 +824,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 14px;
         align-items: start;
-        border: 1px solid #c9d8e6;
-        border-left: 4px solid #1554a2;
+        border: 1px solid var(--ch-color-border);
+        border-left: 4px solid var(--ch-color-primary);
         border-radius: 8px;
-        background: #f7fbff;
+        background: var(--ch-color-surface-alt);
         padding: 14px;
       }
 
@@ -852,10 +852,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
         display: inline-flex;
         align-items: center;
         width: fit-content;
-        border: 1px solid #c9d8e6;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
-        background: #f4f8fc;
-        color: #173b5f;
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-text);
         padding: 4px 9px;
         font-size: 0.78rem;
         font-weight: 850;
@@ -863,7 +863,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
       .json-panel.invalid,
       .live-json-card.invalid {
-        border-color: #f0aaaa;
+        border-color: var(--ch-color-danger-border);
       }
 
       @media (max-width: 980px) {
@@ -1056,6 +1056,8 @@ const FORM_TEMPLATES: FormTemplate[] = [
                       <option value="auto">Automático</option>
                       <option value="primeng">PrimeNG web</option>
                       <option value="ionic">Ionic móvil</option>
+                      <option value="material">Material</option>
+                      <option value="bootstrap">Bootstrap</option>
                       <option value="native">Nativo accesible</option>
                     </select>
                   </app-field-shell>
@@ -4321,7 +4323,7 @@ export class FormsPageComponent implements OnDestroy, OnInit {
   }
 
   private asPresentationKit(value: unknown): PresentationKit {
-    return ['auto', 'primeng', 'ionic', 'native'].includes(String(value))
+    return ['auto', 'primeng', 'ionic', 'material', 'bootstrap', 'native'].includes(String(value))
       ? (value as PresentationKit)
       : 'auto';
   }

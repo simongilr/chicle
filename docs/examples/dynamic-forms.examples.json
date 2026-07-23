@@ -74,25 +74,25 @@
         },
         "steps": [
           {
-            "key": "principal",
-            "title": "Principal",
-            "description": "Completa tus credenciales.",
+            "key": "main",
+            "title": "Main",
+            "description": "Enter your credentials.",
             "fields": [
               {
-                "key": "usuario",
-                "name": "usuario",
+                "key": "username",
+                "name": "username",
                 "type": "text",
-                "label": "Usuario",
+                "label": "Username",
                 "required": true,
-                "placeholder": "Usuario o correo"
+                "placeholder": "Username or email"
               },
               {
                 "key": "password",
                 "name": "password",
                 "type": "password",
-                "label": "Contraseña",
+                "label": "Password",
                 "required": true,
-                "placeholder": "Ingresa tu contraseña"
+                "placeholder": "Enter your password"
               }
             ]
           }
@@ -105,7 +105,7 @@
             "serviceKey": "auth.login",
             "resultKey": "session",
             "payloadMap": {
-              "username": "{{input.usuario}}",
+              "username": "{{input.username}}",
               "password": "{{input.password}}"
             },
             "onSuccess": [
@@ -175,12 +175,12 @@
         "schemaVersion": 1,
         "kind": "dynamic_form",
         "key": "form_custom_clients",
-        "title": "Formulario Custom Clients",
-        "description": "Crea registros en custom_clients usando un servicio dinámico seguro.",
-        "category": "tablas",
+        "title": "Custom Clients Form",
+        "description": "Create records in custom_clients using a secure dynamic service.",
+        "category": "tables",
         "runtime": {
           "mode": "guided",
-          "submitLabel": "Guardar",
+          "submitLabel": "Save",
           "autosave": false,
           "offline": {
             "enabled": false,
@@ -201,9 +201,9 @@
         },
         "steps": [
           {
-            "key": "principal",
-            "title": "Principal",
-            "description": "Completa la información requerida.",
+            "key": "main",
+            "title": "Main",
+            "description": "Complete the required information.",
             "fields": [
               { "key": "name", "name": "name", "type": "text", "label": "Name", "required": true },
               { "key": "email", "name": "email", "type": "email", "label": "Email", "required": true },
@@ -235,10 +235,10 @@
         "dataSources": [],
         "tests": [
           {
-            "name": "Crear registro",
+            "name": "Create record",
             "input": {
-              "name": "Cliente demo",
-              "email": "cliente@example.com",
+              "name": "Demo client",
+              "email": "client@example.com",
               "phone": "+573001112233",
               "active": true
             }
@@ -354,17 +354,17 @@
               "resultKey": "request"
             },
             "feedback": {
-              "loadingLabel": "Enviando...",
-              "successMessage": "Solicitud creada.",
-              "errorMessage": "No se pudo crear la solicitud."
+              "loadingLabel": "Sending...",
+              "successMessage": "Request created.",
+              "errorMessage": "The request could not be created."
             }
           }
         ],
         "steps": [
           {
             "key": "identity",
-            "title": "Datos principales",
-            "description": "Informacion necesaria para identificar la solicitud.",
+            "title": "Main data",
+            "description": "Information required to identify the request.",
             "layout": {
               "desktopColumns": 12,
               "tabletColumns": 8,
@@ -374,7 +374,7 @@
               {
                 "key": "identity_title",
                 "type": "title",
-                "label": "Informacion de contacto",
+                "label": "Contact information",
                 "layout": {
                   "desktopSpan": 12,
                   "tabletSpan": 8,
@@ -384,9 +384,9 @@
               {
                 "key": "name",
                 "type": "text",
-                "label": "Nombre",
+                "label": "Name",
                 "required": true,
-                "placeholder": "Nombre completo",
+                "placeholder": "Full name",
                 "transform": "trim",
                 "layout": {
                   "desktopSpan": 6,
@@ -397,15 +397,15 @@
                   "minLength": 3,
                   "maxLength": 80,
                   "messages": {
-                    "required": "El nombre es obligatorio.",
-                    "minLength": "Escribe al menos 3 caracteres."
+                    "required": "Name is required.",
+                    "minLength": "Enter at least 3 characters."
                   }
                 }
               },
               {
                 "key": "email",
                 "type": "email",
-                "label": "Correo",
+                "label": "Email",
                 "required": true,
                 "placeholder": "persona@empresa.com",
                 "access": {
@@ -421,19 +421,19 @@
                 "validation": {
                   "format": "email",
                   "messages": {
-                    "required": "El correo es obligatorio.",
-                    "format": "Escribe un correo valido."
+                    "required": "Email is required.",
+                    "format": "Enter a valid email."
                   }
                 }
               },
               {
                 "key": "channel",
                 "type": "select",
-                "label": "Canal preferido",
+                "label": "Preferred channel",
                 "required": true,
                 "options": [
-                  { "label": "Correo", "value": "email" },
-                  { "label": "Telefono", "value": "phone" }
+                  { "label": "Email", "value": "email" },
+                  { "label": "Phone", "value": "phone" }
                 ],
                 "layout": {
                   "desktopSpan": 6,
@@ -444,7 +444,7 @@
               {
                 "key": "phone",
                 "type": "tel",
-                "label": "Telefono",
+                "label": "Phone",
                 "placeholder": "+57 300 000 0000",
                 "layout": {
                   "desktopSpan": 6,
@@ -460,7 +460,7 @@
               {
                 "key": "notes",
                 "type": "textarea",
-                "label": "Observaciones",
+                "label": "Notes",
                 "layout": {
                   "desktopSpan": 12,
                   "tabletSpan": 8,
@@ -486,12 +486,12 @@
             "success": {
               "type": "show_message",
               "tone": "success",
-              "message": "Solicitud creada."
+              "message": "Request created."
             },
             "error": {
               "type": "show_message",
               "tone": "error",
-              "message": "No se pudo crear la solicitud."
+              "message": "The request could not be created."
             }
           }
         ],
@@ -503,7 +503,7 @@
               "name": "Simon",
               "email": "simon@example.com",
               "channel": "email",
-              "notes": "Primera prueba"
+              "notes": "First test"
             },
             "expect": {
               "valid": true,
@@ -632,7 +632,7 @@
         "commands": [
           {
             "key": "validate_customer_email",
-            "label": "Validar correo",
+            "label": "Validate email",
             "icon": "shield-check",
             "placement": "field",
             "fieldKey": "customer_email",
@@ -657,14 +657,14 @@
               "resultKey": "emailValidation"
             },
             "feedback": {
-              "loadingLabel": "Validando...",
-              "successMessage": "Correo validado.",
-              "errorMessage": "No se pudo validar el correo."
+              "loadingLabel": "Validating...",
+              "successMessage": "Email validated.",
+              "errorMessage": "Email could not be validated."
             }
           },
           {
             "key": "submit_service_request",
-            "label": "Crear solicitud",
+            "label": "Create request",
             "icon": "send",
             "placement": "bottom",
             "style": "primary",
@@ -684,17 +684,17 @@
               "resultKey": "request"
             },
             "feedback": {
-              "loadingLabel": "Creando...",
-              "successMessage": "Solicitud creada.",
-              "errorMessage": "No se pudo crear la solicitud."
+              "loadingLabel": "Creating...",
+              "successMessage": "Request created.",
+              "errorMessage": "The request could not be created."
             }
           }
         ],
         "steps": [
           {
             "key": "client",
-            "title": "Cliente",
-            "description": "Identifica la persona o empresa que solicita el servicio.",
+            "title": "Client",
+            "description": "Identify the person or company requesting the service.",
             "layout": {
               "desktopColumns": 12,
               "tabletColumns": 8,
@@ -807,20 +807,20 @@
             "error": {
               "type": "show_message",
               "tone": "error",
-              "message": "No se pudo crear la solicitud."
+              "message": "The request could not be created."
             }
           }
         ],
         "tests": [
           {
-            "name": "solicitud_normal",
+            "name": "normal_request",
             "viewport": "desktop",
             "input": {
-              "customer_name": "Cliente Demo",
-              "customer_email": "cliente@example.com",
+              "customer_name": "Demo Client",
+              "customer_email": "client@example.com",
               "service_type": "support",
               "priority": "normal",
-              "description": "Necesito ayuda con una solicitud de prueba."
+              "description": "I need help with a test request."
             },
             "expect": {
               "valid": true,

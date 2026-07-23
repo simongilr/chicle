@@ -4,6 +4,10 @@ import { forkJoin } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
+import { AdminActionToolbarComponent } from '../../shared/admin-action-toolbar/admin-action-toolbar.component';
+import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
+import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
+import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -94,6 +98,10 @@ type RolePanelMode = 'create' | 'edit';
   selector: 'app-security-page',
   standalone: true,
   imports: [
+    AdminActionToolbarComponent,
+    AdminFilterBarComponent,
+    AdminMetricCardComponent,
+    AdminPanelComponent,
     FormsModule,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
@@ -488,39 +496,37 @@ type RolePanelMode = 'create' | 'edit';
           badge="RBAC"
         ></app-module-header>
 
-        <section class="panel">
-          <div class="header-row">
-            <div class="section-title">
-              <h2>Resumen operativo</h2>
-              <p class="meta">Estado actual de identidad y autorización de la organización.</p>
-            </div>
-            <div class="actions">
+        <app-admin-panel
+          title="Resumen operativo"
+          description="Estado actual de identidad y autorización de la organización."
+        >
+          <app-admin-action-toolbar panel-actions>
               <button class="primary" type="button" (click)="syncSecurity()" [disabled]="!canManageRoles || syncing">
                 {{ syncing ? 'Sincronizando...' : 'Sincronizar seguridad' }}
               </button>
-            </div>
-          </div>
+          </app-admin-action-toolbar>
           <div class="overview">
-            <article class="stat-card">
-              <span class="meta">Organización actual</span>
-              <strong>{{ tenantName }}</strong>
-              <span class="meta">{{ tenantSlug }}</span>
-            </article>
-            <article class="stat-card">
-              <span class="meta">Usuarios</span>
-              <strong>{{ usersTotal }}</strong>
-              <span class="meta">registrados según filtros actuales</span>
-            </article>
-            <article class="stat-card">
-              <span class="meta">Roles</span>
-              <strong>{{ roles.length }}</strong>
-              <span class="meta">{{ permissions.length }} permisos disponibles</span>
-            </article>
-            <article class="stat-card">
-              <span class="meta">Clientes y personas</span>
-              <strong>Modelo del tenant</strong>
-              <span class="meta">Se administrarán como entidades de negocio, no como usuarios de login.</span>
-            </article>
+            <app-admin-metric-card
+              label="Organización actual"
+              [value]="tenantName"
+              [detail]="tenantSlug"
+              tone="primary"
+            ></app-admin-metric-card>
+            <app-admin-metric-card
+              label="Usuarios"
+              [value]="usersTotal + ''"
+              detail="Registrados según filtros actuales"
+            ></app-admin-metric-card>
+            <app-admin-metric-card
+              label="Roles"
+              [value]="roles.length + ''"
+              [detail]="permissions.length + ' permisos disponibles'"
+            ></app-admin-metric-card>
+            <app-admin-metric-card
+              label="Clientes y personas"
+              value="Modelo del tenant"
+              detail="Se administrarán como entidades de negocio, no como usuarios de login."
+            ></app-admin-metric-card>
           </div>
           @if (loading) {
             <app-loading-skeleton
@@ -531,7 +537,7 @@ type RolePanelMode = 'create' | 'edit';
           } @else if (message) {
             <app-status-notice tone="info">{{ message }}</app-status-notice>
           }
-        </section>
+        </app-admin-panel>
 
         <nav class="tabs" aria-label="Secciones de seguridad">
           <button class="tab" type="button" [class.active]="securityTab === 'users'" (click)="securityTab = 'users'">
@@ -558,7 +564,7 @@ type RolePanelMode = 'create' | 'edit';
                 </button>
               </div>
 
-              <div class="toolbar">
+              <app-admin-filter-bar ariaLabel="User filters" minColumnWidth="160px">
                 <label>
                   Buscar
                   <input
@@ -569,7 +575,6 @@ type RolePanelMode = 'create' | 'edit';
                     placeholder="Email, nombre o rol"
                   />
                 </label>
-                <div class="filter-grid">
                   <label>
                     Estado
                     <select [(ngModel)]="userStatusFilter" (ngModelChange)="loadUsers(1)">
@@ -587,8 +592,7 @@ type RolePanelMode = 'create' | 'edit';
                       }
                     </select>
                   </label>
-                </div>
-              </div>
+              </app-admin-filter-bar>
 
               <div class="user-list">
                 @for (user of users; track user.id) {

@@ -272,6 +272,14 @@ export class UiThemeService {
       root.style.setProperty('--ch-radius', theme.tokens.radius);
       root.style.setProperty('--ion-color-primary', theme.tokens.primary);
       root.style.setProperty('--ion-color-primary-contrast', theme.tokens.primaryContrast);
+      root.style.setProperty('--ion-color-primary-shade', theme.primaryPalette[600]);
+      root.style.setProperty('--ion-color-primary-tint', theme.primaryPalette[400]);
+      root.style.setProperty('--ion-color-success', theme.tokens.success || '#238152');
+      root.style.setProperty('--ion-color-success-contrast', theme.tokens.primaryContrast);
+      root.style.setProperty('--ion-color-danger', theme.tokens.danger || '#b42318');
+      root.style.setProperty('--ion-color-danger-contrast', theme.tokens.primaryContrast);
+      root.style.setProperty('--ion-color-medium', theme.tokens.muted);
+      root.style.setProperty('--ion-color-medium-contrast', theme.tokens.primaryContrast);
       root.style.setProperty('--ion-background-color', theme.tokens.background);
       root.style.setProperty('--ion-text-color', theme.tokens.text);
       Object.entries(theme.primaryPalette).forEach(([shade, color]) => {

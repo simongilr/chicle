@@ -12,6 +12,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/docs/docs-page.component').then((module) => module.DocsPageComponent)
   },
   {
+    path: 'docs/source',
+    loadComponent: () =>
+      import('./pages/docs/docs-library-page.component').then((module) => module.DocsLibraryPageComponent)
+  },
+  {
+    path: 'architecture',
+    loadComponent: () =>
+      import('./pages/architecture/architecture-page.component').then((module) => module.ArchitecturePageComponent)
+  },
+  {
     path: 'components',
     loadComponent: () =>
       import('./pages/components/components-page.component').then((module) => module.ComponentsPageComponent)

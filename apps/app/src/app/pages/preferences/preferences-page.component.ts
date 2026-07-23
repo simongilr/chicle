@@ -1,4 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
@@ -18,7 +21,14 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
 @Component({
   selector: 'app-preferences-page',
   standalone: true,
-  imports: [DynamicFieldControlComponent, ModuleHeaderComponent, PageShellComponent, UiKitButtonComponent],
+  imports: [
+    AdminPanelComponent,
+    DynamicFieldControlComponent,
+    ModuleHeaderComponent,
+    PageShellComponent,
+    TranslatePipe,
+    UiKitButtonComponent
+  ],
   styles: [
     `
       :host {
@@ -30,23 +40,6 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
         grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
         gap: var(--ch-page-gap);
         align-items: start;
-      }
-
-      .panel {
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        box-shadow: var(--ch-shadow-card);
-        padding: 18px;
-        min-width: 0;
-      }
-
-      .panel-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 16px;
       }
 
       .panel-title {
@@ -181,78 +174,84 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
     `
   ],
   template: `
-    <app-page-shell contextLabel="Preferencias">
+    <app-page-shell [contextLabel]="'nav.preferences' | t">
       <app-module-header
-        eyebrow="Administración visual"
-        title="Preferencias del admin"
-        description="Personaliza cómo se ve y se siente el panel administrativo: paleta, modo, kit visual, tamaño de letra, densidad e idioma base."
-        badge="Admin UI"
+        [eyebrow]="'preferences.eyebrow' | t"
+        [title]="'preferences.title' | t"
+        [description]="'preferences.description' | t"
+        [badge]="'preferences.badge' | t"
+        [kit]="preferences().kit"
       ></app-module-header>
 
       <section class="preferences-layout">
-        <section class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <h2>Apariencia y experiencia</h2>
-              <p>Los cambios se aplican en vivo y quedan guardados en este navegador.</p>
-            </div>
-          </div>
-
+        <app-admin-panel
+          [title]="'preferences.panel.title' | t"
+          [description]="'preferences.panel.description' | t"
+          [kit]="preferences().kit"
+        >
           <div class="field-grid">
             <app-dynamic-field-control
               [field]="themeField"
               [value]="preferences().themeKey"
+              [presentation]="activePresentation()"
               (valueChange)="setThemeKey($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="modeField"
               [value]="preferences().mode"
+              [presentation]="activePresentation()"
               (valueChange)="setMode($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="kitField"
               [value]="preferences().kit"
+              [presentation]="activePresentation()"
               (valueChange)="setKit($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="fontField"
               [value]="preferences().fontFamily"
+              [presentation]="activePresentation()"
               (valueChange)="setFontFamily($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="fontScaleField"
               [value]="preferences().fontScale"
+              [presentation]="activePresentation()"
               (valueChange)="setFontScale($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="densityField"
               [value]="preferences().density"
+              [presentation]="activePresentation()"
               (valueChange)="setDensity($event)"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="languageField"
               [value]="preferences().language"
+              [presentation]="activePresentation()"
               (valueChange)="setLanguage($event)"
             ></app-dynamic-field-control>
           </div>
 
           <div class="actions">
             <app-ui-kit-button
-              label="Restaurar default"
+              [label]="'common.resetDefaults' | t"
               icon="pi pi-refresh"
+              [kit]="preferences().kit"
               tone="neutral"
               variant="outline"
               (pressed)="reset()"
             ></app-ui-kit-button>
           </div>
-        </section>
+        </app-admin-panel>
 
-        <section class="panel preview-panel">
-          <div class="panel-title">
-            <h2>Vista rápida</h2>
-            <p>Referencia de cómo se comportan controles, botones y colores con la configuración activa.</p>
-          </div>
-
+        <app-admin-panel
+          [title]="'preferences.preview.title' | t"
+          [description]="'preferences.preview.description' | t"
+          gap="14px"
+          [kit]="preferences().kit"
+        >
           <div class="preview-toolbar">
             <span class="chip">{{ activeTheme().label }}</span>
             <span class="chip">{{ kitLabel(preferences().kit) }}</span>
@@ -261,18 +260,21 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
           </div>
 
           <div class="preview-card">
-            <h3>Formulario de muestra</h3>
+            <h3>{{ 'preferences.preview.formTitle' | t }}</h3>
             <app-dynamic-field-control
               [field]="previewNameField"
               value="admin@empresa.com"
+              [presentation]="activePresentation()"
             ></app-dynamic-field-control>
             <app-dynamic-field-control
               [field]="previewRoleField"
               value="owner"
+              [presentation]="activePresentation()"
             ></app-dynamic-field-control>
             <app-ui-kit-button
-              label="Guardar preferencia"
+              [label]="'preferences.preview.savePreference' | t"
               icon="pi pi-save"
+              [kit]="preferences().kit"
               tone="primary"
               [full]="true"
             ></app-ui-kit-button>
@@ -285,134 +287,159 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
             <span class="swatch" [style.background]="activeTheme().tokens.warning"></span>
             <span class="swatch" [style.background]="activeTheme().tokens.danger"></span>
           </div>
-        </section>
+        </app-admin-panel>
       </section>
 
-      <section class="panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <h2>Próximas preferencias</h2>
-            <p>Este panel queda listo para crecer sin mezclar preferencias visuales con lógica de negocio.</p>
-          </div>
-        </div>
+      <app-admin-panel
+        [title]="'preferences.roadmap.title' | t"
+        [description]="'preferences.roadmap.description' | t"
+        [kit]="preferences().kit"
+      >
         <div class="roadmap">
           <div class="roadmap-item">
-            <span>Marca</span>
-            <p>Logo, favicon, nombre visible del producto y textos del header.</p>
+            <span>{{ 'preferences.roadmap.brand.title' | t }}</span>
+            <p>{{ 'preferences.roadmap.brand.description' | t }}</p>
           </div>
           <div class="roadmap-item">
-            <span>Navegación</span>
-            <p>Menú compacto, grupos favoritos, orden visual y comportamiento responsive.</p>
+            <span>{{ 'preferences.roadmap.navigation.title' | t }}</span>
+            <p>{{ 'preferences.roadmap.navigation.description' | t }}</p>
           </div>
           <div class="roadmap-item">
-            <span>Formatos</span>
-            <p>Zona horaria, moneda, fechas, números y formatos regionales por tenant.</p>
+            <span>{{ 'preferences.roadmap.formats.title' | t }}</span>
+            <p>{{ 'preferences.roadmap.formats.description' | t }}</p>
           </div>
           <div class="roadmap-item">
-            <span>Accesibilidad</span>
-            <p>Contraste alto, reducción de movimiento, escala extra grande y lectura cómoda.</p>
+            <span>{{ 'preferences.roadmap.accessibility.title' | t }}</span>
+            <p>{{ 'preferences.roadmap.accessibility.description' | t }}</p>
           </div>
         </div>
-      </section>
+      </app-admin-panel>
     </app-page-shell>
   `
 })
 export class PreferencesPageComponent {
   private readonly preferencesService = inject(UiPreferencesService);
   private readonly themeService = inject(UiThemeService);
+  private readonly i18n = inject(I18nService);
 
   readonly preferences = this.preferencesService.preferences;
   readonly activeTheme = computed(() => this.themeService.find(this.preferences().themeKey));
+  readonly activePresentation = computed(() => ({ kit: this.preferences().kit }));
 
-  readonly themeField: RuntimeField = {
-    name: 'themeKey',
-    type: 'select',
-    label: 'Colores / tema',
-    options: this.themeService.themes.map((theme) => ({
-      label: theme.label,
-      value: theme.key
-    }))
-  };
-  readonly modeField: RuntimeField = {
-    name: 'mode',
-    type: 'select',
-    label: 'Modo',
-    options: [
-      { label: 'Sistema', value: 'system' },
-      { label: 'Claro', value: 'light' },
-      { label: 'Oscuro', value: 'dark' }
-    ]
-  };
-  readonly kitField: RuntimeField = {
-    name: 'kit',
-    type: 'select',
-    label: 'Kit visual',
-    options: [
-      { label: 'PrimeNG', value: 'primeng' },
-      { label: 'Ionic', value: 'ionic' },
-      { label: 'Material', value: 'material' },
-      { label: 'Bootstrap', value: 'bootstrap' },
-      { label: 'Base HTML', value: 'native' }
-    ]
-  };
-  readonly fontField: RuntimeField = {
-    name: 'fontFamily',
-    type: 'select',
-    label: 'Letra',
-    options: [
-      { label: 'Sistema', value: 'system' },
-      { label: 'Inter / UI moderna', value: 'inter' },
-      { label: 'Serif editorial', value: 'serif' },
-      { label: 'Mono técnica', value: 'mono' }
-    ]
-  };
-  readonly fontScaleField: RuntimeField = {
-    name: 'fontScale',
-    type: 'select',
-    label: 'Tamaño de letra',
-    options: [
-      { label: 'Pequeña', value: 0.94 },
-      { label: 'Normal', value: 1 },
-      { label: 'Grande', value: 1.08 },
-      { label: 'Extra grande', value: 1.16 }
-    ]
-  };
-  readonly densityField: RuntimeField = {
-    name: 'density',
-    type: 'select',
-    label: 'Densidad',
-    options: [
-      { label: 'Compacta', value: 'compact' },
-      { label: 'Cómoda', value: 'comfortable' },
-      { label: 'Amplia', value: 'relaxed' }
-    ]
-  };
-  readonly languageField: RuntimeField = {
-    name: 'language',
-    type: 'select',
-    label: 'Idioma',
-    options: [
-      { label: 'Español', value: 'es' },
-      { label: 'English', value: 'en' },
-      { label: 'Português', value: 'pt' }
-    ]
-  };
-  readonly previewNameField: RuntimeField = {
-    name: 'previewEmail',
-    type: 'email',
-    label: 'Correo de prueba',
-    placeholder: 'admin@empresa.com'
-  };
-  readonly previewRoleField: RuntimeField = {
-    name: 'previewRole',
-    type: 'select',
-    label: 'Rol',
-    options: [
-      { label: 'Owner', value: 'owner' },
-      { label: 'Admin', value: 'admin' },
-      { label: 'Operador', value: 'operator' }
-    ]
-  };
+  get themeField(): RuntimeField {
+    return {
+      name: 'themeKey',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.theme'),
+      options: this.themeService.themes.map((theme) => ({
+        label: theme.label,
+        value: theme.key
+      }))
+    };
+  }
+
+  get modeField(): RuntimeField {
+    return {
+      name: 'mode',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.mode'),
+      options: [
+        { label: this.i18n.translate('common.system'), value: 'system' },
+        { label: this.i18n.translate('common.light'), value: 'light' },
+        { label: this.i18n.translate('common.dark'), value: 'dark' }
+      ]
+    };
+  }
+
+  get kitField(): RuntimeField {
+    return {
+      name: 'kit',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.kit'),
+      options: [
+        { label: this.i18n.translate('preferences.kit.primeng'), value: 'primeng' },
+        { label: this.i18n.translate('preferences.kit.ionic'), value: 'ionic' },
+        { label: this.i18n.translate('preferences.kit.material'), value: 'material' },
+        { label: this.i18n.translate('preferences.kit.bootstrap'), value: 'bootstrap' },
+        { label: this.i18n.translate('preferences.kit.native'), value: 'native' }
+      ]
+    };
+  }
+
+  get fontField(): RuntimeField {
+    return {
+      name: 'fontFamily',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.font'),
+      options: [
+        { label: this.i18n.translate('preferences.font.system'), value: 'system' },
+        { label: this.i18n.translate('preferences.font.inter'), value: 'inter' },
+        { label: this.i18n.translate('preferences.font.serif'), value: 'serif' },
+        { label: this.i18n.translate('preferences.font.mono'), value: 'mono' }
+      ]
+    };
+  }
+
+  get fontScaleField(): RuntimeField {
+    return {
+      name: 'fontScale',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.fontScale'),
+      options: [
+        { label: this.i18n.translate('preferences.fontScale.small'), value: 0.94 },
+        { label: this.i18n.translate('preferences.fontScale.normal'), value: 1 },
+        { label: this.i18n.translate('preferences.fontScale.large'), value: 1.08 },
+        { label: this.i18n.translate('preferences.fontScale.xlarge'), value: 1.16 }
+      ]
+    };
+  }
+
+  get densityField(): RuntimeField {
+    return {
+      name: 'density',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.density'),
+      options: [
+        { label: this.i18n.translate('common.compact'), value: 'compact' },
+        { label: this.i18n.translate('common.comfortable'), value: 'comfortable' },
+        { label: this.i18n.translate('common.relaxed'), value: 'relaxed' }
+      ]
+    };
+  }
+
+  get languageField(): RuntimeField {
+    return {
+      name: 'language',
+      type: 'select',
+      label: this.i18n.translate('preferences.fields.language'),
+      options: [
+        { label: this.i18n.translate('common.spanish'), value: 'es' },
+        { label: this.i18n.translate('common.english'), value: 'en' }
+      ]
+    };
+  }
+
+  get previewNameField(): RuntimeField {
+    return {
+      name: 'previewEmail',
+      type: 'email',
+      label: this.i18n.translate('preferences.preview.emailLabel'),
+      placeholder: this.i18n.translate('preferences.preview.emailPlaceholder')
+    };
+  }
+
+  get previewRoleField(): RuntimeField {
+    return {
+      name: 'previewRole',
+      type: 'select',
+      label: this.i18n.translate('common.role'),
+      options: [
+        { label: this.i18n.translate('common.owner'), value: 'owner' },
+        { label: this.i18n.translate('common.admin'), value: 'admin' },
+        { label: this.i18n.translate('common.operator'), value: 'operator' }
+      ]
+    };
+  }
 
   setThemeKey(value: unknown) {
     void this.preferencesService.update({ themeKey: String(value) });
@@ -448,27 +475,27 @@ export class PreferencesPageComponent {
 
   kitLabel(value: UiKitId) {
     return {
-      primeng: 'PrimeNG',
-      ionic: 'Ionic',
-      material: 'Material',
-      bootstrap: 'Bootstrap',
-      native: 'Base HTML'
+      primeng: this.i18n.translate('preferences.kit.primeng'),
+      ionic: this.i18n.translate('preferences.kit.ionic'),
+      material: this.i18n.translate('preferences.kit.material'),
+      bootstrap: this.i18n.translate('preferences.kit.bootstrap'),
+      native: this.i18n.translate('preferences.kit.native')
     }[value];
   }
 
   modeLabel(value: AdminThemeMode) {
     return {
-      system: 'Modo sistema',
-      light: 'Modo claro',
-      dark: 'Modo oscuro'
+      system: this.i18n.translate('preferences.mode.system'),
+      light: this.i18n.translate('preferences.mode.light'),
+      dark: this.i18n.translate('preferences.mode.dark')
     }[value];
   }
 
   densityLabel(value: AdminDensity) {
     return {
-      compact: 'Compacta',
-      comfortable: 'Cómoda',
-      relaxed: 'Amplia'
+      compact: this.i18n.translate('common.compact'),
+      comfortable: this.i18n.translate('common.comfortable'),
+      relaxed: this.i18n.translate('common.relaxed')
     }[value];
   }
 }

@@ -86,7 +86,7 @@
               }
             ],
             "relationNotes": "",
-            "filterNotes": "El tenant actual se aplica automáticamente."
+            "filterNotes": "The current tenant is applied automatically."
           },
           "timeoutMs": 8000,
           "retry": {
@@ -242,7 +242,7 @@
               }
             ],
             "relationNotes": "users.id -> user_roles.userId -> roles.id",
-            "filterNotes": "El tenant actual se aplica automáticamente a las tres tablas.",
+            "filterNotes": "The current tenant is applied automatically to all three tables.",
             "limit": 100
           },
           "timeoutMs": 8000,
@@ -336,7 +336,7 @@
               }
             ],
             "relationNotes": "users.id -> user_roles.userId -> roles.id",
-            "filterNotes": "Usar roles.key cuando el cliente envía valores estables como cliente, admin u owner.",
+            "filterNotes": "Use roles.key when the client sends stable values such as client, admin or owner.",
             "limit": 100
           },
           "timeoutMs": 8000,

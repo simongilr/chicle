@@ -66,7 +66,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
           [ngModel]="value"
           (ngModelChange)="valueChange.emit($event)"
         >
-          <option value="" disabled>{{ field.placeholder || 'Selecciona una opción' }}</option>
+          <option value="" disabled>{{ field.placeholder || 'Select an option' }}</option>
           @for (option of field.options || []; track option.label) {
             <option [ngValue]="option.value">{{ option.label }}</option>
           }
@@ -83,7 +83,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [ngModel]="value === true"
             (ngModelChange)="valueChange.emit($event)"
           />
-          <label class="form-check-label" [attr.for]="controlId">{{ field.placeholder || 'Sí' }}</label>
+          <label class="form-check-label" [attr.for]="controlId">{{ field.placeholder || 'Yes' }}</label>
         </div>
       }
       @case ('toggle') {
@@ -98,7 +98,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [ngModel]="value === true"
             (ngModelChange)="valueChange.emit($event)"
           />
-          <label class="form-check-label" [attr.for]="controlId">{{ field.placeholder || 'Sí' }}</label>
+          <label class="form-check-label" [attr.for]="controlId">{{ field.placeholder || 'Yes' }}</label>
         </div>
       }
       @case ('radio') {

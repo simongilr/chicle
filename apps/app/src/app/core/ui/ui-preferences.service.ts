@@ -1,4 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { I18nService } from '../i18n/i18n.service';
+import { SupportedLanguage } from '../i18n/i18n.translations';
 import { UiPresentationService } from './ui-presentation.service';
 import { UiKitId, UiPresentationProfile } from './ui-presentation.types';
 import { UiThemeService } from './ui-theme.service';
@@ -8,7 +10,7 @@ const PREFERENCES_STORAGE_KEY = 'chicle.admin.preferences';
 export type AdminThemeMode = 'system' | 'light' | 'dark';
 export type AdminDensity = 'compact' | 'comfortable' | 'relaxed';
 export type AdminFontFamily = 'system' | 'inter' | 'serif' | 'mono';
-export type AdminLanguage = 'es' | 'en' | 'pt';
+export type AdminLanguage = SupportedLanguage;
 
 export interface AdminUiPreferences {
   themeKey: string;
@@ -62,6 +64,7 @@ const DENSITY_VARS: Record<AdminDensity, Record<string, string>> = {
 export class UiPreferencesService {
   private readonly theme = inject(UiThemeService);
   private readonly presentation = inject(UiPresentationService);
+  private readonly i18n = inject(I18nService);
   private readonly preferencesState = signal<AdminUiPreferences>(DEFAULT_ADMIN_UI_PREFERENCES);
   private initialized = false;
   private systemModeQuery?: MediaQueryList;
@@ -161,8 +164,21 @@ export class UiPreferencesService {
     root.style.setProperty('--ch-color-border', '#263449');
     root.style.setProperty('--ch-color-primary-soft', 'color-mix(in srgb, var(--ch-color-primary) 18%, #0b1120)');
     root.style.setProperty('--ch-color-primary-border', 'color-mix(in srgb, var(--ch-color-primary) 44%, #263449)');
+    root.style.setProperty('--ch-color-success', '#3ddc8c');
+    root.style.setProperty('--ch-color-success-soft', 'color-mix(in srgb, #3ddc8c 16%, #0b1120)');
+    root.style.setProperty('--ch-color-success-border', 'color-mix(in srgb, #3ddc8c 42%, #263449)');
+    root.style.setProperty('--ch-color-warning', '#f5b84b');
+    root.style.setProperty('--ch-color-warning-soft', 'color-mix(in srgb, #f5b84b 16%, #0b1120)');
+    root.style.setProperty('--ch-color-warning-border', 'color-mix(in srgb, #f5b84b 42%, #263449)');
+    root.style.setProperty('--ch-color-danger', '#ff827a');
+    root.style.setProperty('--ch-color-danger-soft', 'color-mix(in srgb, #ff827a 16%, #0b1120)');
+    root.style.setProperty('--ch-color-danger-border', 'color-mix(in srgb, #ff827a 42%, #263449)');
+    root.style.setProperty('--ch-shadow-card', '0 18px 48px rgba(0, 0, 0, 0.34)');
     root.style.setProperty('--ion-background-color', '#0b1120');
     root.style.setProperty('--ion-text-color', '#e5edf7');
+    root.style.setProperty('--ion-color-success', '#3ddc8c');
+    root.style.setProperty('--ion-color-warning', '#f5b84b');
+    root.style.setProperty('--ion-color-danger', '#ff827a');
   }
 
   private applyTypography(preferences: AdminUiPreferences) {
@@ -189,14 +205,16 @@ export class UiPreferencesService {
   }
 
   private applyLanguage(preferences: AdminUiPreferences) {
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    document.documentElement.lang = preferences.language;
+    this.i18n.setLanguage(preferences.language);
   }
 
   private applyPresentation(preferences: AdminUiPreferences) {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.dataset['uiKit'] = preferences.kit;
+      root.dataset['uiTheme'] = preferences.themeKey;
+    }
+
     const profile: UiPresentationProfile = {
       key: 'admin-preferences',
       theme: preferences.themeKey,
@@ -244,6 +262,6 @@ export class UiPreferencesService {
   }
 
   private isLanguage(value: unknown): value is AdminLanguage {
-    return value === 'es' || value === 'en' || value === 'pt';
+    return value === 'es' || value === 'en';
   }
 }

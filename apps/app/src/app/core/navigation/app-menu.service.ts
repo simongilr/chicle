@@ -4,33 +4,112 @@ import { AuthService } from '../auth/auth.service';
 import { AppMenuItem } from './app-menu.types';
 
 const PUBLIC_MENU: AppMenuItem[] = [
-  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 10 },
+  {
+    key: 'docs',
+    label: 'Manual',
+    i18nKey: 'nav.docs',
+    route: '/docs',
+    icon: 'pi pi-book',
+    placement: 'manual',
+    sortOrder: 10
+  },
+  {
+    key: 'docs-library',
+    label: 'Archivos MD',
+    i18nKey: 'nav.docsLibrary',
+    route: '/docs/source',
+    icon: 'pi pi-file',
+    placement: 'manual',
+    sortOrder: 12
+  },
   {
     key: 'components',
     label: 'Componentes',
+    i18nKey: 'nav.components',
     route: '/components',
     icon: 'pi pi-th-large',
     placement: 'primary',
     sortOrder: 20
   },
-  { key: 'setup', label: 'Setup', route: '/setup', icon: 'pi pi-wrench', placement: 'primary', sortOrder: 30 },
-  { key: 'login', label: 'Ingresar', route: '/login', icon: 'pi pi-sign-in', placement: 'primary', sortOrder: 40 }
+  {
+    key: 'architecture',
+    label: 'Arquitectura',
+    i18nKey: 'nav.architecture',
+    route: '/architecture',
+    icon: 'pi pi-sitemap',
+    placement: 'manual',
+    sortOrder: 15
+  },
+  {
+    key: 'setup',
+    label: 'Setup',
+    i18nKey: 'nav.setup',
+    route: '/setup',
+    icon: 'pi pi-wrench',
+    placement: 'primary',
+    sortOrder: 30
+  },
+  {
+    key: 'login',
+    label: 'Ingresar',
+    i18nKey: 'nav.login',
+    route: '/login',
+    icon: 'pi pi-sign-in',
+    placement: 'primary',
+    sortOrder: 40
+  }
 ];
 
 const FALLBACK_AUTH_MENU: AppMenuItem[] = [
-  { key: 'home', label: 'Inicio', route: '/home', icon: 'pi pi-home', placement: 'primary', sortOrder: 10 },
-  { key: 'docs', label: 'Manual', route: '/docs', icon: 'pi pi-book', placement: 'primary', sortOrder: 20 },
+  {
+    key: 'home',
+    label: 'Inicio',
+    i18nKey: 'nav.home',
+    route: '/home',
+    icon: 'pi pi-home',
+    placement: 'primary',
+    sortOrder: 10
+  },
+  {
+    key: 'docs',
+    label: 'Manual',
+    i18nKey: 'nav.docs',
+    route: '/docs',
+    icon: 'pi pi-book',
+    placement: 'manual',
+    sortOrder: 20
+  },
+  {
+    key: 'docs-library',
+    label: 'Archivos MD',
+    i18nKey: 'nav.docsLibrary',
+    route: '/docs/source',
+    icon: 'pi pi-file',
+    placement: 'manual',
+    sortOrder: 21
+  },
   {
     key: 'components',
     label: 'Componentes',
+    i18nKey: 'nav.components',
     route: '/components',
     icon: 'pi pi-th-large',
     placement: 'primary',
     sortOrder: 25
   },
   {
+    key: 'architecture',
+    label: 'Arquitectura',
+    i18nKey: 'nav.architecture',
+    route: '/architecture',
+    icon: 'pi pi-sitemap',
+    placement: 'manual',
+    sortOrder: 22
+  },
+  {
     key: 'confisys',
     label: 'Configuración',
+    i18nKey: 'nav.confisys',
     route: '/confisys',
     icon: 'pi pi-sliders-h',
     permissions: ['confisys.read'],
@@ -41,6 +120,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'preferences',
     label: 'Preferencias',
+    i18nKey: 'nav.preferences',
     route: '/preferences',
     icon: 'pi pi-palette',
     roles: ['owner', 'admin'],
@@ -51,6 +131,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'database',
     label: 'Base de datos',
+    i18nKey: 'nav.database',
     route: '/database',
     icon: 'pi pi-database',
     roles: ['owner', 'admin'],
@@ -61,6 +142,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'services',
     label: 'Servicios',
+    i18nKey: 'nav.services',
     route: '/services',
     icon: 'pi pi-bolt',
     permissions: ['services.read'],
@@ -71,6 +153,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'flows',
     label: 'Flows',
+    i18nKey: 'nav.flows',
     route: '/flows',
     icon: 'pi pi-sitemap',
     permissions: ['flows.read'],
@@ -81,6 +164,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'forms',
     label: 'Formularios',
+    i18nKey: 'nav.forms',
     route: '/forms',
     icon: 'pi pi-file-edit',
     permissions: ['forms.read'],
@@ -91,6 +175,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   {
     key: 'security',
     label: 'Seguridad',
+    i18nKey: 'nav.security',
     route: '/security',
     icon: 'pi pi-shield',
     permissions: ['users.read', 'roles.read', 'permissions.read'],

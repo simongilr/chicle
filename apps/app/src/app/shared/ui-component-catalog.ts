@@ -1,5 +1,6 @@
 export type UiComponentCategory =
   | 'Shell y navegación'
+  | 'Documentación y arquitectura'
   | 'Diseñadores'
   | 'Guía y estados'
   | 'Formularios'
@@ -48,7 +49,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Login', 'Setup'],
     status: 'stable',
     example:
-      '<app-public-page-shell contextLabel="Ingreso"><a public-actions routerLink="/docs">Manual</a>...</app-public-page-shell>'
+      '<app-public-page-shell contextLabel="Ingreso"><a public-actions routerLink="/docs">Docs</a>...</app-public-page-shell>'
   },
   {
     name: 'ModuleHeaderComponent',
@@ -60,6 +61,42 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     status: 'stable',
     example:
       '<app-module-header eyebrow="Construcción" title="Formularios" description="Diseña formularios." badge="V1"></app-module-header>'
+  },
+  {
+    name: 'ArchitectureDiagramComponent',
+    selector: 'app-architecture-diagram',
+    category: 'Documentación y arquitectura',
+    purpose:
+      'Mapa visual reutilizable para explicar partes del proyecto, ubicación en el monorepo y relaciones entre módulos.',
+    importPath: 'shared/architecture-diagram/architecture-diagram.component',
+    usedBy: ['Architecture', 'Components', 'Docs'],
+    status: 'stable',
+    example:
+      '<app-architecture-diagram title="Mapa técnico" [nodes]="nodes" [links]="links"></app-architecture-diagram>'
+  },
+  {
+    name: 'ArchitectureBlueprintComponent',
+    selector: 'app-architecture-blueprint',
+    category: 'Documentación y arquitectura',
+    purpose:
+      'Dibujo tipo plano/canvas para mostrar dónde está cada parte del sistema y cómo se comunican con flechas.',
+    importPath: 'shared/architecture-blueprint/architecture-blueprint.component',
+    usedBy: ['Architecture', 'Components'],
+    status: 'stable',
+    example:
+      '<app-architecture-blueprint title="Dibujo de arquitectura" [nodes]="nodes" [links]="links"></app-architecture-blueprint>'
+  },
+  {
+    name: 'ArchitectureTopologyDiagramComponent',
+    selector: 'app-architecture-topology-diagram',
+    category: 'Documentación y arquitectura',
+    purpose:
+      'Diagrama tipo draw.io para mostrar piezas del sistema con iconos y flechas de comunicación con poco texto.',
+    importPath: 'shared/architecture-topology-diagram/architecture-topology-diagram.component',
+    usedBy: ['Architecture', 'Components'],
+    status: 'stable',
+    example:
+      '<app-architecture-topology-diagram title="Topología" [zones]="zones" [nodes]="nodes" [links]="links"></app-architecture-topology-diagram>'
   },
   {
     name: 'DesignerWorkspaceComponent',
@@ -114,6 +151,80 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     status: 'stable',
     example:
       '<app-section-header stepLabel="Paso 1" title="Datos" description="Identidad del objeto.">...</app-section-header>'
+  },
+  {
+    name: 'AdminFilterBarComponent',
+    selector: 'app-admin-filter-bar',
+    category: 'Diseñadores',
+    purpose: 'Barra responsive reutilizable para búsquedas, filtros y selectores del Admin.',
+    importPath: 'shared/admin-filter-bar/admin-filter-bar.component',
+    usedBy: ['Components', 'Confisys', 'Markdown repository'],
+    status: 'stable',
+    example: '<app-admin-filter-bar><label>Buscar<input type="search" /></label></app-admin-filter-bar>'
+  },
+  {
+    name: 'AdminDataTableComponent',
+    selector: 'app-admin-data-table',
+    category: 'Diseñadores',
+    purpose: 'Tabla reusable para datos administrativos con columnas dinámicas, estado vacío y acción de detalle.',
+    importPath: 'shared/admin-data-table/admin-data-table.component',
+    usedBy: ['Database'],
+    status: 'stable',
+    example: '<app-admin-data-table [columns]="columns" [rows]="rows"></app-admin-data-table>'
+  },
+  {
+    name: 'AdminCardGridComponent',
+    selector: 'app-admin-card-grid',
+    category: 'Shell y navegación',
+    purpose:
+      'Grid responsive reusable para tarjetas administrativas, catálogos visuales, resúmenes y módulos de navegación.',
+    importPath: 'shared/admin-card-grid/admin-card-grid.component',
+    usedBy: ['Components'],
+    status: 'stable',
+    example: '<app-admin-card-grid minColumnWidth="320px"><app-admin-panel>...</app-admin-panel></app-admin-card-grid>'
+  },
+  {
+    name: 'AdminPanelComponent',
+    selector: 'app-admin-panel',
+    category: 'Shell y navegación',
+    purpose: 'Panel reusable para módulos del Admin con título, descripción, acciones proyectadas y contenido.',
+    importPath: 'shared/admin-panel/admin-panel.component',
+    usedBy: ['Home', 'Preferences', 'Security'],
+    status: 'stable',
+    example:
+      '<app-admin-panel title="Resumen" description="Estado actual"><button panel-actions>Actualizar</button>...</app-admin-panel>'
+  },
+  {
+    name: 'AdminMetricCardComponent',
+    selector: 'app-admin-metric-card',
+    category: 'Guía y estados',
+    purpose: 'Tarjeta métrica para resúmenes operativos, dashboards y estados compactos.',
+    importPath: 'shared/admin-metric-card/admin-metric-card.component',
+    usedBy: ['Home', 'Security'],
+    status: 'stable',
+    example: '<app-admin-metric-card label="Usuarios" value="12" detail="Activos" tone="primary"></app-admin-metric-card>'
+  },
+  {
+    name: 'AdminActionToolbarComponent',
+    selector: 'app-admin-action-toolbar',
+    category: 'Shell y navegación',
+    purpose: 'Toolbar reusable para acciones de panel, botones y links con alineación responsive.',
+    importPath: 'shared/admin-action-toolbar/admin-action-toolbar.component',
+    usedBy: ['Home', 'Security'],
+    status: 'stable',
+    example: '<app-admin-action-toolbar><button class="primary">Guardar</button></app-admin-action-toolbar>'
+  },
+  {
+    name: 'ComponentDocCardComponent',
+    selector: 'app-component-doc-card',
+    category: 'Documentación y arquitectura',
+    purpose:
+      'Tarjeta reusable para documentar componentes con selector, estado, consumidores, importación, ejemplo y preview proyectado.',
+    importPath: 'shared/component-doc-card/component-doc-card.component',
+    usedBy: ['Components'],
+    status: 'stable',
+    example:
+      '<app-component-doc-card name="Button" selector="app-ui-kit-button" purpose="Reusable action">...</app-component-doc-card>'
   },
   {
     name: 'ProcessStepsComponent',
@@ -205,11 +316,23 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     selector: 'app-ui-kit-button',
     category: 'Temas y presentación',
     purpose:
-      'Botón multikit real: renderiza con PrimeNG, Ionic, Angular Material, Bootstrap o HTML base según la presentación activa.',
+      'Botón multikit real: renderiza con PrimeNG, ion-button, Angular Material, Bootstrap o HTML base según la presentación activa.',
     importPath: 'shared/ui-kit-button/ui-kit-button.component',
     usedBy: ['Components', 'Future shared actions'],
     status: 'initial',
     example: '<app-ui-kit-button label="Guardar" kit="material" tone="primary"></app-ui-kit-button>'
+  },
+  {
+    name: 'UiKitCardComponent',
+    selector: 'app-ui-kit-card',
+    category: 'Temas y presentación',
+    purpose:
+      'Card multikit real: usa PrimeNG Card, ion-card, mat-card, Bootstrap o HTML base según la presentación activa.',
+    importPath: 'shared/ui-kit-card/ui-kit-card.component',
+    usedBy: ['AdminMetricCardComponent', 'Components', 'Future admin panels'],
+    status: 'initial',
+    example:
+      '<app-ui-kit-card tone="primary" variant="subtle"><strong>Título</strong><span>Contenido</span></app-ui-kit-card>'
   },
   {
     name: 'FieldShellComponent',
@@ -337,7 +460,8 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     name: 'IonicFieldRendererComponent',
     selector: 'app-ionic-field-renderer',
     category: 'Formularios',
-    purpose: 'Adaptador de controles dinámicos para pantallas móviles basadas en Ionic, con fallback para archivo, imagen y GPS.',
+    purpose:
+      'Adaptador Ionic real para controles dinámicos: ion-input, ion-select, ion-textarea, ion-checkbox, ion-toggle y ion-radio, con fallback para archivo, imagen y GPS.',
     importPath: 'shared/field-renderers/ionic-field-renderer.component',
     usedBy: ['DynamicFieldControlComponent'],
     status: 'initial',

@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { IonButton } from '@ionic/angular/standalone';
 import { MatButtonModule } from '@angular/material/button';
 import { ButtonModule } from 'primeng/button';
 import { UiKitId, UiKitPreference } from '../../core/ui/ui-presentation.types';
@@ -10,7 +11,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
 @Component({
   selector: 'app-ui-kit-button',
   standalone: true,
-  imports: [ButtonModule, MatButtonModule],
+  imports: [ButtonModule, IonButton, MatButtonModule],
   styles: [
     `
       :host {
@@ -25,8 +26,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
       }
 
       .native-button,
-      .bootstrap-button,
-      .ionic-button {
+      .bootstrap-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -42,16 +42,33 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
         line-height: 1;
       }
 
-      .bootstrap-button,
-      .ionic-button {
-        min-height: 38px;
-      }
-
       .native-button:disabled,
-      .bootstrap-button:disabled,
-      .ionic-button:disabled {
+      .bootstrap-button:disabled {
         cursor: not-allowed;
         opacity: 0.58;
+      }
+
+      ion-button {
+        width: 100%;
+        min-height: 38px;
+        font-weight: 850;
+        text-transform: none;
+        --border-radius: var(--ch-radius);
+        --box-shadow: none;
+        --padding-end: 13px;
+        --padding-start: 13px;
+      }
+
+      ion-button::part(native) {
+        gap: 8px;
+        min-height: 38px;
+        font: inherit;
+        font-weight: 850;
+        text-transform: none;
+      }
+
+      :host([data-full='true']) ion-button {
+        display: block;
       }
 
       :host([data-full='true']) {
@@ -61,7 +78,6 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
 
       :host([data-full='true']) .native-button,
       :host([data-full='true']) .bootstrap-button,
-      :host([data-full='true']) .ionic-button,
       :host([data-full='true']) button[mat-raised-button],
       :host([data-full='true']) button[mat-stroked-button],
       :host([data-full='true']) button[mat-button] {
@@ -70,6 +86,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
     `
   ],
   host: {
+    '[attr.data-ui-kit]': 'resolvedKit',
     '[attr.data-full]': 'full ? "true" : null'
   },
   template: `
@@ -86,12 +103,11 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
         ></p-button>
       }
       @case ('ionic') {
-        <button
+        <ion-button
           type="button"
-          class="ionic-button"
-          [style.--button-bg]="buttonBg"
-          [style.--button-fg]="buttonFg"
-          [style.--button-border]="buttonBorder"
+          [color]="ionicColor"
+          [fill]="ionicFill"
+          [expand]="full ? 'block' : undefined"
           [disabled]="disabled"
           (click)="pressed.emit()"
         >
@@ -99,7 +115,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
             <i [class]="icon" aria-hidden="true"></i>
           }
           {{ label }}
-        </button>
+        </ion-button>
       }
       @case ('material') {
         @if (variant === 'solid') {
@@ -169,7 +185,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
 export class UiKitButtonComponent {
   private readonly presentation = inject(UiPresentationService);
 
-  @Input() label = 'Acción';
+  @Input() label = 'Action';
   @Input() icon = '';
   @Input() kit: UiKitPreference = 'auto';
   @Input() tone: UiKitButtonTone = 'primary';
@@ -194,6 +210,10 @@ export class UiKitButtonComponent {
 
   get ionicColor() {
     return this.tone === 'success' ? 'success' : this.tone === 'danger' ? 'danger' : this.tone === 'neutral' ? 'medium' : 'primary';
+  }
+
+  get ionicFill(): 'clear' | 'outline' | 'solid' {
+    return this.variant === 'ghost' ? 'clear' : this.variant === 'outline' ? 'outline' : 'solid';
   }
 
   get materialColor(): 'primary' | 'accent' | 'warn' | undefined {

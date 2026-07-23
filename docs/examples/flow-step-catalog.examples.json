@@ -3,56 +3,56 @@
   "domain": "flow_steps",
   "steps": [
     {
-      "key": "inicio",
-      "name": "Inicio",
+      "key": "start",
+      "name": "Start",
       "type": "start",
       "position": 0,
-      "outputKey": "entrada",
-      "nextStepKey": "siguiente",
+      "outputKey": "input",
+      "nextStepKey": "next",
       "config": {}
     },
     {
-      "key": "consultar_usuario",
-      "name": "Consultar usuario",
+      "key": "query_user",
+      "name": "Query user",
       "type": "dynamic_service",
       "position": 10,
-      "outputKey": "usuario",
-      "nextStepKey": "siguiente",
-      "onErrorStepKey": "respuesta_error",
-      "onTimeoutStepKey": "respuesta_error",
+      "outputKey": "user",
+      "nextStepKey": "next",
+      "onErrorStepKey": "error_response",
+      "onTimeoutStepKey": "error_response",
       "inputMap": {
         "email": "{{input.email}}"
       },
       "config": {
-        "serviceKey": "buscar_usuario",
+        "serviceKey": "find_user",
         "timeoutMs": 8000,
         "retry": {
           "attempts": 1,
           "backoffMs": 300
         },
-        "compensationServiceKey": "revertir_operacion"
+        "compensationServiceKey": "revert_operation"
       }
     },
     {
-      "key": "consultas_paralelas",
-      "name": "Consultas paralelas",
+      "key": "parallel_queries",
+      "name": "Parallel queries",
       "type": "parallel",
       "position": 20,
-      "outputKey": "consultas",
-      "nextStepKey": "siguiente",
-      "onErrorStepKey": "respuesta_error",
+      "outputKey": "queries",
+      "nextStepKey": "next",
+      "onErrorStepKey": "error_response",
       "config": {
         "branches": [
           {
-            "key": "cliente",
-            "serviceKey": "consultar_cliente",
+            "key": "client",
+            "serviceKey": "query_client",
             "inputMap": {
               "id": "{{input.clientId}}"
             }
           },
           {
-            "key": "saldo",
-            "serviceKey": "consultar_saldo",
+            "key": "balance",
+            "serviceKey": "query_balance",
             "inputMap": {
               "clientId": "{{input.clientId}}"
             }
@@ -61,16 +61,16 @@
       }
     },
     {
-      "key": "procesar_items",
-      "name": "Procesar items",
+      "key": "process_items",
+      "name": "Process items",
       "type": "foreach",
       "position": 30,
-      "outputKey": "items_procesados",
-      "nextStepKey": "siguiente",
-      "onErrorStepKey": "respuesta_error",
+      "outputKey": "processed_items",
+      "nextStepKey": "next",
+      "onErrorStepKey": "error_response",
       "config": {
         "itemsPath": "input.items",
-        "serviceKey": "procesar_item",
+        "serviceKey": "process_item",
         "itemInputKey": "item",
         "concurrency": 4,
         "inputMap": {
@@ -79,53 +79,53 @@
       }
     },
     {
-      "key": "ejecutar_subflow",
-      "name": "Ejecutar subflow",
+      "key": "execute_subflow",
+      "name": "Execute subflow",
       "type": "subflow",
       "position": 40,
       "outputKey": "subflow",
-      "nextStepKey": "siguiente",
+      "nextStepKey": "next",
       "inputMap": {
         "email": "{{input.email}}"
       },
       "config": {
-        "flowKey": "validar_identidad"
+        "flowKey": "validate_identity"
       }
     },
     {
-      "key": "esperar",
-      "name": "Esperar",
+      "key": "wait",
+      "name": "Wait",
       "type": "delay",
       "position": 50,
-      "outputKey": "espera",
-      "nextStepKey": "siguiente",
+      "outputKey": "wait",
+      "nextStepKey": "next",
       "config": {
         "durationMs": 1000
       }
     },
     {
-      "key": "emitir_evento",
-      "name": "Emitir evento",
+      "key": "emit_event",
+      "name": "Emit event",
       "type": "emit_event",
       "position": 60,
-      "outputKey": "evento",
-      "nextStepKey": "siguiente",
+      "outputKey": "event",
+      "nextStepKey": "next",
       "config": {
         "eventKey": "order.validated",
         "aggregateType": "order",
         "payload": {
           "orderId": "{{input.orderId}}",
-          "result": "{{steps.validacion}}"
+          "result": "{{steps.validation}}"
         }
       }
     },
     {
-      "key": "calcular_total",
-      "name": "Calcular total",
+      "key": "calculate_total",
+      "name": "Calculate total",
       "type": "formula",
       "position": 70,
       "outputKey": "total",
-      "nextStepKey": "siguiente",
+      "nextStepKey": "next",
       "config": {
         "language": "json_logic",
         "rule": {
@@ -142,27 +142,27 @@
       }
     },
     {
-      "key": "validar_email",
-      "name": "Validar email",
+      "key": "validate_email",
+      "name": "Validate email",
       "type": "validation",
       "position": 80,
-      "outputKey": "validacion",
-      "nextStepKey": "siguiente",
-      "onFalseStepKey": "respuesta_error",
+      "outputKey": "validation",
+      "nextStepKey": "next",
+      "onFalseStepKey": "error_response",
       "config": {
         "field": "input.email",
         "operator": "email",
-        "message": "El correo no es válido"
+        "message": "The email is not valid"
       }
     },
     {
-      "key": "decidir_aprobacion",
-      "name": "Decidir aprobación",
+      "key": "decide_approval",
+      "name": "Decide approval",
       "type": "decision",
       "position": 90,
       "outputKey": "decision",
-      "onTrueStepKey": "respuesta_ok",
-      "onFalseStepKey": "respuesta_error",
+      "onTrueStepKey": "success_response",
+      "onFalseStepKey": "error_response",
       "config": {
         "language": "json_logic",
         "rule": {
@@ -176,22 +176,22 @@
       }
     },
     {
-      "key": "instruccion_front",
-      "name": "Instrucción al front",
+      "key": "front_instruction",
+      "name": "Front instruction",
       "type": "action",
       "position": 100,
-      "outputKey": "accion",
-      "nextStepKey": "siguiente",
+      "outputKey": "action",
+      "nextStepKey": "next",
       "config": {
         "action": "show_modal"
       }
     },
     {
-      "key": "respuesta_ok",
-      "name": "Responder éxito",
+      "key": "success_response",
+      "name": "Respond success",
       "type": "response",
       "position": 110,
-      "outputKey": "respuesta",
+      "outputKey": "response",
       "config": {
         "status": "success",
         "body": {
@@ -201,11 +201,11 @@
       }
     },
     {
-      "key": "fin",
-      "name": "Fin",
+      "key": "end",
+      "name": "End",
       "type": "end",
       "position": 120,
-      "outputKey": "fin",
+      "outputKey": "end",
       "config": {}
     }
   ]

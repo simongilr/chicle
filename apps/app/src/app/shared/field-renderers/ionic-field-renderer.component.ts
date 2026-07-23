@@ -1,10 +1,11 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import {
   IonCheckbox,
   IonInput,
-  IonItem,
   IonRadio,
   IonRadioGroup,
+  IonSelect,
+  IonSelectOption,
   IonTextarea,
   IonToggle
 } from '@ionic/angular/standalone';
@@ -17,9 +18,10 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
   imports: [
     IonCheckbox,
     IonInput,
-    IonItem,
     IonRadio,
     IonRadioGroup,
+    IonSelect,
+    IonSelectOption,
     IonTextarea,
     IonToggle,
     MobileEvidenceControlComponent
@@ -39,118 +41,67 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         min-width: 0;
       }
 
-      .ionic-select-shell {
-        position: relative;
-      }
-
-      .ionic-line-control {
-        position: relative;
-        display: grid;
-        gap: 3px;
-        width: 100%;
-        min-width: 0;
-        min-height: 54px;
-        border: 0;
-        border-bottom: 1px solid var(--ch-color-border);
-        background: transparent;
-        color: var(--ch-color-text);
-        padding: 0 0 7px;
-        text-align: left;
-        transition: border-color 140ms ease;
-      }
-
-      .ionic-line-control:focus-within,
-      .ionic-line-control:hover {
-        border-bottom-color: var(--ch-color-primary);
-      }
-
-      .ionic-line-control--invalid {
-        border-bottom-color: var(--ch-color-danger);
-      }
-
-      .ionic-line-label {
-        color: var(--ch-color-text);
-        font-size: 0.78rem;
-        font-weight: 850;
-        line-height: 1.2;
-      }
-
-      .ionic-line-label .required {
-        color: var(--ch-color-danger);
-      }
-
-      .ionic-select-display {
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .ionic-select-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        min-height: 28px;
-        min-width: 0;
-      }
-
-      .ionic-select-value {
-        min-width: 0;
-        overflow: hidden;
-        color: var(--ch-color-text);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .ionic-select-value--placeholder {
-        color: var(--ch-color-muted);
-      }
-
-      .ionic-select-chevron {
-        flex: 0 0 auto;
-        color: var(--ch-color-text);
-        font-size: 0.78rem;
-        line-height: 1;
-        opacity: 0.78;
-      }
-
-      ion-item.ionic-field {
+      .ionic-control {
         width: 100%;
         min-width: 0;
         --background: transparent;
         --border-color: var(--ch-color-border);
+        --border-width: 0;
         --color: var(--ch-color-text);
+        --highlight-height: 0;
         --highlight-color-focused: var(--ch-color-primary);
-        --inner-border-width: 0 0 1px 0;
+        --inner-border-width: 0;
+        --inner-padding-bottom: 0;
         --inner-padding-end: 0;
-        --min-height: 56px;
+        --inner-padding-top: 0;
+        --min-height: var(--ch-control-height);
         --padding-end: 0;
         --padding-start: 0;
         --ripple-color: color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+        border: 0;
+        border-bottom: 1px solid var(--ch-color-border);
+        border-radius: 0;
         background: transparent;
+        transition:
+          border-color 140ms ease,
+          background-color 140ms ease;
       }
 
-      ion-item.ionic-field--invalid {
+      .ionic-control:hover,
+      .ionic-control:focus-within {
+        border-color: var(--ch-color-primary);
+      }
+
+      .ionic-control--invalid {
         --border-color: var(--ch-color-danger);
+        border-color: var(--ch-color-danger);
       }
 
       ion-input,
+      ion-select,
       ion-textarea {
         display: block;
         width: 100%;
         min-width: 0;
         --color: var(--ch-color-text);
         --highlight-color-focused: var(--ch-color-primary);
+        --padding-bottom: 0;
+        --padding-end: 0;
+        --padding-start: 0;
+        --padding-top: 0;
         --placeholder-color: var(--ch-color-muted);
         color: var(--ch-color-text);
         font: inherit;
       }
 
       ion-input::part(label),
+      ion-select::part(label),
       ion-textarea::part(label) {
         color: var(--ch-color-text);
       }
 
       ion-input::part(label),
+      ion-select::part(label),
       ion-textarea::part(label) {
         font-size: 0.82rem;
         font-weight: 800;
@@ -160,29 +111,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
       ion-textarea::part(native) {
         width: 100%;
         min-width: 0;
-        border: 0;
-        outline: 0;
-        appearance: none;
-        background: transparent;
-        box-shadow: none;
-        color: var(--ch-color-text);
-        font: inherit;
-      }
-
-      :host ::ng-deep ion-input.ionic-line-input .input-wrapper,
-      :host ::ng-deep ion-input.ionic-line-input .native-wrapper,
-      :host ::ng-deep ion-input.ionic-line-input .native-input {
-        display: block;
-        width: 100%;
-        min-width: 0;
-      }
-
-      :host ::ng-deep ion-input.ionic-line-input .input-wrapper {
-        min-height: 28px;
-      }
-
-      :host ::ng-deep ion-input.ionic-line-input .native-input {
-        min-height: 28px;
+        min-height: calc(var(--ch-control-height) - 10px);
         border: 0 !important;
         outline: 0 !important;
         appearance: none;
@@ -190,70 +119,46 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         box-shadow: none !important;
         color: var(--ch-color-text);
         font: inherit;
-        line-height: 1.35;
         padding: 0 !important;
       }
 
-      :host ::ng-deep ion-input.ionic-line-input .native-input::placeholder {
-        color: var(--ch-color-muted);
-        opacity: 1;
-      }
-
-      ion-input.ionic-line-input {
-        min-height: 28px;
-        --padding-bottom: 0;
-        --padding-end: 0;
-        --padding-start: 0;
-        --padding-top: 0;
+      :host ::ng-deep ion-input input,
+      :host ::ng-deep ion-textarea textarea {
+        min-height: calc(var(--ch-control-height) - 10px) !important;
+        border: 0 !important;
+        outline: 0 !important;
+        appearance: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--ch-color-text) !important;
+        font: inherit !important;
+        padding: 0 !important;
       }
 
       ion-textarea {
         min-height: 104px;
       }
 
-      .ionic-options-panel {
-        position: absolute;
-        z-index: 35;
-        top: calc(100% + 6px);
-        right: 0;
-        left: 0;
+      ion-select::part(container) {
         width: 100%;
-        max-height: 220px;
-        overflow: auto;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-        padding: 6px;
+        min-height: calc(var(--ch-control-height) - 10px);
+        padding: 0 !important;
       }
 
-      .ionic-option {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        width: 100%;
-        min-height: 36px;
-        border: 0;
-        border-radius: calc(var(--ch-radius) - 2px);
-        background: transparent;
+      ion-select::part(text),
+      ion-select::part(placeholder) {
         color: var(--ch-color-text);
-        padding: 8px 10px;
-        text-align: left;
         font: inherit;
-        cursor: pointer;
       }
 
-      .ionic-option:hover,
-      .ionic-option--selected {
-        background: var(--ch-color-primary-soft);
-        color: var(--ch-color-primary);
+      ion-select::part(placeholder) {
+        color: var(--ch-color-muted);
+        opacity: 1;
       }
 
-      .ionic-option-check {
-        color: var(--ch-color-primary);
-        font-size: 0.8rem;
-        font-weight: 900;
+      ion-select::part(icon) {
+        color: var(--ch-color-text);
+        opacity: 0.78;
       }
 
       .ionic-note {
@@ -305,10 +210,10 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
     @switch (controlType) {
       @case ('textarea') {
         <div class="ionic-stack">
-          <ion-item class="ionic-field" [class.ionic-field--invalid]="!!error" lines="full" mode="md">
           <ion-textarea
-            mode="md"
-            labelPlacement="stacked"
+            class="ionic-control"
+            [class.ionic-control--invalid]="!!error"
+            [labelPlacement]="ionicLabelPlacement"
             [label]="labelText"
             [id]="controlId"
             [attr.name]="field.name"
@@ -318,9 +223,9 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [readonly]="readonly"
             [value]="stringValue"
             [autoGrow]="true"
+            (input)="updateNativeText($event)"
             (ionInput)="updateText($event)"
           ></ion-textarea>
-          </ion-item>
           @if (error) {
             <span class="ionic-note ionic-note--error" role="alert">{{ error }}</span>
           } @else if (help) {
@@ -329,51 +234,24 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         </div>
       }
       @case ('select') {
-        <div class="ionic-stack ionic-select-shell">
-          <button
-            type="button"
-            class="ionic-line-control ionic-select-display"
-            [class.ionic-line-control--invalid]="!!error"
+        <div class="ionic-stack">
+          <ion-select
+            class="ionic-control"
+            [class.ionic-control--invalid]="!!error"
+            interface="popover"
+            [labelPlacement]="ionicLabelPlacement"
+            [label]="labelText"
+            [id]="controlId"
+            [attr.name]="field.name"
+            [placeholder]="field.placeholder || 'Select an option'"
             [disabled]="disabled || readonly"
-            [attr.aria-expanded]="selectOpen"
-            [attr.aria-controls]="controlId + '-options'"
-            (click)="toggleSelect($event)"
+            [value]="value"
+            (ionChange)="updateSelection($event)"
           >
-            <span class="ionic-line-label">
-              {{ plainLabel }}
-              @if (field.required === true) {
-                <span class="required">*</span>
-              }
-            </span>
-            <span class="ionic-select-row">
-              <span
-                class="ionic-select-value"
-                [class.ionic-select-value--placeholder]="!selectedOptionLabel"
-              >
-                {{ selectedOptionLabel || field.placeholder || 'Selecciona una opción' }}
-              </span>
-              <span class="ionic-select-chevron" aria-hidden="true">▾</span>
-            </span>
-          </button>
-          @if (selectOpen && !disabled && !readonly) {
-            <div class="ionic-options-panel" [id]="controlId + '-options'" role="listbox">
-              @for (option of field.options || []; track option.value) {
-                <button
-                  type="button"
-                  class="ionic-option"
-                  role="option"
-                  [class.ionic-option--selected]="isSelected(option.value)"
-                  [attr.aria-selected]="isSelected(option.value)"
-                  (click)="chooseOption(option.value, $event)"
-                >
-                  <span>{{ option.label }}</span>
-                  @if (isSelected(option.value)) {
-                    <span class="ionic-option-check" aria-hidden="true">✓</span>
-                  }
-                </button>
-              }
-            </div>
-          }
+            @for (option of field.options || []; track option.value) {
+              <ion-select-option [value]="option.value">{{ option.label }}</ion-select-option>
+            }
+          </ion-select>
           @if (error) {
             <span class="ionic-note ionic-note--error" role="alert">{{ error }}</span>
           } @else if (help) {
@@ -392,7 +270,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [checked]="value === true"
             (ionChange)="updateToggle($event)"
           >
-            {{ field.placeholder || 'Sí' }}
+            {{ field.placeholder || 'Yes' }}
           </ion-checkbox>
         </div>
       }
@@ -406,7 +284,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [enableOnOffLabels]="true"
             (ionChange)="updateToggle($event)"
           >
-            {{ field.placeholder || 'Sí' }}
+            {{ field.placeholder || 'Yes' }}
           </ion-toggle>
         </div>
       }
@@ -466,23 +344,12 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
       }
       @default {
         <div class="ionic-stack">
-          <div
-            class="ionic-line-control"
-            [class.ionic-line-control--invalid]="!!error"
-            (click)="focusInput(inputControl)"
-          >
-            <span class="ionic-line-label" [id]="controlId + '-label'">
-              {{ plainLabel }}
-              @if (field.required === true) {
-                <span class="required">*</span>
-              }
-            </span>
           <ion-input
-            #inputControl
-            class="ionic-line-input"
-            mode="md"
+            class="ionic-control"
+            [class.ionic-control--invalid]="!!error"
+            [labelPlacement]="ionicLabelPlacement"
+            [label]="labelText"
             [id]="controlId"
-            [attr.aria-labelledby]="controlId + '-label'"
             [attr.name]="field.name"
             [type]="inputType"
             [placeholder]="field.placeholder || ''"
@@ -490,10 +357,9 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [disabled]="disabled"
             [readonly]="readonly"
             [value]="stringValue"
-            (click)="$event.stopPropagation()"
+            (input)="updateNativeText($event)"
             (ionInput)="updateText($event)"
           ></ion-input>
-          </div>
           @if (error) {
             <span class="ionic-note ionic-note--error" role="alert">{{ error }}</span>
           } @else if (help) {
@@ -505,8 +371,6 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
   `
 })
 export class IonicFieldRendererComponent {
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-
   @Input({ required: true }) field!: RuntimeField;
   @Input({ required: true }) controlId = '';
   @Input() value: unknown = '';
@@ -514,8 +378,8 @@ export class IonicFieldRendererComponent {
   @Input() error = '';
   @Input() disabled = false;
   @Input() readonly = false;
+  @Input() showLabel = true;
   @Output() readonly valueChange = new EventEmitter<unknown>();
-  selectOpen = false;
 
   get controlType() {
     const type = this.field.type.toLowerCase();
@@ -545,13 +409,15 @@ export class IonicFieldRendererComponent {
   }
 
   get labelText() {
+    if (!this.showLabel) {
+      return undefined;
+    }
     const label = this.plainLabel;
     return this.field.required === true ? `${label} *` : label;
   }
 
-  get selectedOptionLabel() {
-    const option = (this.field.options || []).find((item) => this.sameValue(item.value, this.value));
-    return option?.label || '';
+  get ionicLabelPlacement(): 'stacked' | undefined {
+    return this.showLabel ? 'stacked' : undefined;
   }
 
   get accept() {
@@ -569,6 +435,12 @@ export class IonicFieldRendererComponent {
     this.valueChange.emit(this.field.type.toLowerCase() === 'number' && value !== '' ? Number(value) : value);
   }
 
+  updateNativeText(event: Event) {
+    const target = event.target as { value?: unknown } | null;
+    const value = typeof target?.value === 'string' ? target.value : '';
+    this.valueChange.emit(this.field.type.toLowerCase() === 'number' && value !== '' ? Number(value) : value);
+  }
+
   updateSelection(event: CustomEvent<{ value: unknown }>) {
     this.valueChange.emit(event.detail.value);
   }
@@ -577,40 +449,4 @@ export class IonicFieldRendererComponent {
     this.valueChange.emit(event.detail.checked);
   }
 
-  focusInput(input: IonInput) {
-    if (this.disabled || this.readonly) {
-      return;
-    }
-    void input.setFocus();
-  }
-
-  toggleSelect(event: Event) {
-    event.stopPropagation();
-    if (this.disabled || this.readonly) {
-      return;
-    }
-    this.selectOpen = !this.selectOpen;
-  }
-
-  chooseOption(value: unknown, event: Event) {
-    event.stopPropagation();
-    this.selectOpen = false;
-    this.valueChange.emit(value);
-  }
-
-  isSelected(value: unknown) {
-    return this.sameValue(value, this.value);
-  }
-
-  @HostListener('document:click', ['$event'])
-  closeSelectOnOutside(event: MouseEvent) {
-    if (!this.selectOpen || this.host.nativeElement.contains(event.target as Node)) {
-      return;
-    }
-    this.selectOpen = false;
-  }
-
-  private sameValue(left: unknown, right: unknown) {
-    return left === right || String(left) === String(right);
-  }
 }

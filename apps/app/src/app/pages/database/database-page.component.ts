@@ -2,9 +2,9 @@ import { JsonPipe } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
-import { TableModule } from 'primeng/table';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AdminDataTableComponent } from '../../shared/admin-data-table/admin-data-table.component';
 import { AiAssistantService, ApplySchemaChangeAction } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
@@ -121,7 +121,7 @@ interface SchemaHistoryResponse {
     DialogModule,
     FormsModule,
     JsonPipe,
-    TableModule,
+    AdminDataTableComponent,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
@@ -558,35 +558,14 @@ interface SchemaHistoryResponse {
                       <button type="button" (click)="loadRows(page)">Reintentar</button>
                     </div>
                   } @else {
-                    <p-table [value]="filteredRows" [scrollable]="true" scrollHeight="430px">
-                      <ng-template #header>
-                        <tr>
-                          <th style="width: 84px">Detalle</th>
-                          @for (column of selectedTable.columns; track column.name) {
-                            <th>{{ column.name }}</th>
-                          }
-                        </tr>
-                      </ng-template>
-                      <ng-template #body let-row>
-                        <tr>
-                          <td>
-                            <button class="row-button" type="button" (click)="openRow(row)">Ver</button>
-                          </td>
-                          @for (column of selectedTable.columns; track column.name) {
-                            <td>
-                              <span class="cell" [title]="formatCell(row[column.name])">
-                                {{ formatCell(row[column.name]) }}
-                              </span>
-                            </td>
-                          }
-                        </tr>
-                      </ng-template>
-                      <ng-template #emptymessage>
-                        <tr>
-                          <td [attr.colspan]="selectedTable.columns.length + 1">No hay filas para mostrar.</td>
-                        </tr>
-                      </ng-template>
-                    </p-table>
+                    <app-admin-data-table
+                      [columns]="selectedTable.columns"
+                      [rows]="filteredRows"
+                      emptyMessage="No hay filas para mostrar."
+                      detailLabel="Detalle"
+                      detailActionLabel="Ver"
+                      (rowSelected)="openRow($event)"
+                    ></app-admin-data-table>
 
                     <div class="pager">
                       <span class="meta">

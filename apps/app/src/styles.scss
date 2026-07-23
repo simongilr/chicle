@@ -135,21 +135,27 @@ app-primeng-field-renderer textarea::placeholder {
   color: color-mix(in srgb, var(--ch-color-muted) 78%, var(--ch-color-surface));
 }
 
-app-ionic-field-renderer ion-input,
-app-ionic-field-renderer ion-select,
-app-ionic-field-renderer ion-textarea {
-  width: 100%;
-  min-width: 0;
-  font: inherit;
+ion-popover,
+ion-alert,
+ion-action-sheet {
   --background: var(--ch-color-surface);
-  --border-color: var(--ch-color-border);
-  --border-radius: var(--ch-radius);
-  --border-width: 1px;
   --color: var(--ch-color-text);
-  --highlight-color-focused: var(--ch-color-primary);
-  --padding-end: 12px;
-  --padding-start: 12px;
-  --placeholder-color: var(--ch-color-muted);
+  --backdrop-opacity: 0.22;
+}
+
+ion-popover::part(content),
+ion-alert::part(content) {
+  border: 1px solid var(--ch-color-border);
+  border-radius: var(--ch-radius);
+  background: var(--ch-color-surface);
+  color: var(--ch-color-text);
+  box-shadow: var(--ch-shadow-card);
+}
+
+ion-select-popover ion-item {
+  --background: var(--ch-color-surface);
+  --color: var(--ch-color-text);
+  --border-color: var(--ch-color-border);
 }
 
 html[data-ui-theme='material'] {
@@ -160,9 +166,293 @@ html[data-ui-theme='bootstrap'] {
   --ch-shadow-card: 0 .5rem 1rem rgba(0, 0, 0, .08);
 }
 
-app-ionic-field-renderer ion-input::part(native),
-app-ionic-field-renderer ion-textarea::part(native) {
+/*
+  Admin kit bridge.
+  Some older admin pages still use native input/select/textarea/button tags while
+  they are migrated to DynamicFieldControlComponent and UiKitButtonComponent.
+  This bridge makes those pages obey the active kit preference immediately.
+*/
+html[data-ui-kit] {
+  --ch-kit-control-bg: var(--ch-color-surface);
+  --ch-kit-control-border: var(--ch-color-border);
+  --ch-kit-control-radius: var(--ch-radius);
+  --ch-kit-control-padding-x: 12px;
+  --ch-kit-control-padding-y: 9px;
+  --ch-kit-control-focus: color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
+  --ch-kit-button-radius: var(--ch-radius);
+  --ch-kit-button-shadow: none;
+}
+
+html[data-ui-kit='ionic'] {
+  --ch-kit-control-bg: transparent;
+  --ch-kit-control-border: color-mix(in srgb, var(--ch-color-primary-border) 74%, transparent);
+  --ch-kit-control-radius: 0;
+  --ch-kit-control-padding-x: 0;
+  --ch-kit-control-padding-y: 8px;
+  --ch-kit-button-radius: 10px;
+  --ch-kit-button-shadow: none;
+}
+
+html[data-ui-kit='material'] {
+  --ch-kit-control-radius: 4px;
+  --ch-kit-button-radius: 4px;
+  --ch-kit-button-shadow: 0 2px 5px color-mix(in srgb, var(--ch-color-text) 18%, transparent);
+}
+
+html[data-ui-kit='bootstrap'] {
+  --ch-kit-control-radius: 0.375rem;
+  --ch-kit-button-radius: 0.375rem;
+}
+
+html[data-ui-kit='native'] {
+  --ch-kit-control-radius: 2px;
+  --ch-kit-button-radius: 2px;
+}
+
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+app-page-shell select,
+app-page-shell textarea,
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+app-public-page-shell select,
+app-public-page-shell textarea {
   width: 100%;
+  min-width: 0;
+  min-height: var(--ch-control-height);
+  border: 1px solid var(--ch-kit-control-border);
+  border-radius: var(--ch-kit-control-radius);
+  background: var(--ch-kit-control-bg);
+  color: var(--ch-color-text);
+  box-shadow: none;
+  font: inherit;
+  line-height: 1.35;
+  padding: var(--ch-kit-control-padding-y) var(--ch-kit-control-padding-x);
+}
+
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file'])::placeholder,
+app-page-shell textarea::placeholder,
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file'])::placeholder,
+app-public-page-shell textarea::placeholder {
+  color: color-mix(in srgb, var(--ch-color-muted) 78%, var(--ch-color-surface));
+}
+
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+app-page-shell select:focus,
+app-page-shell textarea:focus,
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+app-public-page-shell select:focus,
+app-public-page-shell textarea:focus {
+  outline: 3px solid var(--ch-kit-control-focus);
+  border-color: var(--ch-color-primary);
+}
+
+html[data-ui-kit='ionic'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+html[data-ui-kit='ionic'] app-page-shell select,
+html[data-ui-kit='ionic'] app-page-shell textarea,
+html[data-ui-kit='ionic'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+html[data-ui-kit='ionic'] app-public-page-shell select,
+html[data-ui-kit='ionic'] app-public-page-shell textarea {
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  border-bottom: 1px solid var(--ch-kit-control-border);
+  padding-inline: 0;
+}
+
+html[data-ui-kit='ionic'] app-page-shell select,
+html[data-ui-kit='ionic'] app-public-page-shell select {
+  appearance: auto;
+  -webkit-appearance: menulist;
+  cursor: pointer;
+}
+
+html[data-ui-kit='material'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+html[data-ui-kit='material'] app-page-shell select,
+html[data-ui-kit='material'] app-page-shell textarea,
+html[data-ui-kit='material'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+html[data-ui-kit='material'] app-public-page-shell select,
+html[data-ui-kit='material'] app-public-page-shell textarea {
+  min-height: 48px;
+}
+
+app-page-shell button[catalog-actions]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell button[notice-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell app-section-header button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell app-status-notice button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell app-admin-action-toolbar button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .toolbar > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .json-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .modal-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-page-shell .pagination > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-public-page-shell button[public-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-public-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+app-public-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid var(--ch-color-primary-border);
+  border-radius: var(--ch-kit-button-radius);
+  background: var(--ch-color-surface);
+  color: var(--ch-color-text);
+  box-shadow: var(--ch-kit-button-shadow);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1;
+  padding: 9px 14px;
+  text-decoration: none;
+}
+
+app-page-shell button[catalog-actions]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell button[notice-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell app-section-header button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell app-status-notice button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell app-admin-action-toolbar button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .toolbar > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .json-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .modal-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-page-shell .pagination > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-public-page-shell button[public-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-public-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover,
+app-public-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):hover {
+  border-color: var(--ch-color-primary);
+  color: var(--ch-color-primary);
+}
+
+app-page-shell button[catalog-actions]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell button[notice-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell app-section-header button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell app-status-notice button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell app-admin-action-toolbar button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .toolbar > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .json-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .modal-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-page-shell .pagination > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-public-page-shell button[public-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-public-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled,
+app-public-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base):disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+app-page-shell button.primary,
+app-page-shell button.primary-button,
+app-page-shell button[type='submit'],
+app-public-page-shell button.primary,
+app-public-page-shell button.primary-button,
+app-public-page-shell button[type='submit'] {
+  border-color: var(--ch-color-primary);
+  background: var(--ch-color-primary);
+  color: var(--ch-color-surface);
+}
+
+app-page-shell button.danger,
+app-public-page-shell button.danger {
+  border-color: var(--ch-color-danger);
+  color: var(--ch-color-danger);
+}
+
+app-page-shell button.success,
+app-public-page-shell button.success {
+  border-color: var(--ch-color-success);
+  background: var(--ch-color-success);
+  color: var(--ch-color-surface);
+}
+
+html[data-ui-kit='ionic'] app-page-shell button[catalog-actions]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell button[notice-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell app-section-header button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell app-status-notice button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell app-admin-action-toolbar button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .toolbar > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .json-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .modal-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-page-shell .pagination > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-public-page-shell button[public-action]:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-public-page-shell .actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base),
+html[data-ui-kit='ionic'] app-public-page-shell .form-actions > button:not(.p-button):not(.p-ripple):not(.mat-mdc-button-base) {
+  min-height: 40px;
+  border-color: color-mix(in srgb, var(--ch-color-primary) 24%, var(--ch-color-border));
+  text-transform: none;
+}
+
+html[data-ui-kit='ionic'] app-page-shell button.primary,
+html[data-ui-kit='ionic'] app-page-shell button.primary-button,
+html[data-ui-kit='ionic'] app-page-shell button[type='submit'],
+html[data-ui-kit='ionic'] app-public-page-shell button.primary,
+html[data-ui-kit='ionic'] app-public-page-shell button.primary-button,
+html[data-ui-kit='ionic'] app-public-page-shell button[type='submit'] {
+  border-color: var(--ion-color-primary, var(--ch-color-primary));
+  background: var(--ion-color-primary, var(--ch-color-primary));
+}
+
+html[data-ui-kit='material'] app-page-shell button.primary,
+html[data-ui-kit='material'] app-page-shell button.primary-button,
+html[data-ui-kit='material'] app-page-shell button[type='submit'],
+html[data-ui-kit='material'] app-public-page-shell button.primary,
+html[data-ui-kit='material'] app-public-page-shell button.primary-button,
+html[data-ui-kit='material'] app-public-page-shell button[type='submit'] {
+  box-shadow: var(--ch-kit-button-shadow);
+}
+
+html[data-ui-kit='bootstrap'] app-page-shell button.primary,
+html[data-ui-kit='bootstrap'] app-page-shell button.primary-button,
+html[data-ui-kit='bootstrap'] app-page-shell button[type='submit'],
+html[data-ui-kit='bootstrap'] app-public-page-shell button.primary,
+html[data-ui-kit='bootstrap'] app-public-page-shell button.primary-button,
+html[data-ui-kit='bootstrap'] app-public-page-shell button[type='submit'] {
+  background: var(--bs-primary, var(--ch-color-primary));
+  border-color: var(--bs-primary, var(--ch-color-primary));
+}
+
+app-main-nav .nav-link,
+app-main-nav .logout-button,
+app-main-nav .menu-button,
+app-main-nav .dropdown-button,
+app-main-nav .drawer-close {
+  border-radius: var(--ch-kit-button-radius);
+}
+
+html[data-ui-kit='ionic'] app-main-nav .nav-link,
+html[data-ui-kit='ionic'] app-main-nav .logout-button,
+html[data-ui-kit='ionic'] app-main-nav .menu-button,
+html[data-ui-kit='ionic'] app-main-nav .dropdown-button,
+html[data-ui-kit='ionic'] app-main-nav .drawer-close {
+  min-height: 40px;
+  border-color: color-mix(in srgb, var(--ch-color-primary) 24%, var(--ch-color-border));
+  background: var(--ch-color-surface);
+  text-transform: none;
+}
+
+html[data-ui-kit='ionic'] app-main-nav .nav-link.active {
+  border-color: var(--ion-color-primary, var(--ch-color-primary));
+  background: var(--ion-color-primary, var(--ch-color-primary));
+}
+
+html[data-ui-kit='material'] app-main-nav .nav-link,
+html[data-ui-kit='material'] app-main-nav .logout-button,
+html[data-ui-kit='material'] app-main-nav .menu-button,
+html[data-ui-kit='material'] app-main-nav .dropdown-button,
+html[data-ui-kit='material'] app-main-nav .drawer-close {
+  min-height: 40px;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 14%, transparent);
+}
+
+html[data-ui-kit='bootstrap'] app-main-nav .nav-link,
+html[data-ui-kit='bootstrap'] app-main-nav .logout-button,
+html[data-ui-kit='bootstrap'] app-main-nav .menu-button,
+html[data-ui-kit='bootstrap'] app-main-nav .dropdown-button,
+html[data-ui-kit='bootstrap'] app-main-nav .drawer-close {
+  border-radius: 0.375rem;
 }
 
 @media (max-width: 760px) {

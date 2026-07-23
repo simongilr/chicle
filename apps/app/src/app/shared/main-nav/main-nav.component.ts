@@ -1,6 +1,7 @@
 import { Component, HostListener, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { AppMenuItem } from '../../core/navigation/app-menu.types';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
 
@@ -249,8 +250,8 @@ interface NavGroup {
           <div class="context-label">{{ contextLabel }}</div>
         </div>
 
-        <nav class="desktop-nav" aria-label="Navegación principal">
-          @for (item of primaryItems(); track item.key) {
+        <nav class="desktop-nav" [attr.aria-label]="i18n.translate('nav.mainNavigation')">
+          @for (item of leadingPrimaryItems(); track item.key) {
             <a
               class="nav-link"
               [routerLink]="item.route"
@@ -261,7 +262,56 @@ interface NavGroup {
               @if (item.icon) {
                 <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
               }
-              <span>{{ item.label }}</span>
+              <span>{{ itemLabel(item) }}</span>
+            </a>
+          }
+
+          @if (manualItems().length) {
+            <div class="dropdown">
+              <button
+                class="dropdown-button"
+                type="button"
+                [class.active]="activeDropdown() === 'manual'"
+                [attr.aria-expanded]="activeDropdown() === 'manual'"
+                (click)="toggleDropdown('manual')"
+              >
+                <i class="pi pi-book" aria-hidden="true"></i>
+                <span>{{ i18n.translate('nav.group.manual') }}</span>
+                <i class="pi pi-angle-down" aria-hidden="true"></i>
+              </button>
+              @if (activeDropdown() === 'manual') {
+                <div class="dropdown-panel">
+                  @for (item of manualItems(); track item.key) {
+                    <a
+                      class="nav-link"
+                      [routerLink]="item.route"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="{ exact: true }"
+                      (click)="closeMenus()"
+                    >
+                      @if (item.icon) {
+                        <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+                      }
+                      <span>{{ itemLabel(item) }}</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @for (item of trailingPrimaryItems(); track item.key) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: item.route === '/home' || item.route === '/setup' }"
+              (click)="closeMenus()"
+            >
+              @if (item.icon) {
+                <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
+              }
+              <span>{{ itemLabel(item) }}</span>
             </a>
           }
 
@@ -275,7 +325,7 @@ interface NavGroup {
                 (click)="toggleDropdown('admin')"
               >
                 <i class="pi pi-shield" aria-hidden="true"></i>
-                <span>Administración</span>
+                <span>{{ i18n.translate('nav.group.admin') }}</span>
                 <i class="pi pi-angle-down" aria-hidden="true"></i>
               </button>
               @if (activeDropdown() === 'admin') {
@@ -285,12 +335,13 @@ interface NavGroup {
                       class="nav-link"
                       [routerLink]="item.route"
                       routerLinkActive="active"
+                      [routerLinkActiveOptions]="{ exact: true }"
                       (click)="closeMenus()"
                     >
                       @if (item.icon) {
                         <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
                       }
-                      <span>{{ item.label }}</span>
+                      <span>{{ itemLabel(item) }}</span>
                     </a>
                   }
                 </div>
@@ -308,16 +359,22 @@ interface NavGroup {
                 (click)="toggleDropdown('build')"
               >
                 <i class="pi pi-pencil" aria-hidden="true"></i>
-                <span>Construcción</span>
+                <span>{{ i18n.translate('nav.group.build') }}</span>
               </button>
               @if (activeDropdown() === 'build') {
                 <div class="dropdown-panel">
                   @for (item of buildItems(); track item.key) {
-                    <a class="nav-link" [routerLink]="item.route" routerLinkActive="active" (click)="closeMenus()">
+                    <a
+                      class="nav-link"
+                      [routerLink]="item.route"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="{ exact: true }"
+                      (click)="closeMenus()"
+                    >
                       @if (item.icon) {
                         <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
                       }
-                      <span>{{ item.label }}</span>
+                      <span>{{ itemLabel(item) }}</span>
                     </a>
                   }
                 </div>
@@ -328,7 +385,7 @@ interface NavGroup {
           @if (auth.state.isAuthenticated) {
             <button class="logout-button" type="button" (click)="logout()">
               <i class="pi pi-sign-out" aria-hidden="true"></i>
-              <span>Salir</span>
+              <span>{{ i18n.translate('nav.logout') }}</span>
             </button>
           }
         </nav>
@@ -341,14 +398,14 @@ interface NavGroup {
           (click)="drawerOpen.set(true)"
         >
           <i class="pi pi-bars" aria-hidden="true"></i>
-          <span class="menu-label">Menú</span>
+          <span class="menu-label">{{ i18n.translate('nav.menu') }}</span>
         </button>
       </div>
     </header>
 
     @if (drawerOpen()) {
       <div class="drawer-backdrop" (click)="closeMenus()" aria-hidden="true"></div>
-      <aside id="main-navigation-drawer" class="drawer" aria-label="Menú principal">
+      <aside id="main-navigation-drawer" class="drawer" [attr.aria-label]="i18n.translate('nav.mainMenu')">
         <div class="drawer-header">
           <div class="brand-block">
             <div class="brand">Chicle Engine</div>
@@ -356,7 +413,7 @@ interface NavGroup {
           </div>
           <button class="drawer-close" type="button" (click)="closeMenus()">
             <i class="pi pi-times" aria-hidden="true"></i>
-            <span class="menu-label">Cerrar</span>
+            <span class="menu-label">{{ i18n.translate('nav.close') }}</span>
           </button>
         </div>
 
@@ -369,13 +426,13 @@ interface NavGroup {
                   class="nav-link drawer-link"
                   [routerLink]="item.route"
                   routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: item.route === '/home' || item.route === '/setup' }"
+                  [routerLinkActiveOptions]="{ exact: true }"
                   (click)="closeMenus()"
                 >
                   @if (item.icon) {
                     <i [class]="iconClass(item.icon)" aria-hidden="true"></i>
                   }
-                  <span>{{ item.label }}</span>
+                  <span>{{ itemLabel(item) }}</span>
                 </a>
               }
             </section>
@@ -386,7 +443,7 @@ interface NavGroup {
           <div class="drawer-footer">
             <button class="logout-button" type="button" (click)="logout()">
               <i class="pi pi-sign-out" aria-hidden="true"></i>
-              <span>Salir</span>
+              <span>{{ i18n.translate('nav.logout') }}</span>
             </button>
           </div>
         }
@@ -399,10 +456,14 @@ export class MainNavComponent implements OnInit {
 
   readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
+  readonly i18n = inject(I18nService);
   readonly drawerOpen = signal(false);
-  readonly activeDropdown = signal<'admin' | 'build' | null>(null);
+  readonly activeDropdown = signal<'manual' | 'admin' | 'build' | null>(null);
 
   readonly primaryItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'primary'));
+  readonly leadingPrimaryItems = computed(() => this.primaryItems().filter((item) => item.key === 'home'));
+  readonly trailingPrimaryItems = computed(() => this.primaryItems().filter((item) => item.key !== 'home'));
+  readonly manualItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'manual'));
   readonly adminItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'admin'));
   readonly buildItems = computed(() => this.menu.items().filter((item) => this.placementFor(item) === 'build'));
   readonly drawerGroups = computed<NavGroup[]>(() => {
@@ -425,7 +486,7 @@ export class MainNavComponent implements OnInit {
     this.activeDropdown.set(null);
   }
 
-  toggleDropdown(dropdown: 'admin' | 'build') {
+  toggleDropdown(dropdown: 'manual' | 'admin' | 'build') {
     this.drawerOpen.set(false);
     this.activeDropdown.set(this.activeDropdown() === dropdown ? null : dropdown);
   }
@@ -440,8 +501,17 @@ export class MainNavComponent implements OnInit {
     return `nav-icon ${icon ?? ''}`.trim();
   }
 
-  private placementFor(item: AppMenuItem): 'primary' | 'admin' | 'build' {
-    if (item.placement === 'primary' || item.placement === 'admin' || item.placement === 'build') {
+  itemLabel(item: AppMenuItem) {
+    return this.i18n.label(item.i18nKey ?? `nav.${item.key}`, item.label);
+  }
+
+  private placementFor(item: AppMenuItem): 'primary' | 'manual' | 'admin' | 'build' {
+    if (
+      item.placement === 'primary' ||
+      item.placement === 'manual' ||
+      item.placement === 'admin' ||
+      item.placement === 'build'
+    ) {
       return item.placement;
     }
 
@@ -449,7 +519,11 @@ export class MainNavComponent implements OnInit {
       return 'build';
     }
 
-    if (['home', 'docs', 'setup', 'login'].includes(item.key)) {
+    if (['docs', 'architecture'].includes(item.key)) {
+      return 'manual';
+    }
+
+    if (['home', 'setup', 'login'].includes(item.key)) {
       return 'primary';
     }
 
@@ -463,13 +537,37 @@ export class MainNavComponent implements OnInit {
   private drawerGroupFor(item: AppMenuItem) {
     const placement = this.placementFor(item);
     if (placement === 'primary') {
-      return 'Principal';
+      return this.i18n.translate('nav.group.primary');
+    }
+
+    if (placement === 'manual') {
+      return this.i18n.translate('nav.group.manual');
     }
 
     if (placement === 'admin') {
-      return item.group || 'Administración';
+      return this.groupLabel(item.group, 'nav.group.admin');
     }
 
-    return item.group || 'Construcción';
+    return this.groupLabel(item.group, 'nav.group.build');
+  }
+
+  private groupLabel(group: string | null | undefined, fallbackKey: string) {
+    if (!group) {
+      return this.i18n.translate(fallbackKey);
+    }
+
+    if (group === 'Administración') {
+      return this.i18n.translate('nav.group.admin');
+    }
+
+    if (group === 'Construcción') {
+      return this.i18n.translate('nav.group.build');
+    }
+
+    if (group === 'Principal') {
+      return this.i18n.translate('nav.group.primary');
+    }
+
+    return group;
   }
 }

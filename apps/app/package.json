@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prestart": "node ../../scripts/sync-docs-assets.mjs",
     "start": "ng serve --host 0.0.0.0 --port ${APP_PORT:-8100}",
+    "prebuild": "node ../../scripts/sync-docs-assets.mjs",
     "build": "ng build",
     "lint": "ng lint",
     "test": "ng test"

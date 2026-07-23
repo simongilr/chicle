@@ -33,6 +33,25 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         width: 100%;
       }
 
+      :host ::ng-deep .mat-mdc-text-field-wrapper {
+        min-height: var(--ch-control-height);
+      }
+
+      :host ::ng-deep .mat-mdc-form-field-flex {
+        min-height: var(--ch-control-height);
+        align-items: center;
+      }
+
+      :host ::ng-deep .mat-mdc-form-field-infix {
+        min-height: var(--ch-control-height);
+        padding-top: 10px;
+        padding-bottom: 8px;
+      }
+
+      :host ::ng-deep .mat-mdc-select-trigger {
+        min-height: 24px;
+      }
+
       :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
         display: none;
       }
@@ -77,7 +96,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
           <mat-select
             [id]="controlId"
             [name]="field.name"
-            [placeholder]="field.placeholder || 'Selecciona una opción'"
+            [placeholder]="field.placeholder || 'Select an option'"
             [required]="field.required === true"
             [disabled]="disabled || readonly"
             [ngModel]="value"
@@ -97,7 +116,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
           [ngModel]="value === true"
           (ngModelChange)="valueChange.emit($event)"
         >
-          {{ field.placeholder || 'Sí' }}
+          {{ field.placeholder || 'Yes' }}
         </mat-checkbox>
       }
       @case ('toggle') {
@@ -109,7 +128,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
           [ngModel]="value === true"
           (ngModelChange)="valueChange.emit($event)"
         >
-          {{ field.placeholder || 'Sí' }}
+          {{ field.placeholder || 'Yes' }}
         </mat-slide-toggle>
       }
       @case ('radio') {

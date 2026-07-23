@@ -1,6 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { AdminActionToolbarComponent } from '../../shared/admin-action-toolbar/admin-action-toolbar.component';
+import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
+import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 
 interface HomeModule {
@@ -15,16 +18,9 @@ interface HomeModule {
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, PageShellComponent],
+  imports: [AdminActionToolbarComponent, AdminMetricCardComponent, AdminPanelComponent, RouterLink, PageShellComponent],
   styles: [
     `
-      .module-card,
-      .panel,
-      .status-item {
-        border: 1px solid var(--ch-color-border);
-        background: var(--ch-color-surface);
-      }
-
       .shell {
         display: grid;
         gap: 18px;
@@ -35,19 +31,6 @@ interface HomeModule {
         grid-template-columns: minmax(0, 1fr) 320px;
         gap: 18px;
         align-items: stretch;
-      }
-
-      .welcome,
-      .session-card {
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        padding: 18px;
-      }
-
-      .welcome {
-        display: grid;
-        gap: 10px;
       }
 
       .eyebrow {
@@ -87,11 +70,6 @@ interface HomeModule {
         line-height: 1.5;
       }
 
-      .session-card {
-        display: grid;
-        gap: 12px;
-      }
-
       .session-row {
         display: grid;
         gap: 3px;
@@ -115,13 +93,6 @@ interface HomeModule {
         grid-template-columns: minmax(0, 1fr) 340px;
         gap: 18px;
         align-items: start;
-      }
-
-      .panel {
-        display: grid;
-        gap: 14px;
-        border-radius: 8px;
-        padding: 18px;
       }
 
       .modules-grid {
@@ -185,45 +156,11 @@ interface HomeModule {
         padding: 16px;
       }
 
-      .quick-panel {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-      }
-
-      .quick-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .quick-actions a {
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 9px 12px;
-        text-decoration: none;
-        font-weight: 850;
-      }
-
-      .quick-actions a.primary {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-surface);
-      }
-
       @media (max-width: 860px) {
         .hero,
         .content-grid,
         .modules-grid {
           grid-template-columns: 1fr;
-        }
-
-        .quick-panel {
-          align-items: stretch;
-          flex-direction: column;
         }
 
         h1 {
@@ -235,30 +172,28 @@ interface HomeModule {
   template: `
     <app-page-shell contextLabel="Panel principal">
       <div class="shell">
-        <section class="panel quick-panel">
-          <div>
-            <h1>Panel principal</h1>
-            <p class="muted">Accesos rápidos del entorno administrativo.</p>
-          </div>
-          <div class="quick-actions">
+        <app-admin-panel
+          title="Panel principal"
+          description="Accesos rápidos del entorno administrativo."
+          titleSize="1.8rem"
+        >
+          <app-admin-action-toolbar panel-actions align="end">
             <a class="primary" routerLink="/flows">Abrir Flow Designer</a>
-          <a routerLink="/services">Servicios</a>
-          <a routerLink="/docs">Manual</a>
-        </div>
-      </section>
+            <a routerLink="/services">Servicios</a>
+            <a routerLink="/docs">Docs</a>
+          </app-admin-action-toolbar>
+        </app-admin-panel>
 
       @if (auth.state.session(); as session) {
         <section class="hero">
-          <article class="welcome">
-            <span class="eyebrow">Tenant activo</span>
-            <h1>{{ session.tenant.name }}</h1>
-            <p>
-              Este es el punto de entrada para operar Chicle Engine. Desde aquí se accede al
-              manual, configuración del sistema y administración de seguridad según permisos.
-            </p>
-          </article>
+          <app-admin-panel
+            eyebrow="Tenant activo"
+            [title]="session.tenant.name"
+            description="Este es el punto de entrada para operar Chicle Engine. Desde aquí se accede al docs, configuración del sistema y administración de seguridad según permisos."
+            titleSize="2rem"
+          ></app-admin-panel>
 
-          <aside class="session-card" aria-label="Sesión actual">
+          <app-admin-panel title="Sesión actual" aria-label="Sesión actual">
             <div class="session-row">
               <span class="label">Usuario</span>
               <span class="value">{{ session.user.email }}</span>
@@ -271,15 +206,14 @@ interface HomeModule {
               <span class="label">Roles tenant</span>
               <span class="value">{{ roleList(session.roles) }}</span>
             </div>
-          </aside>
+          </app-admin-panel>
         </section>
 
         <section class="content-grid">
-          <article class="panel">
-            <div>
-              <h2>Accesos disponibles</h2>
-              <p class="muted">Las opciones visibles dependen de tus permisos actuales.</p>
-            </div>
+          <app-admin-panel
+            title="Accesos disponibles"
+            description="Las opciones visibles dependen de tus permisos actuales."
+          >
 
             <div class="modules-grid">
               @for (module of visibleModules; track module.title) {
@@ -296,34 +230,38 @@ interface HomeModule {
                 No hay módulos administrativos disponibles para esta sesión.
               </div>
             }
-          </article>
+          </app-admin-panel>
 
-          <aside class="panel">
-            <div>
-              <h2>Estado de seguridad</h2>
-              <p class="muted">Resumen rápido de la sesión y permisos cargados.</p>
-            </div>
+          <app-admin-panel
+            title="Estado de seguridad"
+            description="Resumen rápido de la sesión y permisos cargados."
+          >
             <div class="status-list">
-              <div class="status-item">
-                <strong>Sesión</strong>
-                <span class="meta">Activa con access token y refresh cookie HttpOnly.</span>
-              </div>
-              <div class="status-item">
-                <strong>Permisos efectivos</strong>
-                <span class="meta">{{ session.permissions.length }} permisos disponibles.</span>
-              </div>
-              <div class="status-item">
-                <strong>Documentación API</strong>
-                <span class="meta">Swagger disponible en /api/docs para pruebas guiadas.</span>
-              </div>
+              <app-admin-metric-card
+                label="Sesión"
+                value="Activa"
+                detail="Access token y refresh cookie HttpOnly."
+                tone="success"
+              ></app-admin-metric-card>
+              <app-admin-metric-card
+                label="Permisos efectivos"
+                [value]="session.permissions.length + ' permisos'"
+                detail="Disponibles para esta sesión."
+                tone="primary"
+              ></app-admin-metric-card>
+              <app-admin-metric-card
+                label="Documentación API"
+                value="Swagger"
+                detail="Disponible en /api/docs para pruebas guiadas."
+              ></app-admin-metric-card>
             </div>
-          </aside>
+          </app-admin-panel>
         </section>
       } @else {
-        <section class="panel">
-          <h1>Preparando sesión</h1>
-          <p class="muted">Si esta pantalla permanece así, vuelve a iniciar sesión para recargar el contexto del tenant.</p>
-        </section>
+        <app-admin-panel
+          title="Preparando sesión"
+          description="Si esta pantalla permanece así, vuelve a iniciar sesión para recargar el contexto del tenant."
+        ></app-admin-panel>
       }
       </div>
     </app-page-shell>
@@ -334,8 +272,8 @@ export class HomePageComponent {
 
   readonly modules: HomeModule[] = [
     {
-      title: 'Manual operativo',
-      description: 'Guías de arranque, setup, seguridad, reset local, Swagger y comandos frecuentes.',
+      title: 'Docs operativos',
+      description: 'Guías de arranque, setup, seguridad, reset local, Swagger, comandos frecuentes y repositorio Markdown.',
       route: '/docs',
       status: 'Base'
     },

@@ -10,7 +10,7 @@ This repository starts clean. Business templates such as `containers-reference.s
 - API: NestJS + TypeORM + MySQL/MariaDB
 - App: Ionic Angular + PrimeNG
 - Storage V1: local filesystem volume
-- Deployment V1: docker compose
+- Deployment V1: Docker-packaged artifacts for API/app/runtime support, with local compose files for development
 
 ## Initial Apps
 
@@ -48,6 +48,7 @@ Security and authentication decisions should be checked against `docs/security-a
 ## Official Configuration Documentation
 
 - Platform architecture and product factory vision: `docs/platform-architecture.md`
+- Current project state analysis: `docs/project-state-analysis.md`
 - Backup and worker evolution: `docs/backup-worker-architecture.md`
 - Human/AI entry point: `docs/ai-authoring-guide.md`
 - AI-ready JSON-only endpoints: `docs/ai-ready-authoring.md`

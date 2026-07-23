@@ -109,7 +109,7 @@
       "id": "flow_test_case",
       "endpoint": "POST /api/flows/:flowId/test-cases",
       "request": {
-        "name": "Correo válido",
+        "name": "Valid email",
         "input": {
           "email": "person@example.com"
         },

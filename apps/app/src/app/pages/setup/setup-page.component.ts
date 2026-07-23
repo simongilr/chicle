@@ -259,7 +259,7 @@ interface SetupResponse {
   template: `
     <app-public-page-shell contextLabel="Setup inicial">
       <div public-actions class="actions">
-        <a class="doc-link" routerLink="/docs">Manual</a>
+        <a class="doc-link" routerLink="/docs">Docs</a>
         @if (state === 'ready' || state === 'created') {
           <a class="doc-link" routerLink="/login">Ingresar</a>
         }

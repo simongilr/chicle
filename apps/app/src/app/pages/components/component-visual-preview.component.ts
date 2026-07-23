@@ -5,6 +5,11 @@ import {
   UiKitPreference,
   UiPresentationConfig
 } from '../../core/ui/ui-presentation.types';
+import { AdminActionToolbarComponent } from '../../shared/admin-action-toolbar/admin-action-toolbar.component';
+import { AdminDataTableComponent } from '../../shared/admin-data-table/admin-data-table.component';
+import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
+import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
+import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { AppEntityCardComponent } from '../../shared/app-visuals/app-entity-card.component';
 import { AppMetricStripComponent } from '../../shared/app-visuals/app-metric-strip.component';
 import { AppTimelineComponent } from '../../shared/app-visuals/app-timeline.component';
@@ -14,6 +19,22 @@ import {
   AppTimelineItem,
   AppVertical
 } from '../../shared/app-visuals/app-visuals.types';
+import {
+  ArchitectureBlueprintComponent,
+  ArchitectureBlueprintLink,
+  ArchitectureBlueprintNode
+} from '../../shared/architecture-blueprint/architecture-blueprint.component';
+import {
+  ArchitectureDiagramComponent,
+  ArchitectureDiagramLink,
+  ArchitectureDiagramNode
+} from '../../shared/architecture-diagram/architecture-diagram.component';
+import {
+  ArchitectureTopologyDiagramComponent,
+  ArchitectureTopologyLink,
+  ArchitectureTopologyNode,
+  ArchitectureTopologyZone
+} from '../../shared/architecture-topology-diagram/architecture-topology-diagram.component';
 import { VerticalAppShowcaseComponent } from '../../shared/app-visuals/vertical-app-showcase.component';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
@@ -42,6 +63,7 @@ import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-gui
 import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-switcher/ui-presentation-switcher.component';
 import { UiThemeSelectorComponent } from '../../shared/ui-theme-selector/ui-theme-selector.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
+import { UiKitCardComponent } from '../../shared/ui-kit-card/ui-kit-card.component';
 import {
   FlowDataMapperComponent,
   FlowDataOption,
@@ -64,7 +86,15 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
   selector: 'app-component-visual-preview',
   standalone: true,
   imports: [
+    AdminActionToolbarComponent,
+    AdminDataTableComponent,
+    AdminFilterBarComponent,
+    AdminMetricCardComponent,
+    AdminPanelComponent,
     AppEntityCardComponent,
+    ArchitectureBlueprintComponent,
+    ArchitectureDiagramComponent,
+    ArchitectureTopologyDiagramComponent,
     AppMetricStripComponent,
     AppTimelineComponent,
     CatalogHeaderComponent,
@@ -94,6 +124,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     UiPresentationSwitcherComponent,
     UiThemeSelectorComponent,
     UiKitButtonComponent,
+    UiKitCardComponent,
     VerticalAppShowcaseComponent,
     WorkflowGuideComponent
   ],
@@ -296,6 +327,91 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [kit]="previewKit"
           ></app-module-header>
         }
+        @case ('AdminPanelComponent') {
+          <app-admin-panel
+            title="Resumen operativo"
+            description="Panel reusable con acciones y contenido proyectado."
+            [kit]="previewKit"
+          >
+            <app-admin-action-toolbar panel-actions [kit]="previewKit">
+              <app-ui-kit-button label="Actualizar" [kit]="previewKit"></app-ui-kit-button>
+            </app-admin-action-toolbar>
+            <app-admin-metric-card
+              label="Usuarios"
+              value="24"
+              detail="Activos en el tenant"
+              tone="primary"
+              [kit]="previewKit"
+            ></app-admin-metric-card>
+          </app-admin-panel>
+        }
+        @case ('AdminActionToolbarComponent') {
+          <app-admin-action-toolbar [kit]="previewKit">
+            <app-ui-kit-button label="Guardar" [kit]="previewKit"></app-ui-kit-button>
+            <app-ui-kit-button label="Cancelar" [kit]="previewKit" tone="neutral" variant="outline"></app-ui-kit-button>
+            <app-ui-kit-button label="Eliminar" [kit]="previewKit" tone="danger" variant="outline"></app-ui-kit-button>
+          </app-admin-action-toolbar>
+        }
+        @case ('AdminMetricCardComponent') {
+          <app-admin-metric-card
+            label="Servicios"
+            value="12"
+            detail="Publicados y disponibles"
+            tone="success"
+            [kit]="previewKit"
+          ></app-admin-metric-card>
+        }
+        @case ('AdminFilterBarComponent') {
+          <app-admin-filter-bar ariaLabel="Preview filters" [kit]="previewKit">
+            <app-dynamic-field-control
+              [field]="filterSearchField"
+              [presentation]="previewPresentation"
+              value=""
+            ></app-dynamic-field-control>
+            <app-dynamic-field-control
+              [field]="filterStatusField"
+              [presentation]="previewPresentation"
+              value="all"
+            ></app-dynamic-field-control>
+          </app-admin-filter-bar>
+        }
+        @case ('AdminDataTableComponent') {
+          <app-admin-data-table
+            [columns]="dataTablePreviewColumns"
+            [rows]="dataTablePreviewRows"
+            detailLabel="Detalle"
+            detailActionLabel="Ver"
+            [kit]="previewKit"
+          ></app-admin-data-table>
+        }
+        @case ('ArchitectureDiagramComponent') {
+          <app-architecture-diagram
+            title="Mapa del módulo"
+            description="Muestra partes, ubicación y relaciones sin dibujar cada diagrama a mano."
+            badge="Reusable"
+            [nodes]="architecturePreviewNodes"
+            [links]="architecturePreviewLinks"
+          ></app-architecture-diagram>
+        }
+        @case ('ArchitectureBlueprintComponent') {
+          <app-architecture-blueprint
+            title="Dibujo de Chicle"
+            description="Plano visual con front, API, runtime y DB conectados."
+            badge="Blueprint"
+            [nodes]="blueprintPreviewNodes"
+            [links]="blueprintPreviewLinks"
+          ></app-architecture-blueprint>
+        }
+        @case ('ArchitectureTopologyDiagramComponent') {
+          <app-architecture-topology-diagram
+            title="Topología"
+            description="Vista tipo draw.io con piezas y comunicación."
+            badge="Comunicación"
+            [zones]="topologyPreviewZones"
+            [nodes]="topologyPreviewNodes"
+            [links]="topologyPreviewLinks"
+          ></app-architecture-topology-diagram>
+        }
         @case ('DesignerWorkspaceComponent') {
           <app-designer-workspace>
             <div designer-navigation class="workspace-list">Formulario seleccionado</div>
@@ -394,7 +510,11 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [required]="true"
             [kit]="previewKit"
           >
-            <input id="preview-email" class="preview-input" type="email" placeholder="persona@example.com" />
+            <app-dynamic-field-control
+              [field]="emailPreviewField"
+              [presentation]="previewPresentation"
+              value="persona@example.com"
+            ></app-dynamic-field-control>
           </app-field-shell>
         }
         @case ('DynamicFieldControlComponent') {
@@ -442,7 +562,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           </div>
         }
         @case ('DynamicFieldLibraryComponent') {
-          <app-dynamic-field-library [viewportWidth]="390"></app-dynamic-field-library>
+          <app-dynamic-field-library [kit]="previewKit" [viewportWidth]="390"></app-dynamic-field-library>
         }
         @case ('FormlyRuntimeComponent') {
           <app-ui-presentation-switcher
@@ -588,10 +708,24 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             }
           </div>
         }
+        @case ('UiKitCardComponent') {
+          <div class="renderer-comparison">
+            @for (kit of kitExamples; track kit) {
+              <div class="renderer-example">
+                <strong>{{ kit }}</strong>
+                <app-ui-kit-card [kit]="kit" tone="primary" variant="subtle">
+                  <strong>Panel operativo</strong>
+                  <span>Card real del kit con tokens, bordes y superficie de Chicle.</span>
+                </app-ui-kit-card>
+              </div>
+            }
+          </div>
+        }
         @case ('UiThemeSelectorComponent') {
           <app-ui-theme-selector
             label="Tema de la pantalla"
             controlId="preview-theme"
+            [kit]="previewKit"
           ></app-ui-theme-selector>
         }
         @case ('PreviewViewportComponent') {
@@ -731,7 +865,150 @@ export class ComponentVisualPreviewComponent {
     { key: 'visual', label: 'Visual', icon: 'pi pi-eye' },
     { key: 'json', label: 'JSON', icon: 'pi pi-code' }
   ];
+  readonly dataTablePreviewColumns = [
+    { name: 'email', label: 'Email' },
+    { name: 'role', label: 'Role' },
+    { name: 'status', label: 'Status' }
+  ];
+  readonly dataTablePreviewRows = [
+    { id: '1', email: 'admin@example.com', role: 'Owner', status: 'Active' },
+    { id: '2', email: 'viewer@example.com', role: 'Viewer', status: 'Pending' }
+  ];
   readonly kitExamples: UiKitId[] = ['primeng', 'ionic', 'material', 'bootstrap', 'native'];
+  readonly filterSearchField = {
+    name: 'previewSearch',
+    type: 'search',
+    label: 'Buscar',
+    placeholder: 'Nombre o key'
+  };
+  readonly filterStatusField = {
+    name: 'previewStatus',
+    type: 'select',
+    label: 'Estado',
+    placeholder: 'Todos',
+    options: [
+      { label: 'Todos', value: 'all' },
+      { label: 'Activos', value: 'active' }
+    ]
+  };
+  readonly emailPreviewField = {
+    name: 'previewEmail',
+    type: 'email',
+    label: 'Correo',
+    placeholder: 'persona@example.com',
+    required: true
+  };
+  readonly architecturePreviewNodes: ArchitectureDiagramNode[] = [
+    {
+      id: 'app',
+      title: 'App',
+      eyebrow: 'Frontend',
+      description: 'Páginas, shared components y runtime visual.',
+      icon: 'pi pi-desktop',
+      status: 'Angular',
+      tone: 'ui',
+      paths: ['apps/app/src/app']
+    },
+    {
+      id: 'api',
+      title: 'API',
+      eyebrow: 'Backend',
+      description: 'Módulos NestJS, guards y TypeORM.',
+      icon: 'pi pi-server',
+      status: 'NestJS',
+      tone: 'core',
+      paths: ['apps/api/src/modules']
+    },
+    {
+      id: 'db',
+      title: 'DB',
+      eyebrow: 'Datos',
+      description: 'Core, runtime, records y custom_*.',
+      icon: 'pi pi-database',
+      status: 'MariaDB',
+      tone: 'data',
+      paths: ['apps/api/src/database']
+    }
+  ];
+  readonly architecturePreviewLinks: ArchitectureDiagramLink[] = [
+    { from: 'app', to: 'api', label: 'HTTP', description: 'Pantallas consumen endpoints protegidos.' },
+    { from: 'api', to: 'db', label: 'TypeORM', description: 'El backend valida y persiste.' }
+  ];
+  readonly blueprintPreviewNodes: ArchitectureBlueprintNode[] = [
+    {
+      id: 'front',
+      title: 'Front',
+      subtitle: 'Angular',
+      description: 'Admin y runtime visual.',
+      icon: 'pi pi-desktop',
+      tone: 'front',
+      x: 6,
+      y: 14,
+      width: 22,
+      height: 24,
+      bullets: ['app']
+    },
+    {
+      id: 'api',
+      title: 'API',
+      subtitle: 'NestJS',
+      description: 'Kernel modular protegido.',
+      icon: 'pi pi-server',
+      tone: 'api',
+      x: 40,
+      y: 18,
+      width: 22,
+      height: 24,
+      bullets: ['guards']
+    },
+    {
+      id: 'db',
+      title: 'DB',
+      subtitle: 'MariaDB',
+      description: 'Core, runtime y custom.',
+      icon: 'pi pi-database',
+      tone: 'data',
+      x: 72,
+      y: 18,
+      width: 20,
+      height: 24,
+      bullets: ['custom_*']
+    },
+    {
+      id: 'ai',
+      title: 'Chicle AI',
+      subtitle: 'Asistente',
+      description: 'Propone drafts revisables.',
+      icon: 'pi pi-sparkles',
+      tone: 'ai',
+      x: 40,
+      y: 62,
+      width: 22,
+      height: 22,
+      bullets: ['JSON']
+    }
+  ];
+  readonly blueprintPreviewLinks: ArchitectureBlueprintLink[] = [
+    { from: 'front', to: 'api', label: 'HTTP', kind: 'sync' },
+    { from: 'api', to: 'db', label: 'TypeORM', kind: 'data' },
+    { from: 'ai', to: 'front', label: 'Drafts', kind: 'ai' }
+  ];
+  readonly topologyPreviewZones: ArchitectureTopologyZone[] = [
+    { title: 'Front', x: 4, y: 12, width: 24, height: 70, tone: 'front' },
+    { title: 'Kernel', x: 38, y: 12, width: 24, height: 70, tone: 'api' },
+    { title: 'Datos', x: 72, y: 12, width: 20, height: 70, tone: 'data' }
+  ];
+  readonly topologyPreviewNodes: ArchitectureTopologyNode[] = [
+    { id: 'web', title: 'Web', subtitle: 'Angular', icon: 'pi pi-desktop', tone: 'front', x: 16, y: 34 },
+    { id: 'api', title: 'API', subtitle: 'NestJS', icon: 'pi pi-server', tone: 'api', x: 50, y: 34 },
+    { id: 'runtime', title: 'Runtime', subtitle: 'JSON', icon: 'pi pi-bolt', tone: 'runtime', x: 50, y: 62 },
+    { id: 'db', title: 'DB', subtitle: 'MariaDB', icon: 'pi pi-database', tone: 'data', x: 82, y: 48 }
+  ];
+  readonly topologyPreviewLinks: ArchitectureTopologyLink[] = [
+    { from: 'web', to: 'api', label: 'HTTP', kind: 'sync' },
+    { from: 'api', to: 'runtime', label: 'execute', kind: 'sync' },
+    { from: 'runtime', to: 'db', label: 'TypeORM', kind: 'data' }
+  ];
   readonly primeDynamicField = {
     name: 'customerTypePrime',
     type: 'select',

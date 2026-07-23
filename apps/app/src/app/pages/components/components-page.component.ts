@@ -1,11 +1,15 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { AdminCardGridComponent } from '../../shared/admin-card-grid/admin-card-grid.component';
+import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
+import { ComponentDocCardComponent } from '../../shared/component-doc-card/component-doc-card.component';
 import { DynamicFieldLibraryComponent } from '../../shared/dynamic-field-library/dynamic-field-library.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { UiThemeSelectorComponent } from '../../shared/ui-theme-selector/ui-theme-selector.component';
 import {
   UI_COMPONENT_CATALOG,
@@ -20,48 +24,25 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
   standalone: true,
   imports: [
     ComponentVisualPreviewComponent,
+    AdminCardGridComponent,
+    AdminFilterBarComponent,
+    ComponentDocCardComponent,
     DynamicFieldControlComponent,
     DynamicFieldLibraryComponent,
     FormsModule,
     ModuleHeaderComponent,
     PageShellComponent,
     StatusNoticeComponent,
+    UiKitButtonComponent,
     UiThemeSelectorComponent
   ],
   styles: [
     `
-      .toolbar,
       .summary,
-      .field-library,
-      .component-card {
+      .field-library {
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface);
-      }
-
-      .toolbar {
-        display: grid;
-        grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(170px, 230px));
-        gap: 12px;
-        padding: 16px;
-      }
-
-      input,
-      select {
-        width: 100%;
-        min-height: 42px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 9px 11px;
-        font: inherit;
-      }
-
-      input:focus,
-      select:focus {
-        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 16%, transparent);
-        border-color: var(--ch-color-primary);
       }
 
       .summary {
@@ -109,27 +90,6 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         font-weight: 850;
       }
 
-      .preview-command {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        width: fit-content;
-        min-height: 38px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 7px 11px;
-        font: inherit;
-        font-weight: 800;
-      }
-
-      .preview-command:hover {
-        border-color: var(--ch-color-primary);
-        color: var(--ch-color-primary);
-      }
-
       .field-library-actions {
         display: flex;
         align-items: center;
@@ -154,30 +114,8 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         font-size: 0.82rem;
       }
 
-      .catalog {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-      }
-
-      .component-card {
-        display: grid;
-        align-content: start;
-        gap: 14px;
-        min-width: 0;
-        padding: 18px;
-      }
-
-      .card-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
       h2,
-      p,
-      pre {
+      p {
         margin: 0;
       }
 
@@ -191,75 +129,9 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         line-height: 1.5;
       }
 
-      .selector,
-      .badge,
-      .consumer {
-        border-radius: 999px;
-        font-size: 0.76rem;
-        font-weight: 800;
-      }
-
-      .selector {
-        width: fit-content;
-        background: var(--ch-color-primary-soft);
-        color: var(--ch-color-primary);
-        padding: 5px 8px;
-      }
-
-      .badge {
-        flex: 0 0 auto;
-        background: var(--ch-color-surface-muted);
-        color: var(--ch-color-muted);
-        padding: 5px 8px;
-      }
-
-      .detail {
-        display: grid;
-        gap: 6px;
-      }
-
-      .detail-label {
-        color: var(--ch-color-muted);
-        font-size: 0.74rem;
-        font-weight: 850;
-        text-transform: uppercase;
-      }
-
-      .consumers {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .consumer {
-        background: var(--ch-color-surface-alt);
-        color: var(--ch-color-muted);
-        padding: 5px 8px;
-      }
-
-      pre {
-        max-width: 100%;
-        overflow: auto;
-        border-radius: 6px;
-        background: #10263e;
-        color: #e9f3ff;
-        padding: 12px;
-        font-size: 0.78rem;
-        line-height: 1.5;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-      }
-
       code {
         color: var(--ch-color-primary);
         overflow-wrap: anywhere;
-      }
-
-      @media (max-width: 900px) {
-        .toolbar,
-        .catalog {
-          grid-template-columns: 1fr;
-        }
       }
 
       @media (max-width: 620px) {
@@ -267,16 +139,8 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           grid-template-columns: 1fr;
         }
 
-        .card-header {
-          display: grid;
-        }
-
         .field-library-header {
           display: grid;
-        }
-
-        .badge {
-          justify-self: start;
         }
       }
     `
@@ -290,7 +154,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         badge="UI Catalog"
       ></app-module-header>
 
-      <section class="toolbar" aria-label="Filtros del catálogo">
+      <app-admin-filter-bar ariaLabel="Component catalog filters" minColumnWidth="170px" [kit]="previewKit">
         <app-dynamic-field-control
           [field]="searchField"
           [value]="search"
@@ -314,7 +178,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           controlId="component-theme"
           [kit]="previewKit"
         ></app-ui-theme-selector>
-      </section>
+      </app-admin-filter-bar>
 
       <section class="summary" aria-label="Resumen del catálogo">
         <div class="summary-item">
@@ -342,19 +206,18 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           </div>
           <div class="field-library-actions">
             <span class="field-count">17 tipos</span>
-            <button
-              class="preview-command"
-              type="button"
-              [attr.aria-expanded]="fieldLibraryOpen"
-              (click)="fieldLibraryOpen = !fieldLibraryOpen"
-            >
-              <i class="pi" [class.pi-eye]="!fieldLibraryOpen" [class.pi-eye-slash]="fieldLibraryOpen"></i>
-              {{ fieldLibraryOpen ? 'Ocultar galería' : 'Ver galería' }}
-            </button>
+            <app-ui-kit-button
+              [label]="fieldLibraryOpen ? 'Ocultar galería' : 'Ver galería'"
+              [icon]="fieldLibraryOpen ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              [kit]="previewKit"
+              tone="secondary"
+              variant="outline"
+              (pressed)="fieldLibraryOpen = !fieldLibraryOpen"
+            ></app-ui-kit-button>
           </div>
         </header>
         @if (fieldLibraryOpen) {
-          <app-dynamic-field-library></app-dynamic-field-library>
+          <app-dynamic-field-library [kit]="previewKit"></app-dynamic-field-library>
         } @else {
           <app-status-notice>
             Abre la galería para montar los controles reales y comparar PrimeNG, Ionic, Material,
@@ -368,66 +231,31 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           Cambia la búsqueda o los filtros para volver a mostrar componentes.
         </app-status-notice>
       } @else {
-        <section class="catalog" aria-label="Catálogo de componentes">
+        <app-admin-card-grid ariaLabel="Component catalog" minColumnWidth="360px">
           @for (component of filteredCatalog; track component.name) {
-            <article class="component-card">
-              <header class="card-header">
-                <div class="detail">
-                  <h2>{{ component.name }}</h2>
-                  <code class="selector">&lt;{{ component.selector }}&gt;</code>
-                </div>
-                <span class="badge">{{ statusLabel(component.status) }}</span>
-              </header>
-
-              <p>{{ component.purpose }}</p>
-
-              <button
-                class="preview-command"
-                type="button"
-                [attr.aria-expanded]="isPreviewExpanded(component.name)"
-                (click)="togglePreview(component.name)"
-              >
-                <i
-                  class="pi"
-                  [class.pi-eye]="!isPreviewExpanded(component.name)"
-                  [class.pi-eye-slash]="isPreviewExpanded(component.name)"
-                ></i>
-                {{ isPreviewExpanded(component.name) ? 'Ocultar vista' : 'Ver componente' }}
-              </button>
-
+            <app-component-doc-card
+              [name]="component.name"
+              [selector]="component.selector"
+              [purpose]="component.purpose"
+              [status]="statusLabel(component.status)"
+              [category]="component.category"
+              [consumers]="component.usedBy"
+              [importPath]="component.importPath"
+              [example]="component.example"
+              [expanded]="isPreviewExpanded(component.name)"
+              [kit]="previewKit"
+              (previewToggle)="togglePreview(component.name)"
+            >
               @if (isPreviewExpanded(component.name)) {
                 <app-component-visual-preview
+                  component-preview
                   [componentName]="component.name"
                   [kit]="previewKit"
                 ></app-component-visual-preview>
               }
-
-              <div class="detail">
-                <span class="detail-label">Categoría</span>
-                <span>{{ component.category }}</span>
-              </div>
-
-              <div class="detail">
-                <span class="detail-label">Usado actualmente en</span>
-                <div class="consumers">
-                  @for (consumer of component.usedBy; track consumer) {
-                    <span class="consumer">{{ consumer }}</span>
-                  }
-                </div>
-              </div>
-
-              <div class="detail">
-                <span class="detail-label">Importación</span>
-                <pre>{{ component.importPath }}</pre>
-              </div>
-
-              <div class="detail">
-                <span class="detail-label">Invocación mínima</span>
-                <pre>{{ component.example }}</pre>
-              </div>
-            </article>
+            </app-component-doc-card>
           }
-        </section>
+        </app-admin-card-grid>
       }
     </app-page-shell>
   `

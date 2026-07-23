@@ -23,7 +23,6 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
     <app-dynamic-field-control
       [field]="themeField"
       [value]="themes.activeThemeKey()"
-      [help]="activeTheme.description"
       [presentation]="{ kit: resolvedKit }"
       (valueChange)="applyTheme($event)"
     ></app-dynamic-field-control>

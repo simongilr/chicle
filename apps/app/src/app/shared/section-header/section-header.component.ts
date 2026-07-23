@@ -5,7 +5,8 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
   selector: 'app-section-header',
   standalone: true,
   host: {
-    '[attr.data-ui-kit]': 'resolvedKit'
+    '[attr.data-ui-kit]': 'resolvedKit',
+    '[attr.title]': 'null'
   },
   styles: [
     `

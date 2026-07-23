@@ -62,6 +62,7 @@ import {
       ariaLabel="Kit visual de la vista previa"
       [items]="items"
       [value]="value === 'inherit' ? 'auto' : value"
+      [kit]="resolvedKit"
       (valueChange)="select($event)"
     ></app-segmented-control>
   `

@@ -51,7 +51,7 @@ import { UiPresentationSwitcherComponent } from '../ui-presentation-switcher/ui-
 
     @if (showPresentationSwitcher) {
       <app-ui-presentation-switcher
-        [value]="kit"
+        [value]="selectedKit"
         [resolvedKit]="resolvedKit"
         (valueChange)="selectKit($event)"
       ></app-ui-presentation-switcher>
@@ -70,6 +70,10 @@ import { UiPresentationSwitcherComponent } from '../ui-presentation-switcher/ui-
 export class DynamicFieldLibraryComponent {
   @Input() showPresentationSwitcher = true;
   @Input() viewportWidth?: number;
+  @Input()
+  set kit(value: UiKitPreference) {
+    this.selectKit(value || 'auto');
+  }
 
   readonly definition = FORMLY_FIELD_LIBRARY_EXAMPLE;
   model: Record<string, unknown> = {
@@ -82,15 +86,15 @@ export class DynamicFieldLibraryComponent {
     image: { name: 'evidencia.jpg', size: 256000, type: 'image/jpeg' },
     gps: { lat: 4.711, lng: -74.0721, accuracy: 25 }
   };
-  kit: UiKitPreference = 'auto';
+  selectedKit: UiKitPreference = 'auto';
   presentation: UiPresentationConfig = { kit: 'auto' };
 
   get resolvedKit(): UiKitId {
-    return this.kit === 'auto' || this.kit === 'inherit' ? 'primeng' : this.kit;
+    return this.selectedKit === 'auto' || this.selectedKit === 'inherit' ? 'primeng' : this.selectedKit;
   }
 
   selectKit(kit: UiKitPreference) {
-    this.kit = kit;
+    this.selectedKit = kit;
     this.presentation = { kit };
   }
 }

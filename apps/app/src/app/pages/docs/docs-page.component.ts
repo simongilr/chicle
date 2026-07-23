@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
+import { DocumentationLayoutComponent, DocumentationSection } from '../../shared/documentation-layout/documentation-layout.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
@@ -10,12 +10,6 @@ interface CommandStep {
   ui?: string;
   swagger?: string;
   note: string;
-}
-
-interface DocSection {
-  id: string;
-  label: string;
-  summary: string;
 }
 
 interface UiInventoryGroup {
@@ -36,7 +30,7 @@ interface JsonContractResource {
 @Component({
   selector: 'app-docs-page',
   standalone: true,
-  imports: [PageShellComponent, ProcessStepsComponent, RouterLink, WorkflowGuideComponent],
+  imports: [DocumentationLayoutComponent, ProcessStepsComponent, RouterLink, WorkflowGuideComponent],
   styles: [
     `
       .docs-shell {
@@ -353,46 +347,14 @@ interface JsonContractResource {
     `
   ],
   template: `
-    <app-page-shell
-      contextLabel="Manual operativo"
-      width="standard"
-      [scrollEvents]="true"
-      (contentScrolled)="syncActiveSection()"
+    <app-documentation-layout
+      contextLabel="Docs operativos"
+      title="Primeros pasos de Chicle Engine"
+      description="Esta página guarda las instrucciones operativas del proyecto para que no dependamos de recordar comandos sueltos. La iremos enriqueciendo conforme avance el producto."
+      [sections]="sections"
+      navAriaLabel="Secciones de docs operativos"
+      pickerId="docs-section"
     >
-      <div class="docs-shell">
-        <header class="intro">
-          <h1>Primeros pasos de Chicle Engine</h1>
-          <p>
-            Esta página guarda las instrucciones operativas del proyecto para que no dependamos de recordar comandos
-            sueltos. La iremos enriqueciendo conforme avance el producto.
-          </p>
-        </header>
-
-        <div class="section-picker">
-          <label for="docs-section">Ir a sección</label>
-          <select id="docs-section" [value]="activeSection" (change)="changeSection($event)">
-            @for (section of sections; track section.id) {
-              <option [value]="section.id">{{ section.label }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="docs-layout">
-          <nav class="docs-nav" aria-label="Secciones del manual">
-            <div class="docs-nav-title">Secciones</div>
-            @for (section of sections; track section.id) {
-              <button
-                type="button"
-                [attr.aria-current]="activeSection === section.id ? 'true' : null"
-                (click)="scrollTo(section.id)"
-              >
-                <strong>{{ section.label }}</strong>
-                <span>{{ section.summary }}</span>
-              </button>
-            }
-          </nav>
-
-          <div class="docs-content">
             <section id="reglas" class="doc-section" data-tone="ops">
               <div class="section-header">
                 <h2>Reglas rápidas</h2>
@@ -1152,10 +1114,7 @@ docs/ui-component-inventory.md</pre>
                 </li>
               </ul>
             </section>
-          </div>
-        </div>
-      </div>
-    </app-page-shell>
+    </app-documentation-layout>
   `
 })
 export class DocsPageComponent {
@@ -1357,7 +1316,7 @@ export class DocsPageComponent {
     'ConfirmActionComponent'
   ];
 
-  readonly sections: DocSection[] = [
+  readonly sections: DocumentationSection[] = [
     {
       id: 'reglas',
       label: 'Reglas rápidas',
@@ -1449,31 +1408,6 @@ export class DocsPageComponent {
       summary: 'Qué hacer cuando algo no arranca.'
     }
   ];
-
-  scrollTo(sectionId: string) {
-    this.activeSection = sectionId;
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  changeSection(event: Event) {
-    const sectionId = (event.target as HTMLSelectElement).value;
-    this.scrollTo(sectionId);
-  }
-
-  syncActiveSection() {
-    const visibleSection = this.sections
-      .map((section) => ({
-        id: section.id,
-        top: Math.abs(document.getElementById(section.id)?.getBoundingClientRect().top ?? Number.MAX_SAFE_INTEGER)
-      }))
-      .sort((a, b) => a.top - b.top)[0];
-
-    if (visibleSection && visibleSection.id !== this.activeSection) {
-      this.activeSection = visibleSection.id;
-    }
-  }
-
-  activeSection = 'reglas';
 
   readonly firstRunSteps: CommandStep[] = [
     {

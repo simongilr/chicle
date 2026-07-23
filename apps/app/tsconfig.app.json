@@ -4,6 +4,10 @@
     "outDir": "./out-tsc/app",
     "types": []
   },
-  "files": ["src/main.ts", "src/app/pages/preferences/preferences-page.component.ts"],
+  "files": [
+    "src/main.ts",
+    "src/app/pages/preferences/preferences-page.component.ts",
+    "src/app/pages/architecture/architecture-page.component.ts"
+  ],
   "include": ["src/**/*.d.ts"]
 }

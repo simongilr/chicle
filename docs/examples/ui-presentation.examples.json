@@ -21,7 +21,7 @@
   },
   "formExample": {
     "key": "customer_registration",
-    "title": "Registro de cliente",
+    "title": "Client registration",
     "presentation": {
       "profileKey": "adaptive",
       "kit": "auto",
@@ -31,20 +31,20 @@
       {
         "name": "email",
         "type": "email",
-        "label": "Correo",
+        "label": "Email",
         "required": true
       },
       {
         "name": "channel",
         "type": "select",
-        "label": "Canal",
+        "label": "Channel",
         "options": [
           {
             "label": "Web",
             "value": "web"
           },
           {
-            "label": "Móvil",
+            "label": "Mobile",
             "value": "mobile"
           }
         ]
@@ -60,4 +60,3 @@
     }
   }
 }
-

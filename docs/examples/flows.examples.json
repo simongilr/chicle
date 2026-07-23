@@ -7,10 +7,10 @@
       "endpoint": "PUT /api/flows/:flowId/definition",
       "request": {
         "flow": {
-          "key": "validar_solicitud",
-          "name": "Validar solicitud",
-          "description": "Valida el correo y devuelve una respuesta explícita.",
-          "category": "operaciones"
+          "key": "validate_request",
+          "name": "Validate request",
+          "description": "Validate the email and return an explicit response.",
+          "category": "operations"
         },
         "entry": {
           "mode": "direct",
@@ -20,7 +20,7 @@
         "inputFields": [
           {
             "key": "email",
-            "label": "Correo",
+            "label": "Email",
             "type": "email",
             "required": true,
             "example": "person@example.com"
@@ -28,25 +28,25 @@
         ],
         "steps": [
           {
-            "key": "validar_email",
-            "name": "Validar correo",
+            "key": "validate_email",
+            "name": "Validate email",
             "type": "validation",
             "position": 10,
-            "outputKey": "validacion",
-            "nextStepKey": "respuesta_ok",
-            "onFalseStepKey": "respuesta_error",
+            "outputKey": "validation",
+            "nextStepKey": "success_response",
+            "onFalseStepKey": "error_response",
             "config": {
               "field": "input.email",
               "operator": "email",
-              "message": "El correo no es válido"
+              "message": "The email is not valid"
             }
           },
           {
-            "key": "respuesta_ok",
-            "name": "Responder éxito",
+            "key": "success_response",
+            "name": "Respond success",
             "type": "response",
             "position": 20,
-            "outputKey": "respuesta",
+            "outputKey": "response",
             "config": {
               "status": "success",
               "body": {
@@ -257,10 +257,10 @@
       "endpoint": "PUT /api/flows/:flowId/definition",
       "request": {
         "flow": {
-          "key": "resumen_cliente",
-          "name": "Resumen de cliente",
-          "description": "Consulta perfil y saldo en paralelo.",
-          "category": "clientes"
+          "key": "client_summary",
+          "name": "Client summary",
+          "description": "Query profile and balance in parallel.",
+          "category": "clients"
         },
         "entry": {
           "mode": "direct",
@@ -270,7 +270,7 @@
         "inputFields": [
           {
             "key": "clientId",
-            "label": "Cliente",
+            "label": "Client",
             "type": "text",
             "required": true,
             "example": "client-id"
@@ -278,8 +278,8 @@
         ],
         "steps": [
           {
-            "key": "consultar",
-            "name": "Consultar datos",
+            "key": "query",
+            "name": "Query data",
             "type": "parallel",
             "position": 10,
             "outputKey": "consultas",

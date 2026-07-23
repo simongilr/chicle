@@ -78,6 +78,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
         [help]="help"
         [error]="error"
         [required]="field.required === true"
+        [kit]="resolution.kit"
       >
         <div
           class="renderer"

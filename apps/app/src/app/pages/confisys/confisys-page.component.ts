@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
@@ -33,7 +34,7 @@ interface ConfisysSaveResponse {
 @Component({
   selector: 'app-confisys-page',
   standalone: true,
-  imports: [FieldShellComponent, FormsModule, LoadingSkeletonComponent, ModuleHeaderComponent, PageShellComponent],
+  imports: [AdminFilterBarComponent, FieldShellComponent, FormsModule, LoadingSkeletonComponent, ModuleHeaderComponent, PageShellComponent],
   styles: [
     `
       button {
@@ -63,16 +64,11 @@ interface ConfisysSaveResponse {
         gap: 18px;
       }
 
-      .toolbar,
       .param-row {
         border: 1px solid var(--ch-color-border);
         border-radius: 8px;
         background: var(--ch-color-surface);
         box-shadow: 0 16px 42px color-mix(in srgb, var(--ch-color-text) 6%, transparent);
-      }
-
-      .toolbar {
-        padding: 18px;
       }
 
       h1,
@@ -98,12 +94,6 @@ interface ConfisysSaveResponse {
       .hint {
         color: var(--ch-color-muted);
         line-height: 1.5;
-      }
-
-      .toolbar {
-        display: grid;
-        grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px);
-        gap: 12px;
       }
 
       input,
@@ -188,7 +178,6 @@ interface ConfisysSaveResponse {
       }
 
       @media (max-width: 760px) {
-        .toolbar,
         .param-row {
           grid-template-columns: 1fr;
         }
@@ -205,7 +194,7 @@ interface ConfisysSaveResponse {
           badge="Configuración"
         ></app-module-header>
 
-        <section class="toolbar">
+        <app-admin-filter-bar ariaLabel="Confisys filters" minColumnWidth="220px">
           <app-field-shell label="Buscar" forId="confisys-search">
             <input
               id="confisys-search"
@@ -222,7 +211,7 @@ interface ConfisysSaveResponse {
               }
             </select>
           </app-field-shell>
-        </section>
+        </app-admin-filter-bar>
 
         <section class="params">
           @if (loading) {

@@ -183,7 +183,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
           [options]="field.options || []"
           optionLabel="label"
           optionValue="value"
-          [placeholder]="field.placeholder || 'Selecciona una opción'"
+          [placeholder]="field.placeholder || 'Select an option'"
           [disabled]="disabled || readonly"
           [ngModel]="value"
           (ngModelChange)="valueChange.emit($event)"
@@ -199,7 +199,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [ngModel]="value === true"
             (ngModelChange)="valueChange.emit($event)"
           ></p-checkbox>
-          <span>{{ field.placeholder || 'Sí' }}</span>
+          <span>{{ field.placeholder || 'Yes' }}</span>
         </label>
       }
       @case ('toggle') {
@@ -210,7 +210,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
             [ngModel]="value === true"
             (ngModelChange)="valueChange.emit($event)"
           ></p-toggleswitch>
-          <span>{{ field.placeholder || 'Sí' }}</span>
+          <span>{{ field.placeholder || 'Yes' }}</span>
         </label>
       }
       @case ('radio') {

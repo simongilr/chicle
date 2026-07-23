@@ -239,7 +239,7 @@ interface PublicAuthConfig {
   ],
   template: `
     <app-public-page-shell contextLabel="Ingreso">
-      <a public-actions class="link" routerLink="/docs">Manual</a>
+      <a public-actions class="link" routerLink="/docs">Docs</a>
       <div class="login-shell">
         <section class="intro">
           <span class="badge">Seguridad modular</span>

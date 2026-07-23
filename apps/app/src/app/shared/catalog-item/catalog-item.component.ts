@@ -15,8 +15,11 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
       button {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
         gap: 6px;
         width: 100%;
+        min-width: 0;
         min-height: 72px;
         border: 1px solid transparent;
         border-radius: var(--ch-radius);
@@ -85,8 +88,11 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
       strong,
       span {
         display: block;
+        grid-column: 1 / -1;
         min-width: 0;
+        max-width: 100%;
         overflow-wrap: anywhere;
+        word-break: normal;
       }
 
       strong {

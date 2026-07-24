@@ -504,12 +504,15 @@ type RolePanelMode = 'create' | 'edit';
     `
   ],
   template: `
-    <app-page-shell contextLabel="Seguridad">
+    <app-page-shell contextLabel="Seguridad" contextLabelKey="nav.context.security">
       <div class="shell">
         <app-module-header
           eyebrow="Administración del tenant"
+          eyebrowKey="security.eyebrow"
           title="Seguridad y acceso"
+          titleKey="security.title"
           description="Controla organización, usuarios, roles, permisos y auditoría desde un mismo módulo."
+          descriptionKey="security.description"
           badge="RBAC"
         ></app-module-header>
 

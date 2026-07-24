@@ -580,12 +580,15 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
     `
   ],
   template: `
-    <app-page-shell contextLabel="Servicios">
+    <app-page-shell contextLabel="Servicios" contextLabelKey="nav.context.services">
       <div class="shell">
         <app-module-header
           title="Servicios dinámicos"
+          titleKey="services.title"
           description="Diseña servicios configurables por organización, publica versiones y prueba respuestas desde backend con límites de seguridad."
+          descriptionKey="services.description"
           badge="Tenant services"
+          badgeKey="services.badge"
         ></app-module-header>
 
         @if (canRead) {

@@ -77,9 +77,8 @@ export class UiPreferencesService {
     }
 
     this.initialized = true;
-    const stored = this.readStored();
     this.watchSystemMode();
-    void this.apply(stored, false);
+    void this.initializeFromStorage();
   }
 
   async update(patch: Partial<AdminUiPreferences>) {
@@ -103,6 +102,17 @@ export class UiPreferencesService {
     if (persist && typeof localStorage !== 'undefined') {
       localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(next));
     }
+  }
+
+  private async initializeFromStorage() {
+    const hasStoredPreferences = this.hasStoredPreferences();
+    const language = await this.i18n.initialize();
+    const stored = this.readStored();
+    await this.apply(hasStoredPreferences ? stored : { ...stored, language }, false);
+  }
+
+  private hasStoredPreferences() {
+    return typeof localStorage !== 'undefined' && Boolean(localStorage.getItem(PREFERENCES_STORAGE_KEY));
   }
 
   private readStored() {

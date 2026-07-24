@@ -5,9 +5,12 @@
     "types": []
   },
   "files": [
-    "src/main.ts",
-    "src/app/pages/preferences/preferences-page.component.ts",
-    "src/app/pages/architecture/architecture-page.component.ts"
+    "src/main.ts"
   ],
-  "include": ["src/**/*.d.ts"]
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/**/*.component.ts",
+    "src/app/**/*.directive.ts",
+    "src/app/**/*.pipe.ts"
+  ]
 }

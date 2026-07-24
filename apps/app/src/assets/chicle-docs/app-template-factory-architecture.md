@@ -23,6 +23,8 @@ Allowed in a template:
 - menus;
 - roles, permissions and resource policies;
 - themes and presentation profiles;
+- text bundles and locale manifests;
+- artifact preferences;
 - assets;
 - documentation;
 - seed data;
@@ -79,9 +81,16 @@ understand what the app contains.
     "roles": [],
     "resourcePolicies": [],
     "themes": [],
+    "textBundles": [],
+    "artifactPreferences": [],
     "assets": [],
     "docs": [],
     "tests": []
+  },
+  "locales": {
+    "defaultLocale": "en",
+    "supportedLocales": ["en", "es"],
+    "requiredNamespaces": ["app.field_inspection"]
   },
   "install": {
     "mode": "tenant",
@@ -108,7 +117,8 @@ Admin
 
 Export must include referenced objects recursively. A screen that uses a form must include that form. A form that calls a
 service must include that service. A flow that calls several services must include all of them. Permissions and menus
-must be included when the app needs them to operate.
+must be included when the app needs them to operate. Text namespaces referenced by screens, menus, forms, flows and
+runtime messages must be included as public text bundles with safe fallbacks.
 
 ## Import And Install Flow
 
@@ -139,6 +149,8 @@ Conflict handling:
 | Required capability missing | Block until installed or disabled |
 | Required table missing | Create through controlled schema changes |
 | Secret required | Ask for value through Chicle Vault, never package the secret |
+| Text key conflict | Ask: keep tenant override, replace, rename namespace or install as draft |
+| Missing locale | Install with fallback or block when the package marks the locale as required |
 
 ## Screens
 
@@ -214,6 +226,7 @@ Template export/import and artifact generation are related but different.
 | Purpose | Share app configuration | Deploy runnable app/build |
 | Format | JSON package plus assets/docs | Docker image, web build, mobile project, desktop package |
 | Secrets | Never included | Injected by environment/vault at deploy time |
+| Text | Public bundles plus fallbacks | Embedded default package plus backend refresh |
 | Runtime | Requires Chicle runtime | Contains or points to Chicle runtime |
 | MVP required | Yes | Only basic Docker/app build is required |
 
@@ -230,6 +243,9 @@ The MVP should export/import templates before trying to generate many artifact t
 | `dynamic_screens` | Screen definitions. |
 | `dynamic_screen_versions` | Published screen versions. |
 | `template_assets` | Images, icons, files and docs referenced by packages. |
+| `translation_namespaces` | Text namespaces installed by templates and artifacts. |
+| `translation_bundle_versions` | Immutable text bundles by namespace, locale and version. |
+| `artifact_preferences` | Default language, theme, kit, density and runtime preferences per generated app. |
 
 Existing objects such as `dynamic_services`, `dynamic_forms`, `flows`, `menus`, `permissions`, `roles` and
 `schema_changes` remain part of the package graph.
@@ -243,6 +259,8 @@ Existing objects such as `dynamic_services`, `dynamic_forms`, `flows`, `menus`, 
 5. **Screen Designer**: create screens using registered components and layout contracts.
 6. **Component Registry**: manage reusable component metadata and kit support.
 7. **Artifact Builder**: generate deployable assets only after runtime contracts are stable.
+8. **Text And Artifact Preferences**: manage default language, supported locales and runtime presentation preferences
+   for generated apps.
 
 ## Chicle AI Role
 
@@ -255,6 +273,8 @@ Chicle AI should help with:
 - generating test data;
 - validating that a template is portable;
 - documenting what a template installs.
+- generating text keys, fallback copy and translation bundle drafts;
+- configuring artifact preferences such as default locale, theme, kit and density.
 
 Chicle AI must not install or overwrite templates without explicit user approval.
 
@@ -302,4 +322,3 @@ The App Factory is MVP-ready when:
 - the app renders in Admin/web/mobile preview;
 - the package includes tests and documentation;
 - Chicle AI can explain and assist the process using the same contracts.
-

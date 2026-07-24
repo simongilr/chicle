@@ -170,7 +170,7 @@ interface HomeModule {
     `
   ],
   template: `
-    <app-page-shell contextLabel="Panel principal">
+    <app-page-shell contextLabel="Panel principal" contextLabelKey="nav.context.home">
       <div class="shell">
         <app-admin-panel
           title="Panel principal"

@@ -39,6 +39,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 35
   },
   {
+    key: 'translations',
+    label: 'Textos',
+    route: '/translations',
+    icon: 'pi pi-language',
+    permissions: ['translations.read'],
+    sortOrder: 34
+  },
+  {
     key: 'environments',
     label: 'Ambientes',
     route: '/environments',
@@ -69,6 +77,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     icon: 'pi pi-file-edit',
     permissions: ['forms.read'],
     sortOrder: 40
+  },
+  {
+    key: 'apps',
+    label: 'Apps',
+    route: '/apps',
+    icon: 'pi pi-window-maximize',
+    permissions: ['apps.read'],
+    sortOrder: 41
   },
   {
     key: 'security',

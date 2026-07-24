@@ -18,7 +18,7 @@ Product phrase:
 
 Chicle is a modular, extensible, multi-tenant and multi-target platform for building digital products from versioned
 metadata, events, JSON contracts, templates, declarative services, dynamic forms, flows, actions, reusable visual
-components and installable capabilities.
+components, text packages, artifact preferences and installable capabilities.
 
 Technical definition:
 
@@ -42,7 +42,7 @@ Chicle is not a rigid backend tied to one business vertical.
 Chicle does not execute arbitrary code stored by users or AI.
 
 Chicle does not depend on copying code per customer. Business differences live in templates, services, forms, flows,
-screens, components, adapters, permissions, data and configuration.
+screens, components, adapters, permissions, data, translations, artifact preferences and configuration.
 
 ## Architectural Mix
 
@@ -87,6 +87,10 @@ Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Events
 Admin concentrates everything that is administrable, designable and configurable. Web, mobile and desktop apps are
 business apps and deployable artifacts that execute what Admin publishes through the API. Docker packages and delivers
 artifacts; it does not govern audit, quality or performance. Those capabilities belong to Chicle operational support.
+
+Text and language are also part of the platform contract. Admin and generated apps resolve labels, messages and help
+text through versioned text bundles with local fallbacks, backend-controlled defaults and artifact-level preferences.
+This keeps products portable, multilingual, offline-capable and safe to export/import without embedding secrets.
 
 ## Deployment And Service Topology
 

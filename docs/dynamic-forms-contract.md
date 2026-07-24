@@ -1083,6 +1083,30 @@ presentation only through the declarative `presentation` object.
 }
 ```
 
+## Text And Language
+
+Dynamic forms use the platform text contract documented in `docs/i18n-text-architecture.md`.
+
+New forms should prefer keys plus fallbacks:
+
+```json
+{
+  "titleKey": "forms.login.title",
+  "title": "Sign in",
+  "descriptionKey": "forms.login.description",
+  "description": "Access with your credentials.",
+  "runtime": {
+    "submitLabelKey": "forms.login.submit",
+    "submitLabel": "Sign in"
+  }
+}
+```
+
+Fields, steps, commands, validation messages and submit responses follow the same rule. Legacy direct text properties
+such as `title`, `label`, `placeholder` and `help` remain readable as fallback aliases during migration, but they are
+not the final source of truth. The current contract keeps the fallback in the direct property and puts the managed text
+key beside it, for example `label` plus `labelKey`.
+
 Hierarchy:
 
 ```txt

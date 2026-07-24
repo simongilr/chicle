@@ -7,25 +7,25 @@ export interface DocsMarkdownFile {
 
 export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
   {
-    title: "Arquitectura base",
+    title: "Base architecture",
     path: "architecture.md",
-    category: "Arquitectura",
+    category: "Architecture",
     summary:
-      "Mapa técnico del repositorio, runtime declarativo, servicios, flows, acciones, seguridad e infra.",
+      "Technical map of the repository, declarative runtime, services, flows, actions, security and infrastructure.",
   },
   {
-    title: "Arquitectura de plataforma",
+    title: "Platform architecture",
     path: "platform-architecture.md",
-    category: "Arquitectura",
+    category: "Architecture",
     summary:
-      "Definición oficial Event-Driven, Metadata-Driven y Microkernel de Chicle.",
+      "Official Event-Driven, Metadata-Driven and Microkernel definition for Chicle.",
   },
   {
-    title: "Estado del proyecto",
+    title: "Project state",
     path: "project-state-analysis.md",
-    category: "Arquitectura",
+    category: "Architecture",
     summary:
-      "Diagnóstico actual de avance, fortalezas, riesgos y próximos bloques recomendados.",
+      "Current diagnosis of progress, strengths, risks and recommended next blocks.",
   },
   {
     title: "Environment deploy and vault",
@@ -35,88 +35,95 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Environment And Deploy Center, Chicle Vault, runtime config, service registry and V1/V2 scope.",
   },
   {
-    title: "Decisiones",
+    title: "Text and language architecture",
+    path: "i18n-text-architecture.md",
+    category: "Architecture",
+    summary:
+      "Text bundles, backend-controlled locales, artifact preferences, offline cache and Admin/generated-app rules.",
+  },
+  {
+    title: "Decisions",
     path: "decisions.md",
-    category: "Gobierno",
-    summary: "Decisiones base del proyecto y criterios que no deben perderse.",
+    category: "Governance",
+    summary: "Base project decisions and criteria that must not be lost.",
   },
   {
     title: "Context handoff",
     path: "context-handoff.md",
-    category: "Gobierno",
+    category: "Governance",
     summary:
-      "Punto de transferencia para continuar el proyecto entre conversaciones.",
+      "Transfer point for continuing the project across conversations.",
   },
   {
     title: "MVP scope",
     path: "mvp-scope.md",
-    category: "Gobierno",
-    summary: "Alcance del MVP y límites iniciales.",
+    category: "Governance",
+    summary: "MVP scope and initial boundaries.",
   },
   {
     title: "Security auth review",
     path: "security-auth-review.md",
-    category: "Seguridad",
+    category: "Security",
     summary:
-      "Revisión de seguridad, auth, roles, permisos y protección de runtime.",
+      "Security review for auth, roles, permissions and runtime protection.",
   },
   {
     title: "AI authoring guide",
     path: "ai-authoring-guide.md",
-    category: "IA",
+    category: "AI",
     summary:
-      "Entrada humana e IA para crear servicios, forms, flows y contratos JSON.",
+      "Human and AI entry point for creating services, forms, flows and JSON contracts.",
   },
   {
     title: "AI ready authoring",
     path: "ai-ready-authoring.md",
-    category: "IA",
-    summary: "Endpoints y secuencias JSON-only pensadas para asistentes.",
+    category: "AI",
+    summary: "JSON-only endpoints and sequences designed for assistants.",
   },
   {
     title: "AI RAG architecture",
     path: "ai-rag-architecture.md",
-    category: "IA",
-    summary: "Knowledge Packs, retrieval local y estrategia RAG de Chicle AI.",
+    category: "AI",
+    summary: "Knowledge Packs, local retrieval and Chicle AI RAG strategy.",
   },
   {
     title: "AI local Ollama",
     path: "ai-local-ollama.md",
-    category: "IA",
-    summary: "Runtime local con Ollama, modelos, embeddings y configuración.",
+    category: "AI",
+    summary: "Local runtime with Ollama, models, embeddings and configuration.",
   },
   {
     title: "Dynamic services contract",
     path: "dynamic-services-contract.md",
-    category: "Contratos",
+    category: "Contracts",
     summary:
-      "Contrato ejecutable de servicios dinámicos, filtros, joins, writeMap, pruebas y publicación.",
+      "Executable contract for dynamic services, filters, joins, writeMap, tests and publishing.",
   },
   {
     title: "Dynamic forms contract",
     path: "dynamic-forms-contract.md",
-    category: "Contratos",
+    category: "Contracts",
     summary:
-      "Contrato de formularios dinámicos, steps, campos, acciones, persistencia y responsive.",
+      "Dynamic forms contract for steps, fields, actions, persistence and responsive behavior.",
   },
   {
     title: "Flow contract",
     path: "flow-contract.md",
-    category: "Contratos",
+    category: "Contracts",
     summary:
-      "Contrato de flows, triggers, steps, runtime, pruebas y respuesta.",
+      "Flow contract for triggers, steps, runtime, tests and response shaping.",
   },
   {
     title: "Formly architecture",
     path: "formly-architecture.md",
     category: "Frontend",
-    summary: "Puente Formly y render declarativo multikit.",
+    summary: "Formly bridge and declarative multikit rendering.",
   },
   {
     title: "UI presentation architecture",
     path: "ui-presentation-architecture.md",
     category: "Frontend",
-    summary: "Arquitectura de presentación, temas, kits visuales y adapters.",
+    summary: "Presentation architecture, themes, visual kits and adapters.",
   },
   {
     title: "Dynamic grid layout contract",
@@ -133,54 +140,61 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Portable app packages, template import/export, screen contracts and artifact generation boundaries.",
   },
   {
+    title: "Screen and app designer architecture",
+    path: "screen-app-designer-architecture.md",
+    category: "Architecture",
+    summary:
+      "Dynamic app and screen contracts, runtime objects, authoring flow, permissions and template package strategy.",
+  },
+  {
     title: "UI components",
     path: "ui-components.md",
     category: "Frontend",
-    summary: "Reglas de componentes reutilizables, documentación y adopción.",
+    summary: "Reusable component rules, documentation and adoption.",
   },
   {
     title: "UI component inventory",
     path: "ui-component-inventory.md",
     category: "Frontend",
     summary:
-      "Inventario de componentes visuales existentes y estado de reutilización.",
+      "Inventory of existing visual components and reuse status.",
   },
   {
     title: "UI reuse audit",
     path: "ui-reuse-audit.md",
     category: "Frontend",
-    summary: "Auditoría visual de reutilización por rutas y excepciones.",
+    summary: "Visual reuse audit by route and exception.",
   },
   {
     title: "Admin UI reuse audit",
     path: "admin-ui-reuse-audit.md",
     category: "Frontend",
     summary:
-      "Auditoría por página del Admin, porcentajes de reutilización y componentes faltantes.",
+      "Admin page audit, reuse percentages and missing reusable components.",
   },
   {
     title: "Admin kit transformation audit",
     path: "admin-kit-transformation-audit.md",
     category: "Frontend",
     summary:
-      "Auditoría estricta de transformación multi-kit por página y componentes faltantes.",
+      "Strict multi-kit transformation audit by page and missing components.",
   },
   {
     title: "Backup worker architecture",
     path: "backup-worker-architecture.md",
-    category: "Operación",
-    summary: "Worker, backup, procesos separables y recuperación.",
+    category: "Operations",
+    summary: "Worker, backup, separable processes and recovery.",
   },
   {
     title: "Angular 20 migration roadmap",
     path: "angular-20-migration-roadmap.md",
-    category: "Operación",
-    summary: "Ruta auditada de migración y estabilización Angular 20.",
+    category: "Operations",
+    summary: "Audited Angular 20 migration and stabilization path.",
   },
   {
     title: "Angular 20 migration report",
     path: "angular-20-migration-report.md",
-    category: "Operación",
-    summary: "Resultado instalado y verificación de Angular 20.",
+    category: "Operations",
+    summary: "Installed Angular 20 result and verification.",
   },
 ];

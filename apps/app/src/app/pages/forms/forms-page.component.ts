@@ -909,12 +909,14 @@ const FORM_TEMPLATES: FormTemplate[] = [
     `
   ],
   template: `
-    <app-page-shell contextLabel="Formularios">
+    <app-page-shell contextLabel="Formularios" contextLabelKey="nav.context.forms">
       <div class="shell">
         <app-module-header
           eyebrow="Dynamic Forms"
           title="Diseñador de formularios"
+          titleKey="forms.title"
           description="Crea formularios versionados para web y móvil desde la guía visual o directamente desde el JSON editable."
+          descriptionKey="forms.description"
           badge="V1"
         ></app-module-header>
 

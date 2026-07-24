@@ -47,6 +47,13 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'translations',
+    loadComponent: () =>
+      import('./pages/translations/translations-page.component').then((module) => module.TranslationsPageComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['translations.read'] }
+  },
+  {
     path: 'environments',
     loadComponent: () =>
       import('./pages/environments/environments-page.component').then((module) => module.EnvironmentsPageComponent),
@@ -77,6 +84,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/forms/forms-page.component').then((module) => module.FormsPageComponent),
     canActivate: [authGuard, permissionGuard],
     data: { permissions: ['forms.read'] }
+  },
+  {
+    path: 'apps',
+    loadComponent: () => import('./pages/apps/apps-page.component').then((module) => module.AppsPageComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['apps.read'] }
   },
   {
     path: 'login',

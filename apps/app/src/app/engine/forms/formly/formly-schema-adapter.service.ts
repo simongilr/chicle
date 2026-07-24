@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AbstractControl } from '@angular/forms';
 import { FormlyFieldConfig } from '@ngx-formly/core';
+import { I18nService } from '../../../core/i18n/i18n.service';
 import { UiPresentationConfig } from '../../../core/ui/ui-presentation.types';
 import {
   RuntimeField,
@@ -16,6 +17,8 @@ export interface FormlySchemaContext {
 
 @Injectable({ providedIn: 'root' })
 export class FormlySchemaAdapterService {
+  private readonly i18n = inject(I18nService);
+
   toFields(fields: RuntimeField[], context: FormlySchemaContext = {}): FormlyFieldConfig[] {
     return fields.map((field) => this.toField(field, context));
   }
@@ -29,43 +32,52 @@ export class FormlySchemaAdapterService {
   }
 
   private toField(field: RuntimeField, context: FormlySchemaContext): FormlyFieldConfig {
-    if (this.isDisplay(field.type)) {
+    const runtimeField = this.resolveFieldText(field);
+
+    if (this.isDisplay(runtimeField.type)) {
       return {
         type: 'chicle-display',
         className: 'ch-formly-field ch-formly-field--full',
-        props: { runtimeField: field }
+        props: { runtimeField }
       };
     }
 
-    const exactLength = field.length?.exact;
+    const exactLength = runtimeField.length?.exact;
     const config: FormlyFieldConfig = {
-      key: this.fieldKey(field),
+      key: this.fieldKey(runtimeField),
       type: 'chicle-field',
-      className: `ch-formly-field ch-formly-field--${this.layoutClass(field, context.viewportWidth)}`,
-      defaultValue: field.config?.['defaultValue'],
+      className: `ch-formly-field ch-formly-field--${this.layoutClass(runtimeField, context.viewportWidth)}`,
+      defaultValue: runtimeField.config?.['defaultValue'],
       props: {
-        label: field.label,
-        required: field.required === true,
-        minLength: exactLength ?? field.length?.min,
-        maxLength: exactLength ?? field.length?.max,
-        disabled: context.readonly === true || field.readonly === true,
-        readonly: context.readonly === true || field.readonly === true,
-        help: typeof field.config?.['help'] === 'string' ? field.config['help'] : '',
-        runtimeField: { ...field, name: this.fieldKey(field), key: field.key ?? field.name },
+        label: runtimeField.label,
+        required: runtimeField.required === true,
+        minLength: exactLength ?? runtimeField.length?.min,
+        maxLength: exactLength ?? runtimeField.length?.max,
+        disabled: context.readonly === true || runtimeField.readonly === true,
+        readonly: context.readonly === true || runtimeField.readonly === true,
+        help: typeof runtimeField.config?.['help'] === 'string' ? runtimeField.config['help'] : '',
+        runtimeField: {
+          ...runtimeField,
+          name: this.fieldKey(runtimeField),
+          key: runtimeField.key ?? runtimeField.name
+        },
         presentation: context.presentation,
         viewportWidth: context.viewportWidth
       },
       validation: {
         messages: {
-          required: `${field.label} es obligatorio.`,
-          minlength: `${field.label} no alcanza la longitud mínima.`,
-          maxlength: `${field.label} supera la longitud máxima.`,
-          exactLength: `${field.label} debe tener exactamente ${exactLength} caracteres.`
+          required: this.i18n.translate('forms.runtime.validation.required', { field: runtimeField.label }),
+          minlength: this.i18n.translate('forms.runtime.validation.minlength', { field: runtimeField.label }),
+          maxlength: this.i18n.translate('forms.runtime.validation.maxlength', { field: runtimeField.label }),
+          exactLength: this.i18n.translate('forms.runtime.validation.exactLength', {
+            field: runtimeField.label,
+            length: exactLength ?? ''
+          })
         }
       }
     };
 
-    const transform = field.transform;
+    const transform = runtimeField.transform;
     if (transform) {
       config.parsers = [(value) => this.transform(value, transform)];
     }
@@ -83,9 +95,9 @@ export class FormlySchemaAdapterService {
       };
     }
 
-    if (field.visibleWhen) {
+    if (runtimeField.visibleWhen) {
       config.expressions = {
-        hide: (formlyField) => !this.matches(formlyField.model as Record<string, unknown>, field.visibleWhen!)
+        hide: (formlyField) => !this.matches(formlyField.model as Record<string, unknown>, runtimeField.visibleWhen!)
       };
       config.resetOnHide = false;
     }
@@ -138,6 +150,35 @@ export class FormlySchemaAdapterService {
 
   private isDisplay(type: string) {
     return ['title', 'paragraph', 'divider'].includes(type.toLowerCase());
+  }
+
+  private resolveFieldText(field: RuntimeField): RuntimeField {
+    const config = field.config ?? {};
+    const help = this.localized(this.stringValue(field.helpKey ?? config['helpKey']), this.stringValue(field.help ?? config['help']));
+    return {
+      ...field,
+      label: this.localized(field.labelKey, field.label || field.name),
+      placeholder: this.localized(field.placeholderKey, field.placeholder ?? ''),
+      text: this.localized(field.textKey, field.text ?? ''),
+      help,
+      options: field.options?.map((option) => ({
+        ...option,
+        label: this.localized(option.labelKey, option.label)
+      })),
+      config: {
+        ...config,
+        help
+      }
+    };
+  }
+
+  private localized(key: unknown, fallback: string) {
+    const normalizedKey = this.stringValue(key).trim();
+    return normalizedKey ? this.i18n.label(normalizedKey, fallback) : fallback;
+  }
+
+  private stringValue(value: unknown) {
+    return typeof value === 'string' ? value : '';
   }
 
   private fieldKey(field: RuntimeField) {

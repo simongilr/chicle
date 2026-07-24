@@ -4,6 +4,7 @@ import {
   UiRuntimePlatform
 } from '../../core/ui/ui-presentation.types';
 import { UiPresentationService } from '../../core/ui/ui-presentation.service';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { FieldShellComponent } from '../field-shell/field-shell.component';
 import { BootstrapFieldRendererComponent } from '../field-renderers/bootstrap-field-renderer.component';
@@ -61,10 +62,10 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
         [attr.data-ui-profile]="resolution.profileKey"
       >
         <app-ionic-field-renderer
-          [field]="field"
+          [field]="resolvedField"
           [controlId]="controlId"
           [value]="value"
-          [help]="help"
+          [help]="resolvedHelp"
           [error]="error"
           [disabled]="disabled"
           [readonly]="readonly"
@@ -73,11 +74,11 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
       </div>
     } @else {
       <app-field-shell
-        [label]="field.label"
+        [label]="resolvedField.label"
         [forId]="controlId"
-        [help]="help"
+        [help]="resolvedHelp"
         [error]="error"
-        [required]="field.required === true"
+        [required]="resolvedField.required === true"
         [kit]="resolution.kit"
       >
         <div
@@ -89,7 +90,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
           @switch (resolution.kit) {
           @case ('primeng') {
             <app-primeng-field-renderer
-              [field]="field"
+              [field]="resolvedField"
               [controlId]="controlId"
               [value]="value"
               [disabled]="disabled"
@@ -99,7 +100,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
           }
           @case ('material') {
             <app-material-field-renderer
-              [field]="field"
+              [field]="resolvedField"
               [controlId]="controlId"
               [value]="value"
               [disabled]="disabled"
@@ -109,7 +110,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
           }
           @case ('bootstrap') {
             <app-bootstrap-field-renderer
-              [field]="field"
+              [field]="resolvedField"
               [controlId]="controlId"
               [value]="value"
               [disabled]="disabled"
@@ -119,7 +120,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
           }
           @default {
             <app-native-field-renderer
-              [field]="field"
+              [field]="resolvedField"
               [controlId]="controlId"
               [value]="value"
               [disabled]="disabled"
@@ -135,6 +136,7 @@ import { PrimengFieldRendererComponent } from '../field-renderers/primeng-field-
 })
 export class DynamicFieldControlComponent {
   private readonly presentationService = inject(UiPresentationService);
+  private readonly i18n = inject(I18nService);
 
   @Input({ required: true }) field!: RuntimeField;
   @Input() value: unknown = '';
@@ -155,6 +157,35 @@ export class DynamicFieldControlComponent {
     return `dynamic-field-${this.field.name}`;
   }
 
+  get resolvedField(): RuntimeField {
+    const field = this.field;
+    const config = field.config ?? {};
+    const help = this.localized(
+      this.stringValue(field.helpKey ?? config['helpKey']),
+      this.stringValue(field.help ?? config['help'])
+    );
+
+    return {
+      ...field,
+      label: this.localized(field.labelKey, field.label || field.name),
+      placeholder: this.localized(field.placeholderKey, field.placeholder ?? ''),
+      text: this.localized(field.textKey, field.text ?? ''),
+      help,
+      options: field.options?.map((option) => ({
+        ...option,
+        label: this.localized(option.labelKey, option.label)
+      })),
+      config: {
+        ...config,
+        help
+      }
+    };
+  }
+
+  get resolvedHelp() {
+    return this.help || this.resolvedField.help || this.stringValue(this.resolvedField.config?.['help']);
+  }
+
   get resolution() {
     return this.presentationService.resolve({
       width: this.viewportWidth,
@@ -167,5 +198,14 @@ export class DynamicFieldControlComponent {
   @HostListener('window:resize')
   handleViewportChange() {
     // The host event schedules change detection so the responsive getter is reevaluated.
+  }
+
+  private localized(key: unknown, fallback: string) {
+    const normalizedKey = this.stringValue(key).trim();
+    return normalizedKey ? this.i18n.label(normalizedKey, fallback) : fallback;
+  }
+
+  private stringValue(value: unknown) {
+    return typeof value === 'string' ? value : '';
   }
 }

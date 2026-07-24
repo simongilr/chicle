@@ -184,6 +184,30 @@ export const CONFISYS_DEFAULTS: ConfisysDefault[] = [
     isPublic: true
   },
   {
+    key: 'i18n.defaultLocale',
+    value: 'es',
+    valueType: 'string',
+    category: 'i18n',
+    description: 'Idioma base que usa el frontend cuando el usuario no tiene preferencia local.',
+    isPublic: true
+  },
+  {
+    key: 'i18n.supportedLocales',
+    value: ['es', 'en'],
+    valueType: 'json',
+    category: 'i18n',
+    description: 'Idiomas publicados por defecto para Admin, apps y plantillas generadas.',
+    isPublic: true
+  },
+  {
+    key: 'i18n.adminNamespace',
+    value: 'admin',
+    valueType: 'string',
+    category: 'i18n',
+    description: 'Namespace de textos usado por el panel administrativo.',
+    isPublic: true
+  },
+  {
     key: 'services.defaultTimeoutMs',
     value: 8000,
     valueType: 'number',

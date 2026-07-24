@@ -34,10 +34,17 @@ export const BASE_PERMISSIONS: BasePermissionSeed[] = [
   { key: 'permissions.read', category: 'roles', description: 'Ver permisos disponibles.' },
   { key: 'security.sync', category: 'security', description: 'Sincronizar permisos, roles y menús base del tenant.' },
   { key: 'menus.read', category: 'menus', description: 'Ver menús.' },
+  { key: 'translations.read', category: 'translations', description: 'Ver paquetes de textos e idiomas.' },
+  { key: 'translations.manage', category: 'translations', description: 'Administrar paquetes de textos e idiomas.' },
   { key: 'forms.read', category: 'forms', description: 'Ver formularios.' },
   { key: 'forms.manage', category: 'forms', description: 'Administrar formularios.' },
   { key: 'forms.publish', category: 'forms', description: 'Publicar versiones de formularios.' },
   { key: 'forms.submit', category: 'forms', description: 'Enviar formularios publicados.' },
+  { key: 'apps.read', category: 'apps', description: 'Ver apps y pantallas dinámicas.' },
+  { key: 'apps.manage', category: 'apps', description: 'Administrar apps, pantallas y paquetes visuales.' },
+  { key: 'apps.publish', category: 'apps', description: 'Publicar versiones de apps y pantallas.' },
+  { key: 'apps.export', category: 'apps', description: 'Exportar plantillas de apps.' },
+  { key: 'apps.install', category: 'apps', description: 'Instalar plantillas de apps en el tenant.' },
   { key: 'services.read', category: 'services', description: 'Ver servicios dinámicos.' },
   { key: 'services.manage', category: 'services', description: 'Administrar servicios dinámicos.' },
   { key: 'services.execute', category: 'services', description: 'Probar y ejecutar servicios dinámicos.' },
@@ -90,10 +97,17 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'permissions.read',
       'security.sync',
       'menus.read',
+      'translations.read',
+      'translations.manage',
       'forms.read',
       'forms.manage',
       'forms.publish',
       'forms.submit',
+      'apps.read',
+      'apps.manage',
+      'apps.publish',
+      'apps.export',
+      'apps.install',
       'services.read',
       'services.manage',
       'services.execute',
@@ -122,6 +136,7 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'menus.read',
       'forms.read',
       'forms.submit',
+      'apps.read',
       'services.read',
       'services.execute',
       'ai.assistant.use',
@@ -136,12 +151,12 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     key: 'viewer',
     name: 'Viewer',
     description: 'Consulta de información sin modificación.',
-    permissions: ['menus.read', 'forms.read', 'ai.assistant.use', 'records.read', 'files.read']
+    permissions: ['menus.read', 'forms.read', 'apps.read', 'ai.assistant.use', 'records.read', 'files.read']
   },
   {
     key: 'client',
     name: 'Cliente app',
     description: 'Cliente o usuario externo que usa la app del tenant con acceso limitado.',
-    permissions: ['menus.read', 'forms.read', 'forms.submit', 'records.read', 'records.create', 'files.upload', 'files.read']
+    permissions: ['menus.read', 'forms.read', 'forms.submit', 'apps.read', 'records.read', 'records.create', 'files.upload', 'files.read']
   }
 ];

@@ -142,6 +142,8 @@ function setupSwagger(app: Awaited<ReturnType<typeof NestFactory.create>>, confi
     .addTag('Security / Users', 'Administracion de usuarios del tenant.')
     .addTag('Security / RBAC', 'Roles, permisos y auditoria.')
     .addTag('Confisys', 'Parametros del sistema cargados en memoria al iniciar la API.')
+    .addTag('Translations', 'Text bundles, locales and dynamic copy packages.')
+    .addTag('Apps / Screens', 'Dynamic apps, screens, versions and runtime manifests.')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, swaggerDocument, {

@@ -148,13 +148,16 @@ interface ConfisysSaveResponse {
     `
   ],
   template: `
-    <app-page-shell contextLabel="Configuración">
+    <app-page-shell contextLabel="Configuración" contextLabelKey="nav.context.confisys">
       <div class="shell">
         <app-module-header
           eyebrow="Administración del runtime"
+          eyebrowKey="confisys.eyebrow"
           title="Confisys"
           description="Parámetros cargados en memoria al iniciar la API. Los cambios se guardan en base de datos y aplican después de reiniciar el backend."
+          descriptionKey="confisys.description"
           badge="Configuración"
+          badgeKey="confisys.badge"
         ></app-module-header>
 
         <app-admin-filter-bar ariaLabel="Confisys filters" minColumnWidth="220px">

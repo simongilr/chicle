@@ -23,11 +23,13 @@ Read these files in order:
 13. `docs/ui-components.md`
 14. `docs/ui-component-inventory.md`
 15. `docs/ui-presentation-architecture.md`
-16. `docs/examples/ui-presentation.examples.json`
-17. `docs/formly-architecture.md`
-18. `docs/examples/dynamic-form-formly.examples.json`
-19. `docs/angular-20-migration-roadmap.md`
-20. `docs/angular-20-migration-report.md`
+16. `docs/i18n-text-architecture.md`
+17. `docs/examples/text-bundles.examples.json`
+18. `docs/examples/ui-presentation.examples.json`
+19. `docs/formly-architecture.md`
+20. `docs/examples/dynamic-form-formly.examples.json`
+21. `docs/angular-20-migration-roadmap.md`
+22. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -60,6 +62,15 @@ The TypeScript contracts remain authoritative when documentation and code differ
   PrimeNG/Ionic component tags or library CSS classes in stored JSON.
 - Personalization must use installed themes, `themeMode`, `density`, `radius` and safe semantic `tokens`. Never emit
   CSS blocks, arbitrary classes or unregistered theme imports in stored JSON.
+- User-facing text must use stable text keys plus fallback text. Generate `titleKey`/`fallbackTitle`,
+  `labelKey`/`fallbackLabel`, `placeholderKey`/`fallbackPlaceholder`, validation message keys and action message keys
+  according to `docs/i18n-text-architecture.md`.
+- Generated app packages must include a default text package and artifact preferences for default locale, supported
+  locales, theme, kit and density. Admin uses the same text resolver and may keep hardcoded text only as migration
+  fallback.
+- When a form, screen, menu, service description or flow message introduces new user-facing text, also create the
+  matching text keys through the text bundle workflow. Prefer `POST /api/translations/keys` for one key across
+  installed languages.
 - Build dynamic forms from the Chicle contract first. Use `steps` as the user journey, `fields` as declarative data
   capture, `actions` for submit behavior and `tests` for designer verification.
 - Use `commands` for visible buttons. A button must declare placement, style, permission, validation requirements and
@@ -212,6 +223,36 @@ Future AI behavior:
 - Explain table, service, flow, permission and runtime dependencies.
 - Send proposed changes back to the active screen so its existing visual and JSON editors can show the diff.
 - Require explicit user approval before saving, versioning or publishing.
+
+## Text authoring protocol
+
+When the assistant creates or edits any visual object, it must treat text as part of the artifact contract:
+
+1. Choose a namespace from the object type and key, for example `forms.login`, `screens.admin_home` or
+   `app.field_inspection`.
+2. Generate stable keys for titles, descriptions, labels, placeholders, validation messages, buttons and success/error
+   messages.
+3. Keep fallback text beside the key inside the object JSON so the object remains readable offline.
+4. Use `POST /api/translations/keys` to create one key across installed languages when the user approves it.
+5. If a requested language is not installed, explain that the locale must be registered before publishing offline app
+   bundles for it.
+6. Never place secrets, URLs with credentials, tokens, passwords, hashes or private API keys in text bundles.
+
+When the active screen is the text manager, the assistant should use an `apply_translation_key` draft action to fill the
+namespace, key and language values. That action does not persist anything; the user still saves from the page.
+
+Example key creation request:
+
+```json
+{
+  "namespace": "forms.login",
+  "key": "fields.email.label",
+  "values": {
+    "es": "Correo",
+    "en": "Email"
+  }
+}
+```
 
 ## Validation checklist
 

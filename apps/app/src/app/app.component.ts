@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoadingSkeletonComponent } from './shared/loading-skeleton/loading-skeleton.component';
 import { UiPreferencesService } from './core/ui/ui-preferences.service';
 import { AiAssistantLauncherComponent } from './shared/ai-assistant-launcher/ai-assistant-launcher.component';
+import { I18nService } from './core/i18n/i18n.service';
 
 @Component({
   selector: 'app-root',
@@ -142,7 +143,7 @@ import { AiAssistantLauncherComponent } from './shared/ai-assistant-launcher/ai-
           <div class="loading-content">
             <app-loading-skeleton
               variant="page"
-              label="Abriendo pantalla"
+              [label]="i18n.translate('common.loadingPage')"
             ></app-loading-skeleton>
           </div>
         </div>
@@ -154,6 +155,7 @@ export class AppComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly preferences = inject(UiPreferencesService);
+  readonly i18n = inject(I18nService);
   private hideTimer?: ReturnType<typeof setTimeout>;
   readonly navigationLoading = signal(false);
 

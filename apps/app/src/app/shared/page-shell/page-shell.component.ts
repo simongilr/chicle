@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { IonContent } from '@ionic/angular/standalone';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { MainNavComponent } from '../main-nav/main-nav.component';
 
 export type PageShellWidth = 'standard' | 'wide';
@@ -45,7 +46,7 @@ export type PageShellWidth = 'standard' | 'wide';
       [scrollEvents]="scrollEvents"
       (ionScroll)="contentScrolled.emit($event)"
     >
-      <app-main-nav [contextLabel]="contextLabel"></app-main-nav>
+      <app-main-nav [contextLabel]="resolvedContextLabel()"></app-main-nav>
       <main
         class="content"
         [style.--page-max-width]="width === 'standard' ? '1180px' : '1260px'"
@@ -56,8 +57,15 @@ export type PageShellWidth = 'standard' | 'wide';
   `
 })
 export class PageShellComponent {
+  private readonly i18n = inject(I18nService);
+
   @Input() contextLabel = '';
+  @Input() contextLabelKey = '';
   @Input() width: PageShellWidth = 'wide';
   @Input() scrollEvents = false;
   @Output() readonly contentScrolled = new EventEmitter<Event>();
+
+  resolvedContextLabel() {
+    return this.contextLabelKey ? this.i18n.label(this.contextLabelKey, this.contextLabel) : this.contextLabel;
+  }
 }

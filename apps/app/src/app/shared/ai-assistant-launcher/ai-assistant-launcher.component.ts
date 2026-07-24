@@ -566,6 +566,10 @@ export class AiAssistantLauncherComponent {
       return 'forms';
     }
 
+    if (url.startsWith('/apps')) {
+      return 'apps';
+    }
+
     if (url.startsWith('/database')) {
       return 'database';
     }
@@ -578,6 +582,10 @@ export class AiAssistantLauncherComponent {
       return 'components';
     }
 
+    if (url.startsWith('/translations')) {
+      return 'translations';
+    }
+
     return 'general';
   }
 
@@ -587,9 +595,11 @@ export class AiAssistantLauncherComponent {
       services: 'Servicios',
       flows: 'Flows',
       forms: 'Formularios',
+      apps: 'Apps',
       database: 'Base de datos',
       security: 'Seguridad',
-      components: 'Componentes'
+      components: 'Componentes',
+      translations: 'Textos'
     };
 
     return labels[scope];
@@ -601,9 +611,11 @@ export class AiAssistantLauncherComponent {
       services: 'Ej: necesito un servicio para consultar usuarios por nombre',
       flows: 'Ej: crea un proceso que valide un usuario y luego responda al front',
       forms: 'Ej: agrega un formulario de cliente con email, teléfono y validación',
+      apps: 'Ej: crea una app de eventos con home, agenda y registro',
       database: 'Ej: explícame qué tabla necesito para guardar estos datos',
       security: 'Ej: crea una estrategia de permisos para operadores y admins',
-      components: 'Ej: muéstrame qué componente debo usar para un catálogo lateral'
+      components: 'Ej: muéstrame qué componente debo usar para un catálogo lateral',
+      translations: 'Ej: crea la clave forms.login.submit en español e inglés'
     };
 
     return placeholders[scope];

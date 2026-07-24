@@ -30,6 +30,8 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/ai-local-ollama.md` defines the first local AI provider stack.
 - `docs/environment-deploy-vault-roadmap.md` defines the Environment And Deploy Center, Chicle Vault, runtime config,
   service registry, generated artifacts, server deployment strategy, microservice extraction strategy and V1/V2 scope.
+- `docs/i18n-text-architecture.md` defines text packages, backend-controlled default languages, artifact
+  preferences, offline text cache and Admin/generated-app translation rules.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive

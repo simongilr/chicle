@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "kind": "chicle_text_bundle_examples",
+  "examples": [
+    {
+      "name": "Create one key across installed languages",
+      "endpoint": "POST /api/translations/keys",
+      "request": {
+        "namespace": "forms.login",
+        "key": "fields.email.label",
+        "values": {
+          "es": "Correo",
+          "en": "Email"
+        },
+        "name": "Login form texts",
+        "description": "User-facing labels for the login form."
+      },
+      "notes": [
+        "Use this endpoint when the assistant or Admin creates a new key.",
+        "The backend merges the key into each active locale bundle and publishes a new version.",
+        "Do not place secrets, tokens or credentials in text bundles."
+      ]
+    },
+    {
+      "name": "Assistant draft action for the text manager",
+      "action": {
+        "type": "apply_translation_key",
+        "label": "Prepare forms.login:submit",
+        "namespace": "forms.login",
+        "key": "submit",
+        "values": {
+          "es": "Iniciar sesion",
+          "en": "Sign in"
+        }
+      },
+      "notes": [
+        "This action fills the Admin text manager only.",
+        "The user still reviews and saves through POST /api/translations/keys.",
+        "If values are incomplete, leave them editable and ask the user to finish the language values."
+      ]
+    },
+    {
+      "name": "Generated app default bundle",
+      "bundle": {
+        "schemaVersion": 1,
+        "kind": "text_bundle",
+        "namespace": "app.field_inspection",
+        "defaultLocale": "es",
+        "supportedLocales": ["es", "en"],
+        "version": "1.0.0",
+        "entries": {
+          "app.title": "Inspecciones",
+          "menu.home": "Inicio",
+          "forms.inspection.submit": "Guardar inspección",
+          "messages.saved": "Registro guardado correctamente."
+        }
+      }
+    },
+    {
+      "name": "Dynamic form with text keys and fallbacks",
+      "form": {
+        "schemaVersion": 1,
+        "kind": "dynamic_form",
+        "key": "login",
+        "titleKey": "forms.login.title",
+        "title": "Iniciar sesión",
+        "descriptionKey": "forms.login.description",
+        "description": "Permite iniciar sesión con credenciales.",
+        "runtime": {
+          "submitLabelKey": "forms.login.submit",
+          "submitLabel": "Iniciar sesión"
+        },
+        "steps": [
+          {
+            "key": "credentials",
+            "titleKey": "forms.login.steps.credentials.title",
+            "title": "Credenciales",
+            "fields": [
+              {
+                "key": "email",
+                "name": "email",
+                "type": "email",
+                "labelKey": "forms.login.fields.email.label",
+                "label": "Correo",
+                "placeholderKey": "forms.login.fields.email.placeholder",
+                "placeholder": "admin@empresa.com",
+                "required": true,
+                "validationMessages": {
+                  "requiredKey": "forms.login.fields.email.required",
+                  "required": "El correo es obligatorio."
+                }
+              },
+              {
+                "key": "password",
+                "name": "password",
+                "type": "password",
+                "labelKey": "forms.login.fields.password.label",
+                "label": "Contraseña",
+                "placeholderKey": "forms.login.fields.password.placeholder",
+                "placeholder": "Ingresa tu contraseña",
+                "required": true,
+                "validationMessages": {
+                  "requiredKey": "forms.login.fields.password.required",
+                  "required": "La contraseña es obligatoria."
+                }
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "event": "onSubmit",
+            "type": "execute_service",
+            "serviceKey": "auth.login",
+            "payloadMap": {
+              "username": "{{input.email}}",
+              "password": "{{input.password}}"
+            },
+            "onSuccess": [
+              {
+                "type": "show_message",
+                "messageKey": "forms.login.messages.success",
+                "message": "Sesión iniciada correctamente."
+              }
+            ],
+            "onError": [
+              {
+                "type": "show_message",
+                "tone": "danger",
+                "messageKey": "forms.login.messages.error",
+                "message": "No se pudo iniciar sesión."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

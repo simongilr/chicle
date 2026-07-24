@@ -156,14 +156,8 @@ export class AiAssistantService {
     return {
       enabled: this.booleanFromEnv('AI_ENABLED', this.confisys.get<boolean>('ai.enabled', true)),
       provider: this.stringFromEnv('AI_PROVIDER', this.confisys.get<string>('ai.provider', 'ollama')),
-      baseUrl: this.stringFromEnv(
-        'AI_BASE_URL',
-        this.confisys.get<string>('ai.baseUrl', 'http://localhost:11434/v1')
-      ),
-      chatModel: this.stringFromEnv(
-        'AI_CHAT_MODEL',
-        this.confisys.get<string>('ai.chatModel', 'qwen2.5-coder:7b')
-      ),
+      baseUrl: this.stringFromEnv('AI_BASE_URL', this.confisys.get<string>('ai.baseUrl', 'http://localhost:11434/v1')),
+      chatModel: this.stringFromEnv('AI_CHAT_MODEL', this.confisys.get<string>('ai.chatModel', 'qwen2.5-coder:7b')),
       embeddingModel: this.stringFromEnv(
         'AI_EMBEDDING_MODEL',
         this.confisys.get<string>('ai.embeddingModel', 'nomic-embed-text:v1.5')
@@ -191,7 +185,10 @@ export class AiAssistantService {
   async status() {
     const config = this.getConfig();
     const providerStatus = config.enabled
-      ? await this.getProviderStatus({ ...config, timeoutMs: Math.min(config.timeoutMs, 5000) })
+      ? await this.getProviderStatus({
+          ...config,
+          timeoutMs: Math.min(config.timeoutMs, 5000)
+        })
       : null;
 
     return {
@@ -318,8 +315,62 @@ export class AiAssistantService {
         provider: config.provider,
         model: config.chatModel,
         scope,
+        message: 'Puedo explicarte cómo sería el formulario, pero no puedo aplicar drafts porque falta forms.manage.'
+      };
+    }
+
+    if (scope === 'apps' && !this.hasAccess(auth, 'apps.read')) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
         message:
-          'Puedo explicarte cómo sería el formulario, pero no puedo aplicar drafts porque falta forms.manage.'
+          'Estás en Apps, pero tu sesión actual no tiene apps.read. Entra de nuevo o sincroniza seguridad antes de que pueda ayudarte en esta pantalla.'
+      };
+    }
+
+    if (scope === 'apps' && !this.hasAccess(auth, 'apps.manage')) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message:
+          'Puedo ayudarte a pensar la app y sus pantallas, pero no puedo aplicar drafts porque falta apps.manage.'
+      };
+    }
+
+    if (scope === 'translations' && !this.hasAccess(auth, 'translations.read')) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message:
+          'Estás en Textos, pero tu sesión actual no tiene translations.read. Entra de nuevo o sincroniza seguridad antes de que pueda ayudarte en esta pantalla.'
+      };
+    }
+
+    if (scope === 'translations' && !this.hasAccess(auth, 'translations.manage')) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        message:
+          'Puedo ayudarte a nombrar llaves y revisar paquetes, pero no puedo preparar cambios editables porque falta translations.manage.'
+      };
+    }
+
+    const translationAuthoring = this.translationAuthoringResponse(scope, request);
+    if (translationAuthoring) {
+      return {
+        ok: true,
+        provider: config.provider,
+        model: config.chatModel,
+        scope,
+        ...translationAuthoring
       };
     }
 
@@ -433,7 +484,11 @@ export class AiAssistantService {
       };
     }
 
-    if (scope === 'services' && this.looksLikeServiceAuthoring(this.servicePromptContext(request)) && !this.shouldApplyServiceDraft(request)) {
+    if (
+      scope === 'services' &&
+      this.looksLikeServiceAuthoring(this.servicePromptContext(request)) &&
+      !this.shouldApplyServiceDraft(request)
+    ) {
       const preflight = await this.reasonAboutServiceAuthoring(auth, request, config);
       return {
         ok: true,
@@ -525,7 +580,11 @@ export class AiAssistantService {
   private async safeOllamaChat(
     config: AiAssistantConfig,
     messages: Array<{ role: 'system' | 'user'; content: string }>,
-    options: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+    options: {
+      temperature?: number;
+      maxTokens?: number;
+      timeoutMs?: number;
+    } = {}
   ) {
     try {
       return await Promise.resolve(this.ollama.chat(config, messages, options));
@@ -543,6 +602,7 @@ export class AiAssistantService {
       'No generes SQL libre, JavaScript arbitrario, secretos, tokens ni contraseñas.',
       'Si falta contexto, pide el dato faltante en vez de inventarlo.',
       'Cuando estés en Servicios, explica la propuesta brevemente; el backend puede adjuntar una acción estructurada para que el front la aplique.',
+      'Cuando estés en Textos, ayuda a crear namespaces, llaves y valores por idioma; no inventes idiomas no instalados.',
       `Scope actual: ${scope}.`,
       `Tenant actual: ${auth.tenant.slug}.`,
       `Roles del usuario: ${auth.roles.map((role) => role.key).join(', ') || 'sin roles'}.`,
@@ -565,11 +625,7 @@ export class AiAssistantService {
     );
   }
 
-  private async reasonAboutServiceAuthoring(
-    auth: AuthContext,
-    request: AiAssistantRequest,
-    config: AiAssistantConfig
-  ) {
+  private async reasonAboutServiceAuthoring(auth: AuthContext, request: AiAssistantRequest, config: AiAssistantConfig) {
     const state = this.serviceScreenState(request.screenState);
     const system = [
       'Eres Chicle AI, asistente experto en Dynamic Services de Chicle Engine.',
@@ -660,9 +716,10 @@ export class AiAssistantService {
     const explicitRelationField = fields.find((field) => field.toLowerCase().endsWith('id'));
     const relationField = explicitRelationField ?? this.inferRelationField(normalized) ?? 'id del resultado anterior';
     const responseShape = this.inferResponseShape(normalized);
-    const closing = explicitRelationField || this.inferRelationField(normalized)
-      ? 'Con esos datos ya puedo preparar un servicio avanzado con join declarativo.'
-      : 'Para avanzar sin ambigüedad necesito que confirmes el campo exacto que conecta las tablas, por ejemplo userId, roleId o tenantId.';
+    const closing =
+      explicitRelationField || this.inferRelationField(normalized)
+        ? 'Con esos datos ya puedo preparar un servicio avanzado con join declarativo.'
+        : 'Para avanzar sin ambigüedad necesito que confirmes el campo exacto que conecta las tablas, por ejemplo userId, roleId o tenantId.';
 
     return this.serviceWorkResponse({
       interpretation: 'Quieres una consulta avanzada con más de una tabla.',
@@ -698,7 +755,8 @@ export class AiAssistantService {
       }
 
       return this.serviceWorkResponse({
-        interpretation: 'Quieres crear o ajustar un servicio, pero la solicitud todavía no tiene suficiente estructura.',
+        interpretation:
+          'Quieres crear o ajustar un servicio, pero la solicitud todavía no tiene suficiente estructura.',
         route: 'Necesito tomar una decisión a la vez para generar un draft seguro.',
         investigation:
           'No debo inventar tablas custom ni campos. El diseñador puede consultar tablas reales visibles desde el catálogo.',
@@ -709,9 +767,8 @@ export class AiAssistantService {
 
     const tables = this.detectTables(normalized);
     const fields = this.detectFields(normalized);
-    const mentionsRelation = /relaci[oó]n|join|unir|cruzar|conectar|asignad|pertenece|por .*id|tenantid|userid|roleid|id/.test(
-      normalized
-    );
+    const mentionsRelation =
+      /relaci[oó]n|join|unir|cruzar|conectar|asignad|pertenece|por .*id|tenantid|userid|roleid|id/.test(normalized);
     const mentionsResponse =
       /responder|respuesta|devuelve|devuelva|retorna|retorne|mostrar|front/.test(normalized) ||
       this.hasResponseShape(normalized);
@@ -845,7 +902,8 @@ export class AiAssistantService {
 
   private userMessageTexts(request?: AiAssistantRequest) {
     return [
-      ...((request?.conversation ?? []).filter((message) => message.role === 'user').map((message) => message.text) ?? []),
+      ...((request?.conversation ?? []).filter((message) => message.role === 'user').map((message) => message.text) ??
+        []),
       request?.prompt ?? ''
     ]
       .map((message) => message.toLowerCase().trim())
@@ -881,7 +939,11 @@ export class AiAssistantService {
       return null;
     }
     const normalized = request.prompt.toLowerCase().trim();
-    if (!/^(guardar|guarda|guardar draft|guardar borrador|guardar y publicar|publicar|publica|crear versi[oó]n|crear version|probar|prueba|probar antes)(\b|[.!\s])/.test(normalized)) {
+    if (
+      !/^(guardar|guarda|guardar draft|guardar borrador|guardar y publicar|publicar|publica|crear versi[oó]n|crear version|probar|prueba|probar antes)(\b|[.!\s])/.test(
+        normalized
+      )
+    ) {
       return null;
     }
 
@@ -901,10 +963,10 @@ export class AiAssistantService {
           ? 'usa Probar flow en la pantalla para ejecutar el draft con un input de ejemplo.'
           : 'usa Probar submit en Prueba real. Puedes generar datos del preview y validar antes de publicar.'
       : wantsPublish
-      ? 'usa Guardar y publicar desde la sección JSON, o crea/publica una versión desde el recorrido visual.'
-      : wantsVersion
-        ? 'usa Crear versión y luego Publicar cuando el preview o la prueba estén correctos.'
-        : 'usa Guardar draft en la pantalla. El chat no guarda automáticamente para evitar cambios accidentales.';
+        ? 'usa Guardar y publicar desde la sección JSON, o crea/publica una versión desde el recorrido visual.'
+        : wantsVersion
+          ? 'usa Crear versión y luego Publicar cuando el preview o la prueba estén correctos.'
+          : 'usa Guardar draft en la pantalla. El chat no guarda automáticamente para evitar cambios accidentales.';
 
     return {
       message: [
@@ -913,6 +975,176 @@ export class AiAssistantService {
       ].join('\n\n'),
       suggestions: ['seguir ajustando']
     };
+  }
+
+  private translationAuthoringResponse(scope: AiAssistantScope, request: AiAssistantRequest) {
+    if (scope !== 'translations') {
+      return null;
+    }
+
+    const normalized = request.prompt.toLowerCase().trim();
+    const looksLikeTextWork =
+      /texto|traducci[oó]n|idioma|llave|clave|key|namespace|label|placeholder|mensaje|bot[oó]n/.test(normalized);
+    if (!looksLikeTextWork) {
+      return {
+        message: [
+          'Estoy en el gestor de textos.',
+          'Puedo ayudarte a crear namespaces, nombrar llaves, preparar valores en español/inglés y revisar qué textos deben salir de formularios, pantallas o apps.',
+          'Dime la llave o el texto visible que quieres administrar.'
+        ].join('\n\n'),
+        suggestions: ['crear una llave', 'buscar un texto', 'preparar textos de un formulario']
+      };
+    }
+
+    const keyMatch = request.prompt.match(/\b[a-z][a-z0-9]*(?:[._:-][a-z0-9]+){1,}\b/i);
+    const namespaceMatch = request.prompt.match(
+      /\b(?:admin|forms|screens|app|apps|services|flows)(?:[._-][a-z0-9]+)*\b/i
+    );
+    const wantsInstall = /instalar|agregar|habilitar/.test(normalized) && /idioma|locale|language/.test(normalized);
+
+    if (wantsInstall) {
+      return {
+        message: [
+          'Para idiomas, la V1 de este runtime tiene instalados español e inglés.',
+          'Un idioma nuevo no es solo una fila: debe registrarse en runtime, publicarse como bundle, entrar en preferencias del artefacto y quedar cacheable para apps offline.',
+          'Siguiente paso: si quieres trabajar ahora, usa es o en. Si quieres un idioma nuevo, dime el código ISO y lo dejamos como definición de instalación controlada.'
+        ].join('\n\n'),
+        suggestions: ['usar es', 'usar en', 'definir idioma nuevo']
+      };
+    }
+
+    const draft = this.translationKeyDraftFromPrompt(request.prompt);
+    if (draft) {
+      const missingValues = !draft.values.es?.trim() || !draft.values.en?.trim();
+      return {
+        message: [
+          'Preparé una llave de texto para esta pantalla.',
+          `Namespace: ${draft.namespace}.`,
+          `Clave: ${draft.key}.`,
+          missingValues
+            ? 'No encontré valores completos para español e inglés en el mensaje, así que dejé la llave lista para que completes ambos textos antes de guardar.'
+            : 'Incluí los valores detectados para español e inglés. Revisa que el texto sea correcto antes de guardar.',
+          'No guardé ni publiqué nada automáticamente.'
+        ].join('\n\n'),
+        suggestions: ['guardar clave', 'buscar clave', 'crear otra clave'],
+        actions: [
+          {
+            type: 'apply_translation_key' as const,
+            label: `Preparar ${draft.namespace}:${draft.key}`,
+            namespace: draft.namespace,
+            key: draft.key,
+            values: draft.values
+          }
+        ]
+      };
+    }
+
+    return {
+      message: [
+        'Interpretación: quieres administrar textos versionados para el Admin o una app generada.',
+        `Namespace sugerido: ${namespaceMatch?.[0] ?? 'elige admin, forms.<key>, screens.<key> o app.<key> según dónde se use el texto'}.`,
+        `Clave sugerida: ${keyMatch?.[0] ?? 'usa una ruta estable como forms.login.submit o screens.home.title'}.`,
+        'Siguiente paso: busca primero la clave para evitar duplicados. Si no existe, usa Agregar clave con texto en español e inglés; el backend publicará esa llave sin cargar todo el paquete.'
+      ].join('\n\n'),
+      suggestions: ['buscar clave', 'crear clave es/en', 'revisar namespace']
+    };
+  }
+
+  private translationKeyDraftFromPrompt(prompt: string) {
+    const expression = this.translationKeyExpression(prompt);
+    if (!expression) {
+      return null;
+    }
+
+    const keyParts = this.translationNamespaceAndKey(expression);
+    if (!keyParts) {
+      return null;
+    }
+
+    return {
+      ...keyParts,
+      values: this.translationValuesFromPrompt(prompt)
+    };
+  }
+
+  private translationKeyExpression(prompt: string) {
+    const colonKey = prompt.match(/\b[a-z][a-z0-9._-]{0,80}:[a-z][a-z0-9._:-]{1,180}\b/i)?.[0];
+    if (colonKey) {
+      return colonKey;
+    }
+
+    const namespaced = prompt.match(/\b(?:admin|forms|screens|app|apps|services|flows)(?:[._-][a-z0-9]+){1,8}\b/i)?.[0];
+    if (namespaced) {
+      return namespaced;
+    }
+
+    return prompt.match(/\b[a-z][a-z0-9]*(?:[._:-][a-z0-9]+){1,8}\b/i)?.[0] ?? null;
+  }
+
+  private translationNamespaceAndKey(expression: string) {
+    const cleaned = expression.trim().toLowerCase();
+    if (!/^[a-z0-9._:-]{3,220}$/.test(cleaned)) {
+      return null;
+    }
+
+    if (cleaned.includes(':')) {
+      const [namespace, ...keyParts] = cleaned.split(':');
+      const key = keyParts.join(':');
+      return this.validTranslationNamespace(namespace) && this.validTranslationKey(key) ? { namespace, key } : null;
+    }
+
+    const parts = cleaned.split(/[._-]/).filter(Boolean);
+    const [root] = parts;
+    if (root === 'admin' && parts.length >= 2) {
+      return { namespace: 'admin', key: parts.slice(1).join('.') };
+    }
+
+    if (['forms', 'screens', 'app', 'apps', 'services', 'flows'].includes(root) && parts.length >= 3) {
+      return {
+        namespace: `${parts[0]}.${parts[1]}`,
+        key: parts.slice(2).join('.')
+      };
+    }
+
+    return {
+      namespace: 'admin',
+      key: parts.join('.')
+    };
+  }
+
+  private translationValuesFromPrompt(prompt: string) {
+    return {
+      es: this.translationValueForLocale(prompt, 'es'),
+      en: this.translationValueForLocale(prompt, 'en')
+    };
+  }
+
+  private translationValueForLocale(prompt: string, locale: 'es' | 'en') {
+    const marker = locale === 'es' ? /(?:espa[nñ]ol|spanish|\bes\s*[:=])/i : /(?:ingl[eé]s|english|\ben\s*[:=])/i;
+    const match = marker.exec(prompt);
+    if (!match) {
+      return '';
+    }
+
+    const rest = prompt.slice(match.index + match[0].length).trim();
+    const quoted = rest.match(/^["'“”‘’]([^"'“”‘’]+)["'“”‘’]/);
+    if (quoted?.[1]) {
+      return quoted[1].trim();
+    }
+
+    const untilNextLocale = rest.split(/\s+(?:y\s+)?(?:espa[nñ]ol|spanish|ingl[eé]s|english)\b/i)[0];
+    return untilNextLocale
+      .replace(/^[=:,-]\s*/, '')
+      .trim()
+      .slice(0, 500);
+  }
+
+  private validTranslationNamespace(namespace: string) {
+    return /^[a-z0-9._-]{1,120}$/.test(namespace);
+  }
+
+  private validTranslationKey(key: string) {
+    return /^[a-z0-9._:-]{1,220}$/.test(key);
   }
 
   private serviceLifecycleResponse(scope: AiAssistantScope, request: AiAssistantRequest) {
@@ -931,16 +1163,18 @@ export class AiAssistantService {
           : 'Quieres restaurar un servicio desde papelera.',
         route: 'La restauración debe confirmarse desde la pantalla para evitar cambios accidentales.',
         investigation: 'Los servicios en papelera conservan versiones e historial.',
-        proposal: ['Abre Papelera.', selectedKey ? `Selecciona ${selectedKey}.` : 'Selecciona el servicio exacto.', 'Usa Restaurar.'],
+        proposal: [
+          'Abre Papelera.',
+          selectedKey ? `Selecciona ${selectedKey}.` : 'Selecciona el servicio exacto.',
+          'Usa Restaurar.'
+        ],
         nextStep: 'Después de restaurarlo puedo ayudarte a revisar o publicar una nueva versión.'
       });
     }
 
     if (/elimin|borrar|desactivar|archivar|enviar\s+a\s+papelera/.test(normalized)) {
       return this.serviceWorkResponse({
-        interpretation: selectedKey
-          ? `Quieres retirar el servicio ${selectedKey}.`
-          : 'Quieres retirar un servicio.',
+        interpretation: selectedKey ? `Quieres retirar el servicio ${selectedKey}.` : 'Quieres retirar un servicio.',
         route: 'Por seguridad Chicle AI no elimina ni envía a papelera automáticamente.',
         investigation:
           'El módulo usa papelera, no borrado físico. Las versiones e historial quedan recuperables si el usuario confirma.',
@@ -1030,9 +1264,10 @@ export class AiAssistantService {
 
   private shouldApplyServiceDraft(request: AiAssistantRequest) {
     const prompt = request.prompt.toLowerCase().trim();
-    const confirms = /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft)(\b|[.!\s])/.test(
-      prompt
-    );
+    const confirms =
+      /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft)(\b|[.!\s])/.test(
+        prompt
+      );
     if (!confirms) {
       return false;
     }
@@ -1054,7 +1289,9 @@ export class AiAssistantService {
   }
 
   private looksLikeReview(prompt: string) {
-    return /revis|corrig|arregl|fall[oó]|falla|error|no funciona|ajusta|mejora|retoma|edit|modific|actualiz|cambia/i.test(prompt);
+    return /revis|corrig|arregl|fall[oó]|falla|error|no funciona|ajusta|mejora|retoma|edit|modific|actualiz|cambia/i.test(
+      prompt
+    );
   }
 
   private serviceScreenState(value: unknown): AssistantServiceScreenState | null {
@@ -1162,7 +1399,9 @@ export class AiAssistantService {
       };
     }
 
-    const steps = Array.isArray(action.document['steps']) ? (action.document['steps'] as Array<Record<string, unknown>>) : [];
+    const steps = Array.isArray(action.document['steps'])
+      ? (action.document['steps'] as Array<Record<string, unknown>>)
+      : [];
     const fields = steps.flatMap((step) =>
       Array.isArray(step['fields']) ? (step['fields'] as Array<Record<string, unknown>>) : []
     );
@@ -1191,9 +1430,10 @@ export class AiAssistantService {
 
   private shouldApplyFormDraft(request: AiAssistantRequest) {
     const prompt = request.prompt.toLowerCase().trim();
-    const confirms = /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft|crear draft)(\b|[.!\s])/.test(
-      prompt
-    );
+    const confirms =
+      /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft|crear draft)(\b|[.!\s])/.test(
+        prompt
+      );
     if (!confirms) {
       return false;
     }
@@ -1204,7 +1444,7 @@ export class AiAssistantService {
         /Interpretación: quieres crear el formulario|contrato JSON estándar de Dynamic Forms|preview web\/móvil/i.test(
           message.text
         )
-      );
+    );
   }
 
   private async reasonAboutFormAuthoring(
@@ -1213,7 +1453,9 @@ export class AiAssistantService {
     config: AiAssistantConfig
   ) {
     const state = this.formScreenState(request.screenState);
-    const steps = Array.isArray(action.document['steps']) ? (action.document['steps'] as Array<Record<string, unknown>>) : [];
+    const steps = Array.isArray(action.document['steps'])
+      ? (action.document['steps'] as Array<Record<string, unknown>>)
+      : [];
     const fields = steps.flatMap((step) =>
       Array.isArray(step['fields']) ? (step['fields'] as Array<Record<string, unknown>>) : []
     );
@@ -1335,7 +1577,9 @@ export class AiAssistantService {
     const normalized = prompt.toLowerCase();
     return (
       /(?:necesito|crear|crea|genera|generar|haz|hacer|nuevo|nueva).{0,48}(?:formulario|form)\b/.test(normalized) ||
-      /\b(?:formulario|form)\b.{0,80}\b(?:campos?|fields?|captura|guardar|crud|llamado|llamada|nuevo|nueva)\b/.test(normalized) ||
+      /\b(?:formulario|form)\b.{0,80}\b(?:campos?|fields?|captura|guardar|crud|llamado|llamada|nuevo|nueva)\b/.test(
+        normalized
+      ) ||
       /\b(?:campos?|fields?)\s+(?!(?:de|del|a|al)\b)(?:son|incluyen|incluye|:)?\s*[a-z0-9_]/.test(normalized)
     );
   }
@@ -1365,11 +1609,17 @@ export class AiAssistantService {
       });
     }
 
-    if (/elimin|borrar|desactivar|archivar|enviar\s+a\s+papelera/.test(normalized) && /form|formulario|pantalla/.test(normalized)) {
+    if (
+      /elimin|borrar|desactivar|archivar|enviar\s+a\s+papelera/.test(normalized) &&
+      /form|formulario|pantalla/.test(normalized)
+    ) {
       return this.serviceWorkResponse({
-        interpretation: selectedKey ? `Quieres retirar el formulario ${selectedKey}.` : 'Quieres retirar un formulario.',
+        interpretation: selectedKey
+          ? `Quieres retirar el formulario ${selectedKey}.`
+          : 'Quieres retirar un formulario.',
         route: 'Por seguridad Chicle AI no envía formularios a papelera automáticamente.',
-        investigation: 'El módulo usa papelera, no borrado físico. Las versiones y el JSON quedan recuperables si confirmas desde UI.',
+        investigation:
+          'El módulo usa papelera, no borrado físico. Las versiones y el JSON quedan recuperables si confirmas desde UI.',
         proposal: [
           selectedKey
             ? `Selecciona ${selectedKey} en el catálogo de Formularios.`
@@ -1398,18 +1648,19 @@ export class AiAssistantService {
     const title = intent.title;
     const description = intent.description;
     const fields = this.formFieldsFromPrompt(normalized, serviceKeys, intent, state?.tables ?? []);
-    const commands = intent.kind === 'approval'
-      ? [
-          this.formCommand(
-            'aprobar',
-            'Aprobar',
-            intent.wantsFlow ? 'execute_flow' : 'execute_service',
-            serviceKeys[0],
-            flowKeys[0]
-          ),
-          this.formCommand('rechazar', 'Rechazar', 'show_message', serviceKeys[0], flowKeys[0])
-        ]
-      : [];
+    const commands =
+      intent.kind === 'approval'
+        ? [
+            this.formCommand(
+              'aprobar',
+              'Aprobar',
+              intent.wantsFlow ? 'execute_flow' : 'execute_service',
+              serviceKeys[0],
+              flowKeys[0]
+            ),
+            this.formCommand('rechazar', 'Rechazar', 'show_message', serviceKeys[0], flowKeys[0])
+          ]
+        : [];
     const persistence = this.formPersistence({
       key,
       intent,
@@ -1649,7 +1900,13 @@ export class AiAssistantService {
 
     if (primaryColumn) {
       const idFilter = [
-        { field: primaryColumn, operator: 'equals', valueSource: 'input', inputKey: primaryColumn, required: true }
+        {
+          field: primaryColumn,
+          operator: 'equals',
+          valueSource: 'input',
+          inputKey: primaryColumn,
+          required: true
+        }
       ];
       serviceActions.push(
         this.formInternalCrudServiceAction({
@@ -1712,19 +1969,30 @@ export class AiAssistantService {
           { kit: 'primeng', platforms: ['web'] }
         ],
         tokens: {
-          buttonPrimary: { background: 'primary', text: 'primaryContrast', radius: 'md' }
+          buttonPrimary: {
+            background: 'primary',
+            text: 'primaryContrast',
+            radius: 'md'
+          }
         }
       },
       layout: {
         strategy: 'adaptive_steps',
-        form: { width: fields.length <= 4 ? 'compact' : 'standard', align: fields.length <= 4 ? 'left' : 'stretch' },
+        form: {
+          width: fields.length <= 4 ? 'compact' : 'standard',
+          align: fields.length <= 4 ? 'left' : 'stretch'
+        },
         desktop: {
           mode: fields.length > 8 ? 'step_cards' : 'single_form',
           fieldColumns: fields.length <= 4 ? 1 : 2,
           cardColumns: 2,
           allowSingleLongForm: true,
           maxFieldsPerSection: 8,
-          actions: { position: 'inline', align: fields.length <= 4 ? 'stretch' : 'stretch', size: 'field' }
+          actions: {
+            position: 'inline',
+            align: fields.length <= 4 ? 'stretch' : 'stretch',
+            size: 'field'
+          }
         },
         tablet: {
           mode: 'step_cards',
@@ -1739,9 +2007,17 @@ export class AiAssistantService {
           navigation: 'bottom_actions',
           fieldColumns: 1,
           maxFieldsPerScreen: 6,
-          actions: { position: 'bottom_sticky', align: 'stretch', size: 'full' }
+          actions: {
+            position: 'bottom_sticky',
+            align: 'stretch',
+            size: 'full'
+          }
         },
-        autoSplit: { enabled: true, suggestAfterFields: 8, forceReviewAfterFields: 14 }
+        autoSplit: {
+          enabled: true,
+          suggestAfterFields: 8,
+          forceReviewAfterFields: 14
+        }
       },
       persistence: {
         mode: 'service',
@@ -1756,8 +2032,20 @@ export class AiAssistantService {
           serviceKey,
           resultKey: 'created',
           payloadMap,
-          onSuccess: [{ type: 'show_message', tone: 'success', message: 'Registro guardado correctamente.' }],
-          onError: [{ type: 'show_message', tone: 'danger', message: 'No se pudo guardar el registro.' }]
+          onSuccess: [
+            {
+              type: 'show_message',
+              tone: 'success',
+              message: 'Registro guardado correctamente.'
+            }
+          ],
+          onError: [
+            {
+              type: 'show_message',
+              tone: 'danger',
+              message: 'No se pudo guardar el registro.'
+            }
+          ]
         }
       ],
       dataSources: this.formDataSources(fields),
@@ -1802,9 +2090,7 @@ export class AiAssistantService {
         `También preparé servicios companion publicados automáticamente por la pantalla: ${serviceActions.map((action) => action.key).join(', ')}.`,
         `El formulario queda conectado a ${serviceKey} para que el preview pueda probar guardado real.`,
         `Campos mapeados: ${fields.map((field) => field.key).join(', ')}.`,
-        `Controles inferidos: ${fields
-          .map((field) => `${field.key}:${String(field['type'] ?? 'text')}`)
-          .join(', ')}.`,
+        `Controles inferidos: ${fields.map((field) => `${field.key}:${String(field['type'] ?? 'text')}`).join(', ')}.`,
         'No uso SQL libre: el servicio declara writeMap y el backend valida tabla, columnas y tenant scope.'
       ].join('\n\n'),
       actions: [...serviceActions, formAction],
@@ -1847,7 +2133,11 @@ export class AiAssistantService {
         mode: 'guided',
         submitLabel: 'Guardar usuario',
         autosave: false,
-        offline: { enabled: false, queueKey: formKey, idempotencyKey: '{{input.email}}' },
+        offline: {
+          enabled: false,
+          queueKey: formKey,
+          idempotencyKey: '{{input.email}}'
+        },
         limits: { timeoutMs: 10000, maxPayloadKb: 512 }
       },
       presentation: {
@@ -1861,7 +2151,13 @@ export class AiAssistantService {
           { kit: 'ionic', platforms: ['ios', 'android'] },
           { kit: 'primeng', platforms: ['web'] }
         ],
-        tokens: { buttonPrimary: { background: 'primary', text: 'primaryContrast', radius: 'md' } }
+        tokens: {
+          buttonPrimary: {
+            background: 'primary',
+            text: 'primaryContrast',
+            radius: 'md'
+          }
+        }
       },
       layout: {
         strategy: 'adaptive_steps',
@@ -1887,9 +2183,17 @@ export class AiAssistantService {
           navigation: 'bottom_actions',
           fieldColumns: 1,
           maxFieldsPerScreen: 6,
-          actions: { position: 'bottom_sticky', align: 'stretch', size: 'full' }
+          actions: {
+            position: 'bottom_sticky',
+            align: 'stretch',
+            size: 'full'
+          }
         },
-        autoSplit: { enabled: true, suggestAfterFields: 8, forceReviewAfterFields: 14 }
+        autoSplit: {
+          enabled: true,
+          suggestAfterFields: 8,
+          forceReviewAfterFields: 14
+        }
       },
       persistence: { mode: 'submit_action' },
       steps: this.formStepsFromFields(normalizedPrompt, fields),
@@ -1905,8 +2209,20 @@ export class AiAssistantService {
             password: '{{input.password}}',
             roles: ['{{input.role}}']
           },
-          onSuccess: [{ type: 'show_message', tone: 'success', message: 'Usuario creado correctamente.' }],
-          onError: [{ type: 'show_message', tone: 'danger', message: 'No se pudo crear el usuario.' }]
+          onSuccess: [
+            {
+              type: 'show_message',
+              tone: 'success',
+              message: 'Usuario creado correctamente.'
+            }
+          ],
+          onError: [
+            {
+              type: 'show_message',
+              tone: 'danger',
+              message: 'No se pudo crear el usuario.'
+            }
+          ]
         }
       ],
       dataSources: [],
@@ -1988,7 +2304,11 @@ export class AiAssistantService {
       return null;
     }
 
-    if (!(auth.user.systemRole === 'owner' || auth.user.systemRole === 'admin' || auth.roles.some((role) => role.key === 'owner' || role.key === 'admin'))) {
+    if (!(
+      auth.user.systemRole === 'owner' ||
+      auth.user.systemRole === 'admin' ||
+      auth.roles.some((role) => role.key === 'owner' || role.key === 'admin')
+    )) {
       return {
         message: 'El asistente de Base de datos solo puede preparar cambios para usuarios owner o admin.'
       };
@@ -2008,7 +2328,9 @@ export class AiAssistantService {
 
     if (/borrar tabla|eliminar tabla|drop table/.test(prompt)) {
       if (!(auth.user.systemRole === 'owner' || auth.roles.some((role) => role.key === 'owner'))) {
-        return { message: 'Eliminar una tabla completa solo está disponible para usuarios owner.' };
+        return {
+          message: 'Eliminar una tabla completa solo está disponible para usuarios owner.'
+        };
       }
       const action = this.databaseSchemaAction({
         operation: 'drop_table',
@@ -2166,7 +2488,9 @@ export class AiAssistantService {
   }
 
   private formWantsNewCustomTable(prompt: string) {
-    return /tabla nueva|nueva tabla|crear.*tabla.*campos?|generar.*tabla|construir.*tabla|tabla.*campos?|con\s+(?:los\s+|las\s+)?campos?/.test(prompt);
+    return /tabla nueva|nueva tabla|crear.*tabla.*campos?|generar.*tabla|construir.*tabla|tabla.*campos?|con\s+(?:los\s+|las\s+)?campos?/.test(
+      prompt
+    );
   }
 
   private formNewTableCrudBundleFromPrompt(
@@ -2175,7 +2499,9 @@ export class AiAssistantService {
     state: AssistantFormScreenState | null
   ): Pick<AiAssistantResponse, 'message' | 'suggestions' | 'actions'> {
     const tableName = this.customTableNameFromPrompt(requestedTableName);
-    const existing = state?.tables?.find((table) => this.normalizeKey(table.name ?? '') === this.normalizeKey(tableName));
+    const existing = state?.tables?.find(
+      (table) => this.normalizeKey(table.name ?? '') === this.normalizeKey(tableName)
+    );
     if (existing) {
       const requestedColumns = this.schemaColumnsFromPrompt(prompt);
       const mismatch = this.formExistingTableMismatch(existing, requestedColumns);
@@ -2212,8 +2538,18 @@ export class AiAssistantService {
           nullable: column.nullable !== false,
           primary: false
         })),
-        { name: 'createdAt', type: 'datetime', nullable: false, primary: false },
-        { name: 'updatedAt', type: 'datetime', nullable: false, primary: false }
+        {
+          name: 'createdAt',
+          type: 'datetime',
+          nullable: false,
+          primary: false
+        },
+        {
+          name: 'updatedAt',
+          type: 'datetime',
+          nullable: false,
+          primary: false
+        }
       ]
     };
     const actions = this.formCrudBundleForTable(prompt, table, [...(state?.tables ?? []), table]).actions ?? [];
@@ -2295,7 +2631,13 @@ export class AiAssistantService {
 
     if (primaryColumn) {
       const idFilter = [
-        { field: primaryColumn, operator: 'equals', valueSource: 'input', inputKey: primaryColumn, required: true }
+        {
+          field: primaryColumn,
+          operator: 'equals',
+          valueSource: 'input',
+          inputKey: primaryColumn,
+          required: true
+        }
       ];
       serviceActions.push(
         this.formInternalCrudServiceAction({
@@ -2412,7 +2754,11 @@ export class AiAssistantService {
           { kit: 'primeng', platforms: ['web'] }
         ],
         tokens: {
-          buttonPrimary: { background: this.buttonToneFromPrompt(normalized) || 'primary', text: 'primaryContrast', radius: 'md' }
+          buttonPrimary: {
+            background: this.buttonToneFromPrompt(normalized) || 'primary',
+            text: 'primaryContrast',
+            radius: 'md'
+          }
         }
       },
       layout: {
@@ -2442,9 +2788,17 @@ export class AiAssistantService {
           navigation: 'bottom_actions',
           fieldColumns: 1,
           maxFieldsPerScreen: 6,
-          actions: { position: 'bottom_sticky', align: 'stretch', size: 'full' }
+          actions: {
+            position: 'bottom_sticky',
+            align: 'stretch',
+            size: 'full'
+          }
         },
-        autoSplit: { enabled: true, suggestAfterFields: 8, forceReviewAfterFields: 14 }
+        autoSplit: {
+          enabled: true,
+          suggestAfterFields: 8,
+          forceReviewAfterFields: 14
+        }
       },
       persistence: {
         mode: 'service',
@@ -2459,8 +2813,20 @@ export class AiAssistantService {
           serviceKey,
           resultKey: 'created',
           payloadMap,
-          onSuccess: [{ type: 'show_message', tone: 'success', message: 'Registro guardado correctamente.' }],
-          onError: [{ type: 'show_message', tone: 'danger', message: 'No se pudo guardar el registro.' }]
+          onSuccess: [
+            {
+              type: 'show_message',
+              tone: 'success',
+              message: 'Registro guardado correctamente.'
+            }
+          ],
+          onError: [
+            {
+              type: 'show_message',
+              tone: 'danger',
+              message: 'No se pudo guardar el registro.'
+            }
+          ]
         }
       ],
       dataSources: this.formDataSources(fields),
@@ -2618,7 +2984,10 @@ export class AiAssistantService {
       .replace(/\s+/g, ' ')
       .trim();
     const name = this.normalizeKey(cleaned.split(/\s+/)[0] ?? '');
-    if (!name || ['id', 'tenantid', 'createdat', 'updatedat', 'deletedat', 'passwordhash'].includes(name.toLowerCase())) {
+    if (
+      !name ||
+      ['id', 'tenantid', 'createdat', 'updatedat', 'deletedat', 'passwordhash'].includes(name.toLowerCase())
+    ) {
       return null;
     }
     const lower = part.toLowerCase();
@@ -2664,7 +3033,10 @@ export class AiAssistantService {
       .trim();
   }
 
-  private schemaTypeFromPromptPart(name: string, text: string): 'string' | 'text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'uuid' {
+  private schemaTypeFromPromptPart(
+    name: string,
+    text: string
+  ): 'string' | 'text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'datetime' | 'json' | 'uuid' {
     if (/json|metadata|config/.test(text)) {
       return 'json';
     }
@@ -2750,7 +3122,10 @@ export class AiAssistantService {
   }
 
   private primaryTableColumn(table: NonNullable<AssistantFormScreenState['tables']>[number]) {
-    return table.columns?.find((column) => column.primary)?.name ?? table.columns?.find((column) => column.name === 'id')?.name;
+    return (
+      table.columns?.find((column) => column.primary)?.name ??
+      table.columns?.find((column) => column.name === 'id')?.name
+    );
   }
 
   private formTableFromPrompt(prompt: string, state: AssistantFormScreenState | null) {
@@ -2771,7 +3146,9 @@ export class AiAssistantService {
     return (
       tables.find((table) => {
         const tableName = table.name ?? '';
-        return prompt.includes(tableName.toLowerCase()) || prompt.includes(this.formReadableName(tableName).toLowerCase());
+        return (
+          prompt.includes(tableName.toLowerCase()) || prompt.includes(this.formReadableName(tableName).toLowerCase())
+        );
       }) ?? null
     );
   }
@@ -2968,7 +3345,11 @@ export class AiAssistantService {
   }
 
   private lookupValueColumn(table: NonNullable<AssistantFormScreenState['tables']>[number]) {
-    return table.columns?.find((column) => column.primary)?.name ?? table.columns?.find((column) => column.name === 'id')?.name ?? 'id';
+    return (
+      table.columns?.find((column) => column.primary)?.name ??
+      table.columns?.find((column) => column.name === 'id')?.name ??
+      'id'
+    );
   }
 
   private lookupLabelColumn(table: NonNullable<AssistantFormScreenState['tables']>[number]) {
@@ -3118,7 +3499,10 @@ export class AiAssistantService {
     return keys.length ? keys : ['buscar_usuario', 'validar_cliente', 'guardar_formulario'];
   }
 
-  private formSubmitAdjustmentFromPrompt(prompt: string, request?: AiAssistantRequest): ApplyDynamicFormJsonAction | null {
+  private formSubmitAdjustmentFromPrompt(
+    prompt: string,
+    request?: AiAssistantRequest
+  ): ApplyDynamicFormJsonAction | null {
     const normalized = prompt.toLowerCase();
     const state = this.formScreenState(request?.screenState);
     const schema = this.asRecord(state?.schema);
@@ -3129,7 +3513,10 @@ export class AiAssistantService {
       /al enviar|submit|acci[oó]n final|destino|guardar|guarde|iniciar sesi[oó]n|inicie sesi[oó]n|sesi[oó]n|login|logueo|auth|servicio|flow|record|naveg/.test(
         normalized
       );
-    if (!submitRequested || /bot[oó]n|color|ancho|largo|tama[nñ]o|centr|aline|tema|oscuro|claro|material|primeng|ionic/.test(normalized)) {
+    if (
+      !submitRequested ||
+      /bot[oó]n|color|ancho|largo|tama[nñ]o|centr|aline|tema|oscuro|claro|material|primeng|ionic/.test(normalized)
+    ) {
       return null;
     }
 
@@ -3152,30 +3539,63 @@ export class AiAssistantService {
         'password';
       runtime['submitLabel'] = 'Iniciar sesion';
       document['runtime'] = runtime;
-      document['persistence'] = { mode: 'auth', defaultTarget: { type: 'dynamic_service', serviceKey: 'auth.login' } };
+      document['persistence'] = {
+        mode: 'auth',
+        defaultTarget: { type: 'dynamic_service', serviceKey: 'auth.login' }
+      };
       document['actions'] = [this.authLoginAction(userField, passwordField, route, 'Credenciales incorrectas')];
       return this.formSubmitAdjustmentAction(document, state, 'Ajustar acción final a login');
     }
 
     if (/flow|flujo|proceso/.test(normalized)) {
       const flowKey = this.targetKeyFromPrompt(normalized, flowKeys) ?? flowKeys[0] ?? '';
-      document['persistence'] = { mode: 'flow', defaultTarget: { type: 'flow', flowKey } };
-      document['actions'] = [{ event: 'onSubmit', type: 'execute_flow', flowKey, payloadMap: { input: '{{input}}' } }];
+      document['persistence'] = {
+        mode: 'flow',
+        defaultTarget: { type: 'flow', flowKey }
+      };
+      document['actions'] = [
+        {
+          event: 'onSubmit',
+          type: 'execute_flow',
+          flowKey,
+          payloadMap: { input: '{{input}}' }
+        }
+      ];
       return this.formSubmitAdjustmentAction(document, state, 'Ajustar acción final a flow');
     }
 
     if (/servicio|service/.test(normalized)) {
       const serviceKey = this.targetKeyFromPrompt(normalized, serviceKeys) ?? serviceKeys[0] ?? '';
-      document['persistence'] = { mode: 'service', defaultTarget: { type: 'dynamic_service', serviceKey } };
-      document['actions'] = [{ event: 'onSubmit', type: 'execute_service', serviceKey, payloadMap: { input: '{{input}}' } }];
+      document['persistence'] = {
+        mode: 'service',
+        defaultTarget: { type: 'dynamic_service', serviceKey }
+      };
+      document['actions'] = [
+        {
+          event: 'onSubmit',
+          type: 'execute_service',
+          serviceKey,
+          payloadMap: { input: '{{input}}' }
+        }
+      ];
       return this.formSubmitAdjustmentAction(document, state, 'Ajustar acción final a servicio');
     }
 
     if (/record|registro|guardar|guarde|captur/.test(normalized)) {
       const key = String(document['key'] ?? state?.draft?.key ?? 'formulario');
       const recordType = this.normalizeKey(this.recordTypeFromPrompt(normalized) ?? key);
-      document['persistence'] = { mode: 'record', defaultTarget: { type: 'record', recordType } };
-      document['actions'] = [{ event: 'onSubmit', type: 'create_record', recordType, payloadMap: { input: '{{input}}' } }];
+      document['persistence'] = {
+        mode: 'record',
+        defaultTarget: { type: 'record', recordType }
+      };
+      document['actions'] = [
+        {
+          event: 'onSubmit',
+          type: 'create_record',
+          recordType,
+          payloadMap: { input: '{{input}}' }
+        }
+      ];
       return this.formSubmitAdjustmentAction(document, state, 'Ajustar acción final a record');
     }
 
@@ -3217,7 +3637,9 @@ export class AiAssistantService {
     return fields.find((field) => {
       const key = this.normalizeKey(field.key);
       const label = this.normalizeKey(field.label);
-      return normalizedCandidates.some((candidate) => key === candidate || label === candidate || key.includes(candidate));
+      return normalizedCandidates.some(
+        (candidate) => key === candidate || label === candidate || key.includes(candidate)
+      );
     })?.key;
   }
 
@@ -3262,12 +3684,19 @@ export class AiAssistantService {
       .replace(/^_+|_+$/g, '');
   }
 
-  private formVisualAdjustmentFromPrompt(prompt: string, request?: AiAssistantRequest): ApplyDynamicFormJsonAction | null {
+  private formVisualAdjustmentFromPrompt(
+    prompt: string,
+    request?: AiAssistantRequest
+  ): ApplyDynamicFormJsonAction | null {
     const normalized = prompt.toLowerCase();
     if (this.isNewFormDefinitionPrompt(normalized)) {
       return null;
     }
-    if (!/centr|aline|ancho|amplio|full|bot[oó]n|color|azul|verde|rojo|tema|oscuro|claro|material|primeng|ionic|bootstrap|nora|lara|chicle/.test(normalized)) {
+    if (
+      !/centr|aline|ancho|amplio|full|bot[oó]n|color|azul|verde|rojo|tema|oscuro|claro|material|primeng|ionic|bootstrap|nora|lara|chicle/.test(
+        normalized
+      )
+    ) {
       return null;
     }
     const state = this.formScreenState(request?.screenState);
@@ -3315,8 +3744,12 @@ export class AiAssistantService {
       ];
       const targets = affectedActions.length ? affectedActions : [desktopActions, tabletActions, mobileActions];
       const fieldWidthRequested =
-        /mismo tama[nñ]o|igual que (?:los )?(?:inputs|campos)|tama[nñ]o de (?:los )?(?:inputs|campos)/.test(normalized) ||
-        /(?:ancho|largo)\s+(?:de|igual a|igual que|como)\s+(?:los )?(?:inputs|campos|campos de input)/.test(normalized) ||
+        /mismo tama[nñ]o|igual que (?:los )?(?:inputs|campos)|tama[nñ]o de (?:los )?(?:inputs|campos)/.test(
+          normalized
+        ) ||
+        /(?:ancho|largo)\s+(?:de|igual a|igual que|como)\s+(?:los )?(?:inputs|campos|campos de input)/.test(
+          normalized
+        ) ||
         /(?:al|a lo largo de)\s+(?:los )?(?:inputs|campos|campos de input)/.test(normalized);
       if (fieldWidthRequested) {
         targets.forEach((actions) => {
@@ -3559,19 +3992,59 @@ export class AiAssistantService {
     }
 
     if (/evento/.test(prompt)) {
-      return this.captureIntent('event_registration', 'registro_evento', 'Registro Evento', 'eventos', wantsMobile, wantsOffline, wantsHybrid);
+      return this.captureIntent(
+        'event_registration',
+        'registro_evento',
+        'Registro Evento',
+        'eventos',
+        wantsMobile,
+        wantsOffline,
+        wantsHybrid
+      );
     }
     if (/ticket/.test(prompt)) {
-      return this.captureIntent('ticket_purchase', 'venta_ticket', 'Venta Ticket', 'tickets', wantsMobile, wantsOffline, wantsHybrid);
+      return this.captureIntent(
+        'ticket_purchase',
+        'venta_ticket',
+        'Venta Ticket',
+        'tickets',
+        wantsMobile,
+        wantsOffline,
+        wantsHybrid
+      );
     }
     if (/inmobili|propiedad|inmueble/.test(prompt)) {
-      return this.captureIntent('real_estate_lead', 'captura_inmueble', 'Captura Inmueble', 'inmobiliaria', wantsMobile, wantsOffline, wantsHybrid);
+      return this.captureIntent(
+        'real_estate_lead',
+        'captura_inmueble',
+        'Captura Inmueble',
+        'inmobiliaria',
+        wantsMobile,
+        wantsOffline,
+        wantsHybrid
+      );
     }
     if (/perfil|actualizar usuario|editar usuario/.test(prompt)) {
-      return this.captureIntent('profile_update', 'actualizacion_perfil', 'Actualizacion Perfil', 'usuarios', wantsMobile, wantsOffline, wantsHybrid);
+      return this.captureIntent(
+        'profile_update',
+        'actualizacion_perfil',
+        'Actualizacion Perfil',
+        'usuarios',
+        wantsMobile,
+        wantsOffline,
+        wantsHybrid
+      );
     }
     if (/servicio|agenda|cita|solicitud/.test(prompt)) {
-      return this.captureIntent('service_request', 'solicitud_servicio', 'Solicitud Servicio', 'servicios', wantsMobile, wantsOffline, wantsHybrid);
+      return this.captureIntent(
+        'service_request',
+        'solicitud_servicio',
+        'Solicitud Servicio',
+        'servicios',
+        wantsMobile,
+        wantsOffline,
+        wantsHybrid
+      );
     }
     if (explicitKey) {
       return this.captureIntent(
@@ -3585,7 +4058,15 @@ export class AiAssistantService {
       );
     }
 
-    return this.captureIntent('client_onboarding', 'onboarding_cliente', 'Onboarding Cliente', 'clientes', wantsMobile, wantsOffline, wantsHybrid);
+    return this.captureIntent(
+      'client_onboarding',
+      'onboarding_cliente',
+      'Onboarding Cliente',
+      'clientes',
+      wantsMobile,
+      wantsOffline,
+      wantsHybrid
+    );
   }
 
   private captureIntent(
@@ -3744,7 +4225,8 @@ export class AiAssistantService {
     if (explicitColumns.length) {
       explicitColumns.forEach((column) => {
         const type = this.formCatalogTypeFromSchemaType(column.type);
-        const required = column.nullable === false || !/comentario|observaci[oó]n|nota|descripcion|descripci[oó]n/.test(column.name);
+        const required =
+          column.nullable === false || !/comentario|observaci[oó]n|nota|descripcion|descripci[oó]n/.test(column.name);
         push(
           this.decorateTableFormField(
             this.formField(
@@ -3828,7 +4310,9 @@ export class AiAssistantService {
       });
     }
     if (/observaci[oó]n|comentario|nota|descripci[oó]n|inspecci[oó]n/.test(prompt)) {
-      push(this.formField('observaciones', 'Observaciones', 'textarea', false, 'Escribe observaciones', 'Sin novedades'));
+      push(
+        this.formField('observaciones', 'Observaciones', 'textarea', false, 'Escribe observaciones', 'Sin novedades')
+      );
     }
     if (/foto|imagen|evidencia|inspecci[oó]n/.test(prompt)) {
       push(this.formField('foto', 'Foto', 'image', intent.kind === 'inspection_mobile', 'Adjunta una foto', ''));
@@ -3925,36 +4409,47 @@ export class AiAssistantService {
     ];
   }
 
-  private formPersistence(options: {
-    key: string;
-    intent: DynamicFormIntent;
-    serviceKey: string;
-    flowKey: string;
-  }) {
+  private formPersistence(options: { key: string; intent: DynamicFormIntent; serviceKey: string; flowKey: string }) {
     if (options.intent.persistenceMode === 'auth') {
-      return { mode: 'auth', defaultTarget: { type: 'dynamic_service', serviceKey: options.serviceKey } };
+      return {
+        mode: 'auth',
+        defaultTarget: {
+          type: 'dynamic_service',
+          serviceKey: options.serviceKey
+        }
+      };
     }
     if (options.intent.persistenceMode === 'none') {
       return { mode: 'none' };
     }
     if (options.intent.wantsHybrid || options.intent.persistenceMode === 'hybrid') {
-      return { mode: 'hybrid', defaultTarget: { type: 'record', recordType: options.key } };
+      return {
+        mode: 'hybrid',
+        defaultTarget: { type: 'record', recordType: options.key }
+      };
     }
     if (options.intent.wantsFlow || options.intent.persistenceMode === 'flow') {
-      return { mode: 'flow', defaultTarget: { type: 'flow', flowKey: options.flowKey } };
+      return {
+        mode: 'flow',
+        defaultTarget: { type: 'flow', flowKey: options.flowKey }
+      };
     }
     if (options.intent.wantsService || options.intent.persistenceMode === 'service') {
-      return { mode: 'service', defaultTarget: { type: 'dynamic_service', serviceKey: options.serviceKey } };
+      return {
+        mode: 'service',
+        defaultTarget: {
+          type: 'dynamic_service',
+          serviceKey: options.serviceKey
+        }
+      };
     }
-    return { mode: 'record', defaultTarget: { type: 'record', recordType: options.key } };
+    return {
+      mode: 'record',
+      defaultTarget: { type: 'record', recordType: options.key }
+    };
   }
 
-  private formActions(options: {
-    key: string;
-    intent: DynamicFormIntent;
-    serviceKey: string;
-    flowKey: string;
-  }) {
+  private formActions(options: { key: string; intent: DynamicFormIntent; serviceKey: string; flowKey: string }) {
     if (options.intent.kind === 'auth_login') {
       return [this.authLoginAction('usuario', 'password', '/home', 'Credenciales incorrectas')];
     }
@@ -3985,14 +4480,33 @@ export class AiAssistantService {
       ];
     }
     if (options.intent.wantsFlow || options.intent.persistenceMode === 'flow') {
-      return [{ event: 'onSubmit', type: 'execute_flow', flowKey: options.flowKey, payloadMap: { input: '{{input}}' } }];
+      return [
+        {
+          event: 'onSubmit',
+          type: 'execute_flow',
+          flowKey: options.flowKey,
+          payloadMap: { input: '{{input}}' }
+        }
+      ];
     }
     if (options.intent.wantsService || options.intent.persistenceMode === 'service') {
       return [
-        { event: 'onSubmit', type: 'execute_service', serviceKey: options.serviceKey, payloadMap: { input: '{{input}}' } }
+        {
+          event: 'onSubmit',
+          type: 'execute_service',
+          serviceKey: options.serviceKey,
+          payloadMap: { input: '{{input}}' }
+        }
       ];
     }
-    return [{ event: 'onSubmit', type: 'create_record', recordType: options.key, payloadMap: { input: '{{input}}' } }];
+    return [
+      {
+        event: 'onSubmit',
+        type: 'create_record',
+        recordType: options.key,
+        payloadMap: { input: '{{input}}' }
+      }
+    ];
   }
 
   private repairAndValidateFormDraft(
@@ -4015,7 +4529,10 @@ export class AiAssistantService {
       offline['enabled'] = false;
       runtime['offline'] = offline;
       document['runtime'] = runtime;
-      document['persistence'] = { mode: 'auth', defaultTarget: { type: 'dynamic_service', serviceKey: 'auth.login' } };
+      document['persistence'] = {
+        mode: 'auth',
+        defaultTarget: { type: 'dynamic_service', serviceKey: 'auth.login' }
+      };
       document['actions'] = [this.authLoginAction('usuario', 'password', '/home', 'Credenciales incorrectas')];
       checks.push('Login detectado: no se crea record y se usa acción de autenticación.');
     }
@@ -4038,7 +4555,10 @@ export class AiAssistantService {
     if (intent.kind === 'lookup' && persistence['mode'] !== 'service') {
       document['persistence'] = {
         mode: 'service',
-        defaultTarget: { type: 'dynamic_service', serviceKey: actions[0]?.['serviceKey'] ?? 'buscar_usuario' }
+        defaultTarget: {
+          type: 'dynamic_service',
+          serviceKey: actions[0]?.['serviceKey'] ?? 'buscar_usuario'
+        }
       };
       checks.push('Consulta detectada: se evita crear record por defecto.');
     }
@@ -4159,9 +4679,7 @@ export class AiAssistantService {
     }
 
     const document = action.document;
-    const stepSummary = document.steps
-      .map((step) => `${step['key']} (${step['type']})`)
-      .join(' -> ');
+    const stepSummary = document.steps.map((step) => `${step['key']} (${step['type']})`).join(' -> ');
 
     return {
       message: [
@@ -4183,7 +4701,11 @@ export class AiAssistantService {
     request?: AiAssistantRequest
   ): { action: ApplyFlowJsonAction; message: string } | null {
     const normalized = prompt.toLowerCase();
-    if (!/ajusta|cambia|modifica|actualiza|entrada|trigger|webhook|manual|directo|schedule|programad|formulario|responder|front|timeout|servicio/.test(normalized)) {
+    if (
+      !/ajusta|cambia|modifica|actualiza|entrada|trigger|webhook|manual|directo|schedule|programad|formulario|responder|front|timeout|servicio/.test(
+        normalized
+      )
+    ) {
       return null;
     }
     const state = this.flowScreenState(request?.screenState);
@@ -4258,9 +4780,10 @@ export class AiAssistantService {
 
   private shouldApplyFlowDraft(request: AiAssistantRequest) {
     const prompt = request.prompt.toLowerCase().trim();
-    const confirms = /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft|crear draft)(\b|[.!\s])/.test(
-      prompt
-    );
+    const confirms =
+      /^(si|sí|ok|listo|dale|contin[uú]a|hazlo|g[eé]neralo|gener[aá]|aplica|crea(?:r)?(?: el)? draft|genera el draft|crear draft)(\b|[.!\s])/.test(
+        prompt
+      );
     if (!confirms) {
       return false;
     }
@@ -4306,7 +4829,16 @@ export class AiAssistantService {
     const chains = /encaden|luego|despu[eé]s|primero|segundo|dos servicios|varios servicios/.test(normalized);
     const usesService = /servicio|services?|dynamic service|consulta|consultar|buscar/.test(normalized);
 
-    if (!isParallel && !isForeach && !isSubflow && !emitsEvent && !calculates && !validates && !chains && !usesService) {
+    if (
+      !isParallel &&
+      !isForeach &&
+      !isSubflow &&
+      !emitsEvent &&
+      !calculates &&
+      !validates &&
+      !chains &&
+      !usesService
+    ) {
       return null;
     }
 
@@ -4326,8 +4858,16 @@ export class AiAssistantService {
         nextStepKey: 'respuesta',
         config: {
           branches: [
-            { key: 'servicio_a', serviceKey: serviceKeys[0], inputMap: this.defaultServiceInputMap(inputFields) },
-            { key: 'servicio_b', serviceKey: serviceKeys[1] ?? serviceKeys[0], inputMap: this.defaultServiceInputMap(inputFields) }
+            {
+              key: 'servicio_a',
+              serviceKey: serviceKeys[0],
+              inputMap: this.defaultServiceInputMap(inputFields)
+            },
+            {
+              key: 'servicio_b',
+              serviceKey: serviceKeys[1] ?? serviceKeys[0],
+              inputMap: this.defaultServiceInputMap(inputFields)
+            }
           ]
         }
       });
@@ -4380,8 +4920,18 @@ export class AiAssistantService {
         type: 'dynamic_service',
         position: 10,
         outputKey: 'servicio',
-        nextStepKey: chains ? 'ejecutar_segundo_servicio' : validates ? 'validar_resultado' : emitsEvent ? 'emitir_evento' : 'respuesta',
-        config: { serviceKey: serviceKeys[0], timeoutMs: 8000, retry: { attempts: 0, backoffMs: 0 } },
+        nextStepKey: chains
+          ? 'ejecutar_segundo_servicio'
+          : validates
+            ? 'validar_resultado'
+            : emitsEvent
+              ? 'emitir_evento'
+              : 'respuesta',
+        config: {
+          serviceKey: serviceKeys[0],
+          timeoutMs: 8000,
+          retry: { attempts: 0, backoffMs: 0 }
+        },
         inputMap: this.defaultServiceInputMap(inputFields)
       });
 
@@ -4393,7 +4943,11 @@ export class AiAssistantService {
           position: 20,
           outputKey: 'segundo_servicio',
           nextStepKey: validates ? 'validar_resultado' : emitsEvent ? 'emitir_evento' : 'respuesta',
-          config: { serviceKey: serviceKeys[1] ?? serviceKeys[0], timeoutMs: 8000, retry: { attempts: 0, backoffMs: 0 } },
+          config: {
+            serviceKey: serviceKeys[1] ?? serviceKeys[0],
+            timeoutMs: 8000,
+            retry: { attempts: 0, backoffMs: 0 }
+          },
           inputMap: { previous: '{{steps.servicio.response}}' }
         });
       }
@@ -4408,7 +4962,14 @@ export class AiAssistantService {
           onTrueStepKey: emitsEvent ? 'emitir_evento' : 'respuesta',
           onFalseStepKey: 'respuesta_rechazada',
           config: {
-            rule: { '==': [{ var: chains ? 'steps.segundo_servicio.ok' : 'steps.servicio.ok' }, true] }
+            rule: {
+              '==': [
+                {
+                  var: chains ? 'steps.segundo_servicio.ok' : 'steps.servicio.ok'
+                },
+                true
+              ]
+            }
           }
         });
         steps.push({
@@ -4418,7 +4979,10 @@ export class AiAssistantService {
           position: chains ? 40 : 30,
           config: {
             status: 'rejected',
-            body: { ok: false, reason: 'La validación del flow no permitió continuar.' }
+            body: {
+              ok: false,
+              reason: 'La validación del flow no permitió continuar.'
+            }
           }
         });
       }
@@ -4500,7 +5064,10 @@ export class AiAssistantService {
     );
   }
 
-  private flowEntryFromPrompt(prompt: string, key: string): {
+  private flowEntryFromPrompt(
+    prompt: string,
+    key: string
+  ): {
     mode: 'direct' | 'manual' | 'http' | 'record_event' | 'form_submit' | 'schedule';
     key: string;
     config: Record<string, unknown>;
@@ -4509,10 +5076,18 @@ export class AiAssistantService {
       return { mode: 'http', key: `${key}.webhook`, config: {} };
     }
     if (/schedule|programad|cada hora|diario|cron/.test(prompt)) {
-      return { mode: 'schedule', key: `${key}.schedule`, config: { intervalSeconds: 3600 } };
+      return {
+        mode: 'schedule',
+        key: `${key}.schedule`,
+        config: { intervalSeconds: 3600 }
+      };
     }
     if (/record|registro|evento/.test(prompt)) {
-      return { mode: 'record_event', key: this.flowEventKeyFromPrompt(prompt), config: {} };
+      return {
+        mode: 'record_event',
+        key: this.flowEventKeyFromPrompt(prompt),
+        config: {}
+      };
     }
     if (/formulario|form submit|submit/.test(prompt)) {
       return { mode: 'form_submit', key: `${key}.form_submitted`, config: {} };
@@ -4525,18 +5100,58 @@ export class AiAssistantService {
 
   private flowInputFieldsFromPrompt(prompt: string, foreach: boolean, calculates: boolean) {
     if (foreach) {
-      return [{ key: 'items', label: 'Items', type: 'text' as const, required: true, example: '[{\"id\":\"1\"}]' }];
+      return [
+        {
+          key: 'items',
+          label: 'Items',
+          type: 'text' as const,
+          required: true,
+          example: '[{\"id\":\"1\"}]'
+        }
+      ];
     }
     if (calculates) {
-      return [{ key: 'amount', label: 'Monto', type: 'number' as const, required: true, example: '100' }];
+      return [
+        {
+          key: 'amount',
+          label: 'Monto',
+          type: 'number' as const,
+          required: true,
+          example: '100'
+        }
+      ];
     }
     if (/email|correo|mail/.test(prompt)) {
-      return [{ key: 'email', label: 'Email', type: 'email' as const, required: true, example: 'usuario@empresa.com' }];
+      return [
+        {
+          key: 'email',
+          label: 'Email',
+          type: 'email' as const,
+          required: true,
+          example: 'usuario@empresa.com'
+        }
+      ];
     }
     if (/role|rol/.test(prompt)) {
-      return [{ key: 'roleKey', label: 'Rol', type: 'text' as const, required: true, example: 'client' }];
+      return [
+        {
+          key: 'roleKey',
+          label: 'Rol',
+          type: 'text' as const,
+          required: true,
+          example: 'client'
+        }
+      ];
     }
-    return [{ key: 'value', label: 'Valor', type: 'text' as const, required: true, example: 'ABC-123' }];
+    return [
+      {
+        key: 'value',
+        label: 'Valor',
+        type: 'text' as const,
+        required: true,
+        example: 'ABC-123'
+      }
+    ];
   }
 
   private defaultServiceInputMap(inputFields: Array<{ key: string }>) {
@@ -4636,11 +5251,12 @@ export class AiAssistantService {
     const lastRunLine = state.lastRun?.error ? `\n\nDetecté el último error: ${state.lastRun.error}` : '';
 
     return {
-      message: [
-        'Revisé el servicio actual y preparé una corrección aplicable en esta pantalla.',
-        repaired.message,
-        'No guardé ni publiqué nada automáticamente. Revisa el JSON, guarda el draft y publica cuando estés conforme.'
-      ].join('\n\n') + lastRunLine,
+      message:
+        [
+          'Revisé el servicio actual y preparé una corrección aplicable en esta pantalla.',
+          repaired.message,
+          'No guardé ni publiqué nada automáticamente. Revisa el JSON, guarda el draft y publica cuando estés conforme.'
+        ].join('\n\n') + lastRunLine,
       actions: [repaired.action]
     };
   }
@@ -4650,7 +5266,11 @@ export class AiAssistantService {
     state: AssistantServiceScreenState
   ): Pick<AiAssistantResponse, 'message' | 'actions'> | null {
     const normalized = prompt.toLowerCase();
-    if (!/timeout|reintento|retry|backoff|pagin|page|lista|un registro|detalle|s[ií]\/no|boolean|m[eé]todo|method|post|get|put|patch|delete|url|endpoint/.test(normalized)) {
+    if (
+      !/timeout|reintento|retry|backoff|pagin|page|lista|un registro|detalle|s[ií]\/no|boolean|m[eé]todo|method|post|get|put|patch|delete|url|endpoint/.test(
+        normalized
+      )
+    ) {
       return null;
     }
     const document = JSON.parse(JSON.stringify(state.definition ?? {})) as Record<string, unknown>;
@@ -4774,7 +5394,8 @@ export class AiAssistantService {
     }
 
     const operator = /igual|exact|exacto|por id|por key exact/.test(normalized) ? 'equals' : 'contains';
-    const resultKind = this.stringValue(current.resultKind) || (/uno|un registro|detalle/.test(normalized) ? 'single' : 'list');
+    const resultKind =
+      this.stringValue(current.resultKind) || (/uno|un registro|detalle/.test(normalized) ? 'single' : 'list');
     const filters = fieldFromPrompt
       ? [
           {
@@ -4786,18 +5407,16 @@ export class AiAssistantService {
           }
         ]
       : currentFilters.length
-      ? currentFilters.map((filter) =>
-          this.normalizeServiceFilter(filter, field, operator)
-        )
-      : [
-          {
-            field,
-            operator,
-            valueSource: 'input',
-            inputKey: field,
-            required: true
-          }
-        ];
+        ? currentFilters.map((filter) => this.normalizeServiceFilter(filter, field, operator))
+        : [
+            {
+              field,
+              operator,
+              valueSource: 'input',
+              inputKey: field,
+              required: true
+            }
+          ];
 
     const query = {
       ...(current.query && typeof current.query === 'object' && !Array.isArray(current.query)
@@ -4861,7 +5480,9 @@ export class AiAssistantService {
         type: 'apply_dynamic_service_json',
         label: 'Aplicar corrección al diseñador de servicios',
         key: state.draft?.key || `${resultKind === 'single' ? 'consultar' : 'listar'}_${table}_por_${field}`,
-        name: state.draft?.name || `${resultKind === 'single' ? 'Consultar' : 'Listar'} ${this.labelForTable(table)} por ${field}`,
+        name:
+          state.draft?.name ||
+          `${resultKind === 'single' ? 'Consultar' : 'Listar'} ${this.labelForTable(table)} por ${field}`,
         description:
           state.draft?.description ||
           `${resultKind === 'single' ? 'Consulta un registro' : 'Lista registros'} de ${this.labelForTable(
@@ -4997,7 +5618,11 @@ export class AiAssistantService {
   }
 
   private serviceSuggestions(message: string) {
-    if (/Si esta interpretaci[oó]n es correcta|genera el draft|crear(?: el)? draft|desea crear el draft|aplicar[aá] como borrador/i.test(message)) {
+    if (
+      /Si esta interpretaci[oó]n es correcta|genera el draft|crear(?: el)? draft|desea crear el draft|aplicar[aá] como borrador/i.test(
+        message
+      )
+    ) {
       return ['crear draft', 'ajustar propuesta', 'cancelar'];
     }
 
@@ -5056,7 +5681,7 @@ export class AiAssistantService {
       return false;
     });
 
-    return answeredMissing ? missing.find((item) => item !== answeredMissing) ?? null : missing[0];
+    return answeredMissing ? (missing.find((item) => item !== answeredMissing) ?? null) : missing[0];
   }
 
   private hasResponseShape(prompt: string) {
@@ -5146,9 +5771,13 @@ export class AiAssistantService {
       };
     }
 
-    if (/^tablas correctas|^correctas|^sí tablas|^si tablas/.test(prompt) || /tablas involucradas reales/.test(lastAssistant ?? '')) {
+    if (
+      /^tablas correctas|^correctas|^sí tablas|^si tablas/.test(prompt) ||
+      /tablas involucradas reales/.test(lastAssistant ?? '')
+    ) {
       if (roleFilterOptions.some((option) => prompt === option.value.toLowerCase())) {
-        const selected = roleFilterOptions.find((option) => prompt === option.value.toLowerCase()) ?? roleFilterOptions[0];
+        const selected =
+          roleFilterOptions.find((option) => prompt === option.value.toLowerCase()) ?? roleFilterOptions[0];
         return {
           message: [
             'Configuración propuesta:',
@@ -5217,7 +5846,12 @@ export class AiAssistantService {
   }
 
   private roleFilterOptions(roleColumns: string[]) {
-    const options: Array<{ value: string; inputKey: string; example: string; description: string }> = [];
+    const options: Array<{
+      value: string;
+      inputKey: string;
+      example: string;
+      description: string;
+    }> = [];
     if (roleColumns.includes('key')) {
       options.push({
         value: 'roles.key',
@@ -5243,7 +5877,16 @@ export class AiAssistantService {
       });
     }
 
-    return options.length ? options : [{ value: 'roles.id', inputKey: 'roleId', example: 'uuid-del-rol', description: 'identificador interno exacto' }];
+    return options.length
+      ? options
+      : [
+          {
+            value: 'roles.id',
+            inputKey: 'roleId',
+            example: 'uuid-del-rol',
+            description: 'identificador interno exacto'
+          }
+        ];
   }
 
   private userRoleMembershipFilter(context: string, request?: AiAssistantRequest) {
@@ -5265,10 +5908,18 @@ export class AiAssistantService {
 
   private selectedRoleFilterOption(
     request: AiAssistantRequest | undefined,
-    options: Array<{ value: string; inputKey: string; example: string; description: string }>
+    options: Array<{
+      value: string;
+      inputKey: string;
+      example: string;
+      description: string;
+    }>
   ) {
-    return this.selectedOptionFromUserMessages(request, options, (option) => option.value, (message, value) =>
-      message === value || message.includes(`usar ${value}`)
+    return this.selectedOptionFromUserMessages(
+      request,
+      options,
+      (option) => option.value,
+      (message, value) => message === value || message.includes(`usar ${value}`)
     );
   }
 
@@ -5292,12 +5943,18 @@ export class AiAssistantService {
 
     for (const column of ['id', 'email', 'name', 'active']) {
       if (userColumns.includes(column)) {
-        select.push({ field: `u.${column}`, alias: column === 'id' ? 'userId' : `user${this.capitalize(column)}` });
+        select.push({
+          field: `u.${column}`,
+          alias: column === 'id' ? 'userId' : `user${this.capitalize(column)}`
+        });
       }
     }
     for (const column of ['id', 'key', 'name']) {
       if (roleColumns.includes(column)) {
-        select.push({ field: `r.${column}`, alias: column === 'id' ? 'roleId' : `role${this.capitalize(column)}` });
+        select.push({
+          field: `r.${column}`,
+          alias: column === 'id' ? 'roleId' : `role${this.capitalize(column)}`
+        });
       }
     }
 
@@ -5314,16 +5971,17 @@ export class AiAssistantService {
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
-  private userRoleJoinServiceDraft(context: string, request?: AiAssistantRequest): ApplyDynamicServiceJsonAction | null {
+  private userRoleJoinServiceDraft(
+    context: string,
+    request?: AiAssistantRequest
+  ): ApplyDynamicServiceJsonAction | null {
     const tables = this.detectTables(context);
     if (!tables.includes('users') || !tables.includes('roles')) {
       return null;
     }
 
     const roleMembership = this.isUserRoleMembershipQuery(context) || this.isUserRoleMembershipFlowInProgress(context);
-    const roleFilter = roleMembership
-      ? this.userRoleMembershipFilter(context, request)
-      : null;
+    const roleFilter = roleMembership ? this.userRoleMembershipFilter(context, request) : null;
     const fields = this.detectFields(context);
     const field =
       roleFilter?.inputKey ??
@@ -5376,9 +6034,7 @@ export class AiAssistantService {
               on: [{ left: 'ur.roleId', operator: 'equals', right: 'r.id' }]
             }
           ],
-          select: [
-            ...select
-          ],
+          select: [...select],
           relationNotes: 'users.id -> user_roles.userId -> roles.id',
           filterNotes: `${filterField} ${operator} input.${field}`,
           matchMode: 'all',
@@ -5670,14 +6326,29 @@ export class AiAssistantService {
   private tableCandidates(): Array<{ table: string; patterns: RegExp[] }> {
     return [
       { table: 'permissions', patterns: [/\bpermissions?\b/, /\bpermisos?\b/] },
-      { table: 'user_roles', patterns: [/\buser_roles?\b/, /\broles?\s+de\s+usuario\b/, /\broles?\s+por\s+userid\b/] },
-      { table: 'roles', patterns: [/\brol\b/, /\broles?\b/, /\btabla\s+rol\b/, /\btabla\s+role\b/, /\btabla\s+roles\b/] },
-      { table: 'users', patterns: [/\busers?\b/, /\busuarios?\b/, /\busuario\b/] },
+      {
+        table: 'user_roles',
+        patterns: [/\buser_roles?\b/, /\broles?\s+de\s+usuario\b/, /\broles?\s+por\s+userid\b/]
+      },
+      {
+        table: 'roles',
+        patterns: [/\brol\b/, /\broles?\b/, /\btabla\s+rol\b/, /\btabla\s+role\b/, /\btabla\s+roles\b/]
+      },
+      {
+        table: 'users',
+        patterns: [/\busers?\b/, /\busuarios?\b/, /\busuario\b/]
+      },
       { table: 'tenants', patterns: [/\btenants?\b/, /\borganizaciones?\b/] },
       { table: 'menus', patterns: [/\bmenus?\b/, /\bmen[uú]s?\b/] },
       { table: 'records', patterns: [/\brecords?\b/, /\bregistros?\b/] },
-      { table: 'dynamic_forms', patterns: [/\bdynamic_forms?\b/, /\bformularios?\b/] },
-      { table: 'dynamic_services', patterns: [/\bdynamic_services?\b/, /\bservicios?\s+din[aá]micos?\b/] },
+      {
+        table: 'dynamic_forms',
+        patterns: [/\bdynamic_forms?\b/, /\bformularios?\b/]
+      },
+      {
+        table: 'dynamic_services',
+        patterns: [/\bdynamic_services?\b/, /\bservicios?\s+din[aá]micos?\b/]
+      },
       { table: 'flows', patterns: [/\bflows?\b/, /\bflujos?\b/] },
       { table: 'confisys', patterns: [/\bconfisys\b/] }
     ];
@@ -5720,16 +6391,34 @@ export class AiAssistantService {
       { field: 'slug', patterns: [/\bslug\b/] },
       { field: 'id', patterns: [/\bid\b/, /\bidentificador\b/] },
       { field: 'tenantId', patterns: [/\btenantid\b/, /\btenant_id\b/] },
-      { field: 'userId', patterns: [/\buserid\b/, /\buser_id\b/, /\bid\s+del\s+usuario\b/] },
-      { field: 'roleId', patterns: [/\broleid\b/, /\brole_id\b/, /\bid\s+del\s+rol\b/] },
-      { field: 'formKey', patterns: [/\bformkey\b/, /\bform_key\b/, /\bkey\s+del\s+formulario\b/] },
-      { field: 'recordType', patterns: [/\brecordtype\b/, /\brecord_type\b/, /\btipo\s+de\s+record\b/, /\btipo\s+de\s+registro\b/] },
+      {
+        field: 'userId',
+        patterns: [/\buserid\b/, /\buser_id\b/, /\bid\s+del\s+usuario\b/]
+      },
+      {
+        field: 'roleId',
+        patterns: [/\broleid\b/, /\brole_id\b/, /\bid\s+del\s+rol\b/]
+      },
+      {
+        field: 'formKey',
+        patterns: [/\bformkey\b/, /\bform_key\b/, /\bkey\s+del\s+formulario\b/]
+      },
+      {
+        field: 'recordType',
+        patterns: [/\brecordtype\b/, /\brecord_type\b/, /\btipo\s+de\s+record\b/, /\btipo\s+de\s+registro\b/]
+      },
       { field: 'category', patterns: [/\bcategory\b/, /\bcategor[ií]a\b/] },
       { field: 'status', patterns: [/\bstatus\b/, /\bestado\b/] },
       { field: 'active', patterns: [/\bactive\b/, /\bactivo\b/] },
-      { field: 'label', patterns: [/\blabel\b/, /\betiqueta\b/, /\bt[ií]tulo\b/] },
+      {
+        field: 'label',
+        patterns: [/\blabel\b/, /\betiqueta\b/, /\bt[ií]tulo\b/]
+      },
       { field: 'route', patterns: [/\broute\b/, /\bruta\b/] },
-      { field: 'description', patterns: [/\bdescription\b/, /\bdescripci[oó]n\b/] }
+      {
+        field: 'description',
+        patterns: [/\bdescription\b/, /\bdescripci[oó]n\b/]
+      }
     ];
     const normalizedCandidates = candidates
       .filter((candidate) => candidate.patterns.some((pattern) => pattern.test(normalizedPrompt)))
@@ -5813,9 +6502,11 @@ export class AiAssistantService {
         'Para flows, dime el disparador, los pasos en orden y qué debe responder al final. Ejemplo: "flow manual que ejecuta buscar_usuario y luego validar_permiso".',
       forms:
         'Para formularios, dime título, pasos, campos obligatorios y acción final. Ejemplo: "formulario de cliente con nombre, email y botón guardar".',
+      apps: 'Para apps, dime el tipo de app, targets, pantallas iniciales y componentes principales. Ejemplo: "app de eventos con home, agenda y registro".',
       database: 'Para base de datos, dime tabla, campo u operación concreta.',
       security: 'Para seguridad, dime si quieres usuario, rol, permiso o regla de acceso.',
-      components: 'Para componentes, dime qué componente quieres documentar, crear o ajustar.'
+      components: 'Para componentes, dime qué componente quieres documentar, crear o ajustar.',
+      translations: 'Para textos, dime namespace, llave, idioma o el texto visible que quieres administrar.'
     };
 
     return [
@@ -5852,6 +6543,10 @@ export class AiAssistantService {
       return 'forms';
     }
 
+    if (route.startsWith('/apps')) {
+      return 'apps';
+    }
+
     if (route.startsWith('/database')) {
       return 'database';
     }
@@ -5862,6 +6557,10 @@ export class AiAssistantService {
 
     if (route.startsWith('/components')) {
       return 'components';
+    }
+
+    if (route.startsWith('/translations')) {
+      return 'translations';
     }
 
     return 'general';

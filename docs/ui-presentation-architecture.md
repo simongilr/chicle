@@ -9,8 +9,11 @@ CSS classes or imports from PrimeNG, Ionic, Material or Bootstrap.
 - **Kit** selects the component implementation: `primeng`, `ionic`, `native`, `material` or `bootstrap`.
 - **Theme** selects visual tokens: colors, typography, density, spacing, borders and radius. A theme must work across
   every installed kit.
+- **Locale** selects text from backend-managed and locally cached language bundles. Locale does not change kit or
+  theme; it changes visible copy, validation messages and formatting rules.
 
 Changing a theme does not change component behavior. Adding a kit does not change stored forms or screen definitions.
+Changing a locale does not rewrite stored forms or screens.
 
 ## Installed themes
 
@@ -52,6 +55,9 @@ value it finds in this order:
 4. Selected app template default.
 5. Tenant/organization Confisys default.
 6. Chicle built-in default.
+
+Text is resolved by `docs/i18n-text-architecture.md`. Presentation contracts may carry text keys for component labels,
+but language defaults belong to platform, tenant, app, artifact or user preferences, not to a visual kit.
 
 Supported stored values:
 

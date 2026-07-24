@@ -481,12 +481,15 @@ interface SchemaHistoryResponse {
     `
   ],
   template: `
-    <app-page-shell contextLabel="Base de datos">
+    <app-page-shell contextLabel="Base de datos" contextLabelKey="nav.context.database">
       <div class="shell">
         <app-module-header
           title="Base de datos"
+          titleKey="database.title"
           description="Visor de datos y diseñador controlado para tablas custom. Sin SQL libre ni cambios sobre tablas core."
+          descriptionKey="database.description"
           badge="Owner/Admin"
+          badgeKey="database.badge"
         ></app-module-header>
 
         @if (!auth.state.isOwnerOrAdmin) {

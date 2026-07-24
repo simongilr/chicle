@@ -44,12 +44,17 @@ export interface RuntimeField {
   name: string;
   type: string;
   label: string;
+  labelKey?: string;
   required?: boolean;
   placeholder?: string;
-  options?: Array<{ label: string; value: unknown }>;
+  placeholderKey?: string;
+  help?: string;
+  helpKey?: string;
+  options?: Array<{ label: string; labelKey?: string; value: unknown }>;
   config?: Record<string, unknown>;
   presentation?: UiPresentationConfig;
   text?: string;
+  textKey?: string;
   transform?: RuntimeFieldTransform;
   length?: RuntimeFieldLength;
   visibleWhen?: RuntimeFieldCondition;
@@ -68,13 +73,19 @@ export interface RuntimeField {
 export interface RuntimeFormStep {
   key: string;
   title: string;
+  titleKey?: string;
   description?: string;
+  descriptionKey?: string;
   fields: RuntimeField[];
 }
 
 export interface RuntimeForm {
   key: string;
   title: string;
+  titleKey?: string;
+  description?: string;
+  descriptionKey?: string;
+  i18nNamespace?: string;
   version: number;
   fields: RuntimeField[];
   actions?: Array<Record<string, unknown>>;

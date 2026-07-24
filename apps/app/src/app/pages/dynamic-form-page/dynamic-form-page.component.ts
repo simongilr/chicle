@@ -112,11 +112,13 @@ import { UiPresentationSwitcherComponent } from '../../shared/ui-presentation-sw
     `
   ],
   template: `
-    <app-page-shell contextLabel="Formularios">
+    <app-page-shell contextLabel="Formularios" contextLabelKey="nav.context.forms">
       <app-module-header
         eyebrow="Runtime declarativo"
+        eyebrowKey="dynamicFormRuntime.eyebrow"
         [title]="form?.title || 'Formulario dinámico'"
         description="El mismo esquema compone los campos, validaciones y valores en web y móvil."
+        descriptionKey="dynamicFormRuntime.description"
         [badge]="form ? 'v' + form.version : 'Cargando'"
       ></app-module-header>
 

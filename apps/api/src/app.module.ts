@@ -8,6 +8,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfisysModule } from './modules/confisys/confisys.module';
 import { DevicesModule } from './modules/devices/devices.module';
+import { DynamicAppsModule } from './modules/dynamic-apps/dynamic-apps.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { DynamicServicesModule } from './modules/dynamic-services/dynamic-services.module';
 import { EnvironmentDeployModule } from './modules/environment-deploy/environment-deploy.module';
@@ -20,6 +21,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { SetupModule } from './modules/setup/setup.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import { TranslationsModule } from './modules/translations/translations.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -32,9 +34,11 @@ import { UsersModule } from './modules/users/users.module';
     SetupModule,
     AuthModule,
     TenantsModule,
+    TranslationsModule,
     UsersModule,
     SettingsModule,
     MenusModule,
+    DynamicAppsModule,
     DynamicFormsModule,
     DynamicServicesModule,
     EnvironmentDeployModule,

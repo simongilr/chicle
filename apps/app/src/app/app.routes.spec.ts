@@ -5,8 +5,10 @@ describe("application route security contract", () => {
   it.each([
     ["confisys", "confisys.read"],
     ["database", "database.read"],
+    ["translations", "translations.read"],
     ["services", "services.read"],
     ["forms", "forms.read"],
+    ["apps", "apps.read"],
   ])("protects /%s with authentication and %s", (path, permission) => {
     const route = routes.find((candidate) => candidate.path === path);
 

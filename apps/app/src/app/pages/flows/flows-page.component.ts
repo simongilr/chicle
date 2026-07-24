@@ -1338,13 +1338,17 @@ interface FlowJobItem {
     `
   ],
   template: `
-    <app-page-shell contextLabel="Flow Designer">
+    <app-page-shell contextLabel="Flow Designer" contextLabelKey="nav.context.flows">
       <div class="page">
       <app-module-header
         eyebrow="Procesos de la organización"
+        eyebrowKey="flows.eyebrow"
         title="Flows dinámicos"
+        titleKey="flows.title"
         description="Crea un proceso paso a paso, pruébalo con datos de ejemplo y publícalo cuando el resultado sea correcto."
+        descriptionKey="flows.description"
         badge="Flow Engine"
+        badgeKey="flows.badge"
       ></app-module-header>
 
       @if (loading) {

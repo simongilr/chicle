@@ -1,4 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
@@ -109,21 +110,43 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
   template: `
     <section class="header">
       <div class="copy">
-        @if (eyebrow) {
-          <span class="eyebrow">{{ eyebrow }}</span>
+        @if (resolvedEyebrow()) {
+          <span class="eyebrow">{{ resolvedEyebrow() }}</span>
         }
-        <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
+        <h1>{{ resolvedTitle() }}</h1>
+        <p>{{ resolvedDescription() }}</p>
       </div>
-      @if (badge) {
-        <span class="badge">{{ badge }}</span>
+      @if (resolvedBadge()) {
+        <span class="badge">{{ resolvedBadge() }}</span>
       }
     </section>
   `
 })
 export class ModuleHeaderComponent extends UiKitAwareComponent {
+  private readonly i18n = inject(I18nService);
+
   @Input({ required: true }) title = '';
   @Input({ required: true }) description = '';
   @Input() eyebrow = '';
   @Input() badge = '';
+  @Input() titleKey = '';
+  @Input() descriptionKey = '';
+  @Input() eyebrowKey = '';
+  @Input() badgeKey = '';
+
+  resolvedTitle() {
+    return this.titleKey ? this.i18n.label(this.titleKey, this.title) : this.title;
+  }
+
+  resolvedDescription() {
+    return this.descriptionKey ? this.i18n.label(this.descriptionKey, this.description) : this.description;
+  }
+
+  resolvedEyebrow() {
+    return this.eyebrowKey ? this.i18n.label(this.eyebrowKey, this.eyebrow) : this.eyebrow;
+  }
+
+  resolvedBadge() {
+    return this.badgeKey ? this.i18n.label(this.badgeKey, this.badge) : this.badge;
+  }
 }

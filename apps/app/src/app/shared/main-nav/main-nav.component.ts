@@ -256,7 +256,7 @@ interface NavGroup {
       <div class="nav-inner">
         <div class="brand-block">
           <div class="brand">Chicle Engine</div>
-          <div class="context-label">{{ contextLabel }}</div>
+          <div class="context-label">{{ contextText() }}</div>
         </div>
 
         <nav class="desktop-nav" [attr.aria-label]="i18n.translate('nav.mainNavigation')">
@@ -419,7 +419,7 @@ interface NavGroup {
         <div class="drawer-header">
           <div class="brand-block">
             <div class="brand">Chicle Engine</div>
-            <div class="context-label">{{ contextLabel }}</div>
+            <div class="context-label">{{ contextText() }}</div>
           </div>
           <button
             type="button"
@@ -466,7 +466,7 @@ interface NavGroup {
   `
 })
 export class MainNavComponent implements OnInit {
-  @Input() contextLabel = 'Panel principal';
+  @Input() contextLabel = '';
 
   readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
@@ -520,6 +520,10 @@ export class MainNavComponent implements OnInit {
     return this.i18n.label(item.i18nKey ?? `nav.${item.key}`, item.label);
   }
 
+  contextText() {
+    return this.contextLabel || this.i18n.translate('nav.context.home');
+  }
+
   groupIsActive(items: AppMenuItem[]) {
     const current = this.router.url.split('?')[0].split('#')[0];
     return items.some((item) => item.route && (current === item.route || current.startsWith(`${item.route}/`)));
@@ -547,7 +551,11 @@ export class MainNavComponent implements OnInit {
       return 'primary';
     }
 
-    if (['confisys', 'database', 'environments', 'security', 'users', 'roles', 'permissions'].includes(item.key)) {
+    if (
+      ['confisys', 'preferences', 'translations', 'database', 'environments', 'security', 'users', 'roles', 'permissions'].includes(
+        item.key
+      )
+    ) {
       return 'admin';
     }
 

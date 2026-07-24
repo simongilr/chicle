@@ -196,12 +196,15 @@ interface DeploymentBundle {
     `
   ],
   template: `
-    <app-page-shell contextLabel="Ambientes">
+    <app-page-shell contextLabel="Ambientes" contextLabelKey="nav.context.environments">
       <section class="env-page">
         <app-module-header
           eyebrow="Deploy Center"
+          eyebrowKey="environments.eyebrow"
           title="Ambientes y secrets"
+          titleKey="environments.title"
           description="Administra local, dev, qa, pre y prod desde un centro seguro: variables, Chicle Vault, URLs de servicios y readiness de despliegue."
+          descriptionKey="environments.description"
           badge="V1"
         ></app-module-header>
 

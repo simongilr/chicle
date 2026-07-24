@@ -146,12 +146,16 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
     `
   ],
   template: `
-    <app-page-shell contextLabel="Biblioteca de componentes">
+    <app-page-shell contextLabel="Biblioteca de componentes" contextLabelKey="nav.context.components">
       <app-module-header
         eyebrow="Documentación visual"
+        eyebrowKey="components.eyebrow"
         title="Componentes disponibles"
+        titleKey="components.title"
         description="Referencia independiente de componentes reutilizables: propósito, adopción, importación e invocación mínima."
+        descriptionKey="components.description"
         badge="UI Catalog"
+        badgeKey="components.badge"
       ></app-module-header>
 
       <app-admin-filter-bar ariaLabel="Component catalog filters" minColumnWidth="210px" [kit]="previewKit">

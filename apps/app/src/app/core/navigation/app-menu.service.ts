@@ -129,6 +129,17 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 32
   },
   {
+    key: 'translations',
+    label: 'Textos',
+    i18nKey: 'nav.translations',
+    route: '/translations',
+    icon: 'pi pi-language',
+    permissions: ['translations.read'],
+    group: 'Administración',
+    placement: 'admin',
+    sortOrder: 33
+  },
+  {
     key: 'database',
     label: 'Base de datos',
     i18nKey: 'nav.database',
@@ -182,6 +193,17 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     group: 'Construcción',
     placement: 'build',
     sortOrder: 40
+  },
+  {
+    key: 'apps',
+    label: 'Apps',
+    i18nKey: 'nav.apps',
+    route: '/apps',
+    icon: 'pi pi-window-maximize',
+    permissions: ['apps.read'],
+    group: 'Construcción',
+    placement: 'build',
+    sortOrder: 41
   },
   {
     key: 'security',

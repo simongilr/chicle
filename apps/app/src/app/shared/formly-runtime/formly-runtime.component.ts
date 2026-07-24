@@ -18,6 +18,7 @@ import {
   type UiPresentationConfig
 } from '../../core/ui/ui-presentation.types';
 import { AuthStateService } from '../../core/auth/auth-state.service';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { DynamicFlowClientService } from '../../core/services/dynamic-flow-client.service';
 import {
@@ -374,9 +375,9 @@ interface RenderedRuntimeStep {
           @for (section of renderedSteps; track section.step.key) {
             <section class="runtime-section" [class.card]="isCardLayout">
               <div class="step-heading">
-                <h2>{{ section.step.title }}</h2>
-                @if (section.step.description) {
-                  <p>{{ section.step.description }}</p>
+                <h2>{{ stepTitle(section.step) }}</h2>
+                @if (stepDescription(section.step)) {
+                  <p>{{ stepDescription(section.step) }}</p>
                 }
               </div>
               <formly-form
@@ -393,9 +394,9 @@ interface RenderedRuntimeStep {
         </div>
       } @else {
         <div class="step-heading">
-          <h2>{{ currentStep.title }}</h2>
-          @if (currentStep.description) {
-            <p>{{ currentStep.description }}</p>
+          <h2>{{ stepTitle(currentStep) }}</h2>
+          @if (stepDescription(currentStep)) {
+            <p>{{ stepDescription(currentStep) }}</p>
           }
         </div>
 
@@ -412,7 +413,7 @@ interface RenderedRuntimeStep {
 
       @if (!fields.length) {
         <app-status-notice tone="warning">
-          Este paso todavía no contiene campos.
+          {{ i18n.translate('forms.runtime.emptyStep') }}
         </app-status-notice>
       }
 
@@ -425,7 +426,7 @@ interface RenderedRuntimeStep {
       }
 
       @if (runtimeCommands.length) {
-        <div class="command-actions" aria-label="Acciones del formulario">
+        <div class="command-actions" [attr.aria-label]="i18n.translate('forms.runtime.actions.aria')">
           @for (command of runtimeCommands; track command['key'] || command['label']) {
             <app-ui-kit-button
               [label]="commandLabel(command)"
@@ -443,9 +444,9 @@ interface RenderedRuntimeStep {
       @if (showActions) {
         @if (isCompactViewport) {
           <app-mobile-action-bar
-            [secondaryLabel]="showPreviousAction ? 'Anterior' : ''"
+            [secondaryLabel]="showPreviousAction ? previousLabel : ''"
             [secondaryDisabled]="currentStepIndex === 0"
-            [primaryLabel]="currentStepIndex < steps.length - 1 ? 'Continuar' : submitLabel"
+            [primaryLabel]="currentStepIndex < steps.length - 1 ? continueLabel : resolvedSubmitLabel"
             primaryType="submit"
             (secondary)="previous()"
           ></app-mobile-action-bar>
@@ -453,7 +454,7 @@ interface RenderedRuntimeStep {
           <div class="actions" [class.no-secondary]="!showPreviousAction">
             @if (showPreviousAction) {
               <app-ui-kit-button
-                label="Anterior"
+                [label]="previousLabel"
                 [kit]="runtimeKit"
                 type="button"
                 tone="neutral"
@@ -465,7 +466,7 @@ interface RenderedRuntimeStep {
             <div class="actions-end">
               @if (currentStepIndex < steps.length - 1) {
                 <app-ui-kit-button
-                  label="Continuar"
+                  [label]="continueLabel"
                   [kit]="runtimeKit"
                   [tone]="primaryTone"
                   type="submit"
@@ -473,7 +474,7 @@ interface RenderedRuntimeStep {
                 ></app-ui-kit-button>
               } @else {
                 <app-ui-kit-button
-                  [label]="submitLabel"
+                  [label]="resolvedSubmitLabel"
                   [kit]="runtimeKit"
                   [tone]="primaryTone"
                   type="submit"
@@ -492,6 +493,7 @@ export class FormlyRuntimeComponent implements OnChanges {
   private readonly authState = inject(AuthStateService);
   private readonly services = inject(DynamicServiceClientService);
   private readonly flows = inject(DynamicFlowClientService);
+  readonly i18n = inject(I18nService);
   private readonly loadedOptionKeys = new Set<string>();
 
   @Input({ required: true }) definition!: RuntimeForm;
@@ -549,6 +551,14 @@ export class FormlyRuntimeComponent implements OnChanges {
 
   get currentStep() {
     return this.steps[this.currentStepIndex] ?? this.steps[0];
+  }
+
+  stepTitle(step: RuntimeFormStep) {
+    return this.localized(step.titleKey, step.title);
+  }
+
+  stepDescription(step: RuntimeFormStep) {
+    return this.localized(step.descriptionKey, step.description ?? '');
   }
 
   get layoutMode() {
@@ -680,8 +690,8 @@ export class FormlyRuntimeComponent implements OnChanges {
   get processSteps(): ProcessStepItem[] {
     return this.steps.map((step, index) => ({
       key: step.key,
-      label: step.title,
-      summary: `${step.fields.length} campos`,
+      label: this.stepTitle(step),
+      summary: this.i18n.translate('forms.runtime.stepSummary', { count: step.fields.length }),
       state:
         index < this.currentStepIndex
           ? 'complete'
@@ -691,10 +701,23 @@ export class FormlyRuntimeComponent implements OnChanges {
     }));
   }
 
+  get previousLabel() {
+    return this.i18n.translate('forms.runtime.actions.previous');
+  }
+
+  get continueLabel() {
+    return this.i18n.translate('forms.runtime.actions.continue');
+  }
+
+  get resolvedSubmitLabel() {
+    const runtime = this.asObject(this.definition?.runtime);
+    return this.localized(runtime?.['submitLabelKey'], this.submitLabel);
+  }
+
   continue() {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      this.validationMessage = 'Completa los campos obligatorios y corrige los valores indicados.';
+      this.validationMessage = this.i18n.translate('forms.runtime.validation.complete');
       this.validChange.emit(false);
       return;
     }
@@ -735,8 +758,12 @@ export class FormlyRuntimeComponent implements OnChanges {
   }
 
   commandLabel(command: Record<string, unknown>) {
+    const labelKey = command['labelKey'];
     const label = command['label'];
     const key = command['key'];
+    if (typeof labelKey === 'string' && labelKey.trim()) {
+      return this.i18n.label(labelKey, typeof label === 'string' ? label : typeof key === 'string' ? key : 'Acción');
+    }
     return typeof label === 'string' && label.trim()
       ? label
       : typeof key === 'string' && key.trim()
@@ -750,7 +777,7 @@ export class FormlyRuntimeComponent implements OnChanges {
       this.form.markAllAsTouched();
     }
     if (requiresValidForm && this.form.invalid) {
-      this.validationMessage = 'Completa los campos obligatorios antes de ejecutar esta acción.';
+      this.validationMessage = this.i18n.translate('forms.runtime.validation.beforeCommand');
       this.validChange.emit(false);
       return;
     }
@@ -954,5 +981,10 @@ export class FormlyRuntimeComponent implements OnChanges {
       ? access['readonlyUnlessPermission'].trim()
       : '';
     return Boolean(permission && !this.authState.hasPermission(permission));
+  }
+
+  private localized(key: unknown, fallback: string) {
+    const normalizedKey = typeof key === 'string' ? key.trim() : '';
+    return normalizedKey ? this.i18n.label(normalizedKey, fallback) : fallback;
   }
 }

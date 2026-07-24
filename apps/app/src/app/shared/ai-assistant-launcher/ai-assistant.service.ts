@@ -2,7 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 
-export type AiAssistantScope = 'general' | 'services' | 'flows' | 'forms' | 'database' | 'security' | 'components';
+export type AiAssistantScope =
+  'general' | 'services' | 'flows' | 'forms' | 'apps' | 'database' | 'security' | 'components' | 'translations';
 
 export interface AiAssistantRequest {
   id: number;
@@ -60,7 +61,8 @@ export type AiAssistantUiAction =
   | ApplySchemaChangeAction
   | ApplyDynamicServiceJsonAction
   | ApplyFlowJsonAction
-  | ApplyDynamicFormJsonAction;
+  | ApplyDynamicFormJsonAction
+  | ApplyTranslationKeyAction;
 
 export interface ApplySchemaChangeAction {
   type: 'apply_schema_change';
@@ -99,6 +101,17 @@ export interface ApplyDynamicFormJsonAction {
   description?: string;
   publish: boolean;
   document: Record<string, unknown>;
+}
+
+export interface ApplyTranslationKeyAction {
+  type: 'apply_translation_key';
+  label: string;
+  namespace: string;
+  key: string;
+  values: {
+    es?: string;
+    en?: string;
+  };
 }
 
 export interface AiAssistantProposal {

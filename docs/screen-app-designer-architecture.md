@@ -172,6 +172,147 @@ Each component must declare:
 
 The component contract is intentionally close to Dynamic Forms and Dynamic Services so an assistant can build screens by combining known artifacts instead of generating custom code.
 
+### Component Placement
+
+Every component has explicit placement metadata so a non-developer can understand what will happen before saving:
+
+```json
+{
+  "id": "form_runtime_1",
+  "componentKey": "form_runtime",
+  "title": "Customer form",
+  "region": "content",
+  "order": 1,
+  "inputs": {
+    "formKey": "form_customers"
+  },
+  "bindings": {
+    "mode": "contract_input",
+    "type": "form",
+    "key": "form_customers"
+  },
+  "actions": [
+    {
+      "event": "primary",
+      "type": "submit_form",
+      "formKey": "form_customers"
+    }
+  ],
+  "layout": {
+    "desktop": "half",
+    "tablet": "full",
+    "mobile": "full",
+    "align": "stretch",
+    "chrome": "card"
+  }
+}
+```
+
+Placement rules:
+
+- `region` decides where the component appears: `header`, `content`, `actions` or `aside`.
+- `layout.desktop` decides how much horizontal space it uses on large screens: `full`, `two_thirds`, `half`, `third`, `quarter` or `auto`.
+- `tablet` and `mobile` default to `full` so the generated app does not feel forced into a desktop grid.
+- `align` controls how the component sits inside its area: `stretch`, `start`, `center` or `end`.
+- `chrome` describes the visual container: `card`, `plain`, `modal`, `drawer` or `toolbar`.
+
+### Bindings And Actions
+
+Bindings connect a component with an existing Chicle object. Actions define what happens when the user interacts with it.
+
+Supported binding types in the designer:
+
+| Binding type | Stored input | Typical component |
+| --- | --- | --- |
+| `form` | `formKey` | `form_runtime` |
+| `service` | `serviceKey` | `data_table`, `service_button`, `detail_panel` |
+| `flow` | `flowKey` | `flow_button` |
+| `table` | `table` | data and CRUD components |
+| `source` | `sourceKey` | headers, cards and static summaries |
+| `none` | no input | purely visual block |
+
+Supported action types in the designer:
+
+| Action type | Target key |
+| --- | --- |
+| `navigate` | `route` |
+| `execute_service` | `serviceKey` |
+| `execute_flow` | `flowKey` |
+| `open_modal` | `modalKey` |
+| `submit_form` | `formKey` |
+| `emit_event` | `eventName` |
+
+This keeps screen logic declarative. A screen can place a form inside a card, open a modal, execute a service, run a flow
+or navigate without writing page-specific Angular code.
+
+## Navigation Contract
+
+Navigation belongs to the screen contract because an app package must know which screens are visible and how they are
+grouped.
+
+```json
+{
+  "navigation": {
+    "showInMenu": true,
+    "label": "Customers",
+    "group": "sales",
+    "icon": "users",
+    "permissions": ["customers.read"]
+  }
+}
+```
+
+Rules:
+
+- `route` is the technical path used by web, mobile and desktop runtimes.
+- `navigation.showInMenu` controls whether the screen is shown in generated menus.
+- `navigation.group` allows sidebar, tab bar or mobile menu grouping.
+- `navigation.permissions` lets the runtime hide or block the route based on RBAC.
+
+## Dynamic Component Designer
+
+The screen designer uses registered component keys. The next administrative layer is the Dynamic Component Designer: a
+registry of reusable component templates stored in the database.
+
+A component template is not arbitrary Angular code. It is a declarative object that can compose existing Chicle
+components into reusable blocks such as:
+
+- a form inside a card with a fixed action footer;
+- a custom modal with a dynamic form and service result area;
+- a search panel plus data table;
+- a KPI strip connected to several services;
+- a mobile inspection card with camera, GPS and offline state.
+
+Expected object shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "dynamic_component_template",
+  "key": "customer_form_modal",
+  "name": "Customer Form Modal",
+  "category": "customers",
+  "targets": ["web", "mobile"],
+  "presentation": {
+    "chrome": "modal",
+    "kit": "auto",
+    "theme": "inherit"
+  },
+  "slots": [
+    { "key": "body", "accepts": ["form_runtime", "detail_panel"] },
+    { "key": "footer", "accepts": ["service_button", "flow_button"] }
+  ],
+  "components": [],
+  "inputs": {},
+  "outputs": {},
+  "actions": [],
+  "permissions": []
+}
+```
+
+The runtime resolves templates from the component registry, then renders their internal components with the same UI kit,
+theme, RBAC and binding rules as a normal screen.
+
 ## Package Contract
 
 An app package is the portable artifact used to move an app between environments or share it as a template. It contains the app manifest, every screen definition and a dependency snapshot.

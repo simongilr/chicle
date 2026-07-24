@@ -20,6 +20,7 @@ Allowed in a template:
 - dynamic forms;
 - flows;
 - screens;
+- component templates;
 - menus;
 - roles, permissions and resource policies;
 - themes and presentation profiles;
@@ -76,6 +77,7 @@ understand what the app contains.
     "forms": [],
     "flows": [],
     "screens": [],
+    "componentTemplates": [],
     "menus": [],
     "permissions": [],
     "roles": [],
@@ -192,6 +194,31 @@ Each registered component should declare:
 
 Templates reference components by `componentKey`, never by Angular selector.
 
+## Component Templates
+
+Component templates let Chicle reuse designed blocks without copying screen definitions. They are database objects that
+compose registered components into a reusable unit.
+
+Examples:
+
+- a dynamic form inside a card with a fixed submit action;
+- a modal with a form, validation summary and service response panel;
+- a search area plus results grid;
+- an evidence block with camera, GPS and offline state;
+- a role-protected action bar.
+
+Template packages may include component templates when a screen references them. Import rules are the same as other
+versioned objects: validate first, install as draft by default and never overwrite an active key without an explicit
+conflict decision.
+
+Component templates must use the same portable contract:
+
+- `componentKey` references only registered runtime components;
+- `slots` define where nested components can be placed;
+- `bindings` and `actions` are declarative;
+- `presentation` inherits app theme and UI kit unless the template explicitly overrides them;
+- permissions are enforced by the runtime, not by hidden frontend-only logic.
+
 ## Library Strategy
 
 | Library | MVP role | Later role |
@@ -240,6 +267,8 @@ The MVP should export/import templates before trying to generate many artifact t
 | `app_template_versions` | Immutable package versions. |
 | `template_installs` | Tenant install history, status and conflict decisions. |
 | `component_registry` | Components allowed in screens/templates. |
+| `dynamic_component_templates` | Reusable component compositions such as modals, cards and compound blocks. |
+| `dynamic_component_template_versions` | Immutable versions of reusable component templates. |
 | `dynamic_screens` | Screen definitions. |
 | `dynamic_screen_versions` | Published screen versions. |
 | `template_assets` | Images, icons, files and docs referenced by packages. |
@@ -258,8 +287,9 @@ Existing objects such as `dynamic_services`, `dynamic_forms`, `flows`, `menus`, 
 4. **Template Installer**: resolve conflicts and apply safely.
 5. **Screen Designer**: create screens using registered components and layout contracts.
 6. **Component Registry**: manage reusable component metadata and kit support.
-7. **Artifact Builder**: generate deployable assets only after runtime contracts are stable.
-8. **Text And Artifact Preferences**: manage default language, supported locales and runtime presentation preferences
+7. **Component Template Designer**: create reusable cards, modals, drawers and compound blocks from registered components.
+8. **Artifact Builder**: generate deployable assets only after runtime contracts are stable.
+9. **Text And Artifact Preferences**: manage default language, supported locales and runtime presentation preferences
    for generated apps.
 
 ## Chicle AI Role

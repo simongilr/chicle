@@ -46,16 +46,16 @@ screens, components, adapters, permissions, data and configuration.
 
 ## Architectural Mix
 
-| Pattern | Role In Chicle |
-| --- | --- |
-| Event-Driven Platform | Events, runs, outbox, jobs, audit, retries and workers coordinate processes without coupling domains. |
-| Metadata-Driven Architecture | Services, forms, flows, actions, menus, screens and presentation are expressed as versioned metadata. |
-| Microkernel Architecture | The kernel keeps stable contracts; plugins, templates, adapters and capabilities extend the system. |
-| Template-Based Product Engine | Business verticals are installed as templates and do not contaminate the core. |
-| Low-Code/Internal Platform | Owners and admins configure behavior through guided interfaces or validated JSON. |
-| Multi-Target Application Factory | One contract can render in web, mobile, desktop, admin or embedded interfaces through adapters. |
-| Adapter / Strategy | AI, storage, auth, UI kits, integrations, devices and messaging can change by adapter. |
-| Contract First | Every dynamic object has a contract, backend validation, examples, versions, tests and publication. |
+| Pattern                          | Role In Chicle                                                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Event-Driven Platform            | Events, runs, outbox, jobs, audit, retries and workers coordinate processes without coupling domains. |
+| Metadata-Driven Architecture     | Services, forms, flows, actions, menus, screens and presentation are expressed as versioned metadata. |
+| Microkernel Architecture         | The kernel keeps stable contracts; plugins, templates, adapters and capabilities extend the system.   |
+| Template-Based Product Engine    | Business verticals are installed as templates and do not contaminate the core.                        |
+| Low-Code/Internal Platform       | Owners and admins configure behavior through guided interfaces or validated JSON.                     |
+| Multi-Target Application Factory | One contract can render in web, mobile, desktop, admin or embedded interfaces through adapters.       |
+| Adapter / Strategy               | AI, storage, auth, UI kits, integrations, devices and messaging can change by adapter.                |
+| Contract First                   | Every dynamic object has a contract, backend validation, examples, versions, tests and publication.   |
 
 ## Execution Shape
 
@@ -111,6 +111,8 @@ The Chicle kernel contains:
 - Dynamic runtime: dynamic services, dynamic forms, flows, actions, records and bindings.
 - Contracts: JSON schema, versioning, publication, tests, history and trash.
 - Administration: confisys, menus, preferences, DB designer, schema changes and controlled migrations.
+- Environment and deploy: environment profiles, Chicle Vault, runtime config, service registry, generated artifacts,
+  validation and deployment audit.
 - Events: audit events, service runs, form runs, flow runs, outbox, jobs and retries.
 - Adapters: UI kits, AI, storage, integrations, devices, messaging and targets.
 

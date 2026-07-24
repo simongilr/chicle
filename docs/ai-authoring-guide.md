@@ -11,22 +11,23 @@ Read these files in order:
 1. `docs/ai-ready-authoring.md`
 2. `docs/ai-rag-architecture.md`
 3. `docs/ai-local-ollama.md`
-4. `docs/dynamic-services-contract.md`
-5. `docs/flow-contract.md`
-6. `docs/examples/dynamic-services.examples.json`
-7. `docs/examples/flows.examples.json`
-8. `docs/examples/flow-step-catalog.examples.json`
-9. `docs/examples/flow-runtime.examples.json`
-10. `docs/dynamic-forms-contract.md`
-11. `docs/examples/dynamic-forms.examples.json`
-12. `docs/ui-components.md`
-13. `docs/ui-component-inventory.md`
-14. `docs/ui-presentation-architecture.md`
-15. `docs/examples/ui-presentation.examples.json`
-16. `docs/formly-architecture.md`
-17. `docs/examples/dynamic-form-formly.examples.json`
-18. `docs/angular-20-migration-roadmap.md`
-19. `docs/angular-20-migration-report.md`
+4. `docs/environment-deploy-vault-roadmap.md`
+5. `docs/dynamic-services-contract.md`
+6. `docs/flow-contract.md`
+7. `docs/examples/dynamic-services.examples.json`
+8. `docs/examples/flows.examples.json`
+9. `docs/examples/flow-step-catalog.examples.json`
+10. `docs/examples/flow-runtime.examples.json`
+11. `docs/dynamic-forms-contract.md`
+12. `docs/examples/dynamic-forms.examples.json`
+13. `docs/ui-components.md`
+14. `docs/ui-component-inventory.md`
+15. `docs/ui-presentation-architecture.md`
+16. `docs/examples/ui-presentation.examples.json`
+17. `docs/formly-architecture.md`
+18. `docs/examples/dynamic-form-formly.examples.json`
+19. `docs/angular-20-migration-roadmap.md`
+20. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -97,6 +98,9 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - When the user asks to change where an existing form submits, preserve `steps`, `fields`, `presentation` and `layout`
   unless they explicitly ask to change them. Update only `persistence`, `actions`, submit labels and payload maps.
 - Never store Formly functions or JavaScript expressions. Conditional fields use the documented `visibleWhen` object.
+- Environment, deployment, service registry and secret requests must follow
+  `docs/environment-deploy-vault-roadmap.md`. Never place secrets in JSON contracts, generated examples, Markdown,
+  frontend runtime config or Git-tracked files. Use secret references and backend-managed Chicle Vault flows instead.
 
 ## Progressive AI authoring for services
 

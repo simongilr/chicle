@@ -26,6 +26,8 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/ai-ready-authoring.md` defines JSON-only endpoints and assistant authoring sequences.
 - `docs/ai-rag-architecture.md` defines the versioned knowledge layer for Chicle AI.
 - `docs/ai-local-ollama.md` defines the first local AI provider stack.
+- `docs/environment-deploy-vault-roadmap.md` defines the Environment And Deploy Center, Chicle Vault, runtime config,
+  service registry, generated artifacts and V1/V2 scope.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive

@@ -167,7 +167,8 @@ The screen contract should compose:
 - buttons/actions;
 - service results;
 - flow triggers;
-- menus;
+- menus and route navigation;
+- standard authentication screens;
 - modals/drawers;
 - permissions;
 - layout by breakpoint.
@@ -194,6 +195,23 @@ Each registered component should declare:
 
 Templates reference components by `componentKey`, never by Angular selector.
 
+Baseline application components that every generated app can reuse:
+
+| Component key | Purpose |
+| --- | --- |
+| `nav_menu` | Top or compact route navigation from the app/screen navigation contract. |
+| `side_nav` | Desktop/admin-style navigation when the target needs persistent sections. |
+| `bottom_nav` | Mobile route navigation for app-like experiences. |
+| `auth_login` | Standard login pattern bound to `auth.login` or another approved auth service. |
+| `form_runtime` | Published Dynamic Form renderer. |
+| `data_table` | Service or table-backed list/grid. |
+| `service_button` | Direct Dynamic Service action. |
+| `flow_button` | Direct Flow trigger. |
+| `modal_shell` | Reusable modal container for forms, confirmations or details. |
+
+The screen preview must render these as real app structure. Technical runtime metadata such as target, kit and theme is
+displayed as context, not as command buttons.
+
 ## Component Templates
 
 Component templates let Chicle reuse designed blocks without copying screen definitions. They are database objects that
@@ -206,6 +224,10 @@ Examples:
 - a search area plus results grid;
 - an evidence block with camera, GPS and offline state;
 - a role-protected action bar.
+
+Component templates are the right place for reusable composites such as "form in card", "login panel", "modal with
+form and response", "search plus table" or "mobile evidence capture". They stay portable because they reference
+registered components, bindings, actions and text keys instead of Angular implementation details.
 
 Template packages may include component templates when a screen references them. Import rules are the same as other
 versioned objects: validate first, install as draft by default and never overwrite an active key without an explicit

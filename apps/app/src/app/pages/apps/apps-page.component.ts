@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
@@ -17,6 +17,11 @@ import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-ste
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
+import {
+  AiAssistantService,
+  ApplyDynamicAppJsonAction,
+  ApplyDynamicScreenJsonAction
+} from '../../shared/ai-assistant-launcher/ai-assistant.service';
 
 type AppDesignerPhase = 'app' | 'screen' | 'components' | 'preview' | 'json';
 type AppTargetsMode = 'web_mobile' | 'web_mobile_desktop' | 'admin' | 'all';
@@ -26,6 +31,7 @@ type ScreenComponentBindingType = 'none' | 'form' | 'service' | 'flow' | 'table'
 type ScreenComponentWidth = 'full' | 'two_thirds' | 'half' | 'third' | 'quarter' | 'auto';
 type ScreenComponentAlign = 'stretch' | 'start' | 'center' | 'end';
 type ScreenComponentChrome = 'plain' | 'card' | 'modal' | 'drawer' | 'toolbar';
+type ScreenComponentPreset = 'menu' | 'login' | 'form' | 'table' | 'service';
 type ScreenComponentActionType =
   | 'none'
   | 'navigate'
@@ -324,6 +330,80 @@ interface ScreenDraft {
         padding: 18px;
       }
 
+      .preview-runtime-note {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        color: var(--ch-color-muted);
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+
+      .preview-app-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 10px 12px;
+      }
+
+      .preview-app-brand {
+        display: grid;
+        gap: 2px;
+        min-width: 150px;
+      }
+
+      .preview-app-brand strong,
+      .preview-app-brand span {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+
+      .preview-app-brand strong {
+        color: var(--ch-color-text);
+        font-size: 0.92rem;
+      }
+
+      .preview-app-brand span {
+        color: var(--ch-color-muted);
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+
+      .preview-app-menu {
+        display: flex;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .preview-nav-item {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        border: 1px solid transparent;
+        border-radius: var(--ch-radius-sm);
+        color: var(--ch-color-muted);
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        font-weight: 850;
+      }
+
+      .preview-nav-item.active {
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
+      }
+
       .preview-header {
         display: grid;
         gap: 7px;
@@ -348,12 +428,6 @@ interface ScreenDraft {
         line-height: 1.45;
       }
 
-      .preview-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
-      }
-
       .preview-route {
         display: flex;
         flex-wrap: wrap;
@@ -361,6 +435,21 @@ interface ScreenDraft {
         color: var(--ch-color-muted);
         font-size: 0.78rem;
         font-weight: 750;
+      }
+
+      .preview-hint-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--ch-color-muted);
+        font-size: 0.72rem;
+        font-weight: 750;
+      }
+
+      .preview-hint-list span + span::before {
+        content: "/";
+        margin-right: 6px;
+        color: var(--ch-color-border-strong);
       }
 
       .chip {
@@ -485,10 +574,10 @@ interface ScreenDraft {
         line-height: 1.42;
       }
 
-      .preview-binding {
+      .component-preset-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
       }
 
       .package-hint {
@@ -507,8 +596,17 @@ interface ScreenDraft {
 
         .inline-actions app-ui-kit-button,
         .catalog-actions app-ui-kit-button,
-        .package-actions app-ui-kit-button {
+        .package-actions app-ui-kit-button,
+        .component-preset-actions app-ui-kit-button {
           flex: 1 1 auto;
+        }
+
+        .preview-app-bar {
+          align-items: stretch;
+        }
+
+        .preview-app-menu {
+          justify-content: flex-start;
         }
       }
     `
@@ -759,11 +857,58 @@ interface ScreenDraft {
 
                 <app-status-notice tone="info" title="Cómo se compone una pantalla">
                   <span>
-                    Región define arriba, contenido, acciones o lateral. Ancho define la proporción en escritorio; tablet
-                    y móvil caen a ancho completo. Binding conecta con formulario, servicio, flow, tabla o fuente. Acción
-                    decide qué pasa al tocar o ejecutar el componente.
+                    Una pantalla se arma con piezas: menú, login, formularios, tablas, cards, botones de servicio o flows.
+                    Elige ubicación, ancho, binding de datos y acción. Tablet y móvil se reorganizan automáticamente.
                   </span>
                 </app-status-notice>
+
+                <div class="component-preset-actions">
+                  <app-ui-kit-button
+                    label="Menú"
+                    icon="pi pi-bars"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('menu')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Login estándar"
+                    icon="pi pi-shield"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('login')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Formulario"
+                    icon="pi pi-pencil"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('form')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Tabla"
+                    icon="pi pi-table"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('table')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Acción"
+                    icon="pi pi-bolt"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('service')"
+                  ></app-ui-kit-button>
+                </div>
 
                 <app-admin-form-grid minColumnWidth="210px">
                   @for (field of componentFields(); track field.name) {
@@ -830,17 +975,31 @@ interface ScreenDraft {
               >
                 <app-preview-viewport [mode]="viewport()" (modeChange)="viewport.set($event)">
                   <section class="preview-screen" [class.mobile]="viewport() === 'mobile'">
-                    <header class="preview-header">
-                      <div class="preview-meta">
-                        <span class="chip">Target: {{ screenDraft().target }}</span>
-                        <span class="chip">Kit: {{ appDraft().kit }}</span>
-                        <span class="chip">Tema: {{ appDraft().theme }}</span>
+                    <div class="preview-runtime-note">
+                      <span>{{ previewRuntimeSummary() }}</span>
+                    </div>
+
+                    <nav class="preview-app-bar" aria-label="Preview app navigation">
+                      <div class="preview-app-brand">
+                        <strong>{{ appDraft().name || 'Mi app' }}</strong>
+                        <span>{{ appDraft().targetsMode }} · {{ appDraft().defaultLocale }}</span>
                       </div>
+                      <div class="preview-app-menu">
+                        @for (item of previewNavigationItems(); track item.route) {
+                          <span class="preview-nav-item" [class.active]="item.active">{{ item.label }}</span>
+                        }
+                        @if (!previewNavigationItems().length) {
+                          <span class="preview-nav-item active">Sin menú visible</span>
+                        }
+                      </div>
+                    </nav>
+
+                    <header class="preview-header">
                       <h2>{{ screenDraft().title || 'Pantalla sin título' }}</h2>
                       <p>{{ screenDraft().description || 'Describe qué resuelve esta pantalla para el usuario.' }}</p>
                       <div class="preview-route">
                         <span>Ruta {{ screenDraft().route || '/sin-ruta' }}</span>
-                        <span>Menú {{ screenDraft().navigationVisibility === 'visible' ? screenDraft().navigationLabel || screenDraft().title : 'oculto' }}</span>
+                        <span>{{ screenDraft().navigationVisibility === 'visible' ? 'Visible en menú' : 'Ruta interna' }}</span>
                         <span>Grupo {{ screenDraft().navigationGroup || 'principal' }}</span>
                       </div>
                     </header>
@@ -868,10 +1027,10 @@ interface ScreenDraft {
                                 >
                                   <strong>{{ component.title }}</strong>
                                   <span>{{ componentSummary(component) }}</span>
-                                  <div class="preview-binding">
-                                    <span class="chip">{{ widthLabel(component.width) }}</span>
-                                    <span class="chip">{{ bindingLabel(component.bindingType) }}: {{ component.bindingKey || 'sin key' }}</span>
-                                    <span class="chip">{{ actionLabel(component.actionType) }}{{ component.actionTarget ? ': ' + component.actionTarget : '' }}</span>
+                                  <div class="preview-hint-list">
+                                    <span>{{ widthLabel(component.width) }}</span>
+                                    <span>{{ bindingLabel(component.bindingType) }}: {{ component.bindingKey || 'sin key' }}</span>
+                                    <span>{{ actionLabel(component.actionType) }}{{ component.actionTarget ? ': ' + component.actionTarget : '' }}</span>
                                   </div>
                                 </article>
                               }
@@ -961,8 +1120,38 @@ interface ScreenDraft {
     </app-page-shell>
   `
 })
-export class AppsPageComponent implements OnInit {
+export class AppsPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiClientService);
+  private readonly assistant = inject(AiAssistantService);
+  private appliedAssistantProposalId = 0;
+  private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('apps', () =>
+    this.assistantScreenState()
+  );
+  private readonly assistantProposalEffect = effect(() => {
+    const proposal = this.assistant.proposal();
+    if (!proposal || proposal.id === this.appliedAssistantProposalId || proposal.scope !== 'apps') {
+      return;
+    }
+
+    const appAction = proposal.actions.find(
+      (item): item is ApplyDynamicAppJsonAction => item.type === 'apply_dynamic_app_json'
+    );
+    const screenAction = proposal.actions.find(
+      (item): item is ApplyDynamicScreenJsonAction => item.type === 'apply_dynamic_screen_json'
+    );
+
+    if (!appAction && !screenAction) {
+      return;
+    }
+
+    this.appliedAssistantProposalId = proposal.id;
+    if (appAction) {
+      this.applyAssistantAppProposal(appAction);
+    }
+    if (screenAction) {
+      this.applyAssistantScreenProposal(screenAction);
+    }
+  });
 
   readonly apps = signal<DynamicAppRecord[]>([]);
   readonly screens = signal<DynamicScreenRecord[]>([]);
@@ -1204,6 +1393,10 @@ export class AppsPageComponent implements OnInit {
     this.syncAppJson();
     this.syncScreenJson();
     this.syncPackageJson();
+  }
+
+  ngOnDestroy() {
+    this.unregisterAssistantState();
   }
 
   async load() {
@@ -1483,6 +1676,104 @@ export class AppsPageComponent implements OnInit {
     this.message.set('Componente agregado al contrato de pantalla.');
   }
 
+  addPresetComponent(preset: ScreenComponentPreset) {
+    const presets: Record<ScreenComponentPreset, Partial<ScreenComponentDraft>> = {
+      menu: {
+        componentKey: 'nav_menu',
+        title: 'Menú principal',
+        region: 'header',
+        bindingType: 'source',
+        bindingKey: this.appDraft().key || 'mi_app',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'toolbar',
+        actionType: 'navigate',
+        actionTarget: this.screenDraft().route || '/inicio'
+      },
+      login: {
+        componentKey: 'auth_login',
+        title: 'Iniciar sesión',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'auth.login',
+        width: 'half',
+        align: 'center',
+        chrome: 'card',
+        actionType: 'execute_service',
+        actionTarget: 'auth.login'
+      },
+      form: {
+        componentKey: 'form_runtime',
+        title: 'Formulario',
+        region: 'content',
+        bindingType: 'form',
+        bindingKey: 'form_key',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'submit_form',
+        actionTarget: 'form_key'
+      },
+      table: {
+        componentKey: 'data_table',
+        title: 'Listado',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_recurso',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      },
+      service: {
+        componentKey: 'service_button',
+        title: 'Ejecutar acción',
+        region: 'actions',
+        bindingType: 'service',
+        bindingKey: 'servicio_publicado',
+        width: 'quarter',
+        align: 'start',
+        chrome: 'plain',
+        actionType: 'execute_service',
+        actionTarget: 'servicio_publicado'
+      }
+    };
+    const config = presets[preset];
+    const componentKey = config.componentKey ?? 'entity_card';
+    const component: ScreenComponentDraft = {
+      id: `${componentKey}_${Date.now().toString(36)}`,
+      componentKey,
+      title: config.title ?? this.componentLabel(componentKey),
+      region: config.region ?? 'content',
+      bindingType: config.bindingType ?? 'none',
+      bindingKey: config.bindingKey ?? '',
+      width: config.width ?? 'auto',
+      align: config.align ?? 'stretch',
+      chrome: config.chrome ?? 'card',
+      actionType: config.actionType ?? 'none',
+      actionTarget: config.actionTarget ?? ''
+    };
+
+    this.screenDraft.update((current) => ({
+      ...current,
+      componentKey: component.componentKey,
+      componentTitle: '',
+      componentRegion: component.region,
+      componentBindingType: component.bindingType,
+      componentBindingKey: '',
+      componentWidth: component.width,
+      componentAlign: component.align,
+      componentChrome: component.chrome,
+      componentActionType: component.actionType,
+      componentActionTarget: '',
+      components: [...current.components, component]
+    }));
+    this.syncScreenJson();
+    this.syncPackageJson();
+    this.message.set(`${component.title} agregado al preview de la pantalla.`);
+  }
+
   removeComponent(id: string) {
     this.screenDraft.update((draft) => ({
       ...draft,
@@ -1567,6 +1858,28 @@ export class AppsPageComponent implements OnInit {
     } else {
       this.syncPackageJson();
     }
+  }
+
+  private applyAssistantAppProposal(action: ApplyDynamicAppJsonAction) {
+    this.appDraft.set(this.appDraftFromManifest(action.document));
+    this.syncAppJson();
+    this.syncPackageJson();
+    this.jsonTarget.set('app');
+    this.phase.set('screen');
+    this.message.set(
+      'Chicle AI aplicó una app como draft visual. Revisa app, pantalla y JSON; luego guarda o publica desde el diseñador.'
+    );
+  }
+
+  private applyAssistantScreenProposal(action: ApplyDynamicScreenJsonAction) {
+    this.screenDraft.set(this.screenDraftFromDefinition(action.document));
+    this.syncScreenJson();
+    this.syncPackageJson();
+    this.jsonTarget.set('screen');
+    this.phase.set('preview');
+    this.message.set(
+      'Chicle AI aplicó una pantalla como draft visual. Revisa navegación, componentes y preview antes de guardar.'
+    );
   }
 
   setJsonTarget(target: JsonTarget) {
@@ -1674,14 +1987,18 @@ export class AppsPageComponent implements OnInit {
     const summaries: Record<string, string> = {
       hero_header: 'Encabezado o bloque principal de una pantalla.',
       nav_menu: 'Menú de navegación declarativo para rutas de la app.',
+      side_nav: 'Menú lateral para apps web o desktop con varias secciones.',
+      bottom_nav: 'Navegación inferior para experiencia móvil.',
       tabs: 'Agrupa vistas o secciones relacionadas.',
       metric_strip: 'Indicadores y conteos de una fuente de datos.',
       chart_panel: 'Visualiza métricas desde una fuente agregada.',
       data_table: 'Listado tabular conectado a un servicio dinámico.',
       search_panel: 'Filtros y criterios conectados a un servicio o tabla.',
       form_runtime: 'Renderiza un formulario dinámico publicado.',
+      auth_login: 'Formulario estándar de login conectado al servicio auth.login.',
       service_button: 'Ejecuta un Dynamic Service y muestra o propaga su respuesta.',
       flow_button: 'Dispara un flow publicado y espera la salida configurada.',
+      modal_shell: 'Contenedor modal reutilizable para formularios, detalles o confirmaciones.',
       entity_card: 'Muestra una entidad o resumen de negocio.',
       detail_panel: 'Presenta información detallada de un registro.',
       timeline: 'Muestra eventos o historial en orden temporal.',
@@ -1702,6 +2019,48 @@ export class AppsPageComponent implements OnInit {
 
   componentsForRegion(region: string) {
     return this.screenDraft().components.filter((component) => component.region === region);
+  }
+
+  previewNavigationItems() {
+    const current = this.screenDraft();
+    const items = this.screens()
+      .map((screen) => {
+        const navigation = this.objectValue(screen.definition?.['navigation']);
+        if (navigation?.['showInMenu'] === false) {
+          return null;
+        }
+        return {
+          label: this.stringValue(navigation?.['label']) || screen.title,
+          route: screen.route || `/${screen.key}`,
+          active: screen.id === this.selectedScreenId() || screen.key === current.key
+        };
+      })
+      .filter((item): item is { label: string; route: string; active: boolean } => Boolean(item));
+
+    const draftRoute = current.route || '/inicio';
+    const alreadyHasDraft = items.some((item) => item.route === draftRoute);
+    if (current.navigationVisibility === 'visible' && !alreadyHasDraft) {
+      items.push({
+        label: current.navigationLabel || current.title || 'Inicio',
+        route: draftRoute,
+        active: true
+      });
+    }
+
+    return items;
+  }
+
+  previewRuntimeSummary() {
+    const target = {
+      admin: 'Admin',
+      web: 'Web',
+      mobile: 'Móvil',
+      desktop: 'Desktop',
+      multi: 'Web + móvil + desktop'
+    }[this.screenDraft().target];
+    const kit = this.appDraft().kit === 'auto' ? 'kit automático' : `kit ${this.appDraft().kit}`;
+    const theme = this.appDraft().theme === 'chicle' ? 'tema Chicle' : `tema ${this.appDraft().theme}`;
+    return `Preview ${target} · ${kit} · ${theme}`;
   }
 
   componentGridColumn(component: ScreenComponentDraft) {
@@ -2312,6 +2671,8 @@ export class AppsPageComponent implements OnInit {
       ? items
       : [
           { key: 'hero_header', name: 'Header' },
+          { key: 'nav_menu', name: 'Menú de navegación' },
+          { key: 'auth_login', name: 'Login estándar' },
           { key: 'data_table', name: 'Data table' },
           { key: 'form_runtime', name: 'Dynamic form' },
           { key: 'service_button', name: 'Service button' },
@@ -2423,14 +2784,18 @@ export class AppsPageComponent implements OnInit {
     }> = {
       hero_header: { bindingType: 'source', actionType: 'none', chrome: 'card', width: 'full', region: 'header' },
       nav_menu: { bindingType: 'source', actionType: 'navigate', chrome: 'toolbar', width: 'full', region: 'header' },
+      side_nav: { bindingType: 'source', actionType: 'navigate', chrome: 'drawer', width: 'third', region: 'aside' },
+      bottom_nav: { bindingType: 'source', actionType: 'navigate', chrome: 'toolbar', width: 'full', region: 'actions' },
       tabs: { bindingType: 'source', actionType: 'navigate', chrome: 'toolbar', width: 'full', region: 'header' },
       metric_strip: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'full', region: 'content' },
       chart_panel: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'half', region: 'content' },
       data_table: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'full', region: 'content' },
       search_panel: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'full', region: 'content' },
       form_runtime: { bindingType: 'form', actionType: 'submit_form', chrome: 'card', width: 'half', region: 'content' },
+      auth_login: { bindingType: 'service', actionType: 'execute_service', chrome: 'card', width: 'half', region: 'content' },
       service_button: { bindingType: 'service', actionType: 'execute_service', chrome: 'plain', width: 'quarter', region: 'actions' },
       flow_button: { bindingType: 'flow', actionType: 'execute_flow', chrome: 'plain', width: 'quarter', region: 'actions' },
+      modal_shell: { bindingType: 'source', actionType: 'open_modal', chrome: 'modal', width: 'half', region: 'content' },
       entity_card: { bindingType: 'source', actionType: 'none', chrome: 'card', width: 'half', region: 'content' },
       detail_panel: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'half', region: 'content' },
       timeline: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'half', region: 'content' },
@@ -2472,6 +2837,34 @@ export class AppsPageComponent implements OnInit {
       value === 'none'
       ? value
       : 'none';
+  }
+
+  private assistantScreenState() {
+    return {
+      mode: this.selectedApp() ? (this.selectedScreen() ? 'editing_screen' : 'editing_app') : 'new_app',
+      app: {
+        selectedKey: this.selectedApp()?.key ?? null,
+        draft: this.appManifestFromDraft()
+      },
+      screen: {
+        selectedKey: this.selectedScreen()?.key ?? null,
+        draft: this.screenDefinitionFromDraft()
+      },
+      availableScreens: this.screens().map((screen) => ({
+        key: screen.key,
+        title: screen.title,
+        route: screen.route,
+        target: screen.target,
+        published: screen.published
+      })),
+      componentCatalog: this.catalog().map((component) => ({
+        key: component.key,
+        name: component.name,
+        category: component.category,
+        targets: component.targets
+      })),
+      quickPresets: ['menu', 'login', 'form', 'table', 'service']
+    };
   }
 
   private componentLabel(key: string) {

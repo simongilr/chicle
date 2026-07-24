@@ -144,6 +144,9 @@ Screens are made of allowed visual component keys. V1 registers these keys:
 
 - `hero_header`
 - `nav_menu`
+- `side_nav`
+- `bottom_nav`
+- `auth_login`
 - `tabs`
 - `metric_strip`
 - `chart_panel`
@@ -157,6 +160,7 @@ Screens are made of allowed visual component keys. V1 registers these keys:
 - `timeline`
 - `media_gallery`
 - `map_view`
+- `modal_shell`
 
 Each component must declare:
 
@@ -171,6 +175,25 @@ Each component must declare:
 - `layout`
 
 The component contract is intentionally close to Dynamic Forms and Dynamic Services so an assistant can build screens by combining known artifacts instead of generating custom code.
+
+### Guided Presets
+
+The designer exposes guided presets for common app-building tasks. A preset is not a separate runtime shortcut. It is a
+small authoring helper that inserts a normal `components[]` entry using the same contract documented above.
+
+Current presets:
+
+| Preset | Component key | Default region | Default binding | Default action |
+| --- | --- | --- | --- | --- |
+| Menu | `nav_menu` | `header` | current app source | `navigate` to the current route |
+| Standard login | `auth_login` | `content` | `auth.login` service | `execute_service` |
+| Form | `form_runtime` | `content` | selected `formKey` | `submit_form` |
+| Table | `data_table` | `content` | selected `serviceKey` or table | service-backed read |
+| Action | `service_button` | `actions` | selected `serviceKey` | `execute_service` |
+
+The preview must name these presets in human terms. It should not expose internal metadata as pill buttons. Runtime
+metadata such as target, kit and theme is shown as quiet informational text because it explains the simulated rendering
+environment but is not an action.
 
 ### Component Placement
 
@@ -268,6 +291,73 @@ Rules:
 - `navigation.showInMenu` controls whether the screen is shown in generated menus.
 - `navigation.group` allows sidebar, tab bar or mobile menu grouping.
 - `navigation.permissions` lets the runtime hide or block the route based on RBAC.
+- `nav_menu`, `side_nav` and `bottom_nav` are renderers for this same contract. They do not own navigation data by
+  themselves.
+- Login, setup, password recovery and protected internal screens normally use `showInMenu: false` so they stay routable
+  without appearing in the main menu.
+- Generated web, mobile and desktop apps read the published app/screen contracts and choose the appropriate menu
+  renderer for the active target.
+
+### Standard Login Contract
+
+Login is a first-class screen pattern because most generated apps need a predictable entry point. A login screen should
+not be generated as an onboarding or generic record form.
+
+Default login screen behavior:
+
+```json
+{
+  "key": "login",
+  "route": "/login",
+  "target": "multi",
+  "navigation": {
+    "showInMenu": false,
+    "label": "Login",
+    "group": "security"
+  },
+  "components": [
+    {
+      "componentKey": "auth_login",
+      "title": "Sign in",
+      "region": "content",
+      "bindings": {
+        "type": "service",
+        "key": "auth.login"
+      },
+      "actions": [
+        {
+          "event": "primary",
+          "type": "execute_service",
+          "serviceKey": "auth.login"
+        }
+      ],
+      "layout": {
+        "desktop": "half",
+        "tablet": "full",
+        "mobile": "full",
+        "align": "center",
+        "chrome": "card"
+      }
+    }
+  ]
+}
+```
+
+The `auth_login` renderer is responsible for using the active UI kit and platform conventions: PrimeNG on Admin/web,
+Ionic on mobile/native targets, Material or Bootstrap when those kits are selected, and native fallback only when no kit
+adapter is active.
+
+## Preview Rules
+
+The preview is a simulation of the published runtime contract, not a debugger dump.
+
+- Show a top app bar only when there are menu-visible routes or a menu component.
+- Show menu labels from `navigation.label` and routes from the current screen list.
+- Show "visible in menu" versus "internal route" in plain language.
+- Keep target, kit and theme as quiet context text, not command buttons.
+- Desktop preview may use wider regions and cards. Tablet and mobile stack content and choose the target navigation
+  shape.
+- Components without a binding should say "no binding configured" so the user knows what is missing before publishing.
 
 ## Dynamic Component Designer
 
@@ -391,13 +481,40 @@ Package rules:
 
 1. Create or select an app.
 2. Create or select a screen inside that app.
-3. Add reusable components.
+3. Add reusable components or use guided presets such as Menu, Standard login, Form, Table or Action.
 4. Preview the screen in desktop, tablet and mobile.
 5. Edit JSON directly if needed.
 6. Save draft.
 7. Publish a version when the contract is stable.
 
 The visual guide and JSON editor are equivalent entry points. The JSON contract is the source used for import/export, AI authoring and future template installation.
+
+## AI-Assisted App Authoring
+
+Chicle AI can now propose app and screen drafts from the Apps designer. The assistant must operate on the current
+screen state and return draft actions, not save or publish automatically.
+
+Supported draft actions:
+
+- `apply_dynamic_app_json`: applies a dynamic app manifest to the visual designer.
+- `apply_dynamic_screen_json`: applies a dynamic screen definition to the visual designer.
+
+Expected prompt flow:
+
+1. Normalize the user request into app intent, target and first screen.
+2. Detect common patterns such as login, dashboard, CRUD screen, list screen, form screen, flow action or menu.
+3. Insert safe preset components with bindings and actions when the request is clear.
+4. Ask for missing keys only when a form, service, flow or table cannot be inferred.
+5. Apply the draft to the designer and let the user preview, edit JSON, save and publish from the page.
+
+Examples:
+
+| User request | Expected draft |
+| --- | --- |
+| "Create a mobile app with login and a home menu" | app manifest, `login` screen with `auth_login`, `home` route/menu context |
+| "Add a form screen for customer registration" | screen with `form_runtime`, `formKey` placeholder and submit action |
+| "Add a screen that lists service results" | screen with `data_table` bound to a published dynamic service |
+| "Add a button to run the approval flow" | component using `flow_button` and `execute_flow` |
 
 ## API Surface
 

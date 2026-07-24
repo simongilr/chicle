@@ -7,6 +7,8 @@ import {
   AiAssistantResponse,
   AiAssistantScope,
   AiAssistantUiAction,
+  ApplyDynamicAppJsonAction,
+  ApplyDynamicScreenJsonAction,
   ApplySchemaChangeAction,
   ApplyDynamicFormJsonAction,
   ApplyDynamicServiceJsonAction,
@@ -112,6 +114,30 @@ interface AssistantFormScreenState {
       nullable?: boolean;
       primary?: boolean;
     }>;
+  }>;
+}
+
+interface AssistantAppScreenState {
+  app?: {
+    selectedKey?: string | null;
+    draft?: Record<string, unknown>;
+  };
+  screen?: {
+    selectedKey?: string | null;
+    draft?: Record<string, unknown>;
+  };
+  availableScreens?: Array<{
+    key?: string;
+    title?: string;
+    route?: string;
+    target?: string;
+    published?: boolean;
+  }>;
+  componentCatalog?: Array<{
+    key?: string;
+    name?: string;
+    category?: string;
+    targets?: string[];
   }>;
 }
 
@@ -1280,12 +1306,419 @@ export class AiAssistantService {
   }
 
   private buildActions(scope: AiAssistantScope, request: AiAssistantRequest): AiAssistantUiAction[] {
+    if (scope === 'apps') {
+      return this.appDraftActionsFromPrompt(request);
+    }
+
     if (scope !== 'services') {
       return [];
     }
 
     const service = this.serviceDraftFromPrompt(this.servicePromptContext(request));
     return service ? [service] : [];
+  }
+
+  private appDraftActionsFromPrompt(request: AiAssistantRequest): AiAssistantUiAction[] {
+    const prompt = this.appPromptContext(request);
+    if (!this.looksLikeAppAuthoring(prompt)) {
+      return [];
+    }
+
+    const state = this.appScreenState(request.screenState);
+    const currentApp = this.asRecord(state?.app?.draft);
+    const currentPresentation = this.asRecord(currentApp['presentation']);
+    const appName = this.inferAppNameFromPrompt(prompt, this.asString(currentApp['name']) || 'Mi app');
+    const appKey = this.normalizeKey(this.asString(currentApp['key']) || appName || 'mi_app');
+    const appTargets = this.inferAppTargetsFromPrompt(prompt, currentApp['targets']);
+    const defaultLocale = this.asString(this.asRecord(currentApp['text'])['defaultLocale']) || 'es';
+    const kit = this.asString(currentPresentation['kit']) || 'auto';
+    const theme = this.asString(currentPresentation['theme']) || 'chicle';
+    const wantsLogin = /login|logueo|iniciar\s+sesi[oó]n|auth|autenticaci[oó]n|seguridad/i.test(prompt);
+    const wantsMenu = !/sin\s+men[uú]|sin\s+navegaci[oó]n/i.test(prompt);
+    const wantsTable = /tabla|listado|lista|grid|grilla/i.test(prompt);
+    const wantsForm = /formulario|registro|captura|crear|guardar/i.test(prompt) && !wantsLogin;
+    const wantsFlow = /flow|proceso|aprobaci[oó]n|workflow/i.test(prompt);
+
+    const screenKey = wantsLogin ? 'login' : this.inferScreenKeyFromPrompt(prompt);
+    const screenTitle = wantsLogin ? 'Iniciar sesión' : this.titleFromKey(screenKey);
+    const screenRoute = `/${screenKey.replace(/_/g, '-')}`;
+    const components: Array<Record<string, unknown>> = [];
+
+    if (wantsMenu) {
+      components.push(this.appScreenComponent({
+        id: 'nav_menu_1',
+        componentKey: 'nav_menu',
+        title: 'Menú principal',
+        region: 'header',
+        bindingType: 'source',
+        bindingKey: appKey,
+        width: 'full',
+        align: 'stretch',
+        chrome: 'toolbar',
+        actionType: 'navigate',
+        actionTarget: screenRoute
+      }));
+    }
+
+    if (wantsLogin) {
+      components.push(this.appScreenComponent({
+        id: 'auth_login_1',
+        componentKey: 'auth_login',
+        title: 'Iniciar sesión',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'auth.login',
+        width: 'half',
+        align: 'center',
+        chrome: 'card',
+        actionType: 'execute_service',
+        actionTarget: 'auth.login'
+      }));
+    } else {
+      components.push(this.appScreenComponent({
+        id: 'hero_header_1',
+        componentKey: 'hero_header',
+        title: 'Bienvenida',
+        region: 'header',
+        bindingType: 'source',
+        bindingKey: appKey,
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
+    if (wantsForm) {
+      components.push(this.appScreenComponent({
+        id: 'form_runtime_1',
+        componentKey: 'form_runtime',
+        title: 'Formulario principal',
+        region: 'content',
+        bindingType: 'form',
+        bindingKey: 'form_key',
+        width: wantsTable ? 'half' : 'two_thirds',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'submit_form',
+        actionTarget: 'form_key'
+      }));
+    }
+
+    if (wantsTable) {
+      components.push(this.appScreenComponent({
+        id: 'data_table_1',
+        componentKey: 'data_table',
+        title: 'Listado',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_recurso',
+        width: wantsForm ? 'half' : 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
+    if (wantsFlow) {
+      components.push(this.appScreenComponent({
+        id: 'flow_button_1',
+        componentKey: 'flow_button',
+        title: 'Ejecutar proceso',
+        region: 'actions',
+        bindingType: 'flow',
+        bindingKey: 'flow_publicado',
+        width: 'quarter',
+        align: 'start',
+        chrome: 'plain',
+        actionType: 'execute_flow',
+        actionTarget: 'flow_publicado'
+      }));
+    }
+
+    const appDocument = {
+      schemaVersion: 1,
+      kind: 'dynamic_app',
+      key: appKey,
+      name: appName,
+      description: this.asString(currentApp['description']) || `App dinámica ${appName}.`,
+      category: this.asString(currentApp['category']) || this.inferAppCategory(prompt),
+      targets: appTargets,
+      presentation: {
+        kit,
+        theme,
+        themeMode: 'system',
+        density: 'comfortable'
+      },
+      text: {
+        namespace: `app.${appKey}`,
+        defaultLocale,
+        bundledLocales: [defaultLocale]
+      },
+      navigation: {
+        mode: 'screen_routes',
+        startRoute: screenRoute
+      },
+      permissions: [],
+      screens: [
+        {
+          key: screenKey,
+          route: screenRoute,
+          target: this.inferScreenTarget(appTargets),
+          version: 1,
+          published: false
+        }
+      ],
+      settings: {},
+      metadata: {
+        designer: 'screen_app_designer_v1',
+        assistant: {
+          intent: wantsLogin ? 'auth_login_screen' : 'app_screen_composition',
+          notes: ['Draft preparado desde Chicle AI. Revisar bindings reales antes de publicar.']
+        }
+      }
+    };
+
+    const screenDocument = {
+      schemaVersion: 1,
+      kind: 'dynamic_screen',
+      appKey,
+      key: screenKey,
+      title: screenTitle,
+      description: wantsLogin ? 'Acceso seguro a la aplicación.' : `Pantalla ${screenTitle} de ${appName}.`,
+      route: screenRoute,
+      target: this.inferScreenTarget(appTargets),
+      category: wantsLogin ? 'seguridad' : 'principal',
+      textNamespace: `screen.${screenKey}`,
+      navigation: {
+        showInMenu: !wantsLogin,
+        label: screenTitle,
+        group: 'principal',
+        icon: wantsLogin ? 'shield' : 'home',
+        permissions: []
+      },
+      layout: {
+        strategy: 'responsive_regions',
+        mode: wantsLogin ? 'form_page' : wantsTable ? 'list_page' : 'dashboard',
+        regions: ['header', 'content', 'actions', 'aside'],
+        desktop: { columns: 2 },
+        tablet: { columns: 1 },
+        mobile: { columns: 1, navigation: 'bottom_actions' }
+      },
+      regions: [
+        { key: 'header', label: 'Header' },
+        { key: 'content', label: 'Content' },
+        { key: 'actions', label: 'Actions' },
+        { key: 'aside', label: 'Aside' }
+      ],
+      components,
+      dataSources: [],
+      actions: [],
+      permissions: [],
+      presentation: {
+        kit,
+        theme,
+        themeMode: 'system'
+      },
+      tests: [{ name: 'Preview básico', viewport: 'desktop', input: {} }],
+      metadata: {
+        designer: 'screen_app_designer_v1',
+        assistant: {
+          intent: wantsLogin ? 'auth_login_screen' : 'app_screen_composition',
+          requiresBindingReview: components.some((component) =>
+            ['form_key', 'listar_recurso', 'flow_publicado'].includes(this.asString(this.asRecord(component['bindings'])['key']))
+          )
+        }
+      }
+    };
+
+    return [
+      {
+        type: 'apply_dynamic_app_json',
+        label: 'Aplicar app',
+        key: appKey,
+        name: appName,
+        description: this.asString(appDocument.description),
+        publish: false,
+        document: appDocument
+      } satisfies ApplyDynamicAppJsonAction,
+      {
+        type: 'apply_dynamic_screen_json',
+        label: 'Aplicar pantalla',
+        key: screenKey,
+        name: screenTitle,
+        description: this.asString(screenDocument.description),
+        publish: false,
+        document: screenDocument
+      } satisfies ApplyDynamicScreenJsonAction
+    ];
+  }
+
+  private appPromptContext(request: AiAssistantRequest) {
+    const prompt = request.prompt.trim();
+    const conversation = (request.conversation ?? [])
+      .filter((message) => message.role === 'user')
+      .map((message) => message.text.trim())
+      .filter(Boolean)
+      .slice(-4);
+    if (conversation.at(-1) === prompt) {
+      return conversation.join('\n');
+    }
+    return [...conversation, prompt].filter(Boolean).join('\n');
+  }
+
+  private looksLikeAppAuthoring(prompt: string) {
+    return /app|aplicaci[oó]n|pantalla|screen|men[uú]|navegaci[oó]n|login|logueo|home|inicio|dashboard|desktop|m[oó]vil|web/i.test(
+      prompt
+    );
+  }
+
+  private inferAppNameFromPrompt(prompt: string, fallback: string) {
+    const normalized = prompt.toLowerCase();
+    if (/evento|agenda|ticket|boleta/.test(normalized)) {
+      return 'App de eventos';
+    }
+    if (/inmobili|propiedad|arriendo|venta/.test(normalized)) {
+      return 'App inmobiliaria';
+    }
+    if (/servicio|orden|solicitud/.test(normalized)) {
+      return 'App de servicios';
+    }
+    if (/juego|minijuego/.test(normalized)) {
+      return 'App de minijuegos';
+    }
+    if (/admin|administraci[oó]n/.test(normalized)) {
+      return 'Admin dinámico';
+    }
+    const explicit = prompt.match(/(?:app|aplicaci[oó]n)\s+(?:de|para|llamada)?\s*([a-zA-Z0-9 áéíóúñÁÉÍÓÚÑ_-]{3,45})/i)?.[1];
+    if (explicit) {
+      return this.titleFromKey(this.normalizeKey(explicit).slice(0, 40));
+    }
+    return fallback;
+  }
+
+  private inferAppTargetsFromPrompt(prompt: string, currentTargets: unknown) {
+    if (Array.isArray(currentTargets) && currentTargets.every((item) => typeof item === 'string')) {
+      return currentTargets as string[];
+    }
+    const normalized = prompt.toLowerCase();
+    if (/admin/.test(normalized) && !/negocio|cliente|usuario final/.test(normalized)) {
+      return ['admin'];
+    }
+    if (/desktop|escritorio/.test(normalized)) {
+      return ['web', 'mobile', 'desktop'];
+    }
+    if (/solo\s+m[oó]vil|android|ios/.test(normalized)) {
+      return ['mobile'];
+    }
+    if (/solo\s+web/.test(normalized)) {
+      return ['web'];
+    }
+    return ['web', 'mobile'];
+  }
+
+  private inferAppCategory(prompt: string) {
+    const normalized = prompt.toLowerCase();
+    if (/login|auth|seguridad/.test(normalized)) return 'seguridad';
+    if (/evento|agenda|ticket|boleta/.test(normalized)) return 'eventos';
+    if (/inmobili|propiedad/.test(normalized)) return 'inmobiliaria';
+    if (/servicio|orden|solicitud/.test(normalized)) return 'servicios';
+    return 'negocio';
+  }
+
+  private inferScreenKeyFromPrompt(prompt: string) {
+    const normalized = prompt.toLowerCase();
+    if (/dashboard|tablero|panel/.test(normalized)) return 'dashboard';
+    if (/agenda|calendario/.test(normalized)) return 'agenda';
+    if (/registro|formulario|captura/.test(normalized)) return 'registro';
+    if (/listado|lista|tabla|grid|grilla/.test(normalized)) return 'listado';
+    if (/detalle/.test(normalized)) return 'detalle';
+    return 'inicio';
+  }
+
+  private inferScreenTarget(targets: string[]) {
+    if (targets.length === 1 && ['admin', 'web', 'mobile', 'desktop'].includes(targets[0])) {
+      return targets[0];
+    }
+    return 'multi';
+  }
+
+  private titleFromKey(key: string) {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (letter) => letter.toUpperCase()) || 'Inicio';
+  }
+
+  private appScreenComponent(config: {
+    id: string;
+    componentKey: string;
+    title: string;
+    region: string;
+    bindingType: string;
+    bindingKey: string;
+    width: string;
+    align: string;
+    chrome: string;
+    actionType: string;
+    actionTarget: string;
+  }) {
+    return {
+      id: config.id,
+      componentKey: config.componentKey,
+      title: config.title,
+      region: config.region,
+      order: Number(config.id.match(/_(\d+)$/)?.[1] ?? 1),
+      inputs: this.appComponentInputs(config.bindingType, config.bindingKey),
+      bindings: config.bindingType === 'none' || !config.bindingKey
+        ? {}
+        : {
+            mode: 'contract_input',
+            type: config.bindingType,
+            key: config.bindingKey
+          },
+      actions: this.appComponentActions(config.actionType, config.actionTarget, config.bindingKey),
+      visibility: {},
+      layout: {
+        desktop: config.region === 'header' ? 'full' : config.width,
+        tablet: 'full',
+        mobile: 'full',
+        align: config.align,
+        chrome: config.chrome
+      }
+    };
+  }
+
+  private appComponentInputs(bindingType: string, bindingKey: string) {
+    if (!bindingKey || bindingType === 'none') {
+      return {};
+    }
+    if (bindingType === 'form') return { formKey: bindingKey };
+    if (bindingType === 'service') return { serviceKey: bindingKey };
+    if (bindingType === 'flow') return { flowKey: bindingKey };
+    if (bindingType === 'table') return { table: bindingKey };
+    return { sourceKey: bindingKey };
+  }
+
+  private appComponentActions(actionType: string, actionTarget: string, bindingKey: string) {
+    if (!actionType || actionType === 'none') {
+      return [];
+    }
+    const target = actionTarget || bindingKey;
+    const action: Record<string, unknown> = {
+      event: 'primary',
+      type: actionType
+    };
+    if (actionType === 'navigate') action['route'] = target;
+    if (actionType === 'execute_service') action['serviceKey'] = target;
+    if (actionType === 'execute_flow') action['flowKey'] = target;
+    if (actionType === 'submit_form') action['formKey'] = target;
+    if (actionType === 'open_modal') action['modalKey'] = target;
+    if (actionType === 'emit_event') action['eventName'] = target;
+    return [action];
   }
 
   private looksLikeReview(prompt: string) {
@@ -1318,8 +1751,20 @@ export class AiAssistantService {
     return value as AssistantFormScreenState;
   }
 
+  private appScreenState(value: unknown): AssistantAppScreenState | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as AssistantAppScreenState;
+  }
+
   private asRecord(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  }
+
+  private asString(value: unknown) {
+    return typeof value === 'string' ? value.trim() : value === null || value === undefined ? '' : String(value).trim();
   }
 
   private async formAuthoringResponse(

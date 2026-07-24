@@ -755,16 +755,20 @@ export class DynamicAppsService {
 
   componentCatalog() {
     return [
-      { key: 'hero_header', name: 'Header', category: 'structure', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
-      { key: 'nav_menu', name: 'Navigation menu', category: 'structure', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'hero_header', name: 'Header / bienvenida', category: 'structure', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'nav_menu', name: 'Menú de navegación', category: 'navigation', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'side_nav', name: 'Menú lateral', category: 'navigation', targets: ['web', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'bottom_nav', name: 'Menú inferior móvil', category: 'navigation', targets: ['mobile'], kits: ['ionic', 'material', 'bootstrap', 'native'] },
       { key: 'tabs', name: 'Tabs', category: 'structure', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'metric_strip', name: 'Metric strip', category: 'dashboard', targets: ['web', 'desktop'], kits: ['primeng', 'material', 'bootstrap', 'native'] },
       { key: 'chart_panel', name: 'Chart panel', category: 'dashboard', targets: ['web', 'desktop'], kits: ['primeng', 'material', 'bootstrap', 'native'] },
       { key: 'data_table', name: 'Data table', category: 'data', targets: ['admin', 'web', 'desktop'], kits: ['primeng', 'material', 'bootstrap', 'native'] },
       { key: 'search_panel', name: 'Search panel', category: 'data', targets: ['admin', 'web', 'desktop', 'mobile'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'form_runtime', name: 'Dynamic form', category: 'input', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'auth_login', name: 'Login estándar', category: 'security', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'service_button', name: 'Service button', category: 'action', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'flow_button', name: 'Flow button', category: 'action', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      { key: 'modal_shell', name: 'Modal reusable', category: 'overlay', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'entity_card', name: 'Entity card', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'detail_panel', name: 'Detail panel', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'timeline', name: 'Timeline', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },

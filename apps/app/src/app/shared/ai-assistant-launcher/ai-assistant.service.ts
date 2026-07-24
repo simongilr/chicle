@@ -62,6 +62,8 @@ export type AiAssistantUiAction =
   | ApplyDynamicServiceJsonAction
   | ApplyFlowJsonAction
   | ApplyDynamicFormJsonAction
+  | ApplyDynamicAppJsonAction
+  | ApplyDynamicScreenJsonAction
   | ApplyTranslationKeyAction;
 
 export interface ApplySchemaChangeAction {
@@ -95,6 +97,26 @@ export interface ApplyFlowJsonAction {
 
 export interface ApplyDynamicFormJsonAction {
   type: 'apply_dynamic_form_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
+  document: Record<string, unknown>;
+}
+
+export interface ApplyDynamicAppJsonAction {
+  type: 'apply_dynamic_app_json';
+  label: string;
+  key: string;
+  name: string;
+  description?: string;
+  publish: boolean;
+  document: Record<string, unknown>;
+}
+
+export interface ApplyDynamicScreenJsonAction {
+  type: 'apply_dynamic_screen_json';
   label: string;
   key: string;
   name: string;

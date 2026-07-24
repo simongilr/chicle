@@ -214,6 +214,7 @@ Current V1 behavior:
 - Emits the user request to the frontend assistant bus.
 - Leaves JSON editing, validation, save, version and publish controls inside the current designer screen.
 - Does not save, publish or execute anything automatically.
+- On designer screens, can emit draft actions that the active page applies visually for review.
 
 Future AI behavior:
 
@@ -223,6 +224,50 @@ Future AI behavior:
 - Explain table, service, flow, permission and runtime dependencies.
 - Send proposed changes back to the active screen so its existing visual and JSON editors can show the diff.
 - Require explicit user approval before saving, versioning or publishing.
+
+### App and screen authoring actions
+
+When the active screen is the App Designer, the assistant should build app and screen contracts instead of free-form UI
+instructions. It may emit:
+
+```json
+{
+  "type": "apply_dynamic_app_json",
+  "label": "Apply app draft",
+  "key": "field_ops_app",
+  "name": "Field Ops App",
+  "publish": false,
+  "document": {
+    "schemaVersion": 1,
+    "kind": "dynamic_app"
+  }
+}
+```
+
+```json
+{
+  "type": "apply_dynamic_screen_json",
+  "label": "Apply screen draft",
+  "key": "login",
+  "name": "Login",
+  "publish": false,
+  "document": {
+    "schemaVersion": 1,
+    "kind": "dynamic_screen"
+  }
+}
+```
+
+Rules:
+
+- Use `nav_menu`, `side_nav` or `bottom_nav` for navigation, depending on the target.
+- Use `auth_login` for login. Do not turn login into onboarding or a generic record form.
+- Use `form_runtime` when the screen embeds a Dynamic Form.
+- Use `data_table` when the screen displays a list or grid from a service/table.
+- Use `service_button` for a one-click service action.
+- Use `flow_button` for a process or approval action.
+- Keep target, kit and theme as presentation metadata. They should not render as clickable app buttons.
+- If a referenced form, service, flow or table is missing, ask for that key or propose creating it in the right designer.
 
 ## Text authoring protocol
 

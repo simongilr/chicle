@@ -13,7 +13,10 @@ import {
   FormlyForm,
   FormlyFormOptions
 } from '@ngx-formly/core';
-import { UiPresentationConfig } from '../../core/ui/ui-presentation.types';
+import {
+  type UiKitPreference,
+  type UiPresentationConfig
+} from '../../core/ui/ui-presentation.types';
 import { AuthStateService } from '../../core/auth/auth-state.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
 import { DynamicFlowClientService } from '../../core/services/dynamic-flow-client.service';
@@ -29,6 +32,7 @@ import {
 import { MobileActionBarComponent } from '../mobile-form/mobile-action-bar.component';
 import { MobileStepProgressComponent } from '../mobile-form/mobile-step-progress.component';
 import { StatusNoticeComponent } from '../status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 
 interface RenderedRuntimeStep {
   step: RuntimeFormStep;
@@ -44,7 +48,8 @@ interface RenderedRuntimeStep {
     MobileStepProgressComponent,
     ProcessStepsComponent,
     ReactiveFormsModule,
-    StatusNoticeComponent
+    StatusNoticeComponent,
+    UiKitButtonComponent
   ],
   styles: [
     `
@@ -274,21 +279,10 @@ interface RenderedRuntimeStep {
         margin-left: 0;
       }
 
-      form[data-action-size='sm'] button {
-        min-height: 34px;
-        padding: 6px 11px;
-        font-size: 0.88rem;
-      }
-
-      form[data-action-size='lg'] button {
-        min-height: 46px;
-        padding: 10px 18px;
-        font-size: 1rem;
-      }
-
-      form[data-action-align='stretch'] .actions-end button.primary,
-      form[data-action-size='field'] .actions-end button.primary,
-      form[data-action-size='full'] .actions-end button.primary {
+      form[data-action-align='stretch'] .actions-end app-ui-kit-button,
+      form[data-action-size='field'] .actions-end app-ui-kit-button,
+      form[data-action-size='full'] .actions-end app-ui-kit-button {
+        display: block;
         width: 100%;
       }
 
@@ -297,56 +291,6 @@ interface RenderedRuntimeStep {
         flex-wrap: wrap;
         gap: 8px;
         justify-content: flex-start;
-      }
-
-      button {
-        min-height: 40px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 8px 14px;
-        font: inherit;
-        font-weight: 800;
-      }
-
-      button.primary {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-primary-contrast);
-      }
-
-      form[data-primary-tone='success'] button.primary {
-        border-color: var(--ch-color-success);
-        background: var(--ch-color-success);
-        color: var(--ch-color-primary-contrast);
-      }
-
-      form[data-primary-tone='danger'] button.primary {
-        border-color: var(--ch-color-danger);
-        background: var(--ch-color-danger);
-        color: var(--ch-color-primary-contrast);
-      }
-
-      form[data-primary-tone='secondary'] button.primary {
-        border-color: var(--ch-color-primary-border);
-        background: var(--ch-color-primary-soft);
-        color: var(--ch-color-primary);
-      }
-
-      form[data-primary-tone='neutral'] button.primary {
-        border-color: var(--ch-color-border);
-        background: var(--ch-color-text);
-        color: var(--ch-color-surface);
-      }
-
-      button.secondary {
-        background: var(--ch-color-surface-alt);
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
       }
 
       @media (max-width: 520px) {
@@ -483,9 +427,15 @@ interface RenderedRuntimeStep {
       @if (runtimeCommands.length) {
         <div class="command-actions" aria-label="Acciones del formulario">
           @for (command of runtimeCommands; track command['key'] || command['label']) {
-            <button class="secondary" type="button" [disabled]="commandRunning" (click)="runCommand(command)">
-              {{ command['label'] || command['key'] || 'Acción' }}
-            </button>
+            <app-ui-kit-button
+              [label]="commandLabel(command)"
+              [kit]="runtimeKit"
+              type="button"
+              tone="secondary"
+              variant="outline"
+              [disabled]="commandRunning"
+              (pressed)="runCommand(command)"
+            ></app-ui-kit-button>
           }
         </div>
       }
@@ -502,15 +452,33 @@ interface RenderedRuntimeStep {
         } @else {
           <div class="actions" [class.no-secondary]="!showPreviousAction">
             @if (showPreviousAction) {
-              <button type="button" (click)="previous()" [disabled]="currentStepIndex === 0">
-                Anterior
-              </button>
+              <app-ui-kit-button
+                label="Anterior"
+                [kit]="runtimeKit"
+                type="button"
+                tone="neutral"
+                variant="outline"
+                [disabled]="currentStepIndex === 0"
+                (pressed)="previous()"
+              ></app-ui-kit-button>
             }
             <div class="actions-end">
               @if (currentStepIndex < steps.length - 1) {
-                <button class="primary" type="submit">Continuar</button>
+                <app-ui-kit-button
+                  label="Continuar"
+                  [kit]="runtimeKit"
+                  [tone]="primaryTone"
+                  type="submit"
+                  [full]="actionSize === 'field' || actionSize === 'full' || actionAlign === 'stretch'"
+                ></app-ui-kit-button>
               } @else {
-                <button class="primary" type="submit">{{ submitLabel }}</button>
+                <app-ui-kit-button
+                  [label]="submitLabel"
+                  [kit]="runtimeKit"
+                  [tone]="primaryTone"
+                  type="submit"
+                  [full]="actionSize === 'field' || actionSize === 'full' || actionAlign === 'stretch'"
+                ></app-ui-kit-button>
               }
             </div>
           </div>
@@ -676,11 +644,21 @@ export class FormlyRuntimeComponent implements OnChanges {
     );
   }
 
-  get primaryTone() {
+  get primaryTone(): 'primary' | 'secondary' | 'success' | 'danger' | 'neutral' {
     const presentation = this.asObject(this.definition?.presentation);
     const tokens = this.asObject(presentation?.['tokens']);
     const buttonPrimary = this.asObject(tokens?.['buttonPrimary']);
-    return this.allowed(String(buttonPrimary?.['background'] ?? ''), ['primary', 'secondary', 'success', 'danger', 'neutral'], 'primary');
+    return this.allowed(
+      String(buttonPrimary?.['background'] ?? ''),
+      ['primary', 'secondary', 'success', 'danger', 'neutral'],
+      'primary'
+    ) as 'primary' | 'secondary' | 'success' | 'danger' | 'neutral';
+  }
+
+  get runtimeKit(): UiKitPreference {
+    const presentation = this.asObject(this.presentation ?? this.definition?.presentation);
+    const kit = String(presentation?.['kit'] ?? 'auto');
+    return this.allowed(kit, ['auto', 'inherit', 'primeng', 'ionic', 'material', 'bootstrap', 'native'], 'auto') as UiKitPreference;
   }
 
   get showPreviousAction() {
@@ -754,6 +732,16 @@ export class FormlyRuntimeComponent implements OnChanges {
           return object?.['event'] === 'onClick' && this.canUseItem(object);
         })
       : [];
+  }
+
+  commandLabel(command: Record<string, unknown>) {
+    const label = command['label'];
+    const key = command['key'];
+    return typeof label === 'string' && label.trim()
+      ? label
+      : typeof key === 'string' && key.trim()
+        ? key
+        : 'Acción';
   }
 
   runCommand(command: Record<string, unknown>) {

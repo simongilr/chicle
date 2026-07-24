@@ -67,7 +67,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         [attr.placeholder]="placeholder"
         [attr.spellcheck]="spellcheck"
         (input)="valueChange.emit(textareaValue($event))"
-        (keydown)="keydown.emit($event)"
+        (keydown)="keyPressed.emit($event)"
       ></textarea>
     </div>
   `
@@ -82,7 +82,7 @@ export class CodeTextareaComponent {
   @Input() disabled = false;
   @Input() spellcheck = 'false';
   @Output() readonly valueChange = new EventEmitter<string>();
-  @Output() readonly keydown = new EventEmitter<KeyboardEvent>();
+  @Output() readonly keyPressed = new EventEmitter<KeyboardEvent>();
 
   textareaValue(event: Event) {
     return event.target instanceof HTMLTextAreaElement ? event.target.value : '';

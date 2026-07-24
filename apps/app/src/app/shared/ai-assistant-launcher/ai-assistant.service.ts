@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 
@@ -112,12 +112,11 @@ export interface AiAssistantProposal {
 
 @Injectable({ providedIn: 'root' })
 export class AiAssistantService {
+  private readonly api = inject(ApiClientService);
   private sequence = 0;
   private readonly screenStateProviders = new Map<AiAssistantScope, () => unknown>();
   readonly lastRequest = signal<AiAssistantRequest | null>(null);
   readonly proposal = signal<AiAssistantProposal | null>(null);
-
-  constructor(private readonly api: ApiClientService) {}
 
   submit(prompt: string, route: string, scope: AiAssistantScope) {
     const request: AiAssistantRequest = {

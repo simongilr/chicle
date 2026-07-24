@@ -6,7 +6,7 @@ import { AppMenuItem } from './app-menu.types';
 const PUBLIC_MENU: AppMenuItem[] = [
   {
     key: 'docs',
-    label: 'Manual',
+    label: 'Docs',
     i18nKey: 'nav.docs',
     route: '/docs',
     icon: 'pi pi-book',
@@ -72,7 +72,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
   },
   {
     key: 'docs',
-    label: 'Manual',
+    label: 'Docs',
     i18nKey: 'nav.docs',
     route: '/docs',
     icon: 'pi pi-book',

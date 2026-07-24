@@ -129,7 +129,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Services', 'Flows', 'Dynamic forms'],
     status: 'stable',
     example:
-      '<app-designer-catalog-panel title="Servicios" summary="2 servicios"><button catalog-actions>Nuevo</button>...</app-designer-catalog-panel>'
+      '<app-designer-catalog-panel title="Servicios" summary="2 servicios"><app-ui-kit-button catalog-actions label="Nuevo"></app-ui-kit-button>...</app-designer-catalog-panel>'
   },
   {
     name: 'AssignmentChecklistComponent',
@@ -172,7 +172,8 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     importPath: 'shared/admin-filter-bar/admin-filter-bar.component',
     usedBy: ['Components', 'Confisys', 'Markdown repository'],
     status: 'stable',
-    example: '<app-admin-filter-bar><label>Buscar<input type="search" /></label></app-admin-filter-bar>'
+    example:
+      '<app-admin-filter-bar><app-dynamic-field-control [field]="searchField"></app-dynamic-field-control></app-admin-filter-bar>'
   },
   {
     name: 'AdminFormGridComponent',
@@ -181,7 +182,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     purpose:
       'Grid responsive para formularios administrativos y paneles de propiedades sin acoplar cada página a CSS propio.',
     importPath: 'shared/admin-form-grid/admin-form-grid.component',
-    usedBy: ['Preferences', 'Future screen designer', 'Future app designer'],
+    usedBy: ['Preferences', 'Environment Deploy Center', 'Future screen designer', 'Future app designer'],
     status: 'stable',
     example:
       '<app-admin-form-grid><app-dynamic-field-control [field]="field"></app-dynamic-field-control></app-admin-form-grid>'
@@ -208,15 +209,26 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-admin-card-grid minColumnWidth="320px"><app-admin-panel>...</app-admin-panel></app-admin-card-grid>'
   },
   {
+    name: 'AdminStackComponent',
+    selector: 'app-admin-stack',
+    category: 'Shell y navegación',
+    purpose:
+      'Stack vertical reusable para listas, grupos de paneles, resultados y secciones con gap consistente y ancho seguro.',
+    importPath: 'shared/admin-stack/admin-stack.component',
+    usedBy: ['Environment Deploy Center', 'Future DB designer', 'Future screen designer'],
+    status: 'stable',
+    example: '<app-admin-stack gap="12px"><app-catalog-item title="Item"></app-catalog-item></app-admin-stack>'
+  },
+  {
     name: 'AdminPanelComponent',
     selector: 'app-admin-panel',
     category: 'Shell y navegación',
     purpose: 'Panel reusable para módulos del Admin con título, descripción, acciones proyectadas y contenido.',
     importPath: 'shared/admin-panel/admin-panel.component',
-    usedBy: ['Home', 'Preferences', 'Security'],
+    usedBy: ['Home', 'Preferences', 'Security', 'Environment Deploy Center'],
     status: 'stable',
     example:
-      '<app-admin-panel title="Resumen" description="Estado actual"><button panel-actions>Actualizar</button>...</app-admin-panel>'
+      '<app-admin-panel title="Resumen" description="Estado actual"><app-ui-kit-button panel-actions label="Actualizar"></app-ui-kit-button>...</app-admin-panel>'
   },
   {
     name: 'AdminMetricCardComponent',
@@ -229,6 +241,29 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     example: '<app-admin-metric-card label="Usuarios" value="12" detail="Activos" tone="primary"></app-admin-metric-card>'
   },
   {
+    name: 'AdminResourceCardComponent',
+    selector: 'app-admin-resource-card',
+    category: 'Guía y estados',
+    purpose:
+      'Tarjeta reusable para recursos administrativos: título, metadata, detalle, código seguro y acciones proyectadas.',
+    importPath: 'shared/admin-resource-card/admin-resource-card.component',
+    usedBy: ['Environment Deploy Center', 'Future DB designer', 'Future services history'],
+    status: 'stable',
+    example:
+      '<app-admin-resource-card title="API_PUBLIC_URL" meta="runtime · api"><app-ui-kit-button resource-actions label="Editar"></app-ui-kit-button></app-admin-resource-card>'
+  },
+  {
+    name: 'AdminCodeBlockComponent',
+    selector: 'app-admin-code-block',
+    category: 'Diseñadores',
+    purpose:
+      'Bloque reusable de código/JSON de solo lectura con scroll interno, wrapping seguro y radios por kit visual.',
+    importPath: 'shared/admin-code-block/admin-code-block.component',
+    usedBy: ['Environment Deploy Center', 'Future docs examples', 'Future deploy bundles'],
+    status: 'stable',
+    example: '<app-admin-code-block label="Runtime config" [value]="runtimeConfig"></app-admin-code-block>'
+  },
+  {
     name: 'AdminActionToolbarComponent',
     selector: 'app-admin-action-toolbar',
     category: 'Shell y navegación',
@@ -236,7 +271,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     importPath: 'shared/admin-action-toolbar/admin-action-toolbar.component',
     usedBy: ['Home', 'Security'],
     status: 'stable',
-    example: '<app-admin-action-toolbar><button class="primary">Guardar</button></app-admin-action-toolbar>'
+    example: '<app-admin-action-toolbar><app-ui-kit-button label="Guardar"></app-ui-kit-button></app-admin-action-toolbar>'
   },
   {
     name: 'ComponentDocCardComponent',
@@ -365,7 +400,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     purpose:
       'Card multikit real: usa PrimeNG Card, ion-card, mat-card, Bootstrap o HTML base según la presentación activa.',
     importPath: 'shared/ui-kit-card/ui-kit-card.component',
-    usedBy: ['AdminMetricCardComponent', 'Components', 'Future admin panels'],
+    usedBy: ['AdminPanelComponent', 'AdminMetricCardComponent', 'AdminResourceCardComponent', 'Components'],
     status: 'initial',
     example:
       '<app-ui-kit-card tone="primary" variant="subtle"><strong>Título</strong><span>Contenido</span></app-ui-kit-card>'
@@ -378,7 +413,8 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     importPath: 'shared/field-shell/field-shell.component',
     usedBy: ['Login', 'Setup', 'Components', 'Confisys', 'DynamicFieldControlComponent'],
     status: 'stable',
-    example: '<app-field-shell label="Correo" forId="email" [required]="true"><input id="email" /></app-field-shell>'
+    example:
+      '<app-field-shell label="Correo" forId="email" [required]="true"><app-dynamic-field-control [field]="emailField"></app-dynamic-field-control></app-field-shell>'
   },
   {
     name: 'DynamicFieldControlComponent',

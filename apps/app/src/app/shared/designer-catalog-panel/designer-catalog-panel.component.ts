@@ -2,12 +2,13 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CatalogHeaderComponent } from '../catalog-header/catalog-header.component';
 import { LoadingSkeletonComponent } from '../loading-skeleton/loading-skeleton.component';
 import { StatusNoticeComponent } from '../status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-designer-catalog-panel',
   standalone: true,
-  imports: [CatalogHeaderComponent, LoadingSkeletonComponent, StatusNoticeComponent],
+  imports: [CatalogHeaderComponent, LoadingSkeletonComponent, StatusNoticeComponent, UiKitButtonComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -75,9 +76,6 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
         line-height: 1.38;
       }
 
-      .error-action {
-        width: auto;
-      }
     `
   ],
   template: `
@@ -91,7 +89,14 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
       <app-status-notice [title]="errorTitle || 'No se pudo cargar'" tone="error" [kit]="kit">
         <span>{{ error }}</span>
         @if (showRetry) {
-          <button class="error-action" notice-action type="button" (click)="retry.emit()">Reintentar</button>
+          <app-ui-kit-button
+            notice-action
+            label="Reintentar"
+            [kit]="kit"
+            tone="secondary"
+            variant="outline"
+            (pressed)="retry.emit()"
+          ></app-ui-kit-button>
         }
       </app-status-notice>
     } @else if (empty) {

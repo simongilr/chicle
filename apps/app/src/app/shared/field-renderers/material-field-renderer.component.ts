@@ -57,6 +57,24 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         padding-inline: 12px;
       }
 
+      :host ::ng-deep .mdc-notched-outline__leading,
+      :host ::ng-deep .mdc-notched-outline__notch,
+      :host ::ng-deep .mdc-notched-outline__trailing {
+        border-color: var(--ch-color-border) !important;
+      }
+
+      :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+      :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+      :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+        border-color: var(--ch-color-primary-border) !important;
+      }
+
+      :host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+      :host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+      :host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+        border-color: var(--ch-color-primary) !important;
+      }
+
       :host ::ng-deep .mat-mdc-form-field-flex {
         height: var(--ch-control-height);
         min-height: var(--ch-control-height);

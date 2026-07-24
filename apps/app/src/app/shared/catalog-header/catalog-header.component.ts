@@ -11,14 +11,15 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
     `
       :host {
         display: block;
+        container-type: inline-size;
       }
 
       .header {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
+        grid-template-columns: minmax(84px, 1fr) auto;
+        align-items: start;
         justify-content: space-between;
-        gap: 8px;
+        gap: 6px;
       }
 
       .copy {
@@ -30,7 +31,11 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
       h2 {
         margin: 0;
         color: var(--ch-color-text);
-        font-size: 1.15rem;
+        font-size: 1.05rem;
+        line-height: 1.15;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       span {
@@ -41,56 +46,76 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
       .actions {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: flex-end;
-        gap: 6px;
+        gap: 4px;
         align-items: center;
+        min-width: 0;
       }
 
       :host([data-ui-kit='material']) .header {
-        min-height: 48px;
+        min-height: 42px;
       }
 
       :host([data-ui-kit='material']) h2 {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 500;
       }
 
       :host([data-ui-kit='bootstrap']) .header {
-        gap: 12px;
+        gap: 8px;
       }
 
       :host([data-ui-kit='bootstrap']) h2 {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
       }
 
       :host([data-ui-kit='ionic']) .header {
         align-items: flex-start;
-        min-height: 48px;
+        min-height: 42px;
       }
 
       :host([data-ui-kit='ionic']) h2 {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
       }
 
-      :host ::ng-deep .actions button {
+      :host ::ng-deep .actions button,
+      :host ::ng-deep .actions ion-button,
+      :host ::ng-deep .actions .p-button {
         width: auto;
-        min-height: 34px;
+        min-height: 30px;
         min-width: 0;
         flex: 0 0 auto;
         border-radius: 7px;
-        padding: 7px 10px;
+        padding: 5px 8px;
+        white-space: nowrap;
       }
 
-      @media (max-width: 340px) {
+      :host ::ng-deep .actions app-ui-kit-button {
+        flex: 0 1 auto;
+        min-width: 0;
+        font-size: 0.8rem;
+        --button-min-height: 30px;
+      }
+
+      :host ::ng-deep .actions app-ui-kit-button ion-button {
+        --padding-end: 8px;
+        --padding-start: 8px;
+      }
+
+      @container (max-width: 190px) {
         .header {
           grid-template-columns: 1fr;
+          align-items: start;
+          gap: 8px;
+          min-height: 0;
         }
 
         .actions {
           justify-content: flex-start;
+          width: 100%;
         }
       }
     `

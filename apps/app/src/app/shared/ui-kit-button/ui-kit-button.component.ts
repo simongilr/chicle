@@ -7,6 +7,7 @@ import { UiPresentationService } from '../../core/ui/ui-presentation.service';
 
 export type UiKitButtonTone = 'primary' | 'secondary' | 'success' | 'danger' | 'neutral';
 export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
+export type UiKitButtonSize = 'small' | 'medium';
 
 @Component({
   selector: 'app-ui-kit-button',
@@ -23,6 +24,17 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
       ion-button,
       p-button {
         font: inherit;
+      }
+
+      .button-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+
+      ion-button .button-icon {
+        margin-inline-end: 7px;
       }
 
       .native-button,
@@ -42,6 +54,17 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
         line-height: 1;
       }
 
+      :host([data-size='small']) .native-button,
+      :host([data-size='small']) .bootstrap-button,
+      :host([data-size='small']) .material-button,
+      :host([data-size='small']) button[mat-raised-button],
+      :host([data-size='small']) button[mat-stroked-button],
+      :host([data-size='small']) button[mat-button] {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 0.86rem;
+      }
+
       .native-button:disabled,
       .bootstrap-button:disabled {
         cursor: not-allowed;
@@ -50,9 +73,15 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
 
       ion-button {
         width: 100%;
-        min-height: 38px;
+        min-height: var(--button-min-height, 38px);
         font-weight: 850;
         text-transform: none;
+        --background: var(--button-bg);
+        --background-hover: color-mix(in srgb, var(--button-bg) 88%, var(--ch-color-text));
+        --background-activated: color-mix(in srgb, var(--button-bg) 80%, var(--ch-color-text));
+        --background-focused: color-mix(in srgb, var(--button-bg) 88%, var(--ch-color-text));
+        --border-color: var(--button-border);
+        --color: var(--button-fg);
         --border-radius: var(--ch-radius);
         --box-shadow: none;
         --padding-end: 13px;
@@ -61,10 +90,117 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
 
       ion-button::part(native) {
         gap: 8px;
-        min-height: 38px;
+        min-height: var(--button-min-height, 38px);
         font: inherit;
         font-weight: 850;
         text-transform: none;
+      }
+
+      :host([data-size='small']) ion-button {
+        --button-min-height: 32px;
+        font-size: 0.86rem;
+        --padding-end: 10px;
+        --padding-start: 10px;
+      }
+
+      :host([data-size='small']) ::ng-deep .p-button {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 0.86rem;
+      }
+
+      :host ::ng-deep .p-button {
+        min-height: 38px;
+        border-color: var(--button-border);
+        border-radius: var(--ch-radius);
+        background: var(--button-bg);
+        color: var(--button-fg);
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      :host ::ng-deep .p-button .p-button-label {
+        font-weight: inherit;
+      }
+
+      :host([data-variant='outline']) ::ng-deep .p-button,
+      :host([data-variant='ghost']) ::ng-deep .p-button {
+        background: var(--button-bg);
+        color: var(--button-fg);
+      }
+
+      .material-button {
+        min-height: 38px;
+        border-radius: var(--ch-radius);
+        color: var(--button-fg) !important;
+        font: inherit;
+        font-weight: 850;
+        line-height: 1;
+        --mdc-protected-button-container-color: var(--button-bg);
+        --mdc-protected-button-label-text-color: var(--button-fg);
+        --mdc-protected-button-container-shape: var(--ch-radius);
+        --mdc-outlined-button-label-text-color: var(--button-fg);
+        --mdc-outlined-button-outline-color: var(--button-border);
+        --mdc-text-button-label-text-color: var(--button-fg);
+      }
+
+      .material-button.mat-mdc-raised-button:not(:disabled) {
+        background: var(--button-bg) !important;
+        color: var(--button-fg) !important;
+      }
+
+      .material-button.mat-mdc-outlined-button:not(:disabled),
+      .material-button.mat-mdc-button:not(:disabled) {
+        border-color: var(--button-border) !important;
+        color: var(--button-fg) !important;
+      }
+
+      .bootstrap-button {
+        --bs-btn-bg: var(--button-bg);
+        --bs-btn-border-color: var(--button-border);
+        --bs-btn-color: var(--button-fg);
+        --bs-btn-hover-bg: color-mix(in srgb, var(--button-bg) 88%, var(--ch-color-text));
+        --bs-btn-hover-border-color: var(--button-border);
+        --bs-btn-hover-color: var(--button-fg);
+        --bs-btn-active-bg: color-mix(in srgb, var(--button-bg) 80%, var(--ch-color-text));
+        --bs-btn-active-border-color: var(--button-border);
+        --bs-btn-disabled-bg: var(--button-bg);
+        --bs-btn-disabled-border-color: var(--button-border);
+        --bs-btn-disabled-color: var(--button-fg);
+      }
+
+      :host([data-variant='outline']) .bootstrap-button,
+      :host([data-variant='ghost']) .bootstrap-button {
+        --bs-btn-bg: transparent;
+        --bs-btn-color: var(--button-fg);
+        --bs-btn-border-color: var(--button-border);
+      }
+
+      :host([data-icon-only='true']) .native-button,
+      :host([data-icon-only='true']) .bootstrap-button,
+      :host([data-icon-only='true']) .material-button,
+      :host([data-icon-only='true']) button[mat-raised-button],
+      :host([data-icon-only='true']) button[mat-stroked-button],
+      :host([data-icon-only='true']) button[mat-button] {
+        width: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+      }
+
+      :host([data-icon-only='true']) ion-button {
+        width: 34px;
+        min-width: 34px;
+        --button-min-height: 34px;
+        --padding-start: 0;
+        --padding-end: 0;
+      }
+
+      :host([data-icon-only='true']) ::ng-deep .p-button {
+        width: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
       }
 
       :host([data-full='true']) ion-button {
@@ -87,7 +223,13 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
   ],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit',
-    '[attr.data-full]': 'full ? "true" : null'
+    '[attr.data-full]': 'full ? "true" : null',
+    '[attr.data-size]': 'size',
+    '[attr.data-variant]': 'variant',
+    '[attr.data-icon-only]': 'iconOnly ? "true" : null',
+    '[style.--button-bg]': 'buttonBg',
+    '[style.--button-fg]': 'buttonFg',
+    '[style.--button-border]': 'buttonBorder'
   },
   template: `
     @switch (resolvedKit) {
@@ -115,7 +257,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
           (click)="pressed.emit()"
         >
           @if (icon) {
-            <i [class]="icon" aria-hidden="true"></i>
+            <i [class]="iconClass" aria-hidden="true"></i>
           }
           {{ label }}
         </ion-button>
@@ -124,42 +266,42 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
         @if (variant === 'solid') {
           <button
             mat-raised-button
+            class="material-button"
             [type]="type"
-            [color]="materialColor"
             [disabled]="disabled"
             [attr.aria-label]="computedAriaLabel"
             (click)="pressed.emit()"
           >
             @if (icon) {
-              <i [class]="icon" aria-hidden="true"></i>
+              <i [class]="iconClass" aria-hidden="true"></i>
             }
             {{ label }}
           </button>
         } @else if (variant === 'outline') {
           <button
             mat-stroked-button
+            class="material-button"
             [type]="type"
-            [color]="materialColor"
             [disabled]="disabled"
             [attr.aria-label]="computedAriaLabel"
             (click)="pressed.emit()"
           >
             @if (icon) {
-              <i [class]="icon" aria-hidden="true"></i>
+              <i [class]="iconClass" aria-hidden="true"></i>
             }
             {{ label }}
           </button>
         } @else {
           <button
             mat-button
+            class="material-button"
             [type]="type"
-            [color]="materialColor"
             [disabled]="disabled"
             [attr.aria-label]="computedAriaLabel"
             (click)="pressed.emit()"
           >
             @if (icon) {
-              <i [class]="icon" aria-hidden="true"></i>
+              <i [class]="iconClass" aria-hidden="true"></i>
             }
             {{ label }}
           </button>
@@ -183,7 +325,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
           (click)="pressed.emit()"
         >
           @if (icon) {
-            <i [class]="icon" aria-hidden="true"></i>
+            <i [class]="iconClass" aria-hidden="true"></i>
           }
           {{ label }}
         </button>
@@ -192,15 +334,12 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
         <button
           [type]="type"
           class="native-button"
-          [style.--button-bg]="buttonBg"
-          [style.--button-fg]="buttonFg"
-          [style.--button-border]="buttonBorder"
           [disabled]="disabled"
           [attr.aria-label]="computedAriaLabel"
           (click)="pressed.emit()"
         >
           @if (icon) {
-            <i [class]="icon" aria-hidden="true"></i>
+            <i [class]="iconClass" aria-hidden="true"></i>
           }
           {{ label }}
         </button>
@@ -217,6 +356,7 @@ export class UiKitButtonComponent {
   @Input() kit: UiKitPreference = 'auto';
   @Input() tone: UiKitButtonTone = 'primary';
   @Input() variant: UiKitButtonVariant = 'solid';
+  @Input() size: UiKitButtonSize = 'medium';
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
   @Input() disabled = false;
   @Input() full = false;
@@ -233,7 +373,7 @@ export class UiKitButtonComponent {
   get primeSeverity(): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined {
     return {
       primary: undefined,
-      secondary: 'info',
+      secondary: 'secondary',
       success: 'success',
       danger: 'danger',
       neutral: 'secondary'
@@ -241,19 +381,25 @@ export class UiKitButtonComponent {
   }
 
   get ionicColor() {
-    return this.tone === 'success' ? 'success' : this.tone === 'danger' ? 'danger' : this.tone === 'neutral' ? 'medium' : 'primary';
+    return this.tone === 'success'
+      ? 'success'
+      : this.tone === 'danger'
+        ? 'danger'
+        : this.tone === 'neutral' || this.tone === 'secondary'
+          ? 'medium'
+          : 'primary';
   }
 
   get ionicFill(): 'clear' | 'outline' | 'solid' {
     return this.variant === 'ghost' ? 'clear' : this.variant === 'outline' ? 'outline' : 'solid';
   }
 
-  get materialColor(): 'primary' | 'accent' | 'warn' | undefined {
-    return this.tone === 'danger' ? 'warn' : this.tone === 'secondary' || this.tone === 'success' ? 'accent' : 'primary';
+  get iconClass() {
+    return `${this.icon} button-icon`.trim();
   }
 
-  get ionicIcon() {
-    return this.icon.includes('plus') ? 'add-outline' : this.icon.includes('trash') ? 'trash-outline' : 'ellipse-outline';
+  get iconOnly() {
+    return Boolean(this.icon) && this.label.trim().length === 0;
   }
 
   get isBootstrapSecondary() {
@@ -278,7 +424,9 @@ export class UiKitButtonComponent {
         ? 'var(--ch-color-danger)'
         : this.tone === 'success'
           ? 'var(--ch-color-success)'
-          : 'var(--ch-color-primary)';
+          : this.tone === 'primary'
+            ? 'var(--ch-color-primary)'
+            : 'var(--ch-color-text)';
     }
     return this.tone === 'secondary' ? 'var(--ch-color-primary)' : 'var(--ch-color-primary-contrast)';
   }
@@ -289,8 +437,8 @@ export class UiKitButtonComponent {
       ? 'var(--ch-color-danger)'
       : this.tone === 'success'
         ? 'var(--ch-color-success)'
-        : this.tone === 'secondary'
-          ? 'var(--ch-color-primary-border)'
+        : this.tone === 'neutral' || this.tone === 'secondary'
+          ? 'var(--ch-color-border)'
           : 'var(--ch-color-primary)';
   }
 }

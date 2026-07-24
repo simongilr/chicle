@@ -100,6 +100,7 @@ interface ConfisysSaveResponse {
         display: grid;
         align-content: start;
         gap: 8px;
+        justify-items: stretch;
       }
 
       .key-name {
@@ -215,6 +216,7 @@ interface ConfisysSaveResponse {
                 <app-ui-kit-button
                   label="Guardar"
                   tone="primary"
+                  size="small"
                   [disabled]="!canUpdate || !entry.editable || !!entry.saving"
                   (pressed)="save(entry)"
                 ></app-ui-kit-button>

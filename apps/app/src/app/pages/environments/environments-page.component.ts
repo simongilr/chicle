@@ -2,15 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { AdminCodeBlockComponent } from '../../shared/admin-code-block/admin-code-block.component';
+import { AdminFormGridComponent } from '../../shared/admin-form-grid/admin-form-grid.component';
 import { AdminMetricCardComponent, AdminMetricTone } from '../../shared/admin-metric-card/admin-metric-card.component';
 import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
+import { AdminResourceCardComponent } from '../../shared/admin-resource-card/admin-resource-card.component';
+import { AdminStackComponent } from '../../shared/admin-stack/admin-stack.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { SegmentedControlComponent, SegmentedControlItem } from '../../shared/segmented-control/segmented-control.component';
-import { StatusNoticeComponent, StatusNoticeTone } from '../../shared/status-notice/status-notice.component';
+import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 type EnvironmentKind = 'local' | 'non_prod' | 'production' | 'custom';
@@ -123,8 +127,12 @@ interface DeploymentBundle {
   selector: 'app-environments-page',
   standalone: true,
   imports: [
+    AdminCodeBlockComponent,
+    AdminFormGridComponent,
     AdminMetricCardComponent,
     AdminPanelComponent,
+    AdminResourceCardComponent,
+    AdminStackComponent,
     CatalogItemComponent,
     CommonModule,
     DynamicFieldControlComponent,
@@ -155,49 +163,8 @@ interface DeploymentBundle {
         align-items: start;
       }
 
-      .env-list,
-      .list-stack,
-      .form-grid,
-      .bundle-list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .resource-card,
-      .bundle-card {
-        display: grid;
-        gap: 6px;
-        width: 100%;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface-alt);
-        color: var(--ch-color-text);
-        padding: 12px;
-        text-align: left;
-      }
-
-      .resource-card {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-      }
-
-      .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
       .span-2 {
         grid-column: 1 / -1;
-      }
-
-      .json-block {
-        overflow: auto;
-        max-height: 360px;
-        border-radius: var(--ch-radius);
-        background: #10243b;
-        color: #f7fbff;
-        padding: 14px;
-        font-size: 0.82rem;
-        line-height: 1.45;
       }
 
       .muted,
@@ -220,42 +187,9 @@ interface DeploymentBundle {
         font-size: 1rem;
       }
 
-      .validation-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .validation-item {
-        border: 1px solid var(--item-border);
-        border-radius: var(--ch-radius);
-        background: var(--item-bg);
-        padding: 10px 12px;
-      }
-
-      .validation-item.ok {
-        --item-bg: var(--ch-color-success-soft);
-        --item-border: var(--ch-color-success-border);
-      }
-
-      .validation-item.warning {
-        --item-bg: var(--ch-color-warning-soft);
-        --item-border: var(--ch-color-warning-border);
-      }
-
-      .validation-item.danger {
-        --item-bg: var(--ch-color-danger-soft);
-        --item-border: var(--ch-color-danger-border);
-      }
-
-      .secret-value {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        overflow-wrap: anywhere;
-      }
-
       @media (max-width: 900px) {
         .workspace,
-        .metrics,
-        .form-grid {
+        .metrics {
           grid-template-columns: 1fr;
         }
       }
@@ -317,7 +251,7 @@ interface DeploymentBundle {
                   (pressed)="resetProfileDraft()"
                 ></app-ui-kit-button>
               </div>
-              <div class="env-list">
+              <app-admin-stack gap="8px">
                 @for (profile of profiles; track profile.key) {
                   <app-catalog-item
                     [title]="profile.name"
@@ -327,16 +261,16 @@ interface DeploymentBundle {
                     (selected)="selectEnvironment(profile.key)"
                   ></app-catalog-item>
                 }
-              </div>
+              </app-admin-stack>
             </app-admin-panel>
 
-            <div class="list-stack">
+            <app-admin-stack gap="16px">
               <app-admin-panel
                 [title]="selected?.profile?.name || 'Ambiente'"
                 [description]="selected?.profile?.key ? 'Configura ' + selected?.profile?.key + ' sin exponer secrets.' : ''"
                 eyebrow="Environment profile"
               >
-                <div class="form-grid">
+                <app-admin-form-grid minColumnWidth="220px">
                   <app-dynamic-field-control
                     [field]="profileKeyField"
                     [value]="profileDraft.key"
@@ -357,7 +291,7 @@ interface DeploymentBundle {
                     [value]="profileDraft.requiresReauth"
                     (valueChange)="profileDraft.requiresReauth = $event === true"
                   ></app-dynamic-field-control>
-                </div>
+                </app-admin-form-grid>
                 <app-ui-kit-button
                   label="Guardar ambiente"
                   icon="pi pi-save"
@@ -375,7 +309,7 @@ interface DeploymentBundle {
 
               @if (activeTab === 'variables') {
                 <app-admin-panel title="Variables no secretas" description="Valores por ambiente con target api, app, docker, runtime o microservice. Siempre queda default local.">
-                  <div class="form-grid">
+                  <app-admin-form-grid minColumnWidth="220px">
                     <app-dynamic-field-control [field]="variableGroupField" [value]="variableDraft.groupKey" (valueChange)="variableDraft.groupKey = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="variableKeyField" [value]="variableDraft.key" (valueChange)="variableDraft.key = asText($event).toUpperCase()"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="variableTypeField" [value]="variableDraft.valueType" (valueChange)="variableDraft.valueType = asValueType($event)"></app-dynamic-field-control>
@@ -383,31 +317,31 @@ interface DeploymentBundle {
                     <app-dynamic-field-control class="span-2" [field]="variableValueField" [value]="variableDraft.value" (valueChange)="variableDraft.value = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control class="span-2" [field]="variableDescriptionField" [value]="variableDraft.description" (valueChange)="variableDraft.description = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="variableRestartField" [value]="variableDraft.requiresRestart" (valueChange)="variableDraft.requiresRestart = $event === true"></app-dynamic-field-control>
-                  </div>
+                  </app-admin-form-grid>
                   <app-ui-kit-button label="Guardar variable" icon="pi pi-save" [disabled]="saving === 'variable'" (pressed)="saveVariable()"></app-ui-kit-button>
-                  <div class="list-stack">
+                  <app-admin-stack>
                     @for (item of selected?.variables || []; track item.id) {
-                      <article class="resource-card">
-                        <div>
-                          <strong>{{ item.key }}</strong>
-                          <p class="meta">{{ item.groupKey }} · {{ item.target }} · {{ item.valueType }}{{ item.requiresRestart ? ' · reinicio requerido' : '' }}</p>
-                          <p class="muted">{{ item.description || item.value }}</p>
-                        </div>
+                      <app-admin-resource-card
+                        [title]="item.key"
+                        [meta]="item.groupKey + ' · ' + item.target + ' · ' + item.valueType + (item.requiresRestart ? ' · reinicio requerido' : '')"
+                        [detail]="item.description || item.value"
+                      >
                         <app-ui-kit-button
+                          resource-actions
                           label="Editar"
                           variant="outline"
                           tone="neutral"
                           (pressed)="editVariable(item)"
                         ></app-ui-kit-button>
-                      </article>
+                      </app-admin-resource-card>
                     }
-                  </div>
+                  </app-admin-stack>
                 </app-admin-panel>
               }
 
               @if (activeTab === 'secrets') {
                 <app-admin-panel title="Chicle Vault" description="Secrets cifrados con AES-256-GCM. El valor real nunca vuelve al frontend.">
-                  <div class="form-grid">
+                  <app-admin-form-grid minColumnWidth="220px">
                     <app-dynamic-field-control [field]="secretScopeTypeField" [value]="secretDraft.scopeType" (valueChange)="secretDraft.scopeType = asSecretScope($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="secretScopeKeyField" [value]="secretDraft.scopeKey" (valueChange)="secretDraft.scopeKey = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="secretKeyField" [value]="secretDraft.key" (valueChange)="secretDraft.key = asText($event).toUpperCase()"></app-dynamic-field-control>
@@ -417,31 +351,31 @@ interface DeploymentBundle {
                       <app-dynamic-field-control class="span-2" [field]="secretReauthField" [value]="secretDraft.reauthPassword" (valueChange)="secretDraft.reauthPassword = asText($event)"></app-dynamic-field-control>
                     }
                     <app-dynamic-field-control class="span-2" [field]="secretDescriptionField" [value]="secretDraft.description" (valueChange)="secretDraft.description = asText($event)"></app-dynamic-field-control>
-                  </div>
+                  </app-admin-form-grid>
                   <app-ui-kit-button label="Guardar secret" icon="pi pi-lock" [disabled]="saving === 'secret'" (pressed)="saveSecret()"></app-ui-kit-button>
-                  <div class="list-stack">
+                  <app-admin-stack>
                     @for (item of selected?.secrets || []; track item.id) {
-                      <article class="resource-card">
-                        <div>
-                          <strong>{{ item.scopeType }}/{{ item.scopeKey }}/{{ item.key }}</strong>
-                          <p class="meta">{{ item.status }} · {{ item.maskedPreview || 'configured' }}</p>
-                          <p class="secret-value">{{ item.secretRef }}</p>
-                        </div>
+                      <app-admin-resource-card
+                        [title]="item.scopeType + '/' + item.scopeKey + '/' + item.key"
+                        [meta]="item.status + ' · ' + (item.maskedPreview || 'configured')"
+                        [code]="item.secretRef"
+                      >
                         <app-ui-kit-button
+                          resource-actions
                           label="Rotar"
                           variant="outline"
                           tone="neutral"
                           (pressed)="editSecret(item)"
                         ></app-ui-kit-button>
-                      </article>
+                      </app-admin-resource-card>
                     }
-                  </div>
+                  </app-admin-stack>
                 </app-admin-panel>
               }
 
               @if (activeTab === 'services') {
                 <app-admin-panel title="Service registry" description="URLs y contratos por ambiente para módulos internos, microservicios, workers, proveedores e integraciones.">
-                  <div class="form-grid">
+                  <app-admin-form-grid minColumnWidth="220px">
                     <app-dynamic-field-control [field]="serviceKeyField" [value]="serviceDraft.key" (valueChange)="serviceDraft.key = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="serviceNameField" [value]="serviceDraft.name" (valueChange)="serviceDraft.name = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="serviceTypeField" [value]="serviceDraft.type" (valueChange)="serviceDraft.type = asServiceType($event)"></app-dynamic-field-control>
@@ -452,63 +386,60 @@ interface DeploymentBundle {
                     <app-dynamic-field-control class="span-2" [field]="serviceSecretRefField" [value]="serviceDraft.secretRef" (valueChange)="serviceDraft.secretRef = asText($event)"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="serviceTlsField" [value]="serviceDraft.tlsRequired" (valueChange)="serviceDraft.tlsRequired = $event === true"></app-dynamic-field-control>
                     <app-dynamic-field-control [field]="serviceActiveField" [value]="serviceDraft.active" (valueChange)="serviceDraft.active = $event === true"></app-dynamic-field-control>
-                  </div>
+                  </app-admin-form-grid>
                   <app-ui-kit-button label="Guardar servicio" icon="pi pi-cloud" [disabled]="saving === 'service'" (pressed)="saveService()"></app-ui-kit-button>
-                  <div class="list-stack">
+                  <app-admin-stack>
                     @for (item of selected?.services || []; track item.id) {
-                      <article class="resource-card">
-                        <div>
-                          <strong>{{ item.name }}</strong>
-                          <p class="meta">{{ item.key }} · {{ item.type }} · {{ item.authMode }} · {{ item.timeoutMs }} ms</p>
-                          <p class="muted">{{ item.baseUrl }}{{ item.healthPath }}</p>
-                        </div>
+                      <app-admin-resource-card
+                        [title]="item.name"
+                        [meta]="item.key + ' · ' + item.type + ' · ' + item.authMode + ' · ' + item.timeoutMs + ' ms'"
+                        [detail]="item.baseUrl + item.healthPath"
+                      >
                         <app-ui-kit-button
+                          resource-actions
                           label="Editar"
                           variant="outline"
                           tone="neutral"
                           (pressed)="editService(item)"
                         ></app-ui-kit-button>
-                      </article>
+                      </app-admin-resource-card>
                     }
-                  </div>
+                  </app-admin-stack>
                 </app-admin-panel>
               }
 
               @if (activeTab === 'deploy') {
                 <app-admin-panel title="Readiness y artefactos" description="Valida condiciones mínimas y genera archivos revisables sin incluir secrets reales.">
                   <app-ui-kit-button label="Generar bundle" icon="pi pi-file-export" [disabled]="saving === 'bundle'" (pressed)="generateBundle()"></app-ui-kit-button>
-                  <section class="validation-list">
+                  <app-admin-stack gap="8px">
                     @for (item of validationItems; track item.key) {
-                      <article class="validation-item" [class.ok]="item.severity === 'ok'" [class.warning]="item.severity === 'warning'" [class.danger]="item.severity === 'danger'">
-                        <strong>{{ item.title }}</strong>
-                        <p>{{ item.detail }}</p>
-                      </article>
+                      <app-admin-resource-card
+                        [title]="item.title"
+                        [detail]="item.detail"
+                        [tone]="validationTone(item.severity)"
+                      ></app-admin-resource-card>
                     }
-                  </section>
-                  <div class="form-grid">
+                  </app-admin-stack>
+                  <app-admin-form-grid minColumnWidth="260px">
                     <div>
-                      <h3>Runtime config público</h3>
-                      <pre class="json-block">{{ selected?.runtimeConfig | json }}</pre>
+                      <app-admin-code-block label="Runtime config público" [value]="selected?.runtimeConfig"></app-admin-code-block>
                     </div>
                     <div>
                       <h3>Bundle generado</h3>
                       @if (bundle) {
-                        <div class="bundle-list">
+                        <app-admin-stack gap="8px">
                           @for (file of bundle.files; track file.path) {
-                            <article class="bundle-card">
-                              <strong>{{ file.path }}</strong>
-                              <span class="meta">{{ file.kind }}</span>
-                            </article>
+                            <app-admin-resource-card [title]="file.path" [meta]="file.kind"></app-admin-resource-card>
                           }
-                        </div>
+                        </app-admin-stack>
                       } @else {
                         <p class="muted">Genera el bundle para revisar compose, env template, runtime-config y checklist.</p>
                       }
                     </div>
-                  </div>
+                  </app-admin-form-grid>
                 </app-admin-panel>
               }
-            </div>
+            </app-admin-stack>
           </section>
         }
       </section>
@@ -680,6 +611,10 @@ export class EnvironmentsPageComponent implements OnInit {
 
   get validationItems() {
     return this.selected?.validation.items ?? [];
+  }
+
+  validationTone(severity: EnvironmentValidationItem['severity']): 'success' | 'warning' | 'danger' {
+    return severity === 'ok' ? 'success' : severity;
   }
 
   loadOverview() {

@@ -1,10 +1,9 @@
 import { Component, HostListener, Input, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { AppMenuItem } from '../../core/navigation/app-menu.types';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
-import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 
 interface NavGroup {
   label: string;
@@ -14,7 +13,7 @@ interface NavGroup {
 @Component({
   selector: 'app-main-nav',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, UiKitButtonComponent],
+  imports: [RouterLink, RouterLinkActive],
   styles: [
     `
       .app-nav {
@@ -68,6 +67,7 @@ interface NavGroup {
         align-items: center;
         justify-content: center;
         gap: 7px;
+        box-sizing: border-box;
         min-height: 38px;
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
@@ -81,16 +81,27 @@ interface NavGroup {
         white-space: nowrap;
       }
 
-      .logout-button,
-      .dropdown-button,
-      .drawer-close {
-        display: inline-block;
+      .nav-button {
+        appearance: none;
+        cursor: pointer;
+      }
+
+      .nav-link:hover,
+      .nav-link:focus-visible {
+        border-color: var(--ch-color-primary-border);
+        background: color-mix(in srgb, var(--ch-color-primary-soft) 58%, var(--ch-color-surface));
+        outline: none;
       }
 
       .nav-link.active {
         border-color: var(--ch-color-primary);
         background: var(--ch-color-primary);
         color: var(--ch-color-primary-contrast);
+      }
+
+      .nav-link:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
       }
 
       .nav-icon {
@@ -102,8 +113,9 @@ interface NavGroup {
       }
 
       .dropdown-button.active {
-        border-color: var(--ch-color-primary-border);
-        background: var(--ch-color-primary-soft);
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       .dropdown-panel {
@@ -136,6 +148,7 @@ interface NavGroup {
         display: none;
         width: 42px;
         min-width: 42px;
+        padding-inline: 0;
       }
 
       .menu-label {
@@ -207,6 +220,7 @@ interface NavGroup {
 
       .drawer-footer .logout-button {
         width: 100%;
+        justify-content: center;
       }
 
       @media (max-width: 980px) {
@@ -263,16 +277,17 @@ interface NavGroup {
 
           @if (manualItems().length) {
             <div class="dropdown">
-              <app-ui-kit-button
-                class="dropdown-button"
-                icon="pi pi-book"
-                [label]="i18n.translate('nav.group.manual')"
-                tone="neutral"
-                variant="outline"
-                [class.active]="activeDropdown() === 'manual'"
+              <button
+                type="button"
+                class="nav-link nav-button dropdown-button"
+                [class.active]="activeDropdown() === 'manual' || groupIsActive(manualItems())"
                 [attr.aria-expanded]="activeDropdown() === 'manual'"
-                (pressed)="toggleDropdown('manual')"
-              ></app-ui-kit-button>
+                (click)="toggleDropdown('manual')"
+              >
+                <i class="nav-icon pi pi-book" aria-hidden="true"></i>
+                <span>{{ i18n.translate('nav.group.manual') }}</span>
+                <i class="nav-icon pi pi-chevron-down" aria-hidden="true"></i>
+              </button>
               @if (activeDropdown() === 'manual') {
                 <div class="dropdown-panel">
                   @for (item of manualItems(); track item.key) {
@@ -311,16 +326,17 @@ interface NavGroup {
 
           @if (adminItems().length) {
             <div class="dropdown">
-              <app-ui-kit-button
-                class="dropdown-button"
-                icon="pi pi-shield"
-                [label]="i18n.translate('nav.group.admin')"
-                tone="neutral"
-                variant="outline"
-                [class.active]="activeDropdown() === 'admin'"
+              <button
+                type="button"
+                class="nav-link nav-button dropdown-button"
+                [class.active]="activeDropdown() === 'admin' || groupIsActive(adminItems())"
                 [attr.aria-expanded]="activeDropdown() === 'admin'"
-                (pressed)="toggleDropdown('admin')"
-              ></app-ui-kit-button>
+                (click)="toggleDropdown('admin')"
+              >
+                <i class="nav-icon pi pi-shield" aria-hidden="true"></i>
+                <span>{{ i18n.translate('nav.group.admin') }}</span>
+                <i class="nav-icon pi pi-chevron-down" aria-hidden="true"></i>
+              </button>
               @if (activeDropdown() === 'admin') {
                 <div class="dropdown-panel">
                   @for (item of adminItems(); track item.key) {
@@ -344,16 +360,17 @@ interface NavGroup {
 
           @if (buildItems().length) {
             <div class="dropdown">
-              <app-ui-kit-button
-                class="dropdown-button"
-                icon="pi pi-pencil"
-                [label]="i18n.translate('nav.group.build')"
-                tone="neutral"
-                variant="outline"
-                [class.active]="activeDropdown() === 'build'"
+              <button
+                type="button"
+                class="nav-link nav-button dropdown-button"
+                [class.active]="activeDropdown() === 'build' || groupIsActive(buildItems())"
                 [attr.aria-expanded]="activeDropdown() === 'build'"
-                (pressed)="toggleDropdown('build')"
-              ></app-ui-kit-button>
+                (click)="toggleDropdown('build')"
+              >
+                <i class="nav-icon pi pi-pencil" aria-hidden="true"></i>
+                <span>{{ i18n.translate('nav.group.build') }}</span>
+                <i class="nav-icon pi pi-chevron-down" aria-hidden="true"></i>
+              </button>
               @if (activeDropdown() === 'build') {
                 <div class="dropdown-panel">
                   @for (item of buildItems(); track item.key) {
@@ -376,28 +393,23 @@ interface NavGroup {
           }
 
           @if (auth.state.isAuthenticated) {
-            <app-ui-kit-button
-              class="logout-button"
-              icon="pi pi-sign-out"
-              [label]="i18n.translate('nav.logout')"
-              tone="neutral"
-              variant="outline"
-              (pressed)="logout()"
-            ></app-ui-kit-button>
+            <button type="button" class="nav-link nav-button logout-button" (click)="logout()">
+              <i class="nav-icon pi pi-sign-out" aria-hidden="true"></i>
+              <span>{{ i18n.translate('nav.logout') }}</span>
+            </button>
           }
         </nav>
 
-        <app-ui-kit-button
-          class="menu-button"
-          label=""
-          [ariaLabel]="i18n.translate('nav.menu')"
-          icon="pi pi-bars"
-          tone="neutral"
-          variant="outline"
+        <button
+          type="button"
+          class="nav-link nav-button menu-button"
+          [attr.aria-label]="i18n.translate('nav.menu')"
           [attr.aria-expanded]="drawerOpen()"
           aria-controls="main-navigation-drawer"
-          (pressed)="drawerOpen.set(true)"
-        ></app-ui-kit-button>
+          (click)="drawerOpen.set(true)"
+        >
+          <i class="nav-icon pi pi-bars" aria-hidden="true"></i>
+        </button>
       </div>
     </header>
 
@@ -409,15 +421,14 @@ interface NavGroup {
             <div class="brand">Chicle Engine</div>
             <div class="context-label">{{ contextLabel }}</div>
           </div>
-          <app-ui-kit-button
-            class="drawer-close"
-            label=""
-            [ariaLabel]="i18n.translate('nav.close')"
-            icon="pi pi-times"
-            tone="neutral"
-            variant="outline"
-            (pressed)="closeMenus()"
-          ></app-ui-kit-button>
+          <button
+            type="button"
+            class="nav-link nav-button drawer-close"
+            [attr.aria-label]="i18n.translate('nav.close')"
+            (click)="closeMenus()"
+          >
+            <i class="nav-icon pi pi-times" aria-hidden="true"></i>
+          </button>
         </div>
 
         <div class="drawer-content">
@@ -444,15 +455,10 @@ interface NavGroup {
 
         @if (auth.state.isAuthenticated) {
           <div class="drawer-footer">
-            <app-ui-kit-button
-              class="logout-button"
-              icon="pi pi-sign-out"
-              [label]="i18n.translate('nav.logout')"
-              tone="neutral"
-              variant="outline"
-              [full]="true"
-              (pressed)="logout()"
-            ></app-ui-kit-button>
+            <button type="button" class="nav-link nav-button logout-button" (click)="logout()">
+              <i class="nav-icon pi pi-sign-out" aria-hidden="true"></i>
+              <span>{{ i18n.translate('nav.logout') }}</span>
+            </button>
           </div>
         }
       </aside>
@@ -465,6 +471,7 @@ export class MainNavComponent implements OnInit {
   readonly menu = inject(AppMenuService);
   readonly auth = inject(AuthService);
   readonly i18n = inject(I18nService);
+  private readonly router = inject(Router);
   readonly drawerOpen = signal(false);
   readonly activeDropdown = signal<'manual' | 'admin' | 'build' | null>(null);
 
@@ -511,6 +518,11 @@ export class MainNavComponent implements OnInit {
 
   itemLabel(item: AppMenuItem) {
     return this.i18n.label(item.i18nKey ?? `nav.${item.key}`, item.label);
+  }
+
+  groupIsActive(items: AppMenuItem[]) {
+    const current = this.router.url.split('?')[0].split('#')[0];
+    return items.some((item) => item.route && (current === item.route || current.startsWith(`${item.route}/`)));
   }
 
   private placementFor(item: AppMenuItem): 'primary' | 'manual' | 'admin' | 'build' {

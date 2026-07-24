@@ -1,9 +1,11 @@
 import { Component, Input } from '@angular/core';
+import { UiKitCardComponent } from '../ui-kit-card/ui-kit-card.component';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
+  imports: [UiKitCardComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -19,31 +21,6 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
         align-content: start;
         gap: var(--panel-gap);
         min-width: 0;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        box-shadow: var(--ch-shadow-card);
-        padding: var(--panel-padding);
-      }
-
-      :host([data-ui-kit='material']) .panel {
-        border-radius: 4px;
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
-      }
-
-      :host([data-ui-kit='bootstrap']) .panel {
-        border-radius: 6px;
-        box-shadow: none;
-      }
-
-      :host([data-ui-kit='ionic']) .panel {
-        border-radius: 16px;
-        box-shadow: 0 12px 30px color-mix(in srgb, var(--ch-color-primary) 8%, transparent);
-      }
-
-      :host([data-ui-kit='native']) .panel {
-        border-radius: 2px;
-        box-shadow: none;
       }
 
       .header {
@@ -112,34 +89,31 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
     `
   ],
   template: `
-    <section
-      class="panel"
-      [style.--panel-gap]="gap"
-      [style.--panel-padding]="padding"
-      [style.--panel-title-size]="titleSize"
-    >
-      @if (title || description || eyebrow) {
-        <header class="header">
-          <div class="copy">
-            @if (eyebrow) {
-              <span class="eyebrow">{{ eyebrow }}</span>
-            }
-            @if (title) {
-              <h2>{{ title }}</h2>
-            }
-            @if (description) {
-              <p>{{ description }}</p>
-            }
-          </div>
-          <div class="actions">
-            <ng-content select="[panel-actions]"></ng-content>
-          </div>
-        </header>
-      }
-      <div class="body">
-        <ng-content></ng-content>
-      </div>
-    </section>
+    <app-ui-kit-card [kit]="kit" [padding]="padding">
+      <section class="panel" [style.--panel-gap]="gap" [style.--panel-title-size]="titleSize">
+        @if (title || description || eyebrow) {
+          <header class="header">
+            <div class="copy">
+              @if (eyebrow) {
+                <span class="eyebrow">{{ eyebrow }}</span>
+              }
+              @if (title) {
+                <h2>{{ title }}</h2>
+              }
+              @if (description) {
+                <p>{{ description }}</p>
+              }
+            </div>
+            <div class="actions">
+              <ng-content select="[panel-actions]"></ng-content>
+            </div>
+          </header>
+        }
+        <div class="body">
+          <ng-content></ng-content>
+        </div>
+      </section>
+    </app-ui-kit-card>
   `
 })
 export class AdminPanelComponent extends UiKitAwareComponent {

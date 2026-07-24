@@ -1,9 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
 
 @Component({
   selector: 'app-mobile-action-bar',
   standalone: true,
+  imports: [UiKitButtonComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -31,58 +33,33 @@ import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
         padding-top: 10px;
       }
 
-      button {
+      app-ui-kit-button {
         flex: 1;
-        min-height: 44px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 9px 12px;
-        font: inherit;
-        font-weight: 850;
-      }
-
-      :host([data-ui-kit='material']) button {
-        border-radius: 4px;
-        box-shadow: 0 1px 3px color-mix(in srgb, var(--ch-color-text) 12%, transparent);
-      }
-
-      :host([data-ui-kit='bootstrap']) button {
-        border-radius: 6px;
-      }
-
-      :host([data-ui-kit='ionic']) button {
-        min-height: 48px;
-        border-radius: 12px;
-      }
-
-      :host([data-ui-kit='native']) button {
-        border-radius: 2px;
-      }
-
-      .primary {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-primary-contrast);
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
       }
     `
   ],
   template: `
     <div class="bar">
       @if (secondaryLabel) {
-        <button type="button" [disabled]="secondaryDisabled" (click)="secondary.emit()">
-          {{ secondaryLabel }}
-        </button>
+        <app-ui-kit-button
+          [label]="secondaryLabel"
+          [kit]="kit"
+          type="button"
+          tone="neutral"
+          variant="outline"
+          [disabled]="secondaryDisabled"
+          [full]="true"
+          (pressed)="secondary.emit()"
+        ></app-ui-kit-button>
       }
-      <button class="primary" [type]="primaryType" [disabled]="primaryDisabled" (click)="primary.emit()">
-        {{ primaryLabel }}
-      </button>
+      <app-ui-kit-button
+        [label]="primaryLabel"
+        [kit]="kit"
+        [type]="primaryType"
+        [disabled]="primaryDisabled"
+        [full]="true"
+        (pressed)="primary.emit()"
+      ></app-ui-kit-button>
     </div>
   `
 })

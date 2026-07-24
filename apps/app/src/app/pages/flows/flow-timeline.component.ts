@@ -223,7 +223,15 @@ export interface FlowTimelineStatus {
               <span class="branch">Si falla → {{ step.onErrorStepKey }}</span>
             }
           </span>
-          <span class="actions" (click)="$event.stopPropagation()">
+          <span
+            class="actions"
+            role="group"
+            tabindex="0"
+            aria-label="Acciones del paso"
+            (click)="$event.stopPropagation()"
+            (keydown.enter)="$event.stopPropagation()"
+            (keydown.space)="$event.stopPropagation()"
+          >
             @if (statusFor(step.key); as status) {
               <span class="status" [class.success]="status === 'success'" [class.failed]="status === 'failed'">
                 {{ status === 'success' ? 'Correcto' : status === 'failed' ? 'Error' : status }}

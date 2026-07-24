@@ -107,8 +107,9 @@ export interface AdminDataColumn {
                   <td>
                     <app-ui-kit-button
                       [label]="detailActionLabel"
-                      tone="secondary"
+                      tone="neutral"
                       variant="outline"
+                      size="small"
                       (pressed)="rowSelected.emit(row)"
                     ></app-ui-kit-button>
                   </td>

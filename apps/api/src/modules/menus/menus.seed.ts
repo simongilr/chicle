@@ -17,7 +17,7 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
   },
   {
     key: 'docs',
-    label: 'Manual',
+    label: 'Docs',
     route: '/docs',
     icon: 'pi pi-book',
     sortOrder: 20

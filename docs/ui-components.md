@@ -44,7 +44,8 @@ When creating a visual component:
 - Designer modules use `DesignerWorkspaceComponent`, `CatalogHeaderComponent`, `CatalogItemComponent` and
   `SectionHeaderComponent`.
 - Administrative card layouts use `AdminCardGridComponent`, `AdminPanelComponent`, `AdminMetricCardComponent`,
-  `AdminActionToolbarComponent` and `ComponentDocCardComponent`.
+  `AdminActionToolbarComponent`, `AdminStackComponent`, `AdminResourceCardComponent`, `AdminCodeBlockComponent` and
+  `ComponentDocCardComponent`.
 - Guided lifecycle uses `ProcessStepsComponent`, `WorkflowGuideComponent`, `ContextAssistantComponent`,
   `StatusNoticeComponent` and `SegmentedControlComponent`.
 
@@ -64,6 +65,9 @@ Already available:
 - `MaterialFieldRendererComponent`
 - `BootstrapFieldRendererComponent`
 - `AdminCardGridComponent`
+- `AdminStackComponent`
+- `AdminResourceCardComponent`
+- `AdminCodeBlockComponent`
 - `ComponentDocCardComponent`
 - `UiPresentationSwitcherComponent`
 - `UiThemeSelectorComponent`
@@ -90,19 +94,21 @@ Still required for the designer:
 
 | Page | Shell | Shared composition | Status |
 | --- | --- | --- | --- |
-| Home | PageShell | navigation and shared spacing | Adopted; dashboard content is domain-specific |
-| Docs | PageShell | process guide and catalog registry | Adopted |
-| Confisys | PageShell | ModuleHeader, FieldShell, LoadingSkeleton | Adopted |
-| Database | PageShell | designer/catalog/status components | Adopted |
-| Services | PageShell | full designer lifecycle components | Reference implementation |
-| Flows | PageShell | full designer lifecycle plus domain visuals | Adopted; large container still needs gradual extraction |
-| Security | PageShell | ModuleHeader, StatusNotice, LoadingSkeleton | Adopted; tables/forms remain extraction candidates |
-| Dynamic form runtime | PageShell | field renderer, preview, loading and notices | Forms foundation |
-| Login | PublicPageShell | FieldShell, StatusNotice, LoadingSkeleton | Adopted |
-| Setup | PublicPageShell | FieldShell, StatusNotice, LoadingSkeleton | Adopted |
+| Home | PageShell | panels, action toolbar, metrics, cards and shared spacing | Adopted |
+| Docs | PageShell | documentation layout, catalog navigation, process guide and catalog registry | Adopted |
+| Confisys | PageShell | module header, filter bar, dynamic fields, multikit buttons and loading | Adopted |
+| Database | PageShell | catalog, segmented tabs, data table, schema field editor and status components | Adopted |
+| Services | PageShell | full designer lifecycle, JSON authoring, fields, buttons and catalog components | Reference implementation |
+| Flows | PageShell | full designer lifecycle plus reusable Flow graph, timeline and mapper components | Adopted |
+| Security | PageShell | module header, panels, metrics, filters, fields, actions, notices and loading | Adopted |
+| Environment Deploy Center | PageShell | panels, stacks, form grids, resource cards, code blocks, fields, metrics and actions | Adopted |
+| Dynamic form runtime | PageShell | field renderer, preview, mobile actions, loading and notices | Forms foundation |
+| Login | PublicPageShell | dynamic fields, segmented control, notices, loading and multikit actions | Adopted |
+| Setup | PublicPageShell | dynamic fields, notices, loading and multikit actions | Adopted |
 
 Page-local CSS is allowed for domain composition. It must not recreate navigation shells, module headers, loading
-states, catalogs, generic field wrappers or preview viewports.
+states, catalogs, generic field wrappers, action buttons, cards, code blocks or preview viewports. Page templates must
+use reusable Chicle components for all generic visual primitives.
 
 ## Multikit Rendering
 
@@ -117,6 +123,11 @@ Ionic variables and the active PrimeNG preset together.
 Reusable controls must use framework-native primitives when a kit is selected: PrimeNG controls for PrimeNG, Ionic
 controls for Ionic, Angular Material controls for Material, Bootstrap classes for Bootstrap and plain HTML only for the
 native fallback. This keeps visual changes real instead of only changing colors.
+
+The current Admin criterion is 100% page-level transformation: no audited Admin page owns raw `button`, `input`,
+`select` or `textarea` controls. Native HTML remains only inside reusable boundaries such as field renderers,
+`UiKitButtonComponent`, `CodeTextareaComponent`, `CatalogItemComponent`, `SegmentedControlComponent` and mobile evidence
+controls.
 
 Dark mode is token-driven. Components must read `--ch-*` variables for surface, text, border, focus, radius, shadows and
 semantic states. Page-local dark palettes are not allowed.

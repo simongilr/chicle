@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { CatalogItemComponent } from '../catalog-item/catalog-item.component';
 import { DynamicFieldControlComponent } from '../dynamic-field-control/dynamic-field-control.component';
 import { PageShellComponent, PageShellWidth } from '../page-shell/page-shell.component';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
@@ -13,7 +14,7 @@ export interface DocumentationSection {
 @Component({
   selector: 'app-documentation-layout',
   standalone: true,
-  imports: [DynamicFieldControlComponent, PageShellComponent],
+  imports: [CatalogItemComponent, DynamicFieldControlComponent, PageShellComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit',
     '[attr.title]': 'null'
@@ -76,40 +77,6 @@ export interface DocumentationSection {
         text-transform: uppercase;
       }
 
-      .docs-nav button {
-        display: grid;
-        gap: 3px;
-        width: 100%;
-        border: 0;
-        border-radius: calc(var(--ch-radius) - 2px);
-        background: transparent;
-        color: var(--ch-color-text);
-        padding: 9px 10px;
-        text-align: left;
-        cursor: pointer;
-      }
-
-      .docs-nav button[aria-current='true'] {
-        background: var(--ch-color-primary-soft);
-        box-shadow: inset 3px 0 0 var(--ch-color-primary);
-      }
-
-      .docs-nav button:hover,
-      .docs-nav button:focus-visible {
-        outline: none;
-        background: var(--ch-color-primary-soft);
-      }
-
-      .docs-nav strong {
-        font-size: 0.94rem;
-      }
-
-      .docs-nav span {
-        color: var(--ch-color-muted);
-        font-size: 0.8rem;
-        line-height: 1.35;
-      }
-
       .docs-content {
         display: grid;
         gap: 18px;
@@ -165,14 +132,13 @@ export interface DocumentationSection {
           <nav class="docs-nav" [attr.aria-label]="navAriaLabel">
             <div class="docs-nav-title">{{ navTitle }}</div>
             @for (section of sections; track section.id) {
-              <button
-                type="button"
-                [attr.aria-current]="activeSection === section.id ? 'true' : null"
-                (click)="selectSection(section.id)"
-              >
-                <strong>{{ section.label }}</strong>
-                <span>{{ section.summary }}</span>
-              </button>
+              <app-catalog-item
+                [title]="section.label"
+                [detail]="section.summary"
+                [active]="activeSection === section.id"
+                [kit]="kit"
+                (selected)="selectSection(section.id)"
+              ></app-catalog-item>
             }
           </nav>
 
@@ -184,7 +150,7 @@ export interface DocumentationSection {
     </app-page-shell>
   `
 })
-export class DocumentationLayoutComponent extends UiKitAwareComponent {
+export class DocumentationLayoutComponent extends UiKitAwareComponent implements OnChanges {
   @Input({ required: true }) title = '';
   @Input({ required: true }) description = '';
   @Input({ required: true }) sections: DocumentationSection[] = [];

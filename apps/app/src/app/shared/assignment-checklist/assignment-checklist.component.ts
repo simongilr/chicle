@@ -33,6 +33,7 @@ export interface AssignmentChecklistOption {
       .assignment-list--pills {
         display: flex;
         flex-wrap: wrap;
+        gap: 8px;
       }
 
       .assignment-item {
@@ -46,10 +47,54 @@ export interface AssignmentChecklistOption {
       }
 
       .assignment-list--pills .assignment-item {
-        min-width: 130px;
+        display: block;
+        min-width: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+      }
+
+      .assignment-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        max-width: 100%;
+        border: 1px solid var(--ch-color-border);
         border-radius: 999px;
         background: var(--ch-color-surface-muted);
-        padding: 5px 9px;
+        color: var(--ch-color-text);
+        padding: 6px 11px;
+        font-size: 0.86rem;
+        font-weight: 850;
+        line-height: 1.1;
+      }
+
+      .assignment-pill.is-checked {
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
+      }
+
+      .assignment-pill.is-disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+
+      .assignment-pill input {
+        flex: 0 0 auto;
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--ch-color-primary);
+      }
+
+      .assignment-pill span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .assignment-item.is-disabled {
@@ -96,7 +141,11 @@ export interface AssignmentChecklistOption {
 
         .assignment-list--pills .assignment-item {
           min-width: 0;
-          border-radius: var(--ch-radius);
+        }
+
+        .assignment-pill {
+          width: 100%;
+          justify-content: flex-start;
         }
       }
     `
@@ -106,12 +155,28 @@ export interface AssignmentChecklistOption {
       <div class="assignment-list" [class.assignment-list--pills]="variant === 'pills'">
         @for (option of options; track option.key) {
           <div class="assignment-item" [class.is-disabled]="disabled || option.disabled">
-            <app-dynamic-field-control
-              [field]="checkboxField(option)"
-              [value]="option.checked === true"
-              [disabled]="disabled || option.disabled === true"
-              (valueChange)="optionToggle.emit(option.key)"
-            ></app-dynamic-field-control>
+            @if (variant === 'pills') {
+              <label
+                class="assignment-pill"
+                [class.is-checked]="option.checked === true"
+                [class.is-disabled]="disabled || option.disabled"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="option.checked === true"
+                  [disabled]="disabled || option.disabled === true"
+                  (change)="optionToggle.emit(option.key)"
+                />
+                <span>{{ option.label }}</span>
+              </label>
+            } @else {
+              <app-dynamic-field-control
+                [field]="checkboxField(option)"
+                [value]="option.checked === true"
+                [disabled]="disabled || option.disabled === true"
+                (valueChange)="optionToggle.emit(option.key)"
+              ></app-dynamic-field-control>
+            }
             @if (variant !== 'pills' && (option.description || option.statusLabel)) {
               <div class="assignment-meta">
                 @if (option.description) {

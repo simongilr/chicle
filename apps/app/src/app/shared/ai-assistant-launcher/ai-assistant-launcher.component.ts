@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { CodeTextareaComponent } from '../code-textarea/code-textarea.component';
 import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 import { AiAssistantScope, AiAssistantService } from './ai-assistant.service';
 
@@ -15,7 +14,7 @@ interface ChatMessage {
 @Component({
   selector: 'app-ai-assistant-launcher',
   standalone: true,
-  imports: [CodeTextareaComponent, UiKitButtonComponent],
+  imports: [UiKitButtonComponent],
   styles: [
     `
       :host {
@@ -77,7 +76,6 @@ interface ChatMessage {
 
       .close {
         flex: 0 0 auto;
-        width: 34px;
       }
 
       .messages {
@@ -157,6 +155,34 @@ interface ChatMessage {
         padding: 12px;
       }
 
+      .prompt-input {
+        width: 100%;
+        min-height: 78px;
+        max-height: 160px;
+        resize: vertical;
+        border: 1px solid var(--ch-color-border);
+        border-radius: 10px;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
+        box-shadow: 0 1px 2px color-mix(in srgb, var(--ch-color-text) 5%, transparent);
+        padding: 11px 12px;
+        font: inherit;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        outline: none;
+      }
+
+      .prompt-input::placeholder {
+        color: color-mix(in srgb, var(--ch-color-muted) 78%, var(--ch-color-surface));
+      }
+
+      .prompt-input:focus {
+        border-color: var(--ch-color-primary);
+        box-shadow:
+          0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 16%, transparent),
+          0 8px 18px color-mix(in srgb, var(--ch-color-text) 7%, transparent);
+      }
+
       .send-row {
         display: flex;
         align-items: center;
@@ -220,6 +246,7 @@ interface ChatMessage {
             icon="pi pi-times"
             tone="neutral"
             variant="outline"
+            size="small"
             (pressed)="toggle()"
           ></app-ui-kit-button>
         </header>
@@ -242,6 +269,7 @@ interface ChatMessage {
                       [label]="suggestion"
                       tone="secondary"
                       variant="outline"
+                      size="small"
                       [disabled]="sending()"
                       (pressed)="sendSuggestion(suggestion)"
                     ></app-ui-kit-button>
@@ -253,20 +281,22 @@ interface ChatMessage {
         </div>
 
         <div class="composer">
-          <app-code-textarea
-            controlId="assistant-prompt"
+          <textarea
+            id="assistant-prompt"
+            class="prompt-input"
             [value]="prompt"
-            minHeight="76px"
             [placeholder]="placeholder()"
-            (valueChange)="prompt = $event"
+            spellcheck="true"
+            (input)="prompt = promptValue($event)"
             (keydown)="onPromptKeydown($event)"
-          ></app-code-textarea>
+          ></textarea>
           <div class="send-row">
             <span class="hint">La IA propondrá cambios en la pantalla actual; tú apruebas antes de guardar.</span>
             <app-ui-kit-button
               class="send"
               [label]="sending() ? 'Pensando' : 'Enviar'"
               [icon]="sending() ? 'pi pi-spin pi-spinner' : ''"
+              size="small"
               [disabled]="!canSend() || sending()"
               (pressed)="send()"
             ></app-ui-kit-button>
@@ -380,6 +410,10 @@ export class AiAssistantLauncherComponent {
 
     event.preventDefault();
     void this.send();
+  }
+
+  promptValue(event: Event) {
+    return event.target instanceof HTMLTextAreaElement ? event.target.value : '';
   }
 
   private startProgress() {

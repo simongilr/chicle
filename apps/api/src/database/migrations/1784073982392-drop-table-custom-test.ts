@@ -7,7 +7,7 @@ export class DropTableCustomTest1784073982392 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE IF EXISTS \`custom_test\``);
   }
 
-  async down(queryRunner: QueryRunner): Promise<void> {
+  async down(_queryRunner: QueryRunner): Promise<void> {
     // Restaurar una tabla eliminada requiere una migracion manual con estructura y datos respaldados.
   }
 }

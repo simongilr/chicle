@@ -15,7 +15,7 @@ export class DropColumnCustomTestNombres1784075183067 implements MigrationInterf
     }
   }
 
-  async down(queryRunner: QueryRunner): Promise<void> {
+  async down(_queryRunner: QueryRunner): Promise<void> {
     // Reversar este cambio requiere una migracion manual porque puede afectar datos existentes.
   }
 }

@@ -169,7 +169,11 @@ describe("DatabaseViewerService schema safety", () => {
     };
     dataSource.query.mockResolvedValueOnce([{ id: "row-1" }]).mockResolvedValueOnce({ affectedRows: 1 });
 
-    const result = await (service as unknown as { deleteCustomRow: Function }).deleteCustomRow(ownerAuth, table, "row-1");
+    type ServiceWithPrivateDelete = {
+      deleteCustomRow: (authArg: typeof ownerAuth, tableArg: typeof table, rowId: string) => Promise<unknown>;
+    };
+
+    const result = await (service as unknown as ServiceWithPrivateDelete).deleteCustomRow(ownerAuth, table, "row-1");
 
     expect(dataSource.query).toHaveBeenNthCalledWith(
       1,

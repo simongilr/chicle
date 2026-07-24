@@ -13,7 +13,6 @@ import {
   AdminFontFamily,
   AdminLanguage,
   AdminThemeMode,
-  AdminUiPreferences,
   UiPreferencesService
 } from '../../core/ui/ui-preferences.service';
 import { UiKitId } from '../../core/ui/ui-presentation.types';

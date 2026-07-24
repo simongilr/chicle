@@ -557,8 +557,9 @@ interface SchemaHistoryResponse {
                   ></app-dynamic-field-control>
                   <app-ui-kit-button
                     label="Refrescar"
-                    tone="secondary"
+                    tone="neutral"
                     variant="outline"
+                    size="small"
                     [disabled]="!selectedTable || loadingRows"
                     (pressed)="loadRows(page)"
                   ></app-ui-kit-button>
@@ -575,8 +576,9 @@ interface SchemaHistoryResponse {
                       <span>{{ rowsError }}</span>
                       <app-ui-kit-button
                         label="Reintentar"
-                        tone="secondary"
+                        tone="neutral"
                         variant="outline"
+                        size="small"
                         (pressed)="loadRows(page)"
                       ></app-ui-kit-button>
                     </div>

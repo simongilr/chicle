@@ -37,6 +37,9 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | AdminFilterBarComponent | `app-admin-filter-bar` | Responsive filter/search bar with consistent multikit spacing and projected controls | Components, Confisys and Markdown repository | Stable |
 | AdminFormGridComponent | `app-admin-form-grid` | Responsive administrative form grid for property panels and settings without page-local layout CSS | Preferences and future builders | Stable |
 | AdminDataTableComponent | `app-admin-data-table` | Dynamic Admin table with columns, rows, empty state and detail action | Database | Stable |
+| AdminStackComponent | `app-admin-stack` | Vertical stack for lists, resource groups and nested panel sequences with consistent gap and safe width | Environment Deploy Center and future designers | Stable |
+| AdminResourceCardComponent | `app-admin-resource-card` | Reusable Admin resource card with title, metadata, detail, code-safe wrapping and projected actions | Environment Deploy Center and future resource lists | Stable |
+| AdminCodeBlockComponent | `app-admin-code-block` | Read-only JSON/code display with internal scroll, safe wrapping and kit-aware radius | Environment Deploy Center and future bundle/audit panels | Stable |
 | ProcessStepsComponent | `app-process-steps` | Guided stages with complete, active and pending states | Services, Flows and Docs | Stable |
 | WorkflowGuideComponent | `app-workflow-guide` | Current objective, explanation and next command | Services, Flows and Docs | Stable |
 | ContextAssistantComponent | `app-context-assistant` | Local help, example, readiness and next action | Flow authoring blocks | Reusable; adopt in builders |
@@ -45,7 +48,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | LoadingSkeletonComponent | `app-loading-skeleton` | Page, list, table and form loading placeholders with accessible status | Route transitions and data-driven modules | Stable |
 | SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database and Flows | Stable |
 | FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Dynamic field controls, component catalog and legacy public forms | Stable |
-| DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic, Material, Bootstrap or native adapters without changing the schema | Dynamic form runtime | Initial multikit renderer |
+| DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic, Material, Bootstrap or native adapters without changing the schema | Dynamic form runtime and Admin pages | Stable multikit renderer |
 | DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field through the multikit facade and compare installed presentation kits | Component library and form designer | Initial field palette |
 | FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields, command buttons and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
 | ChicleFormlyFieldTypeComponent | `app-chicle-formly-field-type` | Connect Formly state and validation to the multikit field facade | Formly runtime | Initial internal adapter |
@@ -55,8 +58,8 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | MaterialFieldRendererComponent | `app-material-field-renderer` | Render the field contract with Angular Material controls | Dynamic field facade | Initial adapter |
 | BootstrapFieldRendererComponent | `app-bootstrap-field-renderer` | Render the field contract with Bootstrap form classes | Dynamic field facade | Initial adapter |
 | NativeFieldRendererComponent | `app-native-field-renderer` | Render the field contract with native HTML controls | Dynamic field facade | Initial fallback |
-| UiKitButtonComponent | `app-ui-kit-button` | Render actions and submit buttons through PrimeNG, Ionic, Material, Bootstrap or native buttons | Login, Setup, Preferences, Components and future Admin actions | Initial multikit action adapter |
-| UiKitCardComponent | `app-ui-kit-card` | Render surfaces through PrimeNG, Ionic, Material, Bootstrap-compatible or native cards | Metrics, Components and future Admin panels | Initial multikit surface adapter |
+| UiKitButtonComponent | `app-ui-kit-button` | Render actions and submit buttons through PrimeNG, Ionic, Material, Bootstrap or native buttons | Admin actions, runtime commands, Login, Setup, Preferences, Components, Services, Flows and Forms | Stable multikit action adapter |
+| UiKitCardComponent | `app-ui-kit-card` | Render surfaces through PrimeNG, Ionic, Material, Bootstrap-compatible or native cards | Admin panels, metrics, resource cards, Components and future builders | Stable multikit surface adapter |
 | UiPresentationSwitcherComponent | `app-ui-presentation-switcher` | Preview adaptive, PrimeNG, Ionic and native rendering | Dynamic form runtime | Initial |
 | UiThemeSelectorComponent | `app-ui-theme-selector` | Select installed themes and synchronize Chicle, Ionic and PrimeNG tokens | Component library | Initial |
 | PreviewViewportComponent | `app-preview-viewport` | Device-aware preview shell with desktop, tablet and mobile chrome, size metadata and projected runtime content | Dynamic form designer, dynamic form runtime and screen designer | Stable |
@@ -74,16 +77,16 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | Page | Current role | UI state |
 | --- | --- | --- |
 | AppComponent | Ionic application shell and router outlet | Stable |
-| HomePageComponent | Operational dashboard | Functional, custom layout |
+| HomePageComponent | Operational dashboard | Functional, shared shell, panels, action toolbar and metrics |
 | SetupPageComponent | First tenant and owner creation | Functional, shared public shell, dynamic fields and multikit actions |
 | LoginPageComponent | Policy-driven authentication | Functional, shared public shell, dynamic fields, segmented channel selector and multikit actions |
 | DocsPageComponent | In-app operational Docs | Functional, large page |
-| ConfisysPageComponent | Runtime configuration | Functional, custom layout |
-| DatabasePageComponent | Data viewer and schema designer | Functional; partially uses shared designer language |
-| ServicesPageComponent | Dynamic service lifecycle | Functional; reference visual workflow |
-| FlowsPageComponent | Declarative process lifecycle | Functional; must continue decomposing |
+| ConfisysPageComponent | Runtime configuration | Functional, shared shell, filter bar, dynamic fields and multikit actions |
+| DatabasePageComponent | Data viewer and schema designer | Functional, shared shell, catalog, data table, section headers and schema field editor |
+| ServicesPageComponent | Dynamic service lifecycle | Functional, reference shared designer workflow |
+| FlowsPageComponent | Declarative process lifecycle | Functional, shared designer workflow plus reusable Flow domain visuals |
 | FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, always-editable JSON, preview, test, version and publish |
-| SecurityPageComponent | Users, roles, permissions and audit | Functional; needs further component extraction |
+| SecurityPageComponent | Users, roles, permissions and audit | Functional, shared panels, metrics, filters, fields and actions; business matrices stay domain-owned |
 | DynamicFormPageComponent | Dynamic form runtime | Loads published runtime schema, renders fields, previews responsive modes and submits through API |
 
 ## Runtime services that support visual components
@@ -96,9 +99,10 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | DynamicServiceClientService | Discover and execute published services by key | Ready |
 | DynamicFlowClientService | Discover and execute published flows by key | Ready |
 
-## Missing component kit for Forms and Screens
+## Next component kit for Forms and Screens
 
-These components are required before the builders grow inside page files:
+The Admin visual baseline is reusable. These are the next behavioral components that should be added before the screen
+and app designers grow inside page files:
 
 1. Extend `DynamicFieldLibraryComponent` with search, categories and insertion events for the visual designer.
 2. `StepManagerComponent`: create, reorder, select and validate form steps.

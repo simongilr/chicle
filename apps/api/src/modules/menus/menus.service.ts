@@ -68,6 +68,9 @@ export class MenusService {
       }
 
       const updates: Partial<MenuItem> = {};
+      if (existing.label !== item.label) {
+        updates.label = item.label;
+      }
       if (existing.route !== item.route) {
         updates.route = item.route;
       }

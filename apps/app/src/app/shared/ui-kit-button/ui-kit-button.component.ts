@@ -93,22 +93,25 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
     @switch (resolvedKit) {
       @case ('primeng') {
         <p-button
+          [type]="type"
           [label]="label"
           [icon]="icon"
           [severity]="primeSeverity"
           [outlined]="variant === 'outline'"
           [text]="variant === 'ghost'"
           [disabled]="disabled"
+          [attr.aria-label]="computedAriaLabel"
           (onClick)="pressed.emit()"
         ></p-button>
       }
       @case ('ionic') {
         <ion-button
-          type="button"
+          [type]="type"
           [color]="ionicColor"
           [fill]="ionicFill"
           [expand]="full ? 'block' : undefined"
           [disabled]="disabled"
+          [attr.aria-label]="computedAriaLabel"
           (click)="pressed.emit()"
         >
           @if (icon) {
@@ -119,21 +122,42 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
       }
       @case ('material') {
         @if (variant === 'solid') {
-          <button mat-raised-button [color]="materialColor" [disabled]="disabled" (click)="pressed.emit()">
+          <button
+            mat-raised-button
+            [type]="type"
+            [color]="materialColor"
+            [disabled]="disabled"
+            [attr.aria-label]="computedAriaLabel"
+            (click)="pressed.emit()"
+          >
             @if (icon) {
               <i [class]="icon" aria-hidden="true"></i>
             }
             {{ label }}
           </button>
         } @else if (variant === 'outline') {
-          <button mat-stroked-button [color]="materialColor" [disabled]="disabled" (click)="pressed.emit()">
+          <button
+            mat-stroked-button
+            [type]="type"
+            [color]="materialColor"
+            [disabled]="disabled"
+            [attr.aria-label]="computedAriaLabel"
+            (click)="pressed.emit()"
+          >
             @if (icon) {
               <i [class]="icon" aria-hidden="true"></i>
             }
             {{ label }}
           </button>
         } @else {
-          <button mat-button [color]="materialColor" [disabled]="disabled" (click)="pressed.emit()">
+          <button
+            mat-button
+            [type]="type"
+            [color]="materialColor"
+            [disabled]="disabled"
+            [attr.aria-label]="computedAriaLabel"
+            (click)="pressed.emit()"
+          >
             @if (icon) {
               <i [class]="icon" aria-hidden="true"></i>
             }
@@ -143,7 +167,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
       }
       @case ('bootstrap') {
         <button
-          type="button"
+          [type]="type"
           class="bootstrap-button"
           [class.btn]="true"
           [class.btn-primary]="tone === 'primary' && variant === 'solid'"
@@ -155,6 +179,7 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
           [class.btn-secondary]="isBootstrapSecondary"
           [class.btn-link]="variant === 'ghost'"
           [disabled]="disabled"
+          [attr.aria-label]="computedAriaLabel"
           (click)="pressed.emit()"
         >
           @if (icon) {
@@ -165,12 +190,13 @@ export type UiKitButtonVariant = 'solid' | 'outline' | 'ghost';
       }
       @default {
         <button
-          type="button"
+          [type]="type"
           class="native-button"
           [style.--button-bg]="buttonBg"
           [style.--button-fg]="buttonFg"
           [style.--button-border]="buttonBorder"
           [disabled]="disabled"
+          [attr.aria-label]="computedAriaLabel"
           (click)="pressed.emit()"
         >
           @if (icon) {
@@ -187,12 +213,18 @@ export class UiKitButtonComponent {
 
   @Input() label = 'Action';
   @Input() icon = '';
+  @Input() ariaLabel = '';
   @Input() kit: UiKitPreference = 'auto';
   @Input() tone: UiKitButtonTone = 'primary';
   @Input() variant: UiKitButtonVariant = 'solid';
+  @Input() type: 'button' | 'submit' | 'reset' = 'button';
   @Input() disabled = false;
   @Input() full = false;
   @Output() readonly pressed = new EventEmitter<void>();
+
+  get computedAriaLabel() {
+    return this.ariaLabel || this.label || 'Action';
+  }
 
   get resolvedKit(): UiKitId {
     return this.presentation.resolve({ local: { kit: this.kit } }).kit;

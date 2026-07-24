@@ -126,5 +126,6 @@ library-neutral while reusing the same multikit field facade. The complete bound
 `docs/formly-architecture.md`.
 
 `DynamicFieldLibraryComponent` is the initial field palette: it renders the 17 supported field and display types
-from the real runtime and lets the user compare PrimeNG, Ionic and native presentation. Designer search, dragging and
-field insertion extend this contract instead of creating another palette.
+through `DynamicFieldControlComponent`, so the same contract can be compared across PrimeNG, Ionic, Material,
+Bootstrap and native presentation. Designer search, dragging and field insertion extend this contract instead of
+creating another palette.

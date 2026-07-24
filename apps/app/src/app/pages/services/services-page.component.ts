@@ -4,15 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DynamicServiceClientService } from '../../core/services/dynamic-service-client.service';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import {
+  AssignmentChecklistComponent,
+  AssignmentChecklistOption
+} from '../../shared/assignment-checklist/assignment-checklist.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { CodeTextareaComponent } from '../../shared/code-textarea/code-textarea.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import {
   AiAssistantService,
@@ -35,6 +43,9 @@ type ServiceFilterOperator =
   | 'less_or_equal';
 type ServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
 type ServiceFilterMatchMode = 'all' | 'any';
+type ServicePublicSecurityMode = 'private' | 'none' | 'api_key' | 'bearer_token';
+type ServicePublicInputMode = 'body_or_query' | 'body' | 'query';
+type ServicePublicResponseMode = 'mapped_or_result' | 'result_only' | 'full_snapshot';
 
 interface ServiceGuideState {
   stepLabel: string;
@@ -121,6 +132,21 @@ interface DynamicServiceDefinition {
     backoffMs?: number;
   };
   responseMap?: Record<string, string>;
+  exposure?: {
+    enabled: boolean;
+    allowedMethods?: Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>;
+    inputMode?: ServicePublicInputMode;
+    responseMode?: ServicePublicResponseMode;
+    security?: {
+      mode: ServicePublicSecurityMode;
+      headerName?: string;
+      apiKey?: string;
+      token?: string;
+      secretHash?: string;
+      secretSalt?: string;
+      algorithm?: 'scrypt-sha256';
+    };
+  };
 }
 
 interface DynamicServiceVersion {
@@ -206,16 +232,20 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
   imports: [
     FormsModule,
     JsonPipe,
+    AssignmentChecklistComponent,
+    CodeTextareaComponent,
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
+    DynamicFieldControlComponent,
     JsonAuthoringPanelComponent,
     ModuleHeaderComponent,
     PageShellComponent,
     CatalogItemComponent,
     DesignerCatalogPanelComponent,
     SectionHeaderComponent,
-    StatusNoticeComponent
+    StatusNoticeComponent,
+    UiKitButtonComponent
   ],
   styles: [
     `
@@ -460,6 +490,58 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
         color: var(--ch-color-text);
       }
 
+      .public-exposure-box {
+        display: grid;
+        gap: 14px;
+        border: 1px solid var(--ch-color-border);
+        border-radius: 8px;
+        background: var(--ch-color-surface);
+        padding: 14px;
+      }
+
+      .public-exposure-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .public-exposure-head > div {
+        display: grid;
+        gap: 4px;
+        max-width: 640px;
+      }
+
+      .public-exposure-head span,
+      .field .meta {
+        color: var(--ch-color-muted);
+        line-height: 1.45;
+      }
+
+      .endpoint-box {
+        display: grid;
+        gap: 6px;
+        border: 1px solid var(--ch-color-primary-border);
+        border-radius: 8px;
+        background: var(--ch-color-primary-soft);
+        padding: 10px 12px;
+      }
+
+      .endpoint-box span {
+        color: var(--ch-color-muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .endpoint-box code {
+        display: block;
+        overflow: auto;
+        color: var(--ch-color-text);
+        white-space: nowrap;
+      }
+
       .run-list {
         display: grid;
         gap: 10px;
@@ -544,11 +626,21 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                 "
                 (retry)="load()"
               >
-                <button catalog-actions type="button" (click)="toggleTrash()">
-                  {{ viewingTrash ? 'Activos' : 'Papelera' }}
-                </button>
+                <app-ui-kit-button
+                  catalog-actions
+                  [label]="viewingTrash ? 'Activos' : 'Papelera'"
+                  tone="secondary"
+                  variant="outline"
+                  (pressed)="toggleTrash()"
+                ></app-ui-kit-button>
                 @if (!viewingTrash) {
-                  <button catalog-actions type="button" (click)="newService()" [disabled]="!canManage">Nuevo</button>
+                  <app-ui-kit-button
+                    catalog-actions
+                    label="Nuevo"
+                    tone="primary"
+                    [disabled]="!canManage"
+                    (pressed)="newService()"
+                  ></app-ui-kit-button>
                 }
                 @for (service of services; track service.id) {
                   <app-catalog-item
@@ -573,50 +665,61 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   description="Guarda solo los datos base: key, nombre, descripción y estado."
                   stepLabel="Paso 1"
                 >
-                  <button type="button" (click)="load()">Refrescar</button>
+                  <app-ui-kit-button
+                    label="Refrescar"
+                    tone="secondary"
+                    variant="outline"
+                    (pressed)="load()"
+                  ></app-ui-kit-button>
                   @if (selected?.trashedAt) {
-                    <button class="primary" type="button" (click)="restoreService()" [disabled]="!canManage || saving">
-                      Restaurar
-                    </button>
+                    <app-ui-kit-button
+                      label="Restaurar"
+                      tone="primary"
+                      [disabled]="!canManage || saving"
+                      (pressed)="restoreService()"
+                    ></app-ui-kit-button>
                   } @else {
                     @if (selected) {
-                      <button type="button" (click)="trashService()" [disabled]="!canManage || saving">
-                        Enviar a papelera
-                      </button>
+                      <app-ui-kit-button
+                        label="Enviar a papelera"
+                        tone="secondary"
+                        variant="outline"
+                        [disabled]="!canManage || saving"
+                        (pressed)="trashService()"
+                      ></app-ui-kit-button>
                     }
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="saveService()"
+                    <app-ui-kit-button
+                      label="Guardar datos"
+                      tone="primary"
                       [disabled]="!canManage || saving || !serviceMetadataChanged"
-                    >
-                      Guardar datos
-                    </button>
+                      (pressed)="saveService()"
+                    ></app-ui-kit-button>
                   }
                 </app-section-header>
 
                 <div class="grid">
-                  <div class="field">
-                    <label for="service-key">Key</label>
-                    <input id="service-key" [(ngModel)]="draft.key" placeholder="validar_serial" />
-                  </div>
-                  <div class="field">
-                    <label for="service-name">Nombre</label>
-                    <input id="service-name" [(ngModel)]="draft.name" placeholder="Validar serial" />
-                  </div>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('serviceKey', 'text', 'Key', 'validar_serial')"
+                    [value]="draft.key"
+                    (valueChange)="draft.key = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('serviceName', 'text', 'Nombre', 'Validar serial')"
+                    [value]="draft.name"
+                    (valueChange)="draft.name = asString($event)"
+                  ></app-dynamic-field-control>
                 </div>
-                <div class="field">
-                  <label for="service-description">Descripción</label>
-                  <input
-                    id="service-description"
-                    [(ngModel)]="draft.description"
-                    placeholder="Qué hace este servicio"
-                  />
-                </div>
-                <label class="meta">
-                  <input type="checkbox" [(ngModel)]="draft.active" [disabled]="!!selected?.trashedAt" />
-                  Servicio activo
-                </label>
+                <app-dynamic-field-control
+                  [field]="runtimeField('serviceDescription', 'text', 'Descripción', 'Qué hace este servicio')"
+                  [value]="draft.description"
+                  (valueChange)="draft.description = asString($event)"
+                ></app-dynamic-field-control>
+                <app-dynamic-field-control
+                  [field]="runtimeField('serviceActive', 'checkbox', 'Servicio activo', 'Servicio activo')"
+                  [value]="draft.active"
+                  [disabled]="!!selected?.trashedAt"
+                  (valueChange)="draft.active = asBoolean($event)"
+                ></app-dynamic-field-control>
                 @if (selected && !serviceMetadataChanged) {
                   <div class="notice">
                     Los datos base no tienen cambios. Si editaste filtros, tablas o respuesta, continúa en Crear
@@ -632,121 +735,75 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     description="Edita la lógica del servicio. Estos cambios se vuelven ejecutables al crear una versión y publicarla."
                     stepLabel="Paso 2"
                   >
-                    <button type="button" (click)="syncGuideToDefinition()">Actualizar JSON</button>
+                    <app-ui-kit-button
+                      label="Actualizar JSON"
+                      tone="secondary"
+                      variant="outline"
+                      (pressed)="syncGuideToDefinition()"
+                    ></app-ui-kit-button>
                   </app-section-header>
 
                   <div class="guide-grid">
-                    <div class="field">
-                      <label for="service-intent">Intención</label>
-                      <select id="service-intent" [(ngModel)]="guide.intent" (ngModelChange)="syncGuideToDefinition()">
-                        <option value="query">Consultar lista</option>
-                        <option value="get_one">Consultar uno</option>
-                        <option value="create">Crear</option>
-                        <option value="update">Editar</option>
-                        <option value="delete">Borrar</option>
-                        <option value="validate">Validar</option>
-                        <option value="sync">Sincronizar</option>
-                        <option value="notify">Notificar</option>
-                        <option value="custom">Personalizado</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="service-source">Dónde opera</label>
-                      <select id="service-source" [(ngModel)]="guide.source" (ngModelChange)="onSourceChange()">
-                        <option value="external_api">API externa</option>
-                        <option value="internal_table">Tabla interna</option>
-                        <option value="dynamic_record">Records</option>
-                        <option value="future_connector">Conector futuro</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="service-result">Qué devuelve</label>
-                      <select
-                        id="service-result"
-                        [(ngModel)]="guide.resultKind"
-                        (ngModelChange)="syncGuideToDefinition()"
-                      >
-                        <option value="none">Nada</option>
-                        <option value="single">Un registro</option>
-                        <option value="list">Lista</option>
-                        <option value="paginated_list">Lista paginada</option>
-                        <option value="boolean">Sí / no</option>
-                        <option value="file">Archivo</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="service-effect">Qué hace con la respuesta</label>
-                      <select id="service-effect" [(ngModel)]="guide.effect" (ngModelChange)="syncGuideToDefinition()">
-                        <option value="none">Solo guardar historial</option>
-                        <option value="show_response">Mostrar respuesta</option>
-                        <option value="update_record">Actualizar record</option>
-                        <option value="update_custom_table">Actualizar tabla custom</option>
-                        <option value="emit_event">Emitir evento</option>
-                      </select>
-                    </div>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('serviceIntent', 'select', 'Intención', '', serviceIntentOptions)"
+                      [value]="guide.intent"
+                      (valueChange)="setGuideValue('intent', $event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('serviceSource', 'select', 'Dónde opera', '', serviceSourceOptions)"
+                      [value]="guide.source"
+                      (valueChange)="setGuideSource($event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('serviceResult', 'select', 'Qué devuelve', '', serviceResultOptions)"
+                      [value]="guide.resultKind"
+                      (valueChange)="setGuideValue('resultKind', $event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('serviceEffect', 'select', 'Qué hace con la respuesta', '', serviceEffectOptions)"
+                      [value]="guide.effect"
+                      (valueChange)="setGuideValue('effect', $event)"
+                    ></app-dynamic-field-control>
                   </div>
 
                   @if (guide.resultKind === 'paginated_list') {
                     <div class="grid">
-                      <div class="field">
-                        <label for="page-param">Parámetro página</label>
-                        <input
-                          id="page-param"
-                          [(ngModel)]="guide.pageParam"
-                          (ngModelChange)="syncGuideToDefinition()"
-                        />
-                      </div>
-                      <div class="field">
-                        <label for="page-size-param">Parámetro tamaño</label>
-                        <input
-                          id="page-size-param"
-                          [(ngModel)]="guide.pageSizeParam"
-                          (ngModelChange)="syncGuideToDefinition()"
-                        />
-                      </div>
-                      <div class="field">
-                        <label for="items-path">Ruta items</label>
-                        <input
-                          id="items-path"
-                          [(ngModel)]="guide.itemsPath"
-                          (ngModelChange)="syncGuideToDefinition()"
-                        />
-                      </div>
-                      <div class="field">
-                        <label for="total-path">Ruta total</label>
-                        <input
-                          id="total-path"
-                          [(ngModel)]="guide.totalPath"
-                          (ngModelChange)="syncGuideToDefinition()"
-                        />
-                      </div>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('pageParam', 'text', 'Parámetro página', 'page')"
+                        [value]="guide.pageParam"
+                        (valueChange)="setGuideValue('pageParam', asString($event))"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('pageSizeParam', 'text', 'Parámetro tamaño', 'pageSize')"
+                        [value]="guide.pageSizeParam"
+                        (valueChange)="setGuideValue('pageSizeParam', asString($event))"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('itemsPath', 'text', 'Ruta items', 'response.body.items')"
+                        [value]="guide.itemsPath"
+                        (valueChange)="setGuideValue('itemsPath', asString($event))"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('totalPath', 'text', 'Ruta total', 'response.body.total')"
+                        [value]="guide.totalPath"
+                        (valueChange)="setGuideValue('totalPath', asString($event))"
+                      ></app-dynamic-field-control>
                     </div>
                   }
 
                   @if (guide.source === 'internal_table' || guide.source === 'dynamic_record') {
                     <div class="grid table-grid">
-                      <div class="field">
-                        <label for="query-mode">Modo de consulta</label>
-                        <select id="query-mode" [(ngModel)]="guide.queryMode" (ngModelChange)="onQueryModeChange()">
-                          <option value="single_table">Una tabla</option>
-                          <option value="multi_table">Varias tablas relacionadas</option>
-                          <option value="advanced_read_model">Vista/modelo de lectura futuro</option>
-                        </select>
-                      </div>
-                      <div class="field">
-                        <label for="primary-table">Tabla principal</label>
-                        <select
-                          id="primary-table"
-                          [(ngModel)]="guide.primaryTable"
-                          (ngModelChange)="onPrimaryTableChange()"
-                        >
-                          <option value="">Selecciona una tabla</option>
-                          @for (table of tableSelectOptions; track table.name) {
-                            <option [value]="table.name">
-                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                            </option>
-                          }
-                        </select>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('queryMode', 'select', 'Modo de consulta', '', serviceQueryModeOptions)"
+                        [value]="guide.queryMode"
+                        (valueChange)="setGuideQueryMode($event)"
+                      ></app-dynamic-field-control>
+                      <div>
+                        <app-dynamic-field-control
+                          [field]="tableField('primaryTable', 'Tabla principal')"
+                          [value]="guide.primaryTable"
+                          (valueChange)="setGuidePrimaryTable($event)"
+                        ></app-dynamic-field-control>
                         @if (tablesLoading) {
                           <span class="meta">Cargando catálogo de tablas...</span>
                         }
@@ -754,111 +811,72 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     </div>
 
                     @if (guide.queryMode !== 'single_table') {
-                      <div class="field">
-                        <label for="involved-tables">Tablas involucradas</label>
-                        <select
-                          id="involved-tables"
-                          multiple
-                          [(ngModel)]="guide.involvedTableList"
-                          (ngModelChange)="onInvolvedTablesChange()"
-                        >
-                          @for (table of involvedTableOptions; track table.name) {
-                            <option [value]="table.name">
-                              {{ table.name }} · {{ table.source === 'schema' ? 'custom' : table.scope }}
-                            </option>
-                          }
-                        </select>
-                        <span class="meta">Usa Cmd/Ctrl para seleccionar varias tablas.</span>
+                      <div>
+                        <div class="field-label">Tablas involucradas</div>
+                        <app-assignment-checklist
+                          [options]="involvedTableOptionsForChecklist()"
+                          emptyText="No hay tablas relacionadas disponibles."
+                          (optionToggle)="toggleInvolvedTable($event)"
+                        ></app-assignment-checklist>
                       </div>
                     }
 
                     @if (guide.queryMode === 'single_table') {
                       <div class="grid notes-grid">
-                        <div class="field">
-                          <label for="filter-match-mode">Cómo combinar filtros</label>
-                          <select
-                            id="filter-match-mode"
-                            [(ngModel)]="guide.matchMode"
-                            (ngModelChange)="syncGuideToDefinition()"
-                          >
-                            <option value="all">Todos deben coincidir</option>
-                            <option value="any">Cualquiera puede coincidir</option>
-                          </select>
-                        </div>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('filterMatchMode', 'select', 'Cómo combinar filtros', '', serviceMatchModeOptions)"
+                          [value]="guide.matchMode"
+                          (valueChange)="setGuideValue('matchMode', $event)"
+                        ></app-dynamic-field-control>
                         <div class="field">
                           <div class="field-label">Filtros configurados</div>
-                          <button type="button" (click)="addGuideFilter()">Agregar filtro</button>
+                          <app-ui-kit-button
+                            label="Agregar filtro"
+                            tone="secondary"
+                            variant="outline"
+                            (pressed)="addGuideFilter()"
+                          ></app-ui-kit-button>
                         </div>
                         <div class="filter-builder">
                           @for (filter of guide.filters; track $index; let index = $index) {
                             <div class="filter-row">
-                              <div class="field">
-                                <label [for]="'filter-field-' + index">Campo</label>
-                                <select
-                                  [id]="'filter-field-' + index"
-                                  [(ngModel)]="filter.field"
-                                  (ngModelChange)="onGuideFilterFieldChange(filter)"
-                                >
-                                  <option value="">Selecciona un campo</option>
-                                  @for (column of filterColumnOptions; track column.name) {
-                                    <option [value]="column.name">{{ column.name }} · {{ column.type }}</option>
-                                  }
-                                  <option [value]="customNoteValue">Otro campo</option>
-                                </select>
+                              <div>
+                                <app-dynamic-field-control
+                                  [field]="filterFieldOptionField(index)"
+                                  [value]="filter.field"
+                                  (valueChange)="filter.field = asString($event); onGuideFilterFieldChange(filter)"
+                                ></app-dynamic-field-control>
                                 @if (filter.field === customNoteValue) {
-                                  <input
-                                    [(ngModel)]="filter.customField"
-                                    (ngModelChange)="syncGuideToDefinition()"
-                                    placeholder="nombre_del_campo"
-                                  />
+                                  <app-dynamic-field-control
+                                    [field]="runtimeField('filterCustomField' + index, 'text', 'Campo custom', 'nombre_del_campo')"
+                                    [value]="filter.customField"
+                                    (valueChange)="setFilterValue(filter, 'customField', asString($event))"
+                                  ></app-dynamic-field-control>
                                 }
                               </div>
-                              <div class="field">
-                                <label [for]="'filter-operator-' + index">Comparación</label>
-                                <select
-                                  [id]="'filter-operator-' + index"
-                                  [(ngModel)]="filter.operator"
-                                  (ngModelChange)="syncGuideToDefinition()"
-                                >
-                                  <option value="equals">Igual a</option>
-                                  <option value="contains">Contiene</option>
-                                  <option value="starts_with">Empieza por</option>
-                                  <option value="greater_than">Mayor que</option>
-                                  <option value="greater_or_equal">Mayor o igual</option>
-                                  <option value="less_than">Menor que</option>
-                                  <option value="less_or_equal">Menor o igual</option>
-                                </select>
-                              </div>
-                              <div class="field">
-                                <label [for]="'filter-source-' + index">Valor</label>
-                                <select
-                                  [id]="'filter-source-' + index"
-                                  [(ngModel)]="filter.valueSource"
-                                  (ngModelChange)="syncGuideToDefinition()"
-                                >
-                                  <option value="input">Viene del formulario/API</option>
-                                  <option value="literal">Valor fijo</option>
-                                  <option value="tenant">Tenant actual</option>
-                                  <option value="current_user">Usuario actual</option>
-                                </select>
-                              </div>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('filterOperator' + index, 'select', 'Comparación', '', serviceFilterOperatorOptions)"
+                                [value]="filter.operator"
+                                (valueChange)="setFilterValue(filter, 'operator', asString($event))"
+                              ></app-dynamic-field-control>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('filterSource' + index, 'select', 'Valor', '', serviceFilterSourceOptions)"
+                                [value]="filter.valueSource"
+                                (valueChange)="setFilterValue(filter, 'valueSource', asString($event))"
+                              ></app-dynamic-field-control>
                               <div class="field">
                                 @if (filter.valueSource === 'literal') {
-                                  <label [for]="'filter-literal-' + index">Valor fijo</label>
-                                  <input
-                                    [id]="'filter-literal-' + index"
-                                    [(ngModel)]="filter.value"
-                                    (ngModelChange)="syncGuideToDefinition()"
-                                    placeholder="activo"
-                                  />
+                                  <app-dynamic-field-control
+                                    [field]="runtimeField('filterLiteral' + index, 'text', 'Valor fijo', 'activo')"
+                                    [value]="filter.value"
+                                    (valueChange)="setFilterValue(filter, 'value', asString($event))"
+                                  ></app-dynamic-field-control>
                                 } @else if (filter.valueSource === 'input') {
-                                  <label [for]="'filter-input-key-' + index">Nombre del input</label>
-                                  <input
-                                    [id]="'filter-input-key-' + index"
-                                    [(ngModel)]="filter.inputKey"
-                                    (ngModelChange)="syncGuideToDefinition()"
-                                    placeholder="name"
-                                  />
+                                  <app-dynamic-field-control
+                                    [field]="runtimeField('filterInputKey' + index, 'text', 'Nombre del input', 'name')"
+                                    [value]="filter.inputKey"
+                                    (valueChange)="setFilterValue(filter, 'inputKey', asString($event))"
+                                  ></app-dynamic-field-control>
                                 } @else {
                                   <div class="field-label">Origen</div>
                                   <div class="notice">
@@ -871,21 +889,18 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                                 }
                               </div>
                               <div class="filter-actions">
-                                <label class="checkline">
-                                  <input
-                                    type="checkbox"
-                                    [(ngModel)]="filter.required"
-                                    (ngModelChange)="syncGuideToDefinition()"
-                                  />
-                                  Obligatorio
-                                </label>
-                                <button
-                                  type="button"
-                                  (click)="removeGuideFilter(index)"
+                                <app-dynamic-field-control
+                                  [field]="runtimeField('filterRequired' + index, 'checkbox', 'Obligatorio', 'Obligatorio')"
+                                  [value]="filter.required"
+                                  (valueChange)="setFilterValue(filter, 'required', asBoolean($event))"
+                                ></app-dynamic-field-control>
+                                <app-ui-kit-button
+                                  label="Quitar"
+                                  tone="danger"
+                                  variant="outline"
                                   [disabled]="guide.filters.length === 1"
-                                >
-                                  Quitar
-                                </button>
+                                  (pressed)="removeGuideFilter(index)"
+                                ></app-ui-kit-button>
                               </div>
                             </div>
                           }
@@ -893,44 +908,32 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       </div>
                     } @else {
                       <div class="grid notes-grid">
-                        <div class="field">
-                          <label for="relation-notes">Cómo se relacionan</label>
-                          <select
-                            id="relation-notes"
-                            [(ngModel)]="guide.relationPreset"
-                            (ngModelChange)="onRelationPresetChange($event)"
-                          >
-                            @for (option of availableRelationPresetOptions; track option.value) {
-                              <option [value]="option.value">{{ option.label }}</option>
-                            }
-                            <option [value]="customNoteValue">Otro</option>
-                          </select>
+                        <div>
+                          <app-dynamic-field-control
+                            [field]="notePresetField('relationNotesPreset', 'Cómo se relacionan', availableRelationPresetOptions)"
+                            [value]="guide.relationPreset"
+                            (valueChange)="onRelationPresetChange(asString($event))"
+                          ></app-dynamic-field-control>
                           @if (guide.relationPreset === customNoteValue) {
-                            <input
-                              [(ngModel)]="guide.relationNotes"
-                              (ngModelChange)="syncGuideToDefinition()"
-                              placeholder="custom_clients.id = records.data.clientId"
-                            />
+                            <app-dynamic-field-control
+                              [field]="runtimeField('relationNotesCustom', 'text', 'Relación custom', 'custom_clients.id = records.data.clientId')"
+                              [value]="guide.relationNotes"
+                              (valueChange)="setGuideValue('relationNotes', asString($event))"
+                            ></app-dynamic-field-control>
                           }
                         </div>
-                        <div class="field">
-                          <label for="filter-notes">Filtros esperados</label>
-                          <select
-                            id="filter-notes"
-                            [(ngModel)]="guide.filterPreset"
-                            (ngModelChange)="onFilterPresetChange($event)"
-                          >
-                            @for (option of availableFilterPresetOptions; track option.value) {
-                              <option [value]="option.value">{{ option.label }}</option>
-                            }
-                            <option [value]="customNoteValue">Otro</option>
-                          </select>
+                        <div>
+                          <app-dynamic-field-control
+                            [field]="notePresetField('filterNotesPreset', 'Filtros esperados', availableFilterPresetOptions)"
+                            [value]="guide.filterPreset"
+                            (valueChange)="onFilterPresetChange(asString($event))"
+                          ></app-dynamic-field-control>
                           @if (guide.filterPreset === customNoteValue) {
-                            <input
-                              [(ngModel)]="guide.filterNotes"
-                              (ngModelChange)="syncGuideToDefinition()"
-                              placeholder="tenant actual, estado activo, rango de fechas"
-                            />
+                            <app-dynamic-field-control
+                              [field]="runtimeField('filterNotesCustom', 'text', 'Filtro custom', 'tenant actual, estado activo, rango de fechas')"
+                              [value]="guide.filterNotes"
+                              (valueChange)="setGuideValue('filterNotes', asString($event))"
+                            ></app-dynamic-field-control>
                           }
                         </div>
                       </div>
@@ -948,7 +951,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                       <div class="notice">
                         <strong>Sin tablas cargadas</strong>
                         <span>Recarga el catálogo para seleccionar tabla principal e involucradas.</span>
-                        <button type="button" (click)="loadTables()">Recargar tablas</button>
+                        <app-ui-kit-button
+                          label="Recargar tablas"
+                          tone="secondary"
+                          variant="outline"
+                          (pressed)="loadTables()"
+                        ></app-ui-kit-button>
                       </div>
                     }
 
@@ -972,6 +980,68 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                   <div class="summary-box">
                     <strong>Resumen</strong>
                     <span>{{ serviceSummary }}</span>
+                  </div>
+                  <div class="public-exposure-box">
+                    <div class="public-exposure-head">
+                      <div>
+                        <strong>Consumo público</strong>
+                        <span>
+                          Por defecto el servicio es privado. Activa una URL pública solo cuando una API externa deba
+                          consumirlo.
+                        </span>
+                      </div>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('publicEnabled', 'checkbox', 'Endpoint público', 'Habilitar endpoint público')"
+                        [value]="guide.publicEnabled"
+                        (valueChange)="setGuideBoolean('publicEnabled', $event)"
+                      ></app-dynamic-field-control>
+                    </div>
+
+                    @if (guide.publicEnabled) {
+                      <div class="guide-grid">
+                        <app-dynamic-field-control
+                          [field]="runtimeField('publicSecurityMode', 'select', 'Nivel de seguridad', '', publicSecurityModeOptions)"
+                          [value]="guide.publicSecurityMode"
+                          (valueChange)="setGuideValue('publicSecurityMode', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('publicMethods', 'select', 'Métodos permitidos', '', publicMethodPresetOptions)"
+                          [value]="guide.publicMethodPreset"
+                          (valueChange)="setGuideValue('publicMethodPreset', asString($event))"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('publicInputMode', 'select', 'Entrada', '', publicInputModeOptions)"
+                          [value]="guide.publicInputMode"
+                          (valueChange)="setGuideValue('publicInputMode', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('publicResponseMode', 'select', 'Respuesta', '', publicResponseModeOptions)"
+                          [value]="guide.publicResponseMode"
+                          (valueChange)="setGuideValue('publicResponseMode', $event)"
+                        ></app-dynamic-field-control>
+                        @if (guide.publicSecurityMode === 'api_key') {
+                          <app-dynamic-field-control
+                            [field]="runtimeField('publicHeaderName', 'text', 'Header', 'x-chicle-api-key')"
+                            [value]="guide.publicHeaderName"
+                            (valueChange)="setGuideValue('publicHeaderName', asString($event))"
+                          ></app-dynamic-field-control>
+                        }
+                        @if (guide.publicSecurityMode === 'api_key' || guide.publicSecurityMode === 'bearer_token') {
+                          <div>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('publicSecret', 'password', 'Nueva key/token', 'Mínimo 16 caracteres')"
+                              [value]="guide.publicSecret"
+                              (valueChange)="setGuideValue('publicSecret', asString($event))"
+                            ></app-dynamic-field-control>
+                            <span class="meta">El backend guarda hash, no el valor en claro.</span>
+                          </div>
+                        }
+                      </div>
+                      <div class="endpoint-box">
+                        <span>URL pública</span>
+                        <code>{{ publicServiceUrl }}</code>
+                      </div>
+                    }
                   </div>
                   @if (definitionChanged) {
                     <div class="notice success">
@@ -1016,9 +1086,12 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     description="El navegador pide al backend ejecutar el servicio. Los secretos no vuelven expuestos."
                     stepLabel="Verificación"
                   >
-                    <button class="primary" type="button" (click)="testService()" [disabled]="!canTest">
-                      Probar servicio
-                    </button>
+                    <app-ui-kit-button
+                      label="Probar servicio"
+                      tone="primary"
+                      [disabled]="!canTest"
+                      (pressed)="testService()"
+                    ></app-ui-kit-button>
                   </app-section-header>
 
                   <app-process-steps
@@ -1031,8 +1104,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
 
                   <div class="grid">
                     <div class="block">
-                      <label for="test-context">JSON de consumo/prueba</label>
-                      <textarea id="test-context" class="code" [(ngModel)]="contextText" spellcheck="false"></textarea>
+                      <app-code-textarea
+                        controlId="test-context"
+                        label="JSON de consumo/prueba"
+                        [value]="contextText"
+                        minHeight="220px"
+                        (valueChange)="contextText = $event"
+                      ></app-code-textarea>
                     </div>
                     <div class="block">
                       <div class="field-label">Última respuesta</div>
@@ -1055,7 +1133,13 @@ const FALLBACK_TABLE_OPTIONS: DatabaseTable[] = [
                     description="Últimas ejecuciones registradas para este servicio."
                     stepLabel="Observabilidad"
                   >
-                    <button type="button" (click)="loadRuns()" [disabled]="runsLoading">Actualizar historial</button>
+                    <app-ui-kit-button
+                      label="Actualizar historial"
+                      tone="secondary"
+                      variant="outline"
+                      [disabled]="runsLoading"
+                      (pressed)="loadRuns()"
+                    ></app-ui-kit-button>
                   </app-section-header>
 
                   <div class="run-list">
@@ -1168,6 +1252,84 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     tenant: 'tenant actual',
     current_user: 'usuario actual'
   };
+  readonly serviceIntentOptions = [
+    { label: 'Consultar lista', value: 'query' },
+    { label: 'Consultar uno', value: 'get_one' },
+    { label: 'Crear', value: 'create' },
+    { label: 'Editar', value: 'update' },
+    { label: 'Borrar', value: 'delete' },
+    { label: 'Validar', value: 'validate' },
+    { label: 'Sincronizar', value: 'sync' },
+    { label: 'Notificar', value: 'notify' },
+    { label: 'Personalizado', value: 'custom' }
+  ];
+  readonly serviceSourceOptions = [
+    { label: 'API externa', value: 'external_api' },
+    { label: 'Tabla interna', value: 'internal_table' },
+    { label: 'Records', value: 'dynamic_record' },
+    { label: 'Conector futuro', value: 'future_connector' }
+  ];
+  readonly serviceResultOptions = [
+    { label: 'Nada', value: 'none' },
+    { label: 'Un registro', value: 'single' },
+    { label: 'Lista', value: 'list' },
+    { label: 'Lista paginada', value: 'paginated_list' },
+    { label: 'Sí / no', value: 'boolean' },
+    { label: 'Archivo', value: 'file' }
+  ];
+  readonly serviceEffectOptions = [
+    { label: 'Solo guardar historial', value: 'none' },
+    { label: 'Mostrar respuesta', value: 'show_response' },
+    { label: 'Actualizar record', value: 'update_record' },
+    { label: 'Actualizar tabla custom', value: 'update_custom_table' },
+    { label: 'Emitir evento', value: 'emit_event' }
+  ];
+  readonly serviceQueryModeOptions = [
+    { label: 'Una tabla', value: 'single_table' },
+    { label: 'Varias tablas relacionadas', value: 'multi_table' },
+    { label: 'Vista/modelo de lectura futuro', value: 'advanced_read_model' }
+  ];
+  readonly serviceMatchModeOptions = [
+    { label: 'Todos deben coincidir', value: 'all' },
+    { label: 'Cualquiera puede coincidir', value: 'any' }
+  ];
+  readonly serviceFilterOperatorOptions = [
+    { label: 'Igual a', value: 'equals' },
+    { label: 'Contiene', value: 'contains' },
+    { label: 'Empieza por', value: 'starts_with' },
+    { label: 'Mayor que', value: 'greater_than' },
+    { label: 'Mayor o igual', value: 'greater_or_equal' },
+    { label: 'Menor que', value: 'less_than' },
+    { label: 'Menor o igual', value: 'less_or_equal' }
+  ];
+  readonly serviceFilterSourceOptions = [
+    { label: 'Viene del formulario/API', value: 'input' },
+    { label: 'Valor fijo', value: 'literal' },
+    { label: 'Tenant actual', value: 'tenant' },
+    { label: 'Usuario actual', value: 'current_user' }
+  ];
+  readonly publicSecurityModeOptions = [
+    { label: 'API key por header', value: 'api_key' },
+    { label: 'Bearer token fijo', value: 'bearer_token' },
+    { label: 'Sin auth solo GET lectura', value: 'none' }
+  ];
+  readonly publicMethodPresetOptions = [
+    { label: 'POST', value: 'POST' },
+    { label: 'GET', value: 'GET' },
+    { label: 'GET + POST', value: 'GET_POST' },
+    { label: 'POST + PUT + PATCH', value: 'WRITE' },
+    { label: 'Todos', value: 'ALL' }
+  ];
+  readonly publicInputModeOptions = [
+    { label: 'Body o query según método', value: 'body_or_query' },
+    { label: 'Solo body JSON', value: 'body' },
+    { label: 'Solo query params', value: 'query' }
+  ];
+  readonly publicResponseModeOptions = [
+    { label: 'Mapeada o resultado', value: 'mapped_or_result' },
+    { label: 'Solo result', value: 'result_only' },
+    { label: 'Snapshot completo saneado', value: 'full_snapshot' }
+  ];
 
   draft = {
     key: '',
@@ -1193,7 +1355,14 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     pageParam: 'page',
     pageSizeParam: 'pageSize',
     itemsPath: 'response.body.items',
-    totalPath: 'response.body.total'
+    totalPath: 'response.body.total',
+    publicEnabled: false,
+    publicSecurityMode: 'api_key' as ServicePublicSecurityMode,
+    publicHeaderName: 'x-chicle-api-key',
+    publicSecret: '',
+    publicMethodPreset: 'POST',
+    publicInputMode: 'body_or_query' as ServicePublicInputMode,
+    publicResponseMode: 'mapped_or_result' as ServicePublicResponseMode
   };
 
   definitionText = JSON.stringify(
@@ -1232,7 +1401,16 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
         attempts: 0,
         backoffMs: 0
       },
-      responseMap: {}
+      responseMap: {},
+      exposure: {
+        enabled: false,
+        allowedMethods: [],
+        inputMode: 'body_or_query',
+        responseMode: 'mapped_or_result',
+        security: {
+          mode: 'private'
+        }
+      }
     },
     null,
     2
@@ -1584,6 +1762,25 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       }
     }
 
+    if (this.guide.publicEnabled) {
+      const methods = this.publicMethodsFromPreset(this.guide.publicMethodPreset);
+      const hasStoredSecret = Boolean(this.parseDefinitionOrDefault().exposure?.security?.secretHash);
+      const needsSecret = this.guide.publicSecurityMode === 'api_key' || this.guide.publicSecurityMode === 'bearer_token';
+      if (needsSecret && !this.guide.publicSecret.trim() && !hasStoredSecret) {
+        warnings.push('Define una key/token inicial para exponer el servicio públicamente.');
+      }
+      if (this.guide.publicSecret.trim() && this.guide.publicSecret.trim().length < 16) {
+        warnings.push('La key/token pública debe tener mínimo 16 caracteres.');
+      }
+      if (this.guide.publicSecurityMode === 'none') {
+        const readOnly = methods.every((method) => method === 'GET');
+        const safeIntent = ['query', 'get_one', 'validate'].includes(this.guide.intent);
+        if (!readOnly || !safeIntent) {
+          warnings.push('Sin autenticación solo se permite GET de lectura o validación.');
+        }
+      }
+    }
+
     return warnings;
   }
 
@@ -1602,6 +1799,12 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
         : '';
     const target = this.targetSummary();
     return `Este servicio sirve para ${intent}, opera sobre ${source}${target}, devuelve ${result} y al terminar ${effect}.${pagination}`;
+  }
+
+  get publicServiceUrl() {
+    const tenantSlug = this.auth.state.session()?.tenant.slug ?? ':tenantSlug';
+    const key = this.draft.key || this.selected?.key || ':serviceKey';
+    return `/api/public/${tenantSlug}/services/${key}`;
   }
 
   private readonly intentLabels: Record<ServiceIntent, string> = {
@@ -1656,6 +1859,133 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
 
   ngOnDestroy() {
     this.unregisterAssistantState();
+  }
+
+  asString(value: unknown) {
+    return value == null ? '' : String(value);
+  }
+
+  asBoolean(value: unknown) {
+    return value === true || value === 'true' || value === '1';
+  }
+
+  runtimeField(
+    name: string,
+    type: string,
+    label: string,
+    placeholder = '',
+    options: Array<{ label: string; value: unknown }> = []
+  ): RuntimeField {
+    return {
+      name,
+      type,
+      label,
+      placeholder,
+      options
+    };
+  }
+
+  tableField(name: string, label: string): RuntimeField {
+    return this.runtimeField(
+      name,
+      'select',
+      label,
+      'Selecciona una tabla',
+      [
+        { label: 'Selecciona una tabla', value: '' },
+        ...this.tableSelectOptions.map((table) => ({
+          label: `${table.name} · ${table.source === 'schema' ? 'custom' : table.scope}`,
+          value: table.name
+        }))
+      ]
+    );
+  }
+
+  involvedTableField(name: string, label: string): RuntimeField {
+    return this.runtimeField(
+      name,
+      'select',
+      label,
+      'Selecciona una tabla',
+      [
+        { label: 'Selecciona una tabla', value: '' },
+        ...this.involvedTableOptions.map((table) => ({
+          label: `${table.name} · ${table.source === 'schema' ? 'custom' : table.scope}`,
+          value: table.name
+        }))
+      ]
+    );
+  }
+
+  involvedTableOptionsForChecklist(): AssignmentChecklistOption[] {
+    return this.involvedTableOptions.map((table) => ({
+      key: table.name,
+      label: table.name,
+      description: table.source === 'schema' ? 'custom' : table.scope,
+      checked: this.guide.involvedTableList.includes(table.name)
+    }));
+  }
+
+  toggleInvolvedTable(tableName: string) {
+    const exists = this.guide.involvedTableList.includes(tableName);
+    this.guide.involvedTableList = exists
+      ? this.guide.involvedTableList.filter((item) => item !== tableName)
+      : [...this.guide.involvedTableList, tableName];
+    this.onInvolvedTablesChange();
+  }
+
+  filterFieldOptionField(index: number): RuntimeField {
+    return this.runtimeField(
+      `filterField${index}`,
+      'select',
+      'Campo',
+      'Selecciona un campo',
+      [
+        { label: 'Selecciona un campo', value: '' },
+        ...this.filterColumnOptions.map((column) => ({ label: `${column.name} · ${column.type}`, value: column.name })),
+        { label: 'Otro campo', value: this.customNoteValue }
+      ]
+    );
+  }
+
+  notePresetField(name: string, label: string, options: NoteOption[]): RuntimeField {
+    return this.runtimeField(
+      name,
+      'select',
+      label,
+      '',
+      [...options, { label: 'Otro', value: this.customNoteValue }]
+    );
+  }
+
+  setGuideValue(key: keyof typeof this.guide, value: unknown) {
+    (this.guide as Record<string, unknown>)[key] = value;
+    this.syncGuideToDefinition();
+  }
+
+  setGuideBoolean(key: keyof typeof this.guide, value: unknown) {
+    (this.guide as Record<string, unknown>)[key] = this.asBoolean(value);
+    this.syncGuideToDefinition();
+  }
+
+  setGuideSource(value: unknown) {
+    this.guide.source = this.asString(value) as ServiceSource;
+    this.onSourceChange();
+  }
+
+  setGuideQueryMode(value: unknown) {
+    this.guide.queryMode = this.asString(value) as ServiceQueryMode;
+    this.onQueryModeChange();
+  }
+
+  setGuidePrimaryTable(value: unknown) {
+    this.guide.primaryTable = this.asString(value);
+    this.onPrimaryTableChange();
+  }
+
+  setFilterValue(filter: ServiceGuideFilter, key: keyof ServiceGuideFilter, value: unknown) {
+    (filter as unknown as Record<string, unknown>)[key] = value;
+    this.syncGuideToDefinition();
   }
 
   load() {
@@ -2386,6 +2716,8 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       };
     }
 
+    definition.exposure = this.publicExposureFromGuide(definition);
+
     this.definitionText = JSON.stringify(definition, null, 2);
     this.syncContextProposal(definition);
   }
@@ -2546,7 +2878,17 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
       pageParam: definition.pagination?.pageParam ?? this.guide.pageParam,
       pageSizeParam: definition.pagination?.pageSizeParam ?? this.guide.pageSizeParam,
       itemsPath: definition.pagination?.itemsPath ?? this.guide.itemsPath,
-      totalPath: definition.pagination?.totalPath ?? this.guide.totalPath
+      totalPath: definition.pagination?.totalPath ?? this.guide.totalPath,
+      publicEnabled: Boolean(definition.exposure?.enabled),
+      publicSecurityMode:
+        definition.exposure?.security?.mode && definition.exposure.security.mode !== 'private'
+          ? definition.exposure.security.mode
+          : this.guide.publicSecurityMode,
+      publicHeaderName: definition.exposure?.security?.headerName ?? this.guide.publicHeaderName,
+      publicSecret: '',
+      publicMethodPreset: this.methodPresetFromExposure(definition.exposure?.allowedMethods),
+      publicInputMode: definition.exposure?.inputMode ?? this.guide.publicInputMode,
+      publicResponseMode: definition.exposure?.responseMode ?? this.guide.publicResponseMode
     };
     this.guide.relationPreset = this.presetValueFor(relationNotes, this.availableRelationPresetOptions);
     this.guide.filterPreset = this.presetValueFor(filterNotes, this.availableFilterPresetOptions);
@@ -2558,6 +2900,75 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
     }
 
     return this.matchesPreset(value, options) ? value : CUSTOM_NOTE_VALUE;
+  }
+
+  private publicExposureFromGuide(definition: DynamicServiceDefinition): NonNullable<DynamicServiceDefinition['exposure']> {
+    const current = definition.exposure;
+    if (!this.guide.publicEnabled) {
+      return {
+        enabled: false,
+        allowedMethods: [],
+        inputMode: this.guide.publicInputMode,
+        responseMode: this.guide.publicResponseMode,
+        security: {
+          mode: 'private'
+        }
+      };
+    }
+
+    const security: NonNullable<NonNullable<DynamicServiceDefinition['exposure']>['security']> = {
+      mode: this.guide.publicSecurityMode,
+      headerName: this.publicHeaderNameForGuide()
+    };
+    if (this.guide.publicSecret.trim()) {
+      if (this.guide.publicSecurityMode === 'bearer_token') {
+        security.token = this.guide.publicSecret.trim();
+      } else if (this.guide.publicSecurityMode === 'api_key') {
+        security.apiKey = this.guide.publicSecret.trim();
+      }
+    } else if (current?.security?.secretHash && current.security.secretSalt) {
+      security.secretHash = current.security.secretHash;
+      security.secretSalt = current.security.secretSalt;
+      security.algorithm = current.security.algorithm ?? 'scrypt-sha256';
+    }
+
+    return {
+      enabled: true,
+      allowedMethods: this.publicMethodsFromPreset(this.guide.publicMethodPreset),
+      inputMode: this.guide.publicInputMode,
+      responseMode: this.guide.publicResponseMode,
+      security
+    };
+  }
+
+  private publicMethodsFromPreset(preset: string): Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'> {
+    const options: Record<string, Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>> = {
+      GET: ['GET'],
+      POST: ['POST'],
+      GET_POST: ['GET', 'POST'],
+      WRITE: ['POST', 'PUT', 'PATCH'],
+      ALL: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+    };
+    return options[preset] ?? ['POST'];
+  }
+
+  private methodPresetFromExposure(methods?: Array<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>) {
+    const key = (methods ?? []).join('_');
+    const presets: Record<string, string> = {
+      GET: 'GET',
+      POST: 'POST',
+      GET_POST: 'GET_POST',
+      POST_PUT_PATCH: 'WRITE',
+      GET_POST_PUT_PATCH_DELETE: 'ALL'
+    };
+    return presets[key] ?? 'POST';
+  }
+
+  private publicHeaderNameForGuide() {
+    if (this.guide.publicSecurityMode === 'bearer_token') {
+      return 'authorization';
+    }
+    return this.guide.publicHeaderName.trim() || 'x-chicle-api-key';
   }
 
   private matchesPreset(value: string, options: NoteOption[]) {
@@ -2729,7 +3140,16 @@ export class ServicesPageComponent implements OnDestroy, OnInit {
         body: {},
         timeoutMs: 8000,
         retry: { attempts: 0, backoffMs: 0 },
-        responseMap: {}
+        responseMap: {},
+        exposure: {
+          enabled: false,
+          allowedMethods: [],
+          inputMode: 'body_or_query',
+          responseMode: 'mapped_or_result',
+          security: {
+            mode: 'private'
+          }
+        }
       };
     }
   }

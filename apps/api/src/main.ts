@@ -29,7 +29,7 @@ async function bootstrap() {
     origin: resolveCorsOrigin(config),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-chicle-reset-key']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-chicle-reset-key', 'x-chicle-api-key']
   });
 
   app.setGlobalPrefix('api');

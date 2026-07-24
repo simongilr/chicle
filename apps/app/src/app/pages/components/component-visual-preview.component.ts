@@ -189,7 +189,6 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         gap: 5px;
       }
 
-      .shell-action,
       .preview-button {
         border: 1px solid var(--ch-color-border);
         border-radius: 6px;
@@ -201,7 +200,6 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
 
       .shell-action {
         width: 28px;
-        height: 26px;
       }
 
       .shell-content {
@@ -783,8 +781,24 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
           <div class="shell-nav">
             <span class="shell-brand">Chicle Engine <small>Contexto de la pantalla</small></span>
             <span class="shell-actions">
-              <button class="shell-action" type="button"><i class="pi pi-home"></i></button>
-              <button class="shell-action" type="button"><i class="pi pi-bars"></i></button>
+              <app-ui-kit-button
+                class="shell-action"
+                label=""
+                ariaLabel="Inicio"
+                icon="pi pi-home"
+                tone="secondary"
+                variant="outline"
+                [kit]="previewKit"
+              ></app-ui-kit-button>
+              <app-ui-kit-button
+                class="shell-action"
+                label=""
+                ariaLabel="Menu"
+                icon="pi pi-bars"
+                tone="secondary"
+                variant="outline"
+                [kit]="previewKit"
+              ></app-ui-kit-button>
             </span>
           </div>
           <div class="shell-content">

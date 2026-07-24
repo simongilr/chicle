@@ -5,7 +5,7 @@
 The current architecture is aligned with the in-app Architecture page diagrams:
 
 ```txt
-Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Eventos
+Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Events/Registered Services
 ```
 
 - Admin owns everything administrable, designable and configurable: security, tenants, preferences, components,
@@ -15,6 +15,8 @@ Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Eventos
 - The API is modular, but the apps are also built from reusable UI, runtime and presentation modules.
 - Docker packages and deploys artifacts. Chicle-owned support tools govern security audits, code quality audits and
   API performance management.
+- Modules can run inside the API, inside workers or as registered microservices. Dynamic forms, services, flows and
+  screens keep logical contracts and resolve environment-specific URLs through the Environment And Deploy Center.
 
 ## Declarative contract documentation
 
@@ -27,7 +29,7 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/ai-rag-architecture.md` defines the versioned knowledge layer for Chicle AI.
 - `docs/ai-local-ollama.md` defines the first local AI provider stack.
 - `docs/environment-deploy-vault-roadmap.md` defines the Environment And Deploy Center, Chicle Vault, runtime config,
-  service registry, generated artifacts and V1/V2 scope.
+  service registry, generated artifacts, server deployment strategy, microservice extraction strategy and V1/V2 scope.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive
@@ -167,6 +169,11 @@ dynamicServices.execute("buscar_usuario", { name: "simon" });
 The API resolves the published definition behind `POST /api/dynamic-services/by-key/:serviceKey/execute`, applies tenant scope and permissions, runs the service, and records the execution in `dynamic_service_runs`.
 
 Frontend consumers discover executable services through `GET /api/dynamic-services/available`. The catalog and execution endpoint apply both `services.execute` and per-role resource policy. The reusable Angular client exposes `available()` and `execute(key, context)`, so publishing a service makes it consumable without adding frontend API code.
+
+External consumers use the same published service definition through `/api/public/:tenantSlug/services/:serviceKey`
+only when `definition.exposure.enabled=true`. Public exposure is disabled by default, stores API keys or bearer tokens as
+hashes, restricts unauthenticated access to safe GET read/validation services and records every execution as
+`public_api`.
 
 The same contract covers guided joins, unions, read models, SOAP, WebSocket, webhooks, async queues and response
 mapping through controlled adapters and capability boundaries.

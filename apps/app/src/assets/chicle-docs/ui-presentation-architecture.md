@@ -130,8 +130,8 @@ designer preview.
 }
 ```
 
-Valid current kits are `primeng`, `ionic` and `native`. `kit: "inherit"` delegates to the parent and `kit: "auto"`
-uses profile rules.
+Valid current kits are `primeng`, `ionic`, `material`, `bootstrap` and `native`. `kit: "inherit"` delegates to the
+parent and `kit: "auto"` uses profile rules.
 
 ## Implemented field adapters
 
@@ -140,6 +140,8 @@ delegates control rendering to:
 
 - `PrimengFieldRendererComponent`
 - `IonicFieldRendererComponent`
+- `MaterialFieldRendererComponent`
+- `BootstrapFieldRendererComponent`
 - `NativeFieldRendererComponent`
 
 Text, email, number, date, password, telephone, URL, textarea, select and boolean controls share the same
@@ -148,9 +150,36 @@ Text, email, number, date, password, telephone, URL, textarea, select and boolea
 The same facade is used by runtime forms and will be used by Form Designer and Screen Designer. Business code must
 not import a concrete field renderer.
 
+## Implemented action and surface adapters
+
+`UiKitButtonComponent` is the public button facade. It delegates to:
+
+- PrimeNG `p-button`
+- Ionic `ion-button`
+- Angular Material buttons
+- Bootstrap button classes
+- Native HTML button fallback
+
+`UiKitCardComponent` is the public card facade. It delegates to:
+
+- PrimeNG `p-card`
+- Ionic `ion-card`
+- Angular Material `mat-card`
+- Bootstrap-compatible card markup
+- Native HTML article fallback
+
+Existing page-local cards and buttons should be migrated gradually to these facades. The global kit bridge keeps legacy
+controls visually aligned, but it is not considered a complete native-kit migration.
+
+The legacy bridge must never style controls rendered by a kit adapter. Material `matInput`, Bootstrap `.form-control`
+and PrimeNG field internals are explicitly excluded from the page-shell bridge so each adapter owns its exact geometry,
+height, border, focus and placeholder behavior. If a page needs full portability, it should migrate to
+`DynamicFieldControlComponent`, `UiKitButtonComponent`, `UiKitCardComponent`, `AdminFilterBarComponent` and the other
+shared facades instead of relying on global selectors.
+
 ## Adding another kit
 
-Material or Bootstrap support requires:
+Adding another kit requires:
 
 1. Install the library and its Angular integration.
 2. Create a field renderer that implements the existing inputs and `valueChange` output.

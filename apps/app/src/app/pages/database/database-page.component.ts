@@ -4,19 +4,26 @@ import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminDataTableComponent } from '../../shared/admin-data-table/admin-data-table.component';
 import { AiAssistantService, ApplySchemaChangeAction } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { CatalogHeaderComponent } from '../../shared/catalog-header/catalog-header.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
+import {
+  SchemaFieldEditorComponent,
+  SchemaFieldEditorValue
+} from '../../shared/schema-field-editor/schema-field-editor.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import {
   SegmentedControlComponent,
   SegmentedControlItem
 } from '../../shared/segmented-control/segmented-control.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 type TableScope = 'tenant' | 'current_tenant' | 'global';
 type TableSource = 'entity' | 'schema';
@@ -122,14 +129,17 @@ interface SchemaHistoryResponse {
     FormsModule,
     JsonPipe,
     AdminDataTableComponent,
+    DynamicFieldControlComponent,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
+    SchemaFieldEditorComponent,
     CatalogHeaderComponent,
     CatalogItemComponent,
     SectionHeaderComponent,
     SegmentedControlComponent,
-    StatusNoticeComponent
+    StatusNoticeComponent,
+    UiKitButtonComponent
   ],
   styles: [
     `
@@ -508,7 +518,13 @@ interface SchemaHistoryResponse {
                 } @else if (tablesError) {
                   <app-status-notice title="No se pudieron cargar las tablas" tone="error">
                     <span>{{ tablesError }}</span>
-                    <button notice-action type="button" (click)="loadTables()">Reintentar</button>
+                    <app-ui-kit-button
+                      notice-action
+                      label="Reintentar"
+                      tone="secondary"
+                      variant="outline"
+                      (pressed)="loadTables()"
+                    ></app-ui-kit-button>
                   </app-status-notice>
                 } @else if (!tables.length) {
                   <app-status-notice title="No hay tablas visibles">
@@ -529,21 +545,23 @@ interface SchemaHistoryResponse {
 
               <section class="workspace" #workspacePanel>
                 <div class="toolbar">
-                  <input
-                    type="search"
-                    [(ngModel)]="filter"
-                    placeholder="Filtrar filas cargadas"
-                    aria-label="Filtrar filas cargadas"
-                  />
-                  <select [(ngModel)]="pageSize" (ngModelChange)="loadRows(1)" aria-label="Tamaño de página">
-                    <option [ngValue]="10">10</option>
-                    <option [ngValue]="25">25</option>
-                    <option [ngValue]="50">50</option>
-                    <option [ngValue]="100">100</option>
-                  </select>
-                  <button type="button" (click)="loadRows(page)" [disabled]="!selectedTable || loadingRows">
-                    Refrescar
-                  </button>
+                  <app-dynamic-field-control
+                    [field]="rowFilterField"
+                    [value]="filter"
+                    (valueChange)="filter = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="pageSizeField"
+                    [value]="pageSize"
+                    (valueChange)="setPageSize($event)"
+                  ></app-dynamic-field-control>
+                  <app-ui-kit-button
+                    label="Refrescar"
+                    tone="secondary"
+                    variant="outline"
+                    [disabled]="!selectedTable || loadingRows"
+                    (pressed)="loadRows(page)"
+                  ></app-ui-kit-button>
                 </div>
 
                 <div class="table-wrap">
@@ -555,7 +573,12 @@ interface SchemaHistoryResponse {
                     <div class="notice error">
                       <strong>No se pudieron cargar las filas</strong>
                       <span>{{ rowsError }}</span>
-                      <button type="button" (click)="loadRows(page)">Reintentar</button>
+                      <app-ui-kit-button
+                        label="Reintentar"
+                        tone="secondary"
+                        variant="outline"
+                        (pressed)="loadRows(page)"
+                      ></app-ui-kit-button>
                     </div>
                   } @else {
                     <app-admin-data-table
@@ -571,17 +594,19 @@ interface SchemaHistoryResponse {
                       <span class="meta">
                         Página {{ page }} · {{ total }} filas{{ filter ? ' · filtro local activo' : '' }}
                       </span>
-                      <button type="button" (click)="loadRows(page - 1)" [disabled]="page <= 1 || loadingRows">
-                        Anterior
-                      </button>
-                      <button
-                        class="primary"
-                        type="button"
-                        (click)="loadRows(page + 1)"
+                      <app-ui-kit-button
+                        label="Anterior"
+                        tone="secondary"
+                        variant="outline"
+                        [disabled]="page <= 1 || loadingRows"
+                        (pressed)="loadRows(page - 1)"
+                      ></app-ui-kit-button>
+                      <app-ui-kit-button
+                        label="Siguiente"
+                        tone="primary"
                         [disabled]="page * pageSize >= total || loadingRows"
-                      >
-                        Siguiente
-                      </button>
+                        (pressed)="loadRows(page + 1)"
+                      ></app-ui-kit-button>
                     </div>
                   }
                 </div>
@@ -599,27 +624,20 @@ interface SchemaHistoryResponse {
                 ></app-section-header>
 
                 <div class="form-row">
-                  <label for="operation">Operación</label>
-                  <select id="operation" [(ngModel)]="schemaOperation" (ngModelChange)="onSchemaOperationChange()">
-                    <option value="create_table">Crear tabla</option>
-                    <option value="add_column">Agregar campo</option>
-                    <option value="alter_column">Editar campo</option>
-                    <option value="drop_column">Eliminar campo</option>
-                    @if (canDropTables) {
-                      <option value="drop_table">Eliminar tabla completa</option>
-                    }
-                  </select>
+                  <app-dynamic-field-control
+                    [field]="schemaOperationField"
+                    [value]="schemaOperation"
+                    (valueChange)="setSchemaOperation($event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="form-row">
-                  <label for="schema-table">Tabla</label>
                   @if (schemaOperation === 'create_table') {
-                    <input
-                      id="schema-table"
-                      [(ngModel)]="schemaTableName"
-                      placeholder="custom_clients"
-                      (ngModelChange)="resetPreview()"
-                    />
+                    <app-dynamic-field-control
+                      [field]="schemaTableCreateField"
+                      [value]="schemaTableName"
+                      (valueChange)="setSchemaTableName($event)"
+                    ></app-dynamic-field-control>
                   } @else {
                     @if (loadingTables) {
                       <div class="notice">
@@ -630,15 +648,19 @@ interface SchemaHistoryResponse {
                       <div class="notice error">
                         <strong>No se pudo cargar el catálogo</strong>
                         <span>{{ tablesError }}</span>
-                        <button type="button" (click)="loadTables()">Reintentar</button>
+                        <app-ui-kit-button
+                          label="Reintentar"
+                          tone="secondary"
+                          variant="outline"
+                          (pressed)="loadTables()"
+                        ></app-ui-kit-button>
                       </div>
                     } @else {
-                      <select id="schema-table" [(ngModel)]="schemaTableName" (ngModelChange)="onSchemaTableChange()">
-                        <option value="">Selecciona una tabla custom</option>
-                        @for (table of designableTables; track table.name) {
-                          <option [value]="table.name">{{ table.name }} · {{ table.columns.length }} columnas</option>
-                        }
-                      </select>
+                      <app-dynamic-field-control
+                        [field]="schemaTableSelectField"
+                        [value]="schemaTableName"
+                        (valueChange)="setSchemaTableSelection($event)"
+                      ></app-dynamic-field-control>
                       @if (!designableTables.length) {
                         <div class="notice">
                           <strong>No hay tablas custom disponibles</strong>
@@ -646,7 +668,11 @@ interface SchemaHistoryResponse {
                             El historial puede tener tablas eliminadas, pero solo aparecen aquí las que existen
                             físicamente en la base de datos.
                           </span>
-                          <button type="button" (click)="startCreateCustomTable()">Crear tabla custom</button>
+                          <app-ui-kit-button
+                            label="Crear tabla custom"
+                            tone="primary"
+                            (pressed)="startCreateCustomTable()"
+                          ></app-ui-kit-button>
                         </div>
                       }
                     }
@@ -657,90 +683,44 @@ interface SchemaHistoryResponse {
                   <div class="columns-list">
                     <h3>Campos iniciales</h3>
                     @for (column of createColumns; track $index; let index = $index) {
-                      <div class="schema-column">
-                        <input
-                          [(ngModel)]="createColumns[index].name"
-                          placeholder="name"
-                          (ngModelChange)="resetPreview()"
-                        />
-                        <select [(ngModel)]="createColumns[index].type" (ngModelChange)="resetPreview()">
-                          @for (type of columnTypes; track type) {
-                            <option [value]="type">{{ type }}</option>
-                          }
-                        </select>
-                        <input
-                          type="number"
-                          [(ngModel)]="createColumns[index].length"
-                          [disabled]="createColumns[index].type !== 'string'"
-                          aria-label="Longitud"
-                        />
-                        <input
-                          [(ngModel)]="createColumns[index].defaultValue"
-                          placeholder="default"
-                          (ngModelChange)="resetPreview()"
-                        />
-                        <label class="check">
-                          <input
-                            type="checkbox"
-                            [(ngModel)]="createColumns[index].nullable"
-                            (ngModelChange)="resetPreview()"
-                          />
-                          nullable
-                        </label>
-                        <button
-                          type="button"
-                          (click)="removeCreateColumn(index)"
-                          [disabled]="createColumns.length <= 1"
-                        >
-                          Quitar
-                        </button>
-                      </div>
+                      <app-schema-field-editor
+                        [field]="column"
+                        [columnTypes]="columnTypes"
+                        [removable]="createColumns.length > 1"
+                        (fieldChange)="setCreateColumn(index, $event)"
+                        (remove)="removeCreateColumn(index)"
+                      ></app-schema-field-editor>
                     }
-                    <button type="button" (click)="addCreateColumn()">Agregar campo</button>
+                    <app-ui-kit-button
+                      label="Agregar campo"
+                      tone="secondary"
+                      variant="outline"
+                      (pressed)="addCreateColumn()"
+                    ></app-ui-kit-button>
                   </div>
                 } @else if (schemaOperation !== 'drop_table') {
                   <div class="form-row">
-                    <label for="current-column">Campo actual</label>
-                    <input
-                      id="current-column"
-                      [(ngModel)]="currentColumnName"
-                      placeholder="status"
-                      (ngModelChange)="syncDropConfirmation(); resetPreview()"
-                    />
+                    <app-dynamic-field-control
+                      [field]="currentColumnField"
+                      [value]="currentColumnName"
+                      (valueChange)="setCurrentColumnName($event)"
+                    ></app-dynamic-field-control>
                   </div>
 
                   @if (schemaOperation !== 'drop_column') {
-                    <div class="schema-column">
-                      <input
-                        [(ngModel)]="singleColumn.name"
-                        placeholder="new_status"
-                        (ngModelChange)="resetPreview()"
-                      />
-                      <select [(ngModel)]="singleColumn.type" (ngModelChange)="resetPreview()">
-                        @for (type of columnTypes; track type) {
-                          <option [value]="type">{{ type }}</option>
-                        }
-                      </select>
-                      <input
-                        type="number"
-                        [(ngModel)]="singleColumn.length"
-                        [disabled]="singleColumn.type !== 'string'"
-                        aria-label="Longitud"
-                      />
-                      <input
-                        [(ngModel)]="singleColumn.defaultValue"
-                        placeholder="default"
-                        (ngModelChange)="resetPreview()"
-                      />
-                      <label class="check">
-                        <input type="checkbox" [(ngModel)]="singleColumn.nullable" (ngModelChange)="resetPreview()" />
-                        nullable
-                      </label>
-                    </div>
+                    <app-schema-field-editor
+                      [field]="singleColumn"
+                      [columnTypes]="columnTypes"
+                      [showRemove]="false"
+                      (fieldChange)="setSingleColumn($event)"
+                    ></app-schema-field-editor>
                   } @else {
                     <div class="form-row">
-                      <label for="confirmation">Confirmación</label>
-                      <input id="confirmation" [(ngModel)]="dropConfirmation" [placeholder]="dropPhrase" />
+                      <app-dynamic-field-control
+                        [field]="dropConfirmationField"
+                        [value]="dropConfirmation"
+                        (valueChange)="dropConfirmation = asString($event)"
+                      ></app-dynamic-field-control>
                       <p class="meta">
                         Escribe exactamente: <code>{{ dropPhrase }}</code>
                       </p>
@@ -748,8 +728,11 @@ interface SchemaHistoryResponse {
                   }
                 } @else {
                   <div class="form-row">
-                    <label for="table-confirmation">Confirmación owner</label>
-                    <input id="table-confirmation" [(ngModel)]="dropConfirmation" [placeholder]="dropPhrase" />
+                    <app-dynamic-field-control
+                      [field]="dropConfirmationField"
+                      [value]="dropConfirmation"
+                      (valueChange)="dropConfirmation = asString($event)"
+                    ></app-dynamic-field-control>
                     <p class="meta">
                       Opción solo desarrollo. Escribe exactamente: <code>{{ dropPhrase }}</code>
                     </p>
@@ -770,15 +753,19 @@ interface SchemaHistoryResponse {
                 }
 
                 <div class="designer-actions">
-                  <button type="button" (click)="previewSchema()" [disabled]="schemaLoading">Previsualizar</button>
-                  <button
-                    class="primary"
-                    type="button"
-                    (click)="applySchema()"
+                  <app-ui-kit-button
+                    label="Previsualizar"
+                    tone="secondary"
+                    variant="outline"
+                    [disabled]="schemaLoading"
+                    (pressed)="previewSchema()"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    [label]="schemaLoading ? 'Procesando...' : 'Aplicar cambio'"
+                    tone="primary"
                     [disabled]="schemaLoading || !schemaPreview"
-                  >
-                    {{ schemaLoading ? 'Procesando...' : 'Aplicar cambio' }}
-                  </button>
+                    (pressed)="applySchema()"
+                  ></app-ui-kit-button>
                 </div>
               </div>
 
@@ -814,7 +801,12 @@ interface SchemaHistoryResponse {
                 description="Últimos cambios generados desde el diseñador visual."
                 stepLabel="Auditoría de esquema"
               >
-                <button type="button" (click)="loadHistory()">Refrescar</button>
+                <app-ui-kit-button
+                  label="Refrescar"
+                  tone="secondary"
+                  variant="outline"
+                  (pressed)="loadHistory()"
+                ></app-ui-kit-button>
               </app-section-header>
 
               @if (historyError) {
@@ -878,16 +870,11 @@ interface SchemaHistoryResponse {
                       </div>
 
                       @if (column.editable) {
-                        @if (isBooleanColumn(column)) {
-                          <select [(ngModel)]="editDraft[column.name]">
-                            <option value="true">true</option>
-                            <option value="false">false</option>
-                          </select>
-                        } @else if (isLongColumn(column)) {
-                          <textarea [(ngModel)]="editDraft[column.name]"></textarea>
-                        } @else {
-                          <input [(ngModel)]="editDraft[column.name]" />
-                        }
+                        <app-dynamic-field-control
+                          [field]="rowEditorField(column)"
+                          [value]="editDraft[column.name]"
+                          (valueChange)="setEditDraftValue(column.name, $event)"
+                        ></app-dynamic-field-control>
                       } @else {
                         <span class="cell" [title]="formatCell(selectedRow[column.name])">
                           {{ formatCell(selectedRow[column.name]) || ' ' }}
@@ -903,23 +890,25 @@ interface SchemaHistoryResponse {
                 </details>
 
                 <div class="modal-actions">
-                  <button type="button" (click)="detailVisible = false">Cerrar</button>
-                  <button
-                    class="danger"
-                    type="button"
+                  <app-ui-kit-button
+                    label="Cerrar"
+                    tone="secondary"
+                    variant="outline"
+                    (pressed)="detailVisible = false"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    [label]="deletingRow ? 'Eliminando...' : 'Eliminar fila'"
+                    tone="danger"
+                    variant="outline"
                     [disabled]="!canDeleteSelectedRow || savingRow || deletingRow"
-                    (click)="deleteRow()"
-                  >
-                    {{ deletingRow ? 'Eliminando...' : 'Eliminar fila' }}
-                  </button>
-                  <button
-                    class="primary"
-                    type="button"
+                    (pressed)="deleteRow()"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    [label]="savingRow ? 'Guardando...' : 'Guardar cambios'"
+                    tone="primary"
                     [disabled]="!selectedTable.editable || savingRow || deletingRow || !editableColumns.length"
-                    (click)="saveRow()"
-                  >
-                    {{ savingRow ? 'Guardando...' : 'Guardar cambios' }}
-                  </button>
+                    (pressed)="saveRow()"
+                  ></app-ui-kit-button>
                 </div>
               </section>
             }
@@ -1010,6 +999,79 @@ export class DatabasePageComponent implements OnDestroy, OnInit {
   createColumns: SchemaFieldDraft[] = [this.newField('name', false)];
   singleColumn: SchemaFieldDraft = this.newField('', true);
 
+  readonly rowFilterField: RuntimeField = {
+    name: 'rowFilter',
+    type: 'text',
+    label: 'Filtrar filas',
+    placeholder: 'Filtrar filas cargadas'
+  };
+  readonly pageSizeField: RuntimeField = {
+    name: 'pageSize',
+    type: 'select',
+    label: 'Tamaño de página',
+    options: [
+      { label: '10', value: 10 },
+      { label: '25', value: 25 },
+      { label: '50', value: 50 },
+      { label: '100', value: 100 }
+    ]
+  };
+  readonly schemaTableCreateField: RuntimeField = {
+    name: 'schemaTableName',
+    type: 'text',
+    label: 'Tabla',
+    placeholder: 'custom_clients',
+    required: true
+  };
+  readonly currentColumnField: RuntimeField = {
+    name: 'currentColumnName',
+    type: 'text',
+    label: 'Campo actual',
+    placeholder: 'status',
+    required: true
+  };
+
+  get schemaOperationField(): RuntimeField {
+    return {
+      name: 'schemaOperation',
+      type: 'select',
+      label: 'Operación',
+      options: [
+        { label: 'Crear tabla', value: 'create_table' },
+        { label: 'Agregar campo', value: 'add_column' },
+        { label: 'Editar campo', value: 'alter_column' },
+        { label: 'Eliminar campo', value: 'drop_column' },
+        ...(this.canDropTables ? [{ label: 'Eliminar tabla completa', value: 'drop_table' }] : [])
+      ]
+    };
+  }
+
+  get schemaTableSelectField(): RuntimeField {
+    return {
+      name: 'schemaTableSelect',
+      type: 'select',
+      label: 'Tabla',
+      placeholder: 'Selecciona una tabla custom',
+      options: [
+        { label: 'Selecciona una tabla custom', value: '' },
+        ...this.designableTables.map((table) => ({
+          label: `${table.name} · ${table.columns.length} columnas`,
+          value: table.name
+        }))
+      ]
+    };
+  }
+
+  get dropConfirmationField(): RuntimeField {
+    return {
+      name: 'dropConfirmation',
+      type: 'text',
+      label: this.schemaOperation === 'drop_table' ? 'Confirmación owner' : 'Confirmación',
+      placeholder: this.dropPhrase,
+      required: true
+    };
+  }
+
   get filteredRows() {
     const search = this.filter.trim().toLowerCase();
     if (!search) {
@@ -1058,6 +1120,75 @@ export class DatabasePageComponent implements OnDestroy, OnInit {
 
   ngOnDestroy() {
     this.unregisterAssistantState();
+  }
+
+  asString(value: unknown) {
+    return value == null ? '' : String(value);
+  }
+
+  setPageSize(value: unknown) {
+    const numericValue = Number(value);
+    this.pageSize = [10, 25, 50, 100].includes(numericValue) ? numericValue : 25;
+    this.loadRows(1);
+  }
+
+  setSchemaOperation(value: unknown) {
+    const operation = this.asString(value) as SchemaOperation;
+    this.schemaOperation = operation;
+    this.onSchemaOperationChange();
+  }
+
+  setSchemaTableName(value: unknown) {
+    this.schemaTableName = this.asString(value);
+    this.resetPreview();
+  }
+
+  setSchemaTableSelection(value: unknown) {
+    this.schemaTableName = this.asString(value);
+    this.onSchemaTableChange();
+  }
+
+  setCurrentColumnName(value: unknown) {
+    this.currentColumnName = this.asString(value);
+    this.syncDropConfirmation();
+    this.resetPreview();
+  }
+
+  setEditDraftValue(columnName: string, value: unknown) {
+    this.editDraft[columnName] = this.asString(value);
+  }
+
+  setCreateColumn(index: number, field: SchemaFieldEditorValue) {
+    this.createColumns = this.createColumns.map((item, itemIndex) =>
+      itemIndex === index ? this.normalizeSchemaEditorField(field) : item
+    );
+    this.resetPreview();
+  }
+
+  setSingleColumn(field: SchemaFieldEditorValue) {
+    this.singleColumn = this.normalizeSchemaEditorField(field);
+    this.resetPreview();
+  }
+
+  rowEditorField(column: DatabaseColumn): RuntimeField {
+    if (this.isBooleanColumn(column)) {
+      return {
+        name: column.name,
+        type: 'select',
+        label: column.name,
+        options: [
+          { label: 'true', value: 'true' },
+          { label: 'false', value: 'false' }
+        ]
+      };
+    }
+
+    return {
+      name: column.name,
+      type: this.isLongColumn(column) ? 'textarea' : 'text',
+      label: column.name,
+      placeholder: column.nullable ? 'null permitido' : 'Valor requerido'
+    };
   }
 
   selectTable(table: DatabaseTable, focusWorkspace = true) {
@@ -1467,6 +1598,19 @@ export class DatabasePageComponent implements OnDestroy, OnInit {
       scale: Number(field.scale ?? 2),
       nullable: field.nullable ?? true,
       defaultValue: field.defaultValue === undefined || field.defaultValue === null ? '' : String(field.defaultValue)
+    };
+  }
+
+  private normalizeSchemaEditorField(field: SchemaFieldEditorValue): SchemaFieldDraft {
+    const type = this.columnTypes.includes(field.type as SchemaColumnType) ? (field.type as SchemaColumnType) : 'string';
+    return {
+      name: field.name,
+      type,
+      length: Number(field.length || 180),
+      precision: Number(field.precision || 12),
+      scale: Number(field.scale || 2),
+      nullable: field.nullable,
+      defaultValue: field.defaultValue
     };
   }
 

@@ -11,6 +11,9 @@ export type DynamicServiceFilterOperator = 'equals' | 'contains' | 'starts_with'
 export type DynamicServiceFilterValueSource = 'input' | 'literal' | 'tenant' | 'current_user';
 export type DynamicServiceFilterMatchMode = 'all' | 'any';
 export type DynamicServiceJoinType = 'inner' | 'left';
+export type DynamicServicePublicSecurityMode = 'private' | 'none' | 'api_key' | 'bearer_token';
+export type DynamicServicePublicInputMode = 'body_or_query' | 'body' | 'query';
+export type DynamicServicePublicResponseMode = 'mapped_or_result' | 'result_only' | 'full_snapshot';
 
 export interface DynamicServiceFilter {
   field: string;
@@ -37,6 +40,22 @@ export interface DynamicServiceJoin {
 export interface DynamicServiceSelectField {
   field: string;
   alias?: string;
+}
+
+export interface DynamicServicePublicExposure {
+  enabled: boolean;
+  allowedMethods?: DynamicServiceHttpMethod[];
+  inputMode?: DynamicServicePublicInputMode;
+  responseMode?: DynamicServicePublicResponseMode;
+  security?: {
+    mode: DynamicServicePublicSecurityMode;
+    headerName?: string;
+    apiKey?: string;
+    token?: string;
+    secretHash?: string;
+    secretSalt?: string;
+    algorithm?: 'scrypt-sha256';
+  };
 }
 
 export interface DynamicServiceDefinition {
@@ -82,6 +101,7 @@ export interface DynamicServiceDefinition {
     backoffMs?: number;
   };
   responseMap?: Record<string, string>;
+  exposure?: DynamicServicePublicExposure;
 }
 
 @Entity('dynamic_service_versions')

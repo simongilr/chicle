@@ -1,11 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiClientService } from '../../core/api/api-client.service';
-import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { PublicPageShellComponent } from '../../shared/public-page-shell/public-page-shell.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 type SetupState = 'loading' | 'not_created' | 'ready' | 'unavailable' | 'created';
 
@@ -34,12 +35,12 @@ interface SetupResponse {
   selector: 'app-setup-page',
   standalone: true,
   imports: [
-    FieldShellComponent,
-    FormsModule,
+    DynamicFieldControlComponent,
     LoadingSkeletonComponent,
     PublicPageShellComponent,
     RouterLink,
-    StatusNoticeComponent
+    StatusNoticeComponent,
+    UiKitButtonComponent
   ],
   styles: [
     `
@@ -144,30 +145,6 @@ interface SetupResponse {
         font-size: 1.25rem;
       }
 
-      input,
-      select {
-        min-height: 44px;
-        width: 100%;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-        font: inherit;
-      }
-
-      input:focus,
-      select:focus {
-        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
-        border-color: var(--ch-color-primary);
-      }
-
-      input:disabled,
-      select:disabled {
-        background: var(--ch-color-surface-muted);
-        color: var(--ch-color-muted);
-      }
-
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -175,8 +152,6 @@ interface SetupResponse {
         gap: 10px;
       }
 
-      .primary-button,
-      .secondary-button,
       .link-button {
         display: inline-flex;
         align-items: center;
@@ -190,17 +165,16 @@ interface SetupResponse {
         text-decoration: none;
       }
 
-      .primary-button {
-        border: 1px solid var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-surface);
-      }
-
-      .secondary-button,
       .link-button {
         border: 1px solid var(--ch-color-border);
         background: var(--ch-color-surface);
         color: var(--ch-color-text);
+      }
+
+      .primary-link {
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary);
+        color: var(--ch-color-primary-contrast);
       }
 
       .ready-panel {
@@ -236,13 +210,6 @@ interface SetupResponse {
         background: var(--ch-color-background);
         color: var(--ch-color-text);
         padding: 10px 12px;
-      }
-
-      .primary-button:disabled {
-        border-color: var(--ch-color-border);
-        background: #d7e1eb;
-        color: var(--ch-color-muted);
-        cursor: not-allowed;
       }
 
       @media (max-width: 820px) {
@@ -300,7 +267,11 @@ interface SetupResponse {
             </ul>
 
             <div class="actions">
-              <button class="primary-button" type="button" (click)="loadStatus()">Reintentar</button>
+              <app-ui-kit-button
+                label="Reintentar"
+                tone="primary"
+                (pressed)="loadStatus()"
+              ></app-ui-kit-button>
               <a class="link-button" routerLink="/docs">Ver guía</a>
             </div>
           </section>
@@ -319,13 +290,18 @@ interface SetupResponse {
             </ul>
 
             <div class="actions">
-              <a class="primary-button" routerLink="/login">Ir a iniciar sesión</a>
-              <button class="secondary-button" type="button" (click)="loadStatus()">Revisar estado</button>
+              <a class="link-button primary-link" routerLink="/login">Ir a iniciar sesión</a>
+              <app-ui-kit-button
+                label="Revisar estado"
+                tone="secondary"
+                variant="outline"
+                (pressed)="loadStatus()"
+              ></app-ui-kit-button>
               <a class="link-button" routerLink="/docs">Ver guía</a>
             </div>
           </section>
         } @else {
-          <form class="setup-form" (ngSubmit)="createPlatform()">
+          <form class="setup-form" (submit)="submitSetup($event)">
             <div class="form-header">
               <h2>Datos iniciales</h2>
               <p>Usaremos estos datos para crear el tenant base y preparar las semillas iniciales.</p>
@@ -335,62 +311,48 @@ interface SetupResponse {
               <app-status-notice [tone]="messageType">{{ message }}</app-status-notice>
             }
 
-            <app-field-shell label="Organización" forId="setup-organization" [required]="true">
-              <input
-                id="setup-organization"
-                name="organization"
-                autocomplete="organization"
-                [(ngModel)]="organization"
-                [disabled]="!canEdit"
-                required
-              />
-            </app-field-shell>
+            <app-dynamic-field-control
+              [field]="organizationField"
+              [value]="organization"
+              [disabled]="!canEdit"
+              (valueChange)="organization = stringValue($event)"
+            ></app-dynamic-field-control>
 
-            <app-field-shell label="Email admin" forId="setup-email" [required]="true">
-              <input
-                id="setup-email"
-                name="email"
-                type="email"
-                autocomplete="email"
-                [(ngModel)]="email"
-                [disabled]="!canEdit"
-                required
-              />
-            </app-field-shell>
+            <app-dynamic-field-control
+              [field]="emailField"
+              [value]="email"
+              [disabled]="!canEdit"
+              (valueChange)="email = stringValue($event)"
+            ></app-dynamic-field-control>
 
-            <app-field-shell
-              label="Password admin"
-              forId="setup-password"
+            <app-dynamic-field-control
+              [field]="passwordField"
+              [value]="password"
               help="Mínimo 8 caracteres para el setup inicial."
-              [required]="true"
-            >
-              <input
-                id="setup-password"
-                name="password"
-                type="password"
-                autocomplete="new-password"
-                [(ngModel)]="password"
-                [disabled]="!canEdit"
-                required
-              />
-            </app-field-shell>
+              [disabled]="!canEdit"
+              (valueChange)="password = stringValue($event)"
+            ></app-dynamic-field-control>
 
-            <app-field-shell label="Semilla inicial" forId="setup-template">
-              <select
-                id="setup-template"
-                name="template"
-                [(ngModel)]="template"
-                [disabled]="!canEdit"
-              >
-                <option value="blank">Blank</option>
-              </select>
-            </app-field-shell>
+            <app-dynamic-field-control
+              [field]="templateField"
+              [value]="template"
+              [disabled]="!canEdit"
+              (valueChange)="template = stringValue($event)"
+            ></app-dynamic-field-control>
 
             <div class="actions">
-              <button class="primary-button" type="submit" [disabled]="!canSubmit">
-                {{ saving ? 'Creando...' : 'Crear sistema' }}
-              </button>
-              <button class="secondary-button" type="button" (click)="loadStatus()">Revisar estado</button>
+              <app-ui-kit-button
+                [label]="saving ? 'Creando...' : 'Crear sistema'"
+                type="submit"
+                tone="primary"
+                [disabled]="!canSubmit"
+              ></app-ui-kit-button>
+              <app-ui-kit-button
+                label="Revisar estado"
+                tone="secondary"
+                variant="outline"
+                (pressed)="loadStatus()"
+              ></app-ui-kit-button>
             </div>
           </form>
         }
@@ -410,6 +372,34 @@ export class SetupPageComponent implements OnInit {
   saving = false;
   message = '';
   messageType: 'info' | 'success' | 'error' = 'info';
+  readonly organizationField: RuntimeField = {
+    name: 'setup-organization',
+    label: 'Organización',
+    type: 'text',
+    required: true,
+    placeholder: 'Nombre de la organización'
+  };
+  readonly emailField: RuntimeField = {
+    name: 'setup-email',
+    label: 'Email admin',
+    type: 'email',
+    required: true,
+    placeholder: 'admin@empresa.com'
+  };
+  readonly passwordField: RuntimeField = {
+    name: 'setup-password',
+    label: 'Password admin',
+    type: 'password',
+    required: true,
+    placeholder: 'Mínimo 8 caracteres'
+  };
+  readonly templateField: RuntimeField = {
+    name: 'setup-template',
+    label: 'Semilla inicial',
+    type: 'select',
+    placeholder: 'Selecciona una semilla',
+    options: [{ label: 'Blank', value: 'blank' }]
+  };
 
   ngOnInit() {
     this.loadStatus();
@@ -542,5 +532,14 @@ export class SetupPageComponent implements OnInit {
           }
         }
       });
+  }
+
+  submitSetup(event: Event) {
+    event.preventDefault();
+    this.createPlatform();
+  }
+
+  stringValue(value: unknown) {
+    return value === null || value === undefined ? '' : String(value);
   }
 }

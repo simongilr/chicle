@@ -1,12 +1,13 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { CodeTextareaComponent } from '../code-textarea/code-textarea.component';
 import { SectionHeaderComponent } from '../section-header/section-header.component';
 import { StatusNoticeComponent } from '../status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 
 @Component({
   selector: 'app-json-authoring-panel',
   standalone: true,
-  imports: [FormsModule, SectionHeaderComponent, StatusNoticeComponent],
+  imports: [CodeTextareaComponent, SectionHeaderComponent, StatusNoticeComponent, UiKitButtonComponent],
   styles: [
     `
       :host {
@@ -33,28 +34,6 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         align-items: center;
         justify-content: flex-end;
         gap: 8px;
-      }
-
-      button {
-        min-height: 38px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: max(4px, calc(var(--ch-radius) - 1px));
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        cursor: pointer;
-        font-weight: 850;
-        padding: 0 14px;
-      }
-
-      button.primary {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-primary-contrast);
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
       }
 
       .status-row {
@@ -86,26 +65,6 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         color: var(--ch-color-warning);
       }
 
-      textarea {
-        width: 100%;
-        min-height: 300px;
-        resize: vertical;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: color-mix(in srgb, var(--ch-color-text) 92%, black);
-        color: #eaf4ff;
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-        font-size: 0.86rem;
-        line-height: 1.55;
-        padding: 14px;
-        outline: none;
-      }
-
-      textarea:focus {
-        border-color: var(--ch-color-primary);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
-      }
-
       .hint {
         color: var(--ch-color-muted);
         font-size: 0.88rem;
@@ -118,12 +77,8 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         }
 
         .tools,
-        .tools button {
+        .tools app-ui-kit-button {
           width: 100%;
-        }
-
-        textarea {
-          min-height: 260px;
         }
       }
     `
@@ -139,16 +94,33 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         "
       >
         <div class="tools">
-          <button type="button" (click)="resetJson.emit()" [disabled]="resetDisabled || isBusy">Restaurar JSON</button>
-          <button type="button" (click)="applyJson.emit()" [disabled]="applyDisabled || isBusy || !ready">
-            Aplicar a guía
-          </button>
-          <button type="button" (click)="saveDraft.emit()" [disabled]="draftDisabled || isBusy || !ready">
-            Guardar draft
-          </button>
-          <button class="primary" type="button" (click)="saveAndPublish.emit()" [disabled]="publishDisabled || isBusy || !ready">
-            Guardar y publicar
-          </button>
+          <app-ui-kit-button
+            label="Restaurar JSON"
+            tone="neutral"
+            variant="outline"
+            [disabled]="resetDisabled || isBusy"
+            (pressed)="resetJson.emit()"
+          ></app-ui-kit-button>
+          <app-ui-kit-button
+            label="Aplicar a guía"
+            tone="secondary"
+            variant="outline"
+            [disabled]="applyDisabled || isBusy || !ready"
+            (pressed)="applyJson.emit()"
+          ></app-ui-kit-button>
+          <app-ui-kit-button
+            label="Guardar draft"
+            tone="secondary"
+            variant="outline"
+            [disabled]="draftDisabled || isBusy || !ready"
+            (pressed)="saveDraft.emit()"
+          ></app-ui-kit-button>
+          <app-ui-kit-button
+            label="Guardar y publicar"
+            tone="primary"
+            [disabled]="publishDisabled || isBusy || !ready"
+            (pressed)="saveAndPublish.emit()"
+          ></app-ui-kit-button>
         </div>
       </app-section-header>
 
@@ -161,12 +133,14 @@ import { StatusNoticeComponent } from '../status-notice/status-notice.component'
         }
       </div>
 
-      <textarea
-        [ngModel]="value"
-        (ngModelChange)="valueChange.emit($event)"
-        spellcheck="false"
-        [attr.aria-label]="artifactLabel + ' JSON editable'"
-      ></textarea>
+      <app-code-textarea
+        [controlId]="artifactLabel + '-json-authoring'"
+        [value]="value"
+        minHeight="360px"
+        maxHeight="72vh"
+        [spellcheck]="'false'"
+        (valueChange)="valueChange.emit($event)"
+      ></app-code-textarea>
 
       @if (error) {
         <app-status-notice tone="error" title="Revisa el JSON">{{ error }}</app-status-notice>

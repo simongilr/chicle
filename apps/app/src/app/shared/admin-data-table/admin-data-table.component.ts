@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { UiKitAwareComponent } from '../ui-kit/ui-kit-aware.component';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 
 export interface AdminDataColumn {
   name: string;
@@ -9,6 +10,7 @@ export interface AdminDataColumn {
 @Component({
   selector: 'app-admin-data-table',
   standalone: true,
+  imports: [UiKitButtonComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -64,36 +66,16 @@ export interface AdminDataColumn {
         white-space: nowrap;
       }
 
-      .row-button {
-        min-height: 34px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 6px 10px;
-        font: inherit;
-        font-weight: 850;
-      }
-
-      .row-button:hover,
-      .row-button:focus-visible {
-        border-color: var(--ch-color-primary);
-        color: var(--ch-color-primary);
-        outline: none;
-      }
-
       .empty {
         color: var(--ch-color-muted);
         padding: 16px;
       }
 
-      :host([data-ui-kit='material']) .table-wrap,
-      :host([data-ui-kit='material']) .row-button {
+      :host([data-ui-kit='material']) .table-wrap {
         border-radius: 4px;
       }
 
-      :host([data-ui-kit='bootstrap']) .table-wrap,
-      :host([data-ui-kit='bootstrap']) .row-button {
+      :host([data-ui-kit='bootstrap']) .table-wrap {
         border-radius: 6px;
       }
 
@@ -123,9 +105,12 @@ export interface AdminDataColumn {
               <tr>
                 @if (showDetailAction) {
                   <td>
-                    <button class="row-button" type="button" (click)="rowSelected.emit(row)">
-                      {{ detailActionLabel }}
-                    </button>
+                    <app-ui-kit-button
+                      [label]="detailActionLabel"
+                      tone="secondary"
+                      variant="outline"
+                      (pressed)="rowSelected.emit(row)"
+                    ></app-ui-kit-button>
                   </td>
                 }
                 @for (column of normalizedColumns; track column.name) {

@@ -12,10 +12,12 @@ import {
   AvailableDynamicFlow,
   DynamicFlowClientService
 } from '../../core/services/dynamic-flow-client.service';
-import { FormRuntimeService, RuntimeForm } from '../../engine/forms/form-runtime.service';
+import { FormRuntimeService, RuntimeField, RuntimeForm } from '../../engine/forms/form-runtime.service';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { CodeTextareaComponent } from '../../shared/code-textarea/code-textarea.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
 import { FormlyRuntimeComponent } from '../../shared/formly-runtime/formly-runtime.component';
 import {
@@ -33,6 +35,7 @@ import { MobileFormShellComponent } from '../../shared/mobile-form/mobile-form-s
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 
 type FormLifecycleStatus = 'draft' | 'published' | 'archived';
@@ -352,8 +355,10 @@ const FORM_TEMPLATES: FormTemplate[] = [
   imports: [
     FormsModule,
     CatalogItemComponent,
+    CodeTextareaComponent,
     DesignerCatalogPanelComponent,
     DesignerWorkspaceComponent,
+    DynamicFieldControlComponent,
     FieldShellComponent,
     FormlyRuntimeComponent,
     JsonAuthoringPanelComponent,
@@ -364,6 +369,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
     ProcessStepsComponent,
     SectionHeaderComponent,
     StatusNoticeComponent,
+    UiKitButtonComponent,
     WorkflowGuideComponent
   ],
   styles: [
@@ -601,11 +607,19 @@ const FORM_TEMPLATES: FormTemplate[] = [
         gap: 8px;
       }
 
-      .palette button {
+      .palette-grid article {
         display: grid;
         gap: 4px;
         min-height: 66px;
         text-align: left;
+        cursor: pointer;
+      }
+
+      .palette-grid article:focus-visible,
+      .helper-card:focus-visible,
+      .template-card:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 22%, transparent);
+        outline-offset: 2px;
       }
 
       .palette small,
@@ -916,8 +930,8 @@ const FORM_TEMPLATES: FormTemplate[] = [
           [description]="guide.description"
           [tone]="guide.tone"
         >
-          <button type="button" (click)="refresh()">Refrescar</button>
-          <button type="button" (click)="goNext()" [disabled]="!nextPhase">Continuar</button>
+          <app-ui-kit-button label="Refrescar" variant="outline" tone="neutral" (pressed)="refresh()"></app-ui-kit-button>
+          <app-ui-kit-button label="Continuar" variant="outline" [disabled]="!nextPhase" (pressed)="goNext()"></app-ui-kit-button>
         </app-workflow-guide>
 
         <app-designer-workspace>
@@ -938,11 +952,15 @@ const FORM_TEMPLATES: FormTemplate[] = [
               emptyTone="info"
               [showRetry]="false"
             >
-              <button catalog-actions type="button" (click)="toggleTrash()">
-                {{ viewingTrash ? 'Activos' : 'Papelera' }}
-              </button>
+              <app-ui-kit-button
+                catalog-actions
+                [label]="viewingTrash ? 'Activos' : 'Papelera'"
+                variant="outline"
+                tone="neutral"
+                (pressed)="toggleTrash()"
+              ></app-ui-kit-button>
               @if (!viewingTrash) {
-                <button catalog-actions class="primary" type="button" (click)="newForm()">Nuevo</button>
+                <app-ui-kit-button catalog-actions label="Nuevo" (pressed)="newForm()"></app-ui-kit-button>
               }
               @for (form of forms; track form.id) {
                 <app-catalog-item
@@ -966,16 +984,24 @@ const FORM_TEMPLATES: FormTemplate[] = [
             @if (selected?.trashedAt) {
               <app-status-notice tone="warning" title="Formulario en papelera">
                 Restaura este formulario para editar, versionar, publicar o probarlo.
-                <button notice-action class="primary" type="button" (click)="restoreForm()" [disabled]="saving">
-                  Restaurar formulario
-                </button>
+                <app-ui-kit-button
+                  notice-action
+                  label="Restaurar formulario"
+                  [disabled]="saving"
+                  (pressed)="restoreForm()"
+                ></app-ui-kit-button>
               </app-status-notice>
             } @else if (selected) {
               <app-status-notice tone="neutral" title="Administración del formulario">
                 Puedes enviarlo a papelera sin perder su schema, versiones ni historial.
-                <button notice-action type="button" (click)="trashForm()" [disabled]="saving">
-                  Enviar a papelera
-                </button>
+                <app-ui-kit-button
+                  notice-action
+                  label="Enviar a papelera"
+                  variant="outline"
+                  tone="danger"
+                  [disabled]="saving"
+                  (pressed)="trashForm()"
+                ></app-ui-kit-button>
               </app-status-notice>
             }
 
@@ -1013,37 +1039,52 @@ const FORM_TEMPLATES: FormTemplate[] = [
 
                 <section class="template-grid" aria-label="Plantillas de formulario">
                   @for (template of formTemplates; track template.key) {
-                    <button
-                      type="button"
+                    <article
+                      role="button"
+                      tabindex="0"
                       class="template-card"
                       [class.active]="draft.templateKey === template.key"
                       (click)="applyTemplate(template.key)"
+                      (keydown.enter)="applyTemplate(template.key)"
+                      (keydown.space)="applyTemplate(template.key)"
                     >
                       <span class="pill">{{ template.badge }}</span>
                       <strong>{{ template.title }}</strong>
                       <small>{{ template.description }}</small>
-                    </button>
+                    </article>
                   }
                 </section>
 
                 <div class="grid">
-                  <app-field-shell label="Key" forId="form-key" [required]="true" help="Identificador técnico estable. Ejemplo: cliente_onboarding.">
-                    <input id="form-key" [(ngModel)]="draft.key" [disabled]="!!selected" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
-                  <app-field-shell label="Título" forId="form-title" [required]="true">
-                    <input id="form-title" [(ngModel)]="draft.title" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
-                  <app-field-shell label="Categoría" forId="form-category">
-                    <input id="form-category" [(ngModel)]="draft.category" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
-                  <app-field-shell label="Texto del botón" forId="form-submit">
-                    <input id="form-submit" [(ngModel)]="draft.submitLabel" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formKey', 'text', 'Key', 'cliente_onboarding')"
+                    [value]="draft.key"
+                    help="Identificador técnico estable. Ejemplo: cliente_onboarding."
+                    [disabled]="!!selected"
+                    (valueChange)="setDraftString('key', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formTitle', 'text', 'Título', 'Onboarding cliente')"
+                    [value]="draft.title"
+                    (valueChange)="setDraftString('title', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formCategory', 'text', 'Categoría', 'clientes')"
+                    [value]="draft.category"
+                    (valueChange)="setDraftString('category', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formSubmitLabel', 'text', 'Texto del botón', 'Guardar')"
+                    [value]="draft.submitLabel"
+                    (valueChange)="setDraftString('submitLabel', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
-                <app-field-shell label="Descripción" forId="form-description">
-                  <input id="form-description" [(ngModel)]="draft.description" (ngModelChange)="syncJson()" />
-                </app-field-shell>
+                <app-dynamic-field-control
+                  [field]="runtimeField('formDescription', 'text', 'Descripción', 'Qué captura o resuelve este formulario')"
+                  [value]="draft.description"
+                  (valueChange)="setDraftString('description', $event)"
+                ></app-dynamic-field-control>
 
                 <app-section-header
                   title="Comportamiento visual"
@@ -1051,324 +1092,228 @@ const FORM_TEMPLATES: FormTemplate[] = [
                 ></app-section-header>
 
                 <div class="grid three">
-                  <app-field-shell label="Kit visual" forId="form-kit">
-                    <select id="form-kit" [(ngModel)]="draft.kit" (ngModelChange)="syncJson()">
-                      <option value="auto">Automático</option>
-                      <option value="primeng">PrimeNG web</option>
-                      <option value="ionic">Ionic móvil</option>
-                      <option value="material">Material</option>
-                      <option value="bootstrap">Bootstrap</option>
-                      <option value="native">Nativo accesible</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Tema" forId="form-theme">
-                    <select id="form-theme" [(ngModel)]="draft.theme" (ngModelChange)="syncJson()">
-                      @for (theme of installedThemes; track theme.key) {
-                        <option [value]="theme.key">{{ theme.label }}</option>
-                      }
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Modo" forId="form-theme-mode">
-                    <select id="form-theme-mode" [(ngModel)]="draft.themeMode" (ngModelChange)="syncJson()">
-                      <option value="system">Sistema</option>
-                      <option value="light">Claro</option>
-                      <option value="dark">Oscuro</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Densidad" forId="form-density">
-                    <select id="form-density" [(ngModel)]="draft.density" (ngModelChange)="syncJson()">
-                      <option value="comfortable">Cómoda</option>
-                      <option value="compact">Compacta</option>
-                      <option value="spacious">Amplia</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Web" forId="form-desktop-mode">
-                    <select id="form-desktop-mode" [(ngModel)]="draft.desktopMode" (ngModelChange)="syncJson()">
-                      <option value="step_cards">Pasos como cards</option>
-                      <option value="single_form">Formulario continuo</option>
-                      <option value="wizard">Wizard</option>
-                      <option value="auto">Automático</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Móvil" forId="form-mobile-mode">
-                    <select id="form-mobile-mode" [(ngModel)]="draft.mobileMode" (ngModelChange)="syncJson()">
-                      <option value="step_screens">Un paso por pantalla</option>
-                      <option value="single_scroll">Scroll continuo</option>
-                      <option value="auto">Automático</option>
-                    </select>
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formKit', 'select', 'Kit visual', '', presentationKitOptions)"
+                    [value]="draft.kit"
+                    (valueChange)="setDraftValue('kit', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formTheme', 'select', 'Tema', '', themeOptions)"
+                    [value]="draft.theme"
+                    (valueChange)="setDraftString('theme', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formThemeMode', 'select', 'Modo', '', themeModeOptions)"
+                    [value]="draft.themeMode"
+                    (valueChange)="setDraftValue('themeMode', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formDensity', 'select', 'Densidad', '', densityOptions)"
+                    [value]="draft.density"
+                    (valueChange)="setDraftValue('density', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formDesktopMode', 'select', 'Web', '', desktopModeOptions)"
+                    [value]="draft.desktopMode"
+                    (valueChange)="setDraftValue('desktopMode', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formMobileMode', 'select', 'Móvil', '', mobileModeOptions)"
+                    [value]="draft.mobileMode"
+                    (valueChange)="setDraftValue('mobileMode', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="grid three">
-                  <app-field-shell label="Ancho formulario" forId="form-width">
-                    <select id="form-width" [(ngModel)]="draft.formWidth" (ngModelChange)="syncJson()">
-                      <option value="compact">Compacto</option>
-                      <option value="standard">Estándar</option>
-                      <option value="wide">Amplio</option>
-                      <option value="full">Todo el ancho</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Alineación" forId="form-align">
-                    <select id="form-align" [(ngModel)]="draft.formAlign" (ngModelChange)="syncJson()">
-                      <option value="left">Izquierda</option>
-                      <option value="center">Centro</option>
-                      <option value="right">Derecha</option>
-                      <option value="stretch">Estirar</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Color botón" forId="form-button-tone">
-                    <select id="form-button-tone" [(ngModel)]="draft.buttonTone" (ngModelChange)="syncJson()">
-                      <option value="primary">Primario azul</option>
-                      <option value="secondary">Secundario</option>
-                      <option value="success">Verde</option>
-                      <option value="danger">Rojo</option>
-                      <option value="neutral">Neutral</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Columnas web" forId="form-desktop-field-columns">
-                    <select id="form-desktop-field-columns" [(ngModel)]="draft.desktopFieldColumns" (ngModelChange)="syncJson()">
-                      <option [ngValue]="1">1 columna</option>
-                      <option [ngValue]="2">2 columnas</option>
-                      <option [ngValue]="3">3 columnas</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Botón web" forId="form-desktop-action-align">
-                    <select id="form-desktop-action-align" [(ngModel)]="draft.desktopActionAlign" (ngModelChange)="syncJson()">
-                      <option value="left">Izquierda</option>
-                      <option value="center">Centro</option>
-                      <option value="right">Derecha</option>
-                      <option value="stretch">Ancho completo</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Tamaño botón web" forId="form-desktop-action-size">
-                    <select id="form-desktop-action-size" [(ngModel)]="draft.desktopActionSize" (ngModelChange)="syncJson()">
-                      <option value="sm">Pequeño</option>
-                      <option value="md">Medio</option>
-                      <option value="lg">Grande</option>
-                      <option value="field">Igual que inputs</option>
-                      <option value="full">Completo</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Botón tablet" forId="form-tablet-action-align">
-                    <select id="form-tablet-action-align" [(ngModel)]="draft.tabletActionAlign" (ngModelChange)="syncJson()">
-                      <option value="right">Derecha</option>
-                      <option value="center">Centro</option>
-                      <option value="stretch">Ancho completo</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Botón móvil" forId="form-mobile-action-align">
-                    <select id="form-mobile-action-align" [(ngModel)]="draft.mobileActionAlign" (ngModelChange)="syncJson()">
-                      <option value="stretch">Ancho completo</option>
-                      <option value="center">Centro</option>
-                      <option value="right">Derecha</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Posición móvil" forId="form-mobile-action-position">
-                    <select id="form-mobile-action-position" [(ngModel)]="draft.mobileActionPosition" (ngModelChange)="syncJson()">
-                      <option value="bottom_sticky">Fijo abajo</option>
-                      <option value="footer">Al final</option>
-                      <option value="inline">En línea</option>
-                    </select>
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formWidth', 'select', 'Ancho formulario', '', formWidthOptions)"
+                    [value]="draft.formWidth"
+                    (valueChange)="setDraftValue('formWidth', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formAlign', 'select', 'Alineación', '', formAlignOptions)"
+                    [value]="draft.formAlign"
+                    (valueChange)="setDraftValue('formAlign', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formButtonTone', 'select', 'Color botón', '', buttonToneOptions)"
+                    [value]="draft.buttonTone"
+                    (valueChange)="setDraftValue('buttonTone', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formDesktopFieldColumns', 'select', 'Columnas web', '', columnOptions)"
+                    [value]="draft.desktopFieldColumns"
+                    (valueChange)="setDraftNumber('desktopFieldColumns', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formDesktopActionAlign', 'select', 'Botón web', '', actionAlignOptions)"
+                    [value]="draft.desktopActionAlign"
+                    (valueChange)="setDraftValue('desktopActionAlign', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formDesktopActionSize', 'select', 'Tamaño botón web', '', actionSizeOptions)"
+                    [value]="draft.desktopActionSize"
+                    (valueChange)="setDraftValue('desktopActionSize', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formTabletActionAlign', 'select', 'Botón tablet', '', actionAlignOptions)"
+                    [value]="draft.tabletActionAlign"
+                    (valueChange)="setDraftValue('tabletActionAlign', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formMobileActionAlign', 'select', 'Botón móvil', '', actionAlignOptions)"
+                    [value]="draft.mobileActionAlign"
+                    (valueChange)="setDraftValue('mobileActionAlign', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formMobileActionPosition', 'select', 'Posición móvil', '', mobileActionPositionOptions)"
+                    [value]="draft.mobileActionPosition"
+                    (valueChange)="setDraftValue('mobileActionPosition', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="grid">
-                  <app-field-shell label="Qué hace al enviar" forId="form-persistence" help="Record es el default seguro para capturar datos. Service o Flow conectan lógica de negocio.">
-                    <select id="form-persistence" [(ngModel)]="draft.persistenceMode" (ngModelChange)="syncJson()">
-                      <option value="record">Guardar record genérico</option>
-                      <option value="service">Ejecutar servicio dinámico</option>
-                      <option value="flow">Ejecutar flow</option>
-                      <option value="auth">Iniciar sesión</option>
-                      <option value="hybrid">Guardar record y orquestar después</option>
-                      <option value="submit_action">Acción segura del backend</option>
-                      <option value="none">Solo validar / consultar</option>
-                    </select>
-                  </app-field-shell>
-                  <app-field-shell label="Idempotencia" forId="form-idempotency" help="Evita duplicados en reintentos u offline.">
-                    <input id="form-idempotency" [(ngModel)]="draft.idempotencyKey" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formPersistence', 'select', 'Qué hace al enviar', '', persistenceModeOptions)"
+                    [value]="draft.persistenceMode"
+                    help="Record es el default seguro para capturar datos. Service o Flow conectan lógica de negocio."
+                    (valueChange)="setDraftValue('persistenceMode', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formIdempotency', 'text', 'Idempotencia', '{{input.email}}')"
+                    [value]="draft.idempotencyKey"
+                    help="Evita duplicados en reintentos u offline."
+                    (valueChange)="setDraftString('idempotencyKey', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="grid three">
-                  <label class="toggle-card">
-                    <input type="checkbox" [(ngModel)]="draft.offlineEnabled" (ngModelChange)="syncJson()" />
-                    <span class="toggle-mark">✓</span>
-                    <span class="toggle-copy">
-                      <strong>Cola offline</strong>
-                      <small>Permite reintentar envíos desde móvil cuando no hay red.</small>
-                    </span>
-                  </label>
-                  <label class="toggle-card">
-                    <input type="checkbox" [(ngModel)]="draft.autosave" (ngModelChange)="syncJson()" />
-                    <span class="toggle-mark">✓</span>
-                    <span class="toggle-copy">
-                      <strong>Autosave</strong>
-                      <small>Reserva guardado parcial para formularios largos.</small>
-                    </span>
-                  </label>
-                  <app-field-shell label="Timeout ms" forId="form-timeout">
-                    <input id="form-timeout" type="number" [(ngModel)]="draft.timeoutMs" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formOffline', 'checkbox', 'Cola offline', 'Permite reintentar envíos desde móvil cuando no hay red.')"
+                    [value]="draft.offlineEnabled"
+                    (valueChange)="setDraftBoolean('offlineEnabled', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formAutosave', 'checkbox', 'Autosave', 'Reserva guardado parcial para formularios largos.')"
+                    [value]="draft.autosave"
+                    (valueChange)="setDraftBoolean('autosave', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formTimeout', 'number', 'Timeout ms', '10000')"
+                    [value]="draft.timeoutMs"
+                    (valueChange)="setDraftNumber('timeoutMs', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="grid three">
-                  <label class="toggle-card">
-                    <input type="checkbox" [(ngModel)]="draft.showSubmitFeedback" (ngModelChange)="syncJson()" />
-                    <span class="toggle-mark">✓</span>
-                    <span class="toggle-copy">
-                      <strong>Mostrar respuesta</strong>
-                      <small>Presenta una alerta genérica después del submit.</small>
-                    </span>
-                  </label>
-                  <app-field-shell label="Mensaje si guarda" forId="form-success-message">
-                    <input
-                      id="form-success-message"
-                      [(ngModel)]="draft.submitSuccessMessage"
-                      (ngModelChange)="syncJson()"
-                      [disabled]="!draft.showSubmitFeedback"
-                    />
-                  </app-field-shell>
-                  <app-field-shell label="Mensaje si falla" forId="form-error-message">
-                    <input
-                      id="form-error-message"
-                      [(ngModel)]="draft.submitErrorMessage"
-                      (ngModelChange)="syncJson()"
-                      [disabled]="!draft.showSubmitFeedback"
-                    />
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formSubmitFeedback', 'checkbox', 'Mostrar respuesta', 'Presenta una alerta genérica después del submit.')"
+                    [value]="draft.showSubmitFeedback"
+                    (valueChange)="setDraftBoolean('showSubmitFeedback', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formSuccessMessage', 'text', 'Mensaje si guarda', 'Registro guardado correctamente.')"
+                    [value]="draft.submitSuccessMessage"
+                    [disabled]="!draft.showSubmitFeedback"
+                    (valueChange)="setDraftString('submitSuccessMessage', $event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formErrorMessage', 'text', 'Mensaje si falla', 'No se pudo guardar el registro.')"
+                    [value]="draft.submitErrorMessage"
+                    [disabled]="!draft.showSubmitFeedback"
+                    (valueChange)="setDraftString('submitErrorMessage', $event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 @if (draft.persistenceMode === 'record' || draft.persistenceMode === 'hybrid') {
-                  <app-field-shell label="Tipo de record" forId="form-record-type">
-                    <input id="form-record-type" [(ngModel)]="draft.recordType" (ngModelChange)="syncJson()" />
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formRecordType', 'text', 'Tipo de record', 'cliente_onboarding')"
+                    [value]="draft.recordType"
+                    (valueChange)="setDraftString('recordType', $event)"
+                  ></app-dynamic-field-control>
                 }
                 @if (draft.persistenceMode === 'service') {
-                  <app-field-shell label="Servicio publicado" forId="form-service-key">
-                    @if (availableServices.length) {
-                      <select id="form-service-key" [(ngModel)]="draft.serviceKey" (ngModelChange)="syncJson()">
-                        <option value="">Selecciona un servicio</option>
-                        @for (service of availableServices; track service.id) {
-                          <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
-                        }
-                      </select>
-                    } @else {
-                      <input id="form-service-key" [(ngModel)]="draft.serviceKey" (ngModelChange)="syncJson()" />
-                    }
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formServiceKey', availableServices.length ? 'select' : 'text', 'Servicio publicado', 'crear_cliente', serviceOptions)"
+                    [value]="draft.serviceKey"
+                    (valueChange)="setDraftString('serviceKey', $event)"
+                  ></app-dynamic-field-control>
                 }
                 @if (draft.persistenceMode === 'flow') {
-                  <app-field-shell label="Flow publicado" forId="form-flow-key">
-                    @if (availableFlows.length) {
-                      <select id="form-flow-key" [(ngModel)]="draft.flowKey" (ngModelChange)="syncJson()">
-                        <option value="">Selecciona un flow</option>
-                        @for (flow of availableFlows; track flow.id) {
-                          <option [value]="flow.key">{{ flow.name }}</option>
-                        }
-                      </select>
-                    } @else {
-                      <input id="form-flow-key" [(ngModel)]="draft.flowKey" (ngModelChange)="syncJson()" />
-                    }
-                  </app-field-shell>
+                  <app-dynamic-field-control
+                    [field]="runtimeField('formFlowKey', availableFlows.length ? 'select' : 'text', 'Flow publicado', 'aprobar_solicitud', flowOptions)"
+                    [value]="draft.flowKey"
+                    (valueChange)="setDraftString('flowKey', $event)"
+                  ></app-dynamic-field-control>
                 }
                 @if (draft.persistenceMode === 'auth') {
                   <div class="grid">
-                    <app-field-shell
-                      label="Campo usuario"
-                      forId="form-auth-user-field"
+                    <app-dynamic-field-control
+                      [field]="runtimeField('formAuthUserField', 'select', 'Campo usuario', '', draftFieldOptions)"
+                      [value]="draft.authUserField"
                       help="Selecciona el campo del formulario que se enviará como usuario, correo o username."
-                    >
-                      <select id="form-auth-user-field" [(ngModel)]="draft.authUserField" (ngModelChange)="syncJson()">
-                        <option value="">Selecciona un campo</option>
-                        @for (field of allDraftFields; track field.key) {
-                          <option [value]="field.key">{{ field.label || field.key }}</option>
-                        }
-                      </select>
-                    </app-field-shell>
-                    <app-field-shell
-                      label="Campo contraseña"
-                      forId="form-auth-password-field"
+                      (valueChange)="setDraftString('authUserField', $event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('formAuthPasswordField', 'select', 'Campo contraseña', '', draftFieldOptions)"
+                      [value]="draft.authPasswordField"
                       help="Selecciona el campo tipo password o el campo que contiene la contraseña."
-                    >
-                      <select id="form-auth-password-field" [(ngModel)]="draft.authPasswordField" (ngModelChange)="syncJson()">
-                        <option value="">Selecciona un campo</option>
-                        @for (field of allDraftFields; track field.key) {
-                          <option [value]="field.key">{{ field.label || field.key }}</option>
-                        }
-                      </select>
-                    </app-field-shell>
-                    <app-field-shell label="Ir a ruta" forId="form-auth-success-route" help="Destino después de iniciar sesión correctamente.">
-                      <input id="form-auth-success-route" [(ngModel)]="draft.authSuccessRoute" (ngModelChange)="syncJson()" />
-                    </app-field-shell>
-                    <app-field-shell label="Mensaje si falla" forId="form-auth-error-message">
-                      <input id="form-auth-error-message" [(ngModel)]="draft.authErrorMessage" (ngModelChange)="syncJson()" />
-                    </app-field-shell>
+                      (valueChange)="setDraftString('authPasswordField', $event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('formAuthSuccessRoute', 'text', 'Ir a ruta', '/home')"
+                      [value]="draft.authSuccessRoute"
+                      help="Destino después de iniciar sesión correctamente."
+                      (valueChange)="setDraftString('authSuccessRoute', $event)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('formAuthErrorMessage', 'text', 'Mensaje si falla', 'No se pudo iniciar sesión.')"
+                      [value]="draft.authErrorMessage"
+                      (valueChange)="setDraftString('authErrorMessage', $event)"
+                    ></app-dynamic-field-control>
                   </div>
                 }
                 @if (draft.persistenceMode === 'hybrid') {
                   <div class="grid">
-                    <app-field-shell
-                      label="Después de guardar"
-                      forId="form-hybrid-action"
+                    <app-dynamic-field-control
+                      [field]="runtimeField('formHybridAction', 'select', 'Después de guardar', '', hybridActionOptions)"
+                      [value]="draft.hybridActionType"
                       help="El formulario crea primero el record y luego puede ejecutar un servicio o flow con el mismo input."
-                    >
-                      <select id="form-hybrid-action" [(ngModel)]="draft.hybridActionType" (ngModelChange)="syncJson()">
-                        <option value="none">Solo guardar record</option>
-                        <option value="execute_service">Ejecutar servicio</option>
-                        <option value="execute_flow">Ejecutar flow</option>
-                      </select>
-                    </app-field-shell>
+                      (valueChange)="setDraftValue('hybridActionType', $event)"
+                    ></app-dynamic-field-control>
                     @if (draft.hybridActionType === 'execute_service') {
-                      <app-field-shell label="Servicio posterior" forId="form-hybrid-service-key">
-                        <select id="form-hybrid-service-key" [(ngModel)]="draft.hybridServiceKey" (ngModelChange)="syncJson()">
-                          <option value="">Selecciona un servicio</option>
-                          @for (service of availableServices; track service.id) {
-                            <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
-                          }
-                        </select>
-                      </app-field-shell>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('formHybridServiceKey', 'select', 'Servicio posterior', '', serviceOptions)"
+                        [value]="draft.hybridServiceKey"
+                        (valueChange)="setDraftString('hybridServiceKey', $event)"
+                      ></app-dynamic-field-control>
                     }
                     @if (draft.hybridActionType === 'execute_flow') {
-                      <app-field-shell label="Flow posterior" forId="form-hybrid-flow-key">
-                        <select id="form-hybrid-flow-key" [(ngModel)]="draft.hybridFlowKey" (ngModelChange)="syncJson()">
-                          <option value="">Selecciona un flow</option>
-                          @for (flow of availableFlows; track flow.id) {
-                            <option [value]="flow.key">{{ flow.name }}</option>
-                          }
-                        </select>
-                      </app-field-shell>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('formHybridFlowKey', 'select', 'Flow posterior', '', flowOptions)"
+                        [value]="draft.hybridFlowKey"
+                        (valueChange)="setDraftString('hybridFlowKey', $event)"
+                      ></app-dynamic-field-control>
                     }
                   </div>
                 }
 
                 @if (draft.persistenceMode === 'service' || draft.persistenceMode === 'flow') {
                   <div class="grid">
-                    <app-field-shell
+                    <app-code-textarea
+                      controlId="form-payload-map"
                       label="Payload map"
-                      forId="form-payload-map"
-                      help="Define qué datos recibe el servicio o flow. Puedes usar plantillas tipo input o input.campo dentro del JSON."
-                    >
-                      <textarea
-                        id="form-payload-map"
-                        class="compact-json"
-                        [(ngModel)]="draft.payloadMapText"
-                        (ngModelChange)="syncJson()"
-                        spellcheck="false"
-                      ></textarea>
-                    </app-field-shell>
-                    <app-field-shell
+                      [value]="draft.payloadMapText"
+                      minHeight="132px"
+                      (valueChange)="setDraftString('payloadMapText', $event)"
+                    ></app-code-textarea>
+                    <app-code-textarea
+                      controlId="form-response-map"
                       label="Response map"
-                      forId="form-response-map"
-                      help="Mapa reservado para normalizar salida. Se usará al completar bindings avanzados."
-                    >
-                      <textarea
-                        id="form-response-map"
-                        class="compact-json"
-                        [(ngModel)]="draft.responseMapText"
-                        (ngModelChange)="syncJson()"
-                        spellcheck="false"
-                      ></textarea>
-                    </app-field-shell>
+                      [value]="draft.responseMapText"
+                      minHeight="132px"
+                      (valueChange)="setDraftString('responseMapText', $event)"
+                    ></app-code-textarea>
                   </div>
                 }
 
@@ -1376,7 +1321,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   title="Botones y acciones extra"
                   description="Agrega comandos que el usuario puede ejecutar sin cambiar el botón principal del formulario."
                 >
-                  <button type="button" (click)="addCommand()">Agregar botón</button>
+                  <app-ui-kit-button label="Agregar botón" variant="outline" (pressed)="addCommand()"></app-ui-kit-button>
                 </app-section-header>
 
                 @if (!draft.commands.length) {
@@ -1389,95 +1334,83 @@ const FORM_TEMPLATES: FormTemplate[] = [
                       <section class="step-item">
                         <div class="toolbar">
                           <strong>{{ command.label || command.key }}</strong>
-                          <button class="danger" type="button" (click)="removeCommand(commandIndex)">Quitar</button>
+                          <app-ui-kit-button
+                            label="Quitar"
+                            tone="danger"
+                            variant="outline"
+                            (pressed)="removeCommand(commandIndex)"
+                          ></app-ui-kit-button>
                         </div>
                         <div class="grid">
-                          <app-field-shell label="Key" [forId]="'command-key-' + commandIndex">
-                            <input [id]="'command-key-' + commandIndex" [(ngModel)]="command.key" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
-                          <app-field-shell label="Texto del botón" [forId]="'command-label-' + commandIndex">
-                            <input [id]="'command-label-' + commandIndex" [(ngModel)]="command.label" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
-                          <app-field-shell label="Acción" [forId]="'command-type-' + commandIndex">
-                            <select [id]="'command-type-' + commandIndex" [(ngModel)]="command.type" (ngModelChange)="syncJson()">
-                              <option value="execute_service">Ejecutar servicio</option>
-                              <option value="execute_flow">Ejecutar flow</option>
-                              <option value="show_message">Mostrar mensaje</option>
-                            </select>
-                          </app-field-shell>
-                          <app-field-shell label="Respuesta" [forId]="'command-response-' + commandIndex">
-                            <select [id]="'command-response-' + commandIndex" [(ngModel)]="command.responseMode" (ngModelChange)="syncJson()">
-                              <option value="show_response">Mostrar respuesta</option>
-                              <option value="silent">Silenciosa</option>
-                            </select>
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandKey' + commandIndex, 'text', 'Key', 'accion_aprobar')"
+                            [value]="command.key"
+                            (valueChange)="setCommandString(command, 'key', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandLabel' + commandIndex, 'text', 'Texto del botón', 'Aprobar')"
+                            [value]="command.label"
+                            (valueChange)="setCommandString(command, 'label', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandType' + commandIndex, 'select', 'Acción', '', commandTypeOptions)"
+                            [value]="command.type"
+                            (valueChange)="setCommandValue(command, 'type', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandResponse' + commandIndex, 'select', 'Respuesta', '', responseModeOptions)"
+                            [value]="command.responseMode"
+                            (valueChange)="setCommandValue(command, 'responseMode', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                         @if (command.type === 'execute_service') {
-                          <app-field-shell label="Servicio publicado" [forId]="'command-service-' + commandIndex">
-                            <select [id]="'command-service-' + commandIndex" [(ngModel)]="command.serviceKey" (ngModelChange)="syncJson()">
-                              <option value="">Selecciona un servicio</option>
-                              @for (service of availableServices; track service.id) {
-                                <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
-                              }
-                            </select>
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandService' + commandIndex, 'select', 'Servicio publicado', '', serviceOptions)"
+                            [value]="command.serviceKey"
+                            (valueChange)="setCommandString(command, 'serviceKey', $event)"
+                          ></app-dynamic-field-control>
                         }
                         @if (command.type === 'execute_flow') {
-                          <app-field-shell label="Flow publicado" [forId]="'command-flow-' + commandIndex">
-                            <select [id]="'command-flow-' + commandIndex" [(ngModel)]="command.flowKey" (ngModelChange)="syncJson()">
-                              <option value="">Selecciona un flow</option>
-                              @for (flow of availableFlows; track flow.id) {
-                                <option [value]="flow.key">{{ flow.name }}</option>
-                              }
-                            </select>
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandFlow' + commandIndex, 'select', 'Flow publicado', '', flowOptions)"
+                            [value]="command.flowKey"
+                            (valueChange)="setCommandString(command, 'flowKey', $event)"
+                          ></app-dynamic-field-control>
                         }
                         @if (command.type !== 'show_message') {
-                          <app-field-shell label="Payload map" [forId]="'command-payload-' + commandIndex">
-                            <textarea
-                              [id]="'command-payload-' + commandIndex"
-                              class="compact-json"
-                              [(ngModel)]="command.payloadMapText"
-                              (ngModelChange)="syncJson()"
-                              spellcheck="false"
-                            ></textarea>
-                          </app-field-shell>
+                          <app-code-textarea
+                            [controlId]="'command-payload-' + commandIndex"
+                            label="Payload map"
+                            [value]="command.payloadMapText"
+                            minHeight="126px"
+                            (valueChange)="setCommandString(command, 'payloadMapText', $event)"
+                          ></app-code-textarea>
                         }
                         <div class="grid">
-                          <app-field-shell label="Permiso requerido" [forId]="'command-permission-' + commandIndex" help="Opcional. Si el usuario no lo tiene, el botón no aparece.">
-                            <input
-                              [id]="'command-permission-' + commandIndex"
-                              [(ngModel)]="command.requiredPermission"
-                              (ngModelChange)="syncJson()"
-                              placeholder="forms.submit"
-                            />
-                          </app-field-shell>
-                          <app-field-shell label="Rol requerido" [forId]="'command-role-' + commandIndex">
-                            <input
-                              [id]="'command-role-' + commandIndex"
-                              [(ngModel)]="command.requiredRole"
-                              (ngModelChange)="syncJson()"
-                              placeholder="operator"
-                            />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandPermission' + commandIndex, 'text', 'Permiso requerido', 'forms.submit')"
+                            [value]="command.requiredPermission"
+                            help="Opcional. Si el usuario no lo tiene, el botón no aparece."
+                            (valueChange)="setCommandString(command, 'requiredPermission', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandRole' + commandIndex, 'text', 'Rol requerido', 'operator')"
+                            [value]="command.requiredRole"
+                            (valueChange)="setCommandString(command, 'requiredRole', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                         <div class="grid">
-                          <label class="toggle-card">
-                            <input type="checkbox" [(ngModel)]="command.requiresValidForm" (ngModelChange)="syncJson()" />
-                            <span class="toggle-mark">✓</span>
-                            <span class="toggle-copy">
-                              <strong>Requiere formulario válido</strong>
-                              <small>Valida obligatorios antes de ejecutar este botón.</small>
-                            </span>
-                          </label>
-                          <app-field-shell label="Confirmación" [forId]="'command-confirm-' + commandIndex" help="Opcional. Pide confirmación antes de ejecutar.">
-                            <input
-                              [id]="'command-confirm-' + commandIndex"
-                              [(ngModel)]="command.confirmMessage"
-                              (ngModelChange)="syncJson()"
-                              placeholder="¿Ejecutar esta acción?"
-                            />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandRequiresValid' + commandIndex, 'checkbox', 'Requiere formulario válido', 'Valida obligatorios antes de ejecutar este botón.')"
+                            [value]="command.requiresValidForm"
+                            (valueChange)="setCommandBoolean(command, 'requiresValidForm', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('commandConfirm' + commandIndex, 'text', 'Confirmación', '¿Ejecutar esta acción?')"
+                            [value]="command.confirmMessage"
+                            help="Opcional. Pide confirmación antes de ejecutar."
+                            (valueChange)="setCommandString(command, 'confirmMessage', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                       </section>
                     }
@@ -1493,7 +1426,7 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   title="Organiza pasos y campos"
                   description="En web los pasos pueden verse como secciones; en móvil se comportan como pantallas consecutivas."
                 >
-                  <button type="button" (click)="addStep()">Agregar paso</button>
+                  <app-ui-kit-button label="Agregar paso" variant="outline" (pressed)="addStep()"></app-ui-kit-button>
                 </app-section-header>
 
                 <div class="builder-grid">
@@ -1504,29 +1437,29 @@ const FORM_TEMPLATES: FormTemplate[] = [
                       description="Agrega controles al paso activo. Luego ajusta sus detalles en el inspector."
                     ></app-section-header>
                       <div class="helper-grid">
-                        <button type="button" class="helper-card" (click)="addContactSet(activeStepIndex)">
+                        <article role="button" tabindex="0" class="helper-card" (click)="addContactSet(activeStepIndex)" (keydown.enter)="addContactSet(activeStepIndex)" (keydown.space)="addContactSet(activeStepIndex)">
                           <strong>Agregar datos de contacto</strong>
                           <small>Nombre, email y teléfono en el paso activo.</small>
-                        </button>
-                        <button type="button" class="helper-card" (click)="addAddressSet(activeStepIndex)">
+                        </article>
+                        <article role="button" tabindex="0" class="helper-card" (click)="addAddressSet(activeStepIndex)" (keydown.enter)="addAddressSet(activeStepIndex)" (keydown.space)="addAddressSet(activeStepIndex)">
                           <strong>Agregar dirección</strong>
                           <small>Ciudad, dirección y observaciones.</small>
-                        </button>
-                        <button type="button" class="helper-card" (click)="addApprovalSet(activeStepIndex)">
+                        </article>
+                        <article role="button" tabindex="0" class="helper-card" (click)="addApprovalSet(activeStepIndex)" (keydown.enter)="addApprovalSet(activeStepIndex)" (keydown.space)="addApprovalSet(activeStepIndex)">
                           <strong>Agregar decisión</strong>
                           <small>Estado, comentarios y fecha.</small>
-                        </button>
-                        <button type="button" class="helper-card" (click)="addEvidenceSet(activeStepIndex)">
+                        </article>
+                        <article role="button" tabindex="0" class="helper-card" (click)="addEvidenceSet(activeStepIndex)" (keydown.enter)="addEvidenceSet(activeStepIndex)" (keydown.space)="addEvidenceSet(activeStepIndex)">
                           <strong>Agregar evidencias</strong>
                           <small>Foto, archivo y ubicación GPS.</small>
-                        </button>
+                        </article>
                       </div>
                       <div class="palette-grid">
                         @for (item of fieldPalette; track item.type) {
-                          <button type="button" (click)="addFieldFromPalette(activeStepIndex, item)">
+                          <article role="button" tabindex="0" (click)="addFieldFromPalette(activeStepIndex, item)" (keydown.enter)="addFieldFromPalette(activeStepIndex, item)" (keydown.space)="addFieldFromPalette(activeStepIndex, item)">
                             <strong>{{ item.label }}</strong>
                             <small>{{ item.description }}</small>
-                          </button>
+                          </article>
                         }
                       </div>
                     </section>
@@ -1534,27 +1467,42 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     @for (step of draft.steps; track step.key; let stepIndex = $index) {
                       <article class="step-item" [class.active]="activeStepIndex === stepIndex">
                         <div class="toolbar">
-                          <button type="button" (click)="selectStep(stepIndex)">Editar {{ step.title || step.key }}</button>
+                          <app-ui-kit-button
+                            [label]="'Editar ' + (step.title || step.key)"
+                            variant="outline"
+                            tone="neutral"
+                            (pressed)="selectStep(stepIndex)"
+                          ></app-ui-kit-button>
                           <div class="inline-actions">
                             <span class="pill">{{ step.fields.length }} campos</span>
-                            <button class="danger" type="button" (click)="removeStep(stepIndex)" [disabled]="draft.steps.length === 1">
-                              Quitar paso
-                            </button>
+                            <app-ui-kit-button
+                              label="Quitar paso"
+                              tone="danger"
+                              variant="outline"
+                              [disabled]="draft.steps.length === 1"
+                              (pressed)="removeStep(stepIndex)"
+                            ></app-ui-kit-button>
                           </div>
                         </div>
 
                         @if (activeStepIndex === stepIndex) {
                           <div class="grid">
-                            <app-field-shell label="Key del paso" [forId]="'step-key-' + stepIndex">
-                              <input [id]="'step-key-' + stepIndex" [(ngModel)]="step.key" (ngModelChange)="syncJson()" />
-                            </app-field-shell>
-                            <app-field-shell label="Título del paso" [forId]="'step-title-' + stepIndex">
-                              <input [id]="'step-title-' + stepIndex" [(ngModel)]="step.title" (ngModelChange)="syncJson()" />
-                            </app-field-shell>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepKey' + stepIndex, 'text', 'Key del paso', 'datos_basicos')"
+                              [value]="step.key"
+                              (valueChange)="setStepString(step, 'key', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepTitle' + stepIndex, 'text', 'Título del paso', 'Datos básicos')"
+                              [value]="step.title"
+                              (valueChange)="setStepString(step, 'title', $event)"
+                            ></app-dynamic-field-control>
                           </div>
-                          <app-field-shell label="Descripción del paso" [forId]="'step-description-' + stepIndex">
-                            <input [id]="'step-description-' + stepIndex" [(ngModel)]="step.description" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('stepDescription' + stepIndex, 'text', 'Descripción del paso', 'Información inicial')"
+                            [value]="step.description"
+                            (valueChange)="setStepString(step, 'description', $event)"
+                          ></app-dynamic-field-control>
 
                           <div class="field-list">
                             @for (field of step.fields; track field.key; let fieldIndex = $index) {
@@ -1563,28 +1511,25 @@ const FORM_TEMPLATES: FormTemplate[] = [
                                 [class.selected]="activeStepIndex === stepIndex && activeFieldIndex === fieldIndex"
                               >
                                 <div class="toolbar">
-                                  <button type="button" (click)="selectField(stepIndex, fieldIndex)">
-                                    {{ field.label || field.key }}
-                                  </button>
+                                  <app-ui-kit-button
+                                    [label]="field.label || field.key"
+                                    variant="ghost"
+                                    tone="neutral"
+                                    (pressed)="selectField(stepIndex, fieldIndex)"
+                                  ></app-ui-kit-button>
                                   <div class="field-actions">
                                     <span class="pill">{{ field.type }} · {{ field.layout }}</span>
-                                    <button type="button" (click)="moveField(stepIndex, fieldIndex, -1)" [disabled]="fieldIndex === 0">Subir</button>
-                                    <button
-                                      type="button"
-                                      (click)="moveField(stepIndex, fieldIndex, 1)"
-                                      [disabled]="fieldIndex === step.fields.length - 1"
-                                    >
-                                      Bajar
-                                    </button>
-                                    <button type="button" (click)="duplicateField(stepIndex, fieldIndex)">Duplicar</button>
-                                    <button class="danger" type="button" (click)="removeField(stepIndex, fieldIndex)">Quitar</button>
+                                    <app-ui-kit-button label="Subir" variant="outline" tone="neutral" [disabled]="fieldIndex === 0" (pressed)="moveField(stepIndex, fieldIndex, -1)"></app-ui-kit-button>
+                                    <app-ui-kit-button label="Bajar" variant="outline" tone="neutral" [disabled]="fieldIndex === step.fields.length - 1" (pressed)="moveField(stepIndex, fieldIndex, 1)"></app-ui-kit-button>
+                                    <app-ui-kit-button label="Duplicar" variant="outline" tone="neutral" (pressed)="duplicateField(stepIndex, fieldIndex)"></app-ui-kit-button>
+                                    <app-ui-kit-button label="Quitar" tone="danger" variant="outline" (pressed)="removeField(stepIndex, fieldIndex)"></app-ui-kit-button>
                                   </div>
                                 </div>
                                 <p class="muted">{{ field.key }} · {{ field.required ? 'obligatorio' : 'opcional' }}</p>
                               </article>
                             }
                           </div>
-                          <button type="button" (click)="addField(stepIndex)">Agregar campo básico</button>
+                          <app-ui-kit-button label="Agregar campo básico" variant="outline" (pressed)="addField(stepIndex)"></app-ui-kit-button>
                         }
                       </article>
                     }
@@ -1602,58 +1547,46 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         <strong>{{ selectedField.label || selectedField.key }}</strong>
                         <small>{{ selectedField.required ? 'Obligatorio' : 'Opcional' }} · {{ selectedField.key }}</small>
                       </section>
-                      <app-field-shell label="Key" forId="selected-field-key">
-                        <input id="selected-field-key" [(ngModel)]="selectedField.key" (ngModelChange)="syncJson()" />
-                      </app-field-shell>
-                      <app-field-shell label="Etiqueta" forId="selected-field-label">
-                        <input id="selected-field-label" [(ngModel)]="selectedField.label" (ngModelChange)="syncJson()" />
-                      </app-field-shell>
-                      <app-field-shell label="Tipo" forId="selected-field-type">
-                        <select id="selected-field-type" [(ngModel)]="selectedField.type" (ngModelChange)="syncJson()">
-                          <option value="text">Texto</option>
-                          <option value="email">Email</option>
-                          <option value="number">Número</option>
-                          <option value="currency">Moneda</option>
-                          <option value="tel">Teléfono</option>
-                          <option value="url">URL</option>
-                          <option value="password">Password</option>
-                          <option value="textarea">Textarea</option>
-                          <option value="select">Select</option>
-                          <option value="radio">Opciones radio</option>
-                          <option value="checkbox">Check</option>
-                          <option value="toggle">Switch</option>
-                          <option value="date">Fecha</option>
-                          <option value="time">Hora</option>
-                          <option value="datetime">Fecha y hora</option>
-                          <option value="file">Archivo</option>
-                          <option value="image">Imagen</option>
-                          <option value="gps">GPS</option>
-                        </select>
-                      </app-field-shell>
-                      <app-field-shell label="Layout" forId="selected-field-layout">
-                        <select id="selected-field-layout" [(ngModel)]="selectedField.layout" (ngModelChange)="syncJson()">
-                          <option value="full">Completo</option>
-                          <option value="half">Mitad</option>
-                          <option value="third">Tercio</option>
-                        </select>
-                      </app-field-shell>
-                      <label class="toggle-card">
-                        <input type="checkbox" [(ngModel)]="selectedField.required" (ngModelChange)="syncJson()" />
-                        <span class="toggle-mark">✓</span>
-                        <span class="toggle-copy">
-                          <strong>Campo obligatorio</strong>
-                          <small>El usuario no podrá avanzar si lo deja vacío.</small>
-                        </span>
-                      </label>
-                      <app-field-shell label="Placeholder" forId="selected-field-placeholder">
-                        <input id="selected-field-placeholder" [(ngModel)]="selectedField.placeholder" (ngModelChange)="syncJson()" />
-                      </app-field-shell>
-                      <app-field-shell label="Ayuda" forId="selected-field-help">
-                        <input id="selected-field-help" [(ngModel)]="selectedField.help" (ngModelChange)="syncJson()" />
-                      </app-field-shell>
-                      <app-field-shell label="Valor por defecto" forId="selected-field-default">
-                        <input id="selected-field-default" [(ngModel)]="selectedField.defaultValue" (ngModelChange)="syncJson()" />
-                      </app-field-shell>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldKey', 'text', 'Key', 'nombre')"
+                        [value]="selectedField.key"
+                        (valueChange)="setFieldString(selectedField, 'key', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldLabel', 'text', 'Etiqueta', 'Nombre')"
+                        [value]="selectedField.label"
+                        (valueChange)="setFieldString(selectedField, 'label', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldType', 'select', 'Tipo', '', fieldTypeOptions)"
+                        [value]="selectedField.type"
+                        (valueChange)="setFieldValue(selectedField, 'type', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldLayout', 'select', 'Layout', '', fieldLayoutOptions)"
+                        [value]="selectedField.layout"
+                        (valueChange)="setFieldValue(selectedField, 'layout', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldRequired', 'checkbox', 'Campo obligatorio', 'El usuario no podrá avanzar si lo deja vacío.')"
+                        [value]="selectedField.required"
+                        (valueChange)="setFieldBoolean(selectedField, 'required', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldPlaceholder', 'text', 'Placeholder', 'Escribe un valor')"
+                        [value]="selectedField.placeholder"
+                        (valueChange)="setFieldString(selectedField, 'placeholder', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldHelp', 'text', 'Ayuda', 'Texto de ayuda')"
+                        [value]="selectedField.help"
+                        (valueChange)="setFieldString(selectedField, 'help', $event)"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldDefault', 'text', 'Valor por defecto', 'Ejemplo')"
+                        [value]="selectedField.defaultValue"
+                        (valueChange)="setFieldString(selectedField, 'defaultValue', $event)"
+                      ></app-dynamic-field-control>
 
                       @if (
                         selectedField.type === 'text' ||
@@ -1664,23 +1597,31 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         selectedField.type === 'password'
                       ) {
                         <div class="grid">
-                          <app-field-shell label="Mín. caracteres" forId="selected-field-min-length">
-                            <input id="selected-field-min-length" type="number" [(ngModel)]="selectedField.minLength" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
-                          <app-field-shell label="Máx. caracteres" forId="selected-field-max-length">
-                            <input id="selected-field-max-length" type="number" [(ngModel)]="selectedField.maxLength" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldMinLength', 'number', 'Mín. caracteres', '0')"
+                            [value]="selectedField.minLength"
+                            (valueChange)="setFieldNumber(selectedField, 'minLength', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldMaxLength', 'number', 'Máx. caracteres', '180')"
+                            [value]="selectedField.maxLength"
+                            (valueChange)="setFieldNumber(selectedField, 'maxLength', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                       }
 
                       @if (selectedField.type === 'number' || selectedField.type === 'currency') {
                         <div class="grid">
-                          <app-field-shell label="Mínimo" forId="selected-field-min">
-                            <input id="selected-field-min" type="number" [(ngModel)]="selectedField.min" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
-                          <app-field-shell label="Máximo" forId="selected-field-max">
-                            <input id="selected-field-max" type="number" [(ngModel)]="selectedField.max" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldMin', 'number', 'Mínimo', '0')"
+                            [value]="selectedField.min"
+                            (valueChange)="setFieldNumber(selectedField, 'min', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldMax', 'number', 'Máximo', '100')"
+                            [value]="selectedField.max"
+                            (valueChange)="setFieldNumber(selectedField, 'max', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                       }
 
@@ -1689,64 +1630,62 @@ const FORM_TEMPLATES: FormTemplate[] = [
                           title="Opciones"
                           description="Usa opciones fijas o conecta un servicio publicado para cargarlas."
                         >
-                          <button type="button" (click)="addOption(selectedField)">Agregar opción</button>
+                          <app-ui-kit-button label="Agregar opción" variant="outline" (pressed)="addOption(selectedField)"></app-ui-kit-button>
                         </app-section-header>
                         @for (option of selectedField.options; track $index; let optionIndex = $index) {
                           <div class="option-row">
-                            <app-field-shell label="Texto" [forId]="'option-label-' + optionIndex">
-                              <input [id]="'option-label-' + optionIndex" [(ngModel)]="option.label" (ngModelChange)="syncJson()" />
-                            </app-field-shell>
-                            <app-field-shell label="Valor" [forId]="'option-value-' + optionIndex">
-                              <input [id]="'option-value-' + optionIndex" [(ngModel)]="option.value" (ngModelChange)="syncJson()" />
-                            </app-field-shell>
-                            <button class="danger" type="button" (click)="removeOption(selectedField, optionIndex)">Quitar</button>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('optionLabel' + optionIndex, 'text', 'Texto', 'Cliente')"
+                              [value]="option.label"
+                              (valueChange)="setOptionString(option, 'label', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('optionValue' + optionIndex, 'text', 'Valor', 'client')"
+                              [value]="option.value"
+                              (valueChange)="setOptionString(option, 'value', $event)"
+                            ></app-dynamic-field-control>
+                            <app-ui-kit-button
+                              label="Quitar"
+                              tone="danger"
+                              variant="outline"
+                              (pressed)="removeOption(selectedField, optionIndex)"
+                            ></app-ui-kit-button>
                           </div>
                         }
-                        <app-field-shell label="Servicio para opciones" forId="selected-field-data-source">
-                          <select id="selected-field-data-source" [(ngModel)]="selectedField.dataSourceServiceKey" (ngModelChange)="syncJson()">
-                            <option value="">Sin servicio</option>
-                            @for (service of availableServices; track service.id) {
-                              <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
-                            }
-                          </select>
-                        </app-field-shell>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('selectedFieldDataSource', 'select', 'Servicio para opciones', '', serviceOptions)"
+                          [value]="selectedField.dataSourceServiceKey"
+                          (valueChange)="setFieldString(selectedField, 'dataSourceServiceKey', $event)"
+                        ></app-dynamic-field-control>
                       }
 
-                      <app-field-shell label="Servicio para validar" forId="selected-field-validation-service">
-                        <select id="selected-field-validation-service" [(ngModel)]="selectedField.validationServiceKey" (ngModelChange)="syncJson()">
-                          <option value="">Sin validación remota</option>
-                          @for (service of availableServices; track service.id) {
-                            <option [value]="service.key">{{ service.name }} · v{{ service.version }}</option>
-                          }
-                        </select>
-                      </app-field-shell>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldValidationService', 'select', 'Servicio para validar', '', serviceOptions)"
+                        [value]="selectedField.validationServiceKey"
+                        (valueChange)="setFieldString(selectedField, 'validationServiceKey', $event)"
+                      ></app-dynamic-field-control>
 
                       <app-section-header
                         title="Condición visual"
                         description="Muestra este campo solo cuando otro campo cumpla una condición."
                       ></app-section-header>
-                      <app-field-shell label="Depende de" forId="selected-field-visible-field">
-                        <select id="selected-field-visible-field" [(ngModel)]="selectedField.visibleWhenField" (ngModelChange)="syncJson()">
-                          <option value="">Siempre visible</option>
-                          @for (key of conditionFieldKeys; track key) {
-                            <option [value]="key">{{ key }}</option>
-                          }
-                        </select>
-                      </app-field-shell>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('selectedFieldVisibleField', 'select', 'Depende de', '', visibleFieldOptions)"
+                        [value]="selectedField.visibleWhenField"
+                        (valueChange)="setFieldString(selectedField, 'visibleWhenField', $event)"
+                      ></app-dynamic-field-control>
                       @if (selectedField.visibleWhenField) {
                         <div class="grid">
-                          <app-field-shell label="Operador" forId="selected-field-visible-operator">
-                            <select id="selected-field-visible-operator" [(ngModel)]="selectedField.visibleWhenOperator" (ngModelChange)="syncJson()">
-                              <option value="equals">Igual a</option>
-                              <option value="not_equals">Distinto de</option>
-                              <option value="truthy">Tiene valor / verdadero</option>
-                              <option value="falsy">Vacío / falso</option>
-                              <option value="contains">Contiene</option>
-                            </select>
-                          </app-field-shell>
-                          <app-field-shell label="Valor" forId="selected-field-visible-value">
-                            <input id="selected-field-visible-value" [(ngModel)]="selectedField.visibleWhenValue" (ngModelChange)="syncJson()" />
-                          </app-field-shell>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldVisibleOperator', 'select', 'Operador', '', conditionOperatorOptions)"
+                            [value]="selectedField.visibleWhenOperator"
+                            (valueChange)="setFieldValue(selectedField, 'visibleWhenOperator', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedFieldVisibleValue', 'text', 'Valor', 'approved')"
+                            [value]="selectedField.visibleWhenValue"
+                            (valueChange)="setFieldString(selectedField, 'visibleWhenValue', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                       }
                       <app-section-header
@@ -1754,30 +1693,21 @@ const FORM_TEMPLATES: FormTemplate[] = [
                         description="Permite ocultar o dejar en solo lectura un campo según rol o permiso."
                       ></app-section-header>
                       <div class="grid">
-                        <app-field-shell label="Permiso para ver" forId="selected-field-permission">
-                          <input
-                            id="selected-field-permission"
-                            [(ngModel)]="selectedField.requiredPermission"
-                            (ngModelChange)="syncJson()"
-                            placeholder="forms.read_sensitive"
-                          />
-                        </app-field-shell>
-                        <app-field-shell label="Rol para ver" forId="selected-field-role">
-                          <input
-                            id="selected-field-role"
-                            [(ngModel)]="selectedField.requiredRole"
-                            (ngModelChange)="syncJson()"
-                            placeholder="admin"
-                          />
-                        </app-field-shell>
-                        <app-field-shell label="Permiso para editar" forId="selected-field-readonly-permission">
-                          <input
-                            id="selected-field-readonly-permission"
-                            [(ngModel)]="selectedField.readonlyPermission"
-                            (ngModelChange)="syncJson()"
-                            placeholder="forms.edit_sensitive"
-                          />
-                        </app-field-shell>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('selectedFieldPermission', 'text', 'Permiso para ver', 'forms.read_sensitive')"
+                          [value]="selectedField.requiredPermission"
+                          (valueChange)="setFieldString(selectedField, 'requiredPermission', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('selectedFieldRole', 'text', 'Rol para ver', 'admin')"
+                          [value]="selectedField.requiredRole"
+                          (valueChange)="setFieldString(selectedField, 'requiredRole', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('selectedFieldReadonlyPermission', 'text', 'Permiso para editar', 'forms.edit_sensitive')"
+                          [value]="selectedField.readonlyPermission"
+                          (valueChange)="setFieldString(selectedField, 'readonlyPermission', $event)"
+                        ></app-dynamic-field-control>
                       </div>
                     } @else {
                       <app-status-notice tone="info">
@@ -1811,9 +1741,23 @@ const FORM_TEMPLATES: FormTemplate[] = [
                 </div>
 
                 <div class="inline-actions">
-                  <button class="primary" type="button" (click)="save()" [disabled]="saving || !canSave">Guardar borrador</button>
-                  <button type="button" (click)="createVersion()" [disabled]="!selected || saving || !canCreateVersion">Crear versión</button>
-                  <button type="button" (click)="publishLatest()" [disabled]="!latestVersion || saving || !canPublish">Publicar última versión</button>
+                  <app-ui-kit-button
+                    label="Guardar borrador"
+                    [disabled]="saving || !canSave"
+                    (pressed)="save()"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Crear versión"
+                    variant="outline"
+                    [disabled]="!selected || saving || !canCreateVersion"
+                    (pressed)="createVersion()"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Publicar última versión"
+                    variant="outline"
+                    [disabled]="!latestVersion || saving || !canPublish"
+                    (pressed)="publishLatest()"
+                  ></app-ui-kit-button>
                 </div>
                 <app-status-notice tone="info">
                   Orden recomendado: guardar borrador, revisar preview, crear versión y publicar. Si editas después, vuelve a crear otra versión.
@@ -1902,16 +1846,23 @@ const FORM_TEMPLATES: FormTemplate[] = [
                     title="Ejecuta el submit contra backend"
                     description="Guarda el borrador, prepara datos de ejemplo y ejecuta el runtime seguro del formulario."
                   >
-                    <button type="button" (click)="usePreviewAsFixture()">Usar datos del preview</button>
-                    <button type="button" (click)="generateExampleFixture()">Generar ejemplo</button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="runSubmitTest()"
+                    <app-ui-kit-button
+                      label="Usar datos del preview"
+                      variant="outline"
+                      tone="neutral"
+                      (pressed)="usePreviewAsFixture()"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Generar ejemplo"
+                      variant="outline"
+                      tone="neutral"
+                      (pressed)="generateExampleFixture()"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Probar submit"
                       [disabled]="testing || !selected || !!selected.trashedAt"
-                    >
-                      Probar submit
-                    </button>
+                      (pressed)="runSubmitTest()"
+                    ></app-ui-kit-button>
                   </app-section-header>
 
                   @if (!selected) {
@@ -1921,9 +1872,13 @@ const FORM_TEMPLATES: FormTemplate[] = [
                   }
 
                   <div class="test-grid">
-                    <app-field-shell label="Input de prueba" forId="submit-test-input" help="Este JSON se envía como input al runtime.">
-                      <textarea id="submit-test-input" [(ngModel)]="submitTestInputText" spellcheck="false"></textarea>
-                    </app-field-shell>
+                    <app-code-textarea
+                      controlId="submit-test-input"
+                      label="Input de prueba"
+                      [value]="submitTestInputText"
+                      minHeight="180px"
+                      (valueChange)="submitTestInputText = $event; submitTestPassed = false"
+                    ></app-code-textarea>
                     <div>
                       <app-field-shell label="Última respuesta" forId="submit-test-output">
                         <pre id="submit-test-output" class="test-output">{{ submitTestOutputText || 'Sin ejecución todavía.' }}</pre>
@@ -2023,6 +1978,151 @@ export class FormsPageComponent implements OnDestroy, OnInit {
     { key: 'fields', label: 'Campos', summary: 'Pasos y controles' },
     { key: 'publish', label: 'Publicar', summary: 'Versión estable' },
     { key: 'preview', label: 'Preview', summary: 'Web y móvil' }
+  ];
+
+  readonly presentationKitOptions = [
+    { label: 'Automático', value: 'auto' },
+    { label: 'PrimeNG web', value: 'primeng' },
+    { label: 'Ionic móvil', value: 'ionic' },
+    { label: 'Material', value: 'material' },
+    { label: 'Bootstrap', value: 'bootstrap' },
+    { label: 'Nativo accesible', value: 'native' }
+  ];
+
+  readonly themeModeOptions = [
+    { label: 'Sistema', value: 'system' },
+    { label: 'Claro', value: 'light' },
+    { label: 'Oscuro', value: 'dark' }
+  ];
+
+  readonly densityOptions = [
+    { label: 'Cómoda', value: 'comfortable' },
+    { label: 'Compacta', value: 'compact' },
+    { label: 'Amplia', value: 'spacious' }
+  ];
+
+  readonly desktopModeOptions = [
+    { label: 'Pasos como cards', value: 'step_cards' },
+    { label: 'Formulario continuo', value: 'single_form' },
+    { label: 'Wizard', value: 'wizard' },
+    { label: 'Automático', value: 'auto' }
+  ];
+
+  readonly mobileModeOptions = [
+    { label: 'Un paso por pantalla', value: 'step_screens' },
+    { label: 'Scroll continuo', value: 'single_scroll' },
+    { label: 'Automático', value: 'auto' }
+  ];
+
+  readonly formWidthOptions = [
+    { label: 'Compacto', value: 'compact' },
+    { label: 'Estándar', value: 'standard' },
+    { label: 'Amplio', value: 'wide' },
+    { label: 'Todo el ancho', value: 'full' }
+  ];
+
+  readonly formAlignOptions = [
+    { label: 'Izquierda', value: 'left' },
+    { label: 'Centro', value: 'center' },
+    { label: 'Derecha', value: 'right' },
+    { label: 'Estirar', value: 'stretch' }
+  ];
+
+  readonly buttonToneOptions = [
+    { label: 'Primario azul', value: 'primary' },
+    { label: 'Secundario', value: 'secondary' },
+    { label: 'Verde', value: 'success' },
+    { label: 'Rojo', value: 'danger' },
+    { label: 'Neutral', value: 'neutral' }
+  ];
+
+  readonly columnOptions = [
+    { label: '1 columna', value: 1 },
+    { label: '2 columnas', value: 2 },
+    { label: '3 columnas', value: 3 }
+  ];
+
+  readonly actionAlignOptions = [
+    { label: 'Izquierda', value: 'left' },
+    { label: 'Centro', value: 'center' },
+    { label: 'Derecha', value: 'right' },
+    { label: 'Ancho completo', value: 'stretch' }
+  ];
+
+  readonly actionSizeOptions = [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Medio', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+    { label: 'Igual que inputs', value: 'field' },
+    { label: 'Completo', value: 'full' }
+  ];
+
+  readonly mobileActionPositionOptions = [
+    { label: 'Fijo abajo', value: 'bottom_sticky' },
+    { label: 'Al final', value: 'footer' },
+    { label: 'En línea', value: 'inline' }
+  ];
+
+  readonly persistenceModeOptions = [
+    { label: 'Guardar record genérico', value: 'record' },
+    { label: 'Ejecutar servicio dinámico', value: 'service' },
+    { label: 'Ejecutar flow', value: 'flow' },
+    { label: 'Iniciar sesión', value: 'auth' },
+    { label: 'Guardar record y orquestar después', value: 'hybrid' },
+    { label: 'Acción segura del backend', value: 'submit_action' },
+    { label: 'Solo validar / consultar', value: 'none' }
+  ];
+
+  readonly hybridActionOptions = [
+    { label: 'Solo guardar record', value: 'none' },
+    { label: 'Ejecutar servicio', value: 'execute_service' },
+    { label: 'Ejecutar flow', value: 'execute_flow' }
+  ];
+
+  readonly commandTypeOptions = [
+    { label: 'Ejecutar servicio', value: 'execute_service' },
+    { label: 'Ejecutar flow', value: 'execute_flow' },
+    { label: 'Mostrar mensaje', value: 'show_message' }
+  ];
+
+  readonly responseModeOptions = [
+    { label: 'Mostrar respuesta', value: 'show_response' },
+    { label: 'Silenciosa', value: 'silent' }
+  ];
+
+  readonly fieldTypeOptions = [
+    { label: 'Texto', value: 'text' },
+    { label: 'Email', value: 'email' },
+    { label: 'Número', value: 'number' },
+    { label: 'Moneda', value: 'currency' },
+    { label: 'Teléfono', value: 'tel' },
+    { label: 'URL', value: 'url' },
+    { label: 'Password', value: 'password' },
+    { label: 'Textarea', value: 'textarea' },
+    { label: 'Select', value: 'select' },
+    { label: 'Opciones radio', value: 'radio' },
+    { label: 'Check', value: 'checkbox' },
+    { label: 'Switch', value: 'toggle' },
+    { label: 'Fecha', value: 'date' },
+    { label: 'Hora', value: 'time' },
+    { label: 'Fecha y hora', value: 'datetime' },
+    { label: 'Archivo', value: 'file' },
+    { label: 'Imagen', value: 'image' },
+    { label: 'GPS', value: 'gps' }
+  ];
+
+  readonly fieldLayoutOptions = [
+    { label: 'Completo', value: 'full' },
+    { label: 'Mitad', value: 'half' },
+    { label: 'Tercio', value: 'third' }
+  ];
+
+  readonly conditionOperatorOptions = [
+    { label: 'Igual a', value: 'equals' },
+    { label: 'Distinto de', value: 'not_equals' },
+    { label: 'Tiene valor / verdadero', value: 'truthy' },
+    { label: 'Vacío / falso', value: 'falsy' },
+    { label: 'Contiene', value: 'contains' }
   ];
 
   get guide() {
@@ -2319,6 +2419,134 @@ export class FormsPageComponent implements OnDestroy, OnInit {
   ngOnDestroy() {
     this.unregisterAssistantState();
     this.assistantProposalEffect.destroy();
+  }
+
+  asString(value: unknown) {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  asBoolean(value: unknown) {
+    return value === true || value === 'true' || value === '1' || value === 1;
+  }
+
+  runtimeField(
+    name: string,
+    type: string,
+    label: string,
+    placeholder = '',
+    options: Array<{ label: string; value: unknown }> = []
+  ): RuntimeField {
+    return {
+      name,
+      type,
+      label,
+      placeholder,
+      options
+    };
+  }
+
+  get themeOptions() {
+    return this.installedThemes.map((theme) => ({
+      label: theme.label,
+      value: theme.key
+    }));
+  }
+
+  get serviceOptions() {
+    return [
+      { label: 'Selecciona un servicio', value: '' },
+      ...this.availableServices.map((service) => ({
+        label: `${service.name} · v${service.version}`,
+        value: service.key
+      }))
+    ];
+  }
+
+  get flowOptions() {
+    return [
+      { label: 'Selecciona un flow', value: '' },
+      ...this.availableFlows.map((flow) => ({
+        label: flow.name,
+        value: flow.key
+      }))
+    ];
+  }
+
+  get draftFieldOptions() {
+    return [
+      { label: 'Selecciona un campo', value: '' },
+      ...this.allDraftFields.map((field) => ({
+        label: field.label || field.key,
+        value: field.key
+      }))
+    ];
+  }
+
+  get visibleFieldOptions() {
+    return [
+      { label: 'Siempre visible', value: '' },
+      ...this.conditionFieldKeys.map((key) => ({
+        label: key,
+        value: key
+      }))
+    ];
+  }
+
+  setDraftValue(key: keyof FormDraft, value: unknown) {
+    (this.draft as unknown as Record<string, unknown>)[key] = value;
+    this.syncJson();
+  }
+
+  setDraftString(key: keyof FormDraft, value: unknown) {
+    this.setDraftValue(key, this.asString(value));
+  }
+
+  setDraftBoolean(key: keyof FormDraft, value: unknown) {
+    this.setDraftValue(key, this.asBoolean(value));
+  }
+
+  setDraftNumber(key: keyof FormDraft, value: unknown) {
+    this.setDraftValue(key, this.asNumber(value) ?? 0);
+  }
+
+  setCommandValue(command: FormCommandDraft, key: keyof FormCommandDraft, value: unknown) {
+    (command as unknown as Record<string, unknown>)[key] = value;
+    this.syncJson();
+  }
+
+  setCommandString(command: FormCommandDraft, key: keyof FormCommandDraft, value: unknown) {
+    this.setCommandValue(command, key, this.asString(value));
+  }
+
+  setCommandBoolean(command: FormCommandDraft, key: keyof FormCommandDraft, value: unknown) {
+    this.setCommandValue(command, key, this.asBoolean(value));
+  }
+
+  setStepString(step: StepDraft, key: keyof StepDraft, value: unknown) {
+    (step as unknown as Record<string, unknown>)[key] = this.asString(value);
+    this.syncJson();
+  }
+
+  setFieldValue(field: FieldDraft, key: keyof FieldDraft, value: unknown) {
+    (field as unknown as Record<string, unknown>)[key] = value;
+    this.syncJson();
+  }
+
+  setFieldString(field: FieldDraft, key: keyof FieldDraft, value: unknown) {
+    this.setFieldValue(field, key, this.asString(value));
+  }
+
+  setFieldBoolean(field: FieldDraft, key: keyof FieldDraft, value: unknown) {
+    this.setFieldValue(field, key, this.asBoolean(value));
+  }
+
+  setFieldNumber(field: FieldDraft, key: keyof FieldDraft, value: unknown) {
+    this.setFieldValue(field, key, this.asNumber(value) ?? 0);
+  }
+
+  setOptionString(option: FieldOptionDraft, key: keyof FieldOptionDraft, value: unknown) {
+    option[key] = this.asString(value);
+    this.syncJson();
   }
 
   get selectedField() {

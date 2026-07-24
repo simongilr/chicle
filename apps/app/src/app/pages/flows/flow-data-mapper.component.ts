@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { UiKitAwareComponent } from '../../shared/ui-kit/ui-kit-aware.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 export interface FlowMapRow {
   key: string;
@@ -17,7 +19,7 @@ export interface FlowDataOption {
 @Component({
   selector: 'app-flow-data-mapper',
   standalone: true,
-  imports: [FormsModule],
+  imports: [DynamicFieldControlComponent, UiKitButtonComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -47,46 +49,6 @@ export interface FlowDataOption {
         font-weight: 800;
       }
 
-      input,
-      select {
-        width: 100%;
-        min-height: 38px;
-        border: 1px solid var(--ch-color-primary-border);
-        border-radius: 7px;
-        padding: 8px 10px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        font: inherit;
-      }
-
-      :host([data-ui-kit='material']) input,
-      :host([data-ui-kit='material']) select,
-      :host([data-ui-kit='material']) button {
-        border-radius: 4px;
-      }
-
-      :host([data-ui-kit='bootstrap']) input,
-      :host([data-ui-kit='bootstrap']) select,
-      :host([data-ui-kit='bootstrap']) button {
-        border-radius: 6px;
-      }
-
-      :host([data-ui-kit='ionic']) input,
-      :host([data-ui-kit='ionic']) select,
-      :host([data-ui-kit='ionic']) button {
-        min-height: 42px;
-        border-radius: 12px;
-      }
-
-      button {
-        min-height: 38px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 7px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        cursor: pointer;
-      }
-
       .empty {
         border: 1px dashed var(--ch-color-primary-border);
         border-radius: 7px;
@@ -105,43 +67,44 @@ export interface FlowDataOption {
     <div class="mapper">
       @for (row of rows; track $index) {
         <div class="row">
-          <label>
-            Dato que necesita
-            <input [(ngModel)]="row.key" (ngModelChange)="emitRows()" placeholder="email" />
-          </label>
-          <label>
-            Tomar el valor de
-            <select [(ngModel)]="row.value" (ngModelChange)="emitRows()">
-              <option value="">Selecciona un dato</option>
-              @for (group of optionGroups; track group.key) {
-                <optgroup [label]="group.label">
-                  @for (option of optionsFor(group.key); track option.value) {
-                    <option [value]="option.value">{{ option.label }}</option>
-                  }
-                </optgroup>
-              }
-              <option value="__manual__">Escribir valor o ruta manual</option>
-            </select>
-          </label>
-          <button type="button" title="Quitar mapeo" (click)="remove($index)">
-            <i class="pi pi-trash" aria-hidden="true"></i>
-          </button>
+          <app-dynamic-field-control
+            [field]="rowKeyField($index)"
+            [value]="row.key"
+            (valueChange)="setRowKey($index, $event)"
+          ></app-dynamic-field-control>
+          <app-dynamic-field-control
+            [field]="rowValueField($index)"
+            [value]="row.value"
+            (valueChange)="setRowValue($index, $event)"
+          ></app-dynamic-field-control>
+          <app-ui-kit-button
+            label=""
+            icon="pi pi-trash"
+            tone="danger"
+            variant="outline"
+            (pressed)="remove($index)"
+          ></app-ui-kit-button>
           @if (row.value === '__manual__' || !isKnownOption(row.value)) {
-            <label style="grid-column: 2 / -1;">
-              Valor manual
-              <input
-                [ngModel]="row.value === '__manual__' ? '' : row.value"
-                (ngModelChange)="setManualValue($index, $event)"
-                [placeholder]="'Texto fijo o {{input.campo}}'"
-              />
-            </label>
+            <div style="grid-column: 2 / -1;">
+              <app-dynamic-field-control
+                [field]="manualValueField($index)"
+                [value]="row.value === '__manual__' ? '' : row.value"
+                (valueChange)="setManualValue($index, $event)"
+              ></app-dynamic-field-control>
+            </div>
           }
         </div>
       } @empty {
         <div class="empty">Este paso no necesita datos todavía.</div>
       }
 
-      <button type="button" (click)="add()"><i class="pi pi-plus" aria-hidden="true"></i> Agregar dato</button>
+      <app-ui-kit-button
+        label="Agregar dato"
+        icon="pi pi-plus"
+        tone="secondary"
+        variant="outline"
+        (pressed)="add()"
+      ></app-ui-kit-button>
     </div>
   `
 })
@@ -157,6 +120,46 @@ export class FlowDataMapperComponent extends UiKitAwareComponent {
     { key: 'literal', label: 'Valores frecuentes' }
   ];
 
+  rowKeyField(index: number): RuntimeField {
+    return {
+      name: `map_key_${index}`,
+      type: 'text',
+      label: 'Dato que necesita',
+      placeholder: 'email'
+    };
+  }
+
+  rowValueField(index: number): RuntimeField {
+    return {
+      name: `map_value_${index}`,
+      type: 'select',
+      label: 'Tomar el valor de',
+      options: [
+        { label: 'Selecciona un dato', value: '' },
+        ...this.groupedOptions,
+        { label: 'Escribir valor o ruta manual', value: '__manual__' }
+      ]
+    };
+  }
+
+  manualValueField(index: number): RuntimeField {
+    return {
+      name: `map_manual_${index}`,
+      type: 'text',
+      label: 'Valor manual',
+      placeholder: 'Texto fijo o {{input.campo}}'
+    };
+  }
+
+  get groupedOptions() {
+    return this.optionGroups.flatMap((group) =>
+      this.optionsFor(group.key).map((option) => ({
+        label: `${group.label}: ${option.label}`,
+        value: option.value
+      }))
+    );
+  }
+
   optionsFor(group: FlowDataOption['group']) {
     return this.options.filter((option) => option.group === group);
   }
@@ -170,17 +173,37 @@ export class FlowDataMapperComponent extends UiKitAwareComponent {
     this.emitRows();
   }
 
+  setRowKey(index: number, value: unknown) {
+    this.rows = this.rows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, key: this.controlString(value) } : row
+    );
+    this.emitRows();
+  }
+
+  setRowValue(index: number, value: unknown) {
+    this.rows = this.rows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, value: this.controlString(value) } : row
+    );
+    this.emitRows();
+  }
+
   remove(index: number) {
     this.rows = this.rows.filter((_, rowIndex) => rowIndex !== index);
     this.emitRows();
   }
 
-  setManualValue(index: number, value: string) {
-    this.rows = this.rows.map((row, rowIndex) => (rowIndex === index ? { ...row, value } : row));
+  setManualValue(index: number, value: unknown) {
+    this.rows = this.rows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, value: this.controlString(value) } : row
+    );
     this.emitRows();
   }
 
   emitRows() {
     this.rowsChange.emit(this.rows.map((row) => ({ ...row })));
+  }
+
+  private controlString(value: unknown) {
+    return typeof value === 'string' ? value : value == null ? '' : String(value);
   }
 }

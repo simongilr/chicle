@@ -141,7 +141,7 @@
               }
             ],
             "relationNotes": "",
-            "filterNotes": "Debe llegar al menos uno de los dos valores."
+            "filterNotes": "At least one of the two values must be present."
           },
           "timeoutMs": 8000,
           "retry": {
@@ -398,6 +398,131 @@
               "type": "show_response"
             }
           ]
+        }
+      }
+    },
+    {
+      "id": "public_read_with_api_key",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "query",
+          "source": "internal_table",
+          "resultKind": "list",
+          "method": "GET",
+          "url": "internal://table/roles",
+          "headers": {},
+          "query": {
+            "key": "{{input.key}}"
+          },
+          "body": null,
+          "dataTarget": {
+            "queryMode": "single_table",
+            "primaryTable": "roles",
+            "involvedTables": [
+              "roles"
+            ],
+            "matchMode": "all",
+            "filters": [
+              {
+                "field": "key",
+                "operator": "contains",
+                "valueSource": "input",
+                "inputKey": "key",
+                "required": false
+              }
+            ],
+            "filterNotes": "The current tenant is applied automatically.",
+            "limit": 50
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "items": "{{response.rows}}",
+            "count": "{{response.count}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ],
+          "exposure": {
+            "enabled": true,
+            "allowedMethods": [
+              "GET"
+            ],
+            "inputMode": "query",
+            "responseMode": "mapped_or_result",
+            "security": {
+              "mode": "api_key",
+              "headerName": "x-chicle-api-key",
+              "apiKey": "replace-with-strong-key-123456"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "public_read_no_auth",
+      "endpoint": "POST /api/dynamic-services/:serviceId/versions",
+      "request": {
+        "definition": {
+          "intent": "query",
+          "source": "internal_table",
+          "resultKind": "list",
+          "method": "GET",
+          "url": "internal://table/menus",
+          "headers": {},
+          "query": {
+            "route": "{{input.route}}"
+          },
+          "body": null,
+          "dataTarget": {
+            "queryMode": "single_table",
+            "primaryTable": "menus",
+            "involvedTables": [
+              "menus"
+            ],
+            "matchMode": "all",
+            "filters": [
+              {
+                "field": "route",
+                "operator": "equals",
+                "valueSource": "input",
+                "inputKey": "route",
+                "required": true
+              }
+            ],
+            "filterNotes": "No-auth exposure is allowed only for GET read or validation services.",
+            "limit": 25
+          },
+          "timeoutMs": 8000,
+          "retry": {
+            "attempts": 0,
+            "backoffMs": 0
+          },
+          "responseMap": {
+            "items": "{{response.rows}}"
+          },
+          "effects": [
+            {
+              "type": "show_response"
+            }
+          ],
+          "exposure": {
+            "enabled": true,
+            "allowedMethods": [
+              "GET"
+            ],
+            "inputMode": "query",
+            "responseMode": "mapped_or_result",
+            "security": {
+              "mode": "none"
+            }
+          }
         }
       }
     },

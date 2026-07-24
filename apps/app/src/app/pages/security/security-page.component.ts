@@ -4,14 +4,26 @@ import { forkJoin } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminActionToolbarComponent } from '../../shared/admin-action-toolbar/admin-action-toolbar.component';
 import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
 import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
 import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
+import {
+  AssignmentChecklistComponent,
+  AssignmentChecklistOption
+} from '../../shared/assignment-checklist/assignment-checklist.component';
+import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
+import {
+  SegmentedControlComponent,
+  SegmentedControlItem
+} from '../../shared/segmented-control/segmented-control.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 interface SecurityUser {
   id: string;
@@ -102,11 +114,16 @@ type RolePanelMode = 'create' | 'edit';
     AdminFilterBarComponent,
     AdminMetricCardComponent,
     AdminPanelComponent,
+    AssignmentChecklistComponent,
+    CatalogItemComponent,
+    DynamicFieldControlComponent,
     FormsModule,
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     PageShellComponent,
-    StatusNoticeComponent
+    SegmentedControlComponent,
+    StatusNoticeComponent,
+    UiKitButtonComponent
   ],
   styles: [
     `
@@ -501,9 +518,12 @@ type RolePanelMode = 'create' | 'edit';
           description="Estado actual de identidad y autorización de la organización."
         >
           <app-admin-action-toolbar panel-actions>
-              <button class="primary" type="button" (click)="syncSecurity()" [disabled]="!canManageRoles || syncing">
-                {{ syncing ? 'Sincronizando...' : 'Sincronizar seguridad' }}
-              </button>
+            <app-ui-kit-button
+              [label]="syncing ? 'Sincronizando...' : 'Sincronizar seguridad'"
+              tone="primary"
+              [disabled]="!canManageRoles || syncing"
+              (pressed)="syncSecurity()"
+            ></app-ui-kit-button>
           </app-admin-action-toolbar>
           <div class="overview">
             <app-admin-metric-card
@@ -539,17 +559,12 @@ type RolePanelMode = 'create' | 'edit';
           }
         </app-admin-panel>
 
-        <nav class="tabs" aria-label="Secciones de seguridad">
-          <button class="tab" type="button" [class.active]="securityTab === 'users'" (click)="securityTab = 'users'">
-            Usuarios
-          </button>
-          <button class="tab" type="button" [class.active]="securityTab === 'roles'" (click)="securityTab = 'roles'">
-            Roles y permisos
-          </button>
-          <button class="tab" type="button" [class.active]="securityTab === 'audit'" (click)="securityTab = 'audit'">
-            Auditoría
-          </button>
-        </nav>
+        <app-segmented-control
+          [items]="securityTabOptions"
+          [value]="securityTab"
+          ariaLabel="Secciones de seguridad"
+          (valueChange)="setSecurityTab($event)"
+        ></app-segmented-control>
 
         @if (securityTab === 'users') {
           <section class="security-layout">
@@ -559,71 +574,59 @@ type RolePanelMode = 'create' | 'edit';
                   <h2>Usuarios del tenant</h2>
                   <p class="meta">Página {{ userPage }} · {{ users.length }} de {{ usersTotal }} usuarios encontrados.</p>
                 </div>
-                <button class="primary" type="button" (click)="startCreateUser()" [disabled]="!canCreateUsers">
-                  Nuevo
-                </button>
+                <app-ui-kit-button
+                  label="Nuevo"
+                  tone="primary"
+                  [disabled]="!canCreateUsers"
+                  (pressed)="startCreateUser()"
+                ></app-ui-kit-button>
               </div>
 
               <app-admin-filter-bar ariaLabel="User filters" minColumnWidth="160px">
-                <label>
-                  Buscar
-                  <input
-                    type="search"
-                    [(ngModel)]="userSearch"
-                    (ngModelChange)="scheduleUsersReload()"
-                    autocomplete="off"
-                    placeholder="Email, nombre o rol"
-                  />
-                </label>
-                  <label>
-                    Estado
-                    <select [(ngModel)]="userStatusFilter" (ngModelChange)="loadUsers(1)">
-                      <option value="all">Todos</option>
-                      <option value="active">Activos</option>
-                      <option value="inactive">Inactivos</option>
-                    </select>
-                  </label>
-                  <label>
-                    Rol
-                    <select [(ngModel)]="userRoleFilter" (ngModelChange)="loadUsers(1)">
-                      <option value="">Todos</option>
-                      @for (role of roles; track role.id) {
-                        <option [value]="role.key">{{ role.name }}</option>
-                      }
-                    </select>
-                  </label>
+                <app-dynamic-field-control
+                  [field]="userSearchField"
+                  [value]="userSearch"
+                  (valueChange)="setUserSearch($event)"
+                ></app-dynamic-field-control>
+                <app-dynamic-field-control
+                  [field]="userStatusField"
+                  [value]="userStatusFilter"
+                  (valueChange)="setUserStatus($event)"
+                ></app-dynamic-field-control>
+                <app-dynamic-field-control
+                  [field]="userRoleFilterField"
+                  [value]="userRoleFilter"
+                  (valueChange)="setUserRoleFilter($event)"
+                ></app-dynamic-field-control>
               </app-admin-filter-bar>
 
               <div class="user-list">
                 @for (user of users; track user.id) {
-                  <button
-                    class="user-card"
-                    type="button"
-                    [class.active]="selectedUser?.id === user.id && userPanelMode === 'edit'"
-                    (click)="selectUser(user)"
-                  >
-                    <strong>{{ user.name || 'Sin nombre' }}</strong>
-                    <span class="meta">{{ user.email }}</span>
-                    <div class="pill-row">
-                      <span class="pill" [class.ok]="user.active" [class.warn]="!user.active">
-                        {{ user.active ? 'Activo' : 'Inactivo' }}
-                      </span>
-                      @for (role of user.roles; track role) {
-                        <span class="pill">{{ role }}</span>
-                      }
-                    </div>
-                  </button>
+                  <app-catalog-item
+                    [title]="user.name || 'Sin nombre'"
+                    [meta]="user.email + ' · ' + (user.active ? 'Activo' : 'Inactivo')"
+                    [detail]="user.roles.join(', ') || 'Sin roles asignados'"
+                    [active]="selectedUser?.id === user.id && userPanelMode === 'edit'"
+                    (selected)="selectUser(user)"
+                  ></app-catalog-item>
                 } @empty {
                   <app-status-notice tone="info">No hay usuarios con esos filtros.</app-status-notice>
                 }
               </div>
               <div class="actions">
-                <button type="button" (click)="loadUsers(userPage - 1)" [disabled]="userPage <= 1">
-                  Anterior
-                </button>
-                <button type="button" (click)="loadUsers(userPage + 1)" [disabled]="userPage >= userTotalPages">
-                  Siguiente
-                </button>
+                <app-ui-kit-button
+                  label="Anterior"
+                  tone="secondary"
+                  variant="outline"
+                  [disabled]="userPage <= 1"
+                  (pressed)="loadUsers(userPage - 1)"
+                ></app-ui-kit-button>
+                <app-ui-kit-button
+                  label="Siguiente"
+                  tone="primary"
+                  [disabled]="userPage >= userTotalPages"
+                  (pressed)="loadUsers(userPage + 1)"
+                ></app-ui-kit-button>
               </div>
             </aside>
 
@@ -634,35 +637,33 @@ type RolePanelMode = 'create' | 'edit';
                   <p class="meta">Crea una cuenta para alguien que inicia sesión en esta organización.</p>
                 </div>
                 <div class="form-grid">
-                  <label>
-                    Email
-                    <input type="email" [(ngModel)]="newUser.email" autocomplete="off" placeholder="cliente@example.com" />
-                  </label>
-                  <label>
-                    Nombre
-                    <input type="text" [(ngModel)]="newUser.name" autocomplete="off" placeholder="Nombre visible" />
-                  </label>
-                  <label>
-                    Password temporal
-                    <input
-                      type="password"
-                      [(ngModel)]="newUser.password"
-                      autocomplete="new-password"
-                      placeholder="Clave temporal"
-                    />
-                  </label>
-                  <label>
-                    Rol inicial
-                    <select [(ngModel)]="newUser.role">
-                      @for (role of roles; track role.id) {
-                        <option [value]="role.key">{{ role.name }}</option>
-                      }
-                    </select>
-                  </label>
+                  <app-dynamic-field-control
+                    [field]="newUserEmailField"
+                    [value]="newUser.email"
+                    (valueChange)="newUser.email = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="newUserNameField"
+                    [value]="newUser.name"
+                    (valueChange)="newUser.name = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="newUserPasswordField"
+                    [value]="newUser.password"
+                    (valueChange)="newUser.password = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="newUserRoleField"
+                    [value]="newUser.role"
+                    (valueChange)="newUser.role = asString($event)"
+                  ></app-dynamic-field-control>
                 </div>
-                <button class="primary" type="button" (click)="createUser()" [disabled]="!canCreateUsers">
-                  Crear usuario
-                </button>
+                <app-ui-kit-button
+                  label="Crear usuario"
+                  tone="primary"
+                  [disabled]="!canCreateUsers"
+                  (pressed)="createUser()"
+                ></app-ui-kit-button>
               } @else if (selectedUser) {
                 <div class="detail-head">
                   <div class="section-title">
@@ -670,54 +671,47 @@ type RolePanelMode = 'create' | 'edit';
                     <p class="meta">{{ selectedUser.email }} · {{ selectedUser.active ? 'Activo' : 'Inactivo' }}</p>
                   </div>
                   <div class="detail-actions">
-                    <button
-                      class="danger"
-                      type="button"
-                      (click)="toggleUser(selectedUser)"
+                    <app-ui-kit-button
+                      [label]="selectedUser.active ? 'Desactivar acceso' : 'Activar acceso'"
+                      tone="danger"
+                      variant="outline"
                       [disabled]="!canUpdateUsers || selectedUser.id === auth.state.session()?.user?.id"
-                    >
-                      {{ selectedUser.active ? 'Desactivar acceso' : 'Activar acceso' }}
-                    </button>
+                      (pressed)="toggleUser(selectedUser)"
+                    ></app-ui-kit-button>
                   </div>
                 </div>
 
                 <div class="form-grid">
-                  <label>
-                    Nombre visible
-                    <input type="text" [(ngModel)]="userEditor.name" autocomplete="off" placeholder="Nombre del usuario" />
-                  </label>
-                  <label>
-                    Resetear contraseña
-                    <input
-                      type="password"
-                      [(ngModel)]="userEditor.password"
-                      autocomplete="new-password"
-                      placeholder="Deja vacío para no cambiarla"
-                    />
-                  </label>
+                  <app-dynamic-field-control
+                    [field]="userEditorNameField"
+                    [value]="userEditor.name"
+                    (valueChange)="userEditor.name = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="userEditorPasswordField"
+                    [value]="userEditor.password"
+                    (valueChange)="userEditor.password = asString($event)"
+                  ></app-dynamic-field-control>
                 </div>
 
                 <div class="section-title">
                   <h3>Roles asignados</h3>
                   <p class="meta">Estos roles definen el acceso efectivo dentro del tenant.</p>
                 </div>
-                <div class="checks">
-                  @for (role of roles; track role.id) {
-                    <label class="check">
-                      <input
-                        type="checkbox"
-                        [checked]="selectedUser.roles.includes(role.key)"
-                        [disabled]="!canManageRoles"
-                        (change)="toggleUserRole(selectedUser, role.key)"
-                      />
-                      {{ role.name }}
-                    </label>
-                  }
-                </div>
+                <app-assignment-checklist
+                  variant="pills"
+                  [options]="userRoleOptions(selectedUser)"
+                  [disabled]="!canManageRoles"
+                  emptyText="Todavía no hay roles disponibles."
+                  (optionToggle)="toggleUserRole(selectedUser, $event)"
+                ></app-assignment-checklist>
 
-                <button type="button" (click)="saveSelectedUser()" [disabled]="!canUpdateUsers">
-                  Guardar cambios
-                </button>
+                <app-ui-kit-button
+                  label="Guardar cambios"
+                  tone="primary"
+                  [disabled]="!canUpdateUsers"
+                  (pressed)="saveSelectedUser()"
+                ></app-ui-kit-button>
               } @else {
                 <app-status-notice tone="info">Selecciona un usuario o crea uno nuevo.</app-status-notice>
               }
@@ -733,23 +727,23 @@ type RolePanelMode = 'create' | 'edit';
                   <h2>Roles</h2>
                   <p class="meta">{{ roles.length }} perfiles disponibles.</p>
                 </div>
-                <button class="primary" type="button" (click)="startCreateRole()" [disabled]="!canManageRoles">
-                  Nuevo
-                </button>
+                <app-ui-kit-button
+                  label="Nuevo"
+                  tone="primary"
+                  [disabled]="!canManageRoles"
+                  (pressed)="startCreateRole()"
+                ></app-ui-kit-button>
               </div>
 
               <div class="user-list">
                 @for (role of roles; track role.id) {
-                  <button
-                    class="user-card"
-                    type="button"
-                    [class.active]="selectedRole?.id === role.id && rolePanelMode === 'edit'"
-                    (click)="selectRole(role)"
-                  >
-                    <strong>{{ role.name }}</strong>
-                    <span class="meta">{{ role.key }} · {{ role.builtIn ? 'base del sistema' : 'custom' }}</span>
-                    <span class="meta">{{ role.permissions.length }} permisos</span>
-                  </button>
+                  <app-catalog-item
+                    [title]="role.name"
+                    [meta]="role.key + ' · ' + (role.builtIn ? 'base del sistema' : 'custom')"
+                    [detail]="role.permissions.length + ' permisos'"
+                    [active]="selectedRole?.id === role.id && rolePanelMode === 'edit'"
+                    (selected)="selectRole(role)"
+                  ></app-catalog-item>
                 }
               </div>
             </aside>
@@ -761,22 +755,28 @@ type RolePanelMode = 'create' | 'edit';
                   <p class="meta">Crea un perfil custom para este tenant.</p>
                 </div>
                 <div class="form-grid">
-                  <label>
-                    Key
-                    <input [(ngModel)]="roleDraft.key" placeholder="supervisor" />
-                  </label>
-                  <label>
-                    Nombre
-                    <input [(ngModel)]="roleDraft.name" placeholder="Supervisor" />
-                  </label>
+                  <app-dynamic-field-control
+                    [field]="roleKeyField"
+                    [value]="roleDraft.key"
+                    (valueChange)="roleDraft.key = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="roleNameField"
+                    [value]="roleDraft.name"
+                    (valueChange)="roleDraft.name = asString($event)"
+                  ></app-dynamic-field-control>
                 </div>
-                <label>
-                  Descripción
-                  <input [(ngModel)]="roleDraft.description" placeholder="Qué puede hacer este perfil" />
-                </label>
-                <button class="primary" type="button" (click)="createRole()" [disabled]="!canManageRoles">
-                  Crear rol
-                </button>
+                <app-dynamic-field-control
+                  [field]="roleDescriptionField"
+                  [value]="roleDraft.description"
+                  (valueChange)="roleDraft.description = asString($event)"
+                ></app-dynamic-field-control>
+                <app-ui-kit-button
+                  label="Crear rol"
+                  tone="primary"
+                  [disabled]="!canManageRoles"
+                  (pressed)="createRole()"
+                ></app-ui-kit-button>
               } @else if (selectedRole) {
                 <div class="detail-head">
                   <div class="section-title">
@@ -784,38 +784,40 @@ type RolePanelMode = 'create' | 'edit';
                     <p class="meta">{{ selectedRole.key }} · {{ selectedRole.builtIn ? 'rol base' : 'rol custom' }}</p>
                   </div>
                   @if (!selectedRole.builtIn) {
-                    <button class="danger" type="button" (click)="deleteSelectedRole()" [disabled]="!canManageRoles">
-                      Eliminar rol
-                    </button>
+                    <app-ui-kit-button
+                      label="Eliminar rol"
+                      tone="danger"
+                      variant="outline"
+                      [disabled]="!canManageRoles"
+                      (pressed)="deleteSelectedRole()"
+                    ></app-ui-kit-button>
                   }
                 </div>
                 <div class="form-grid">
-                  <label>
-                    Nombre
-                    <input [(ngModel)]="roleDraft.name" [disabled]="selectedRole.key === 'owner'" />
-                  </label>
-                  <label>
-                    Descripción
-                    <input [(ngModel)]="roleDraft.description" [disabled]="selectedRole.key === 'owner'" />
-                  </label>
+                  <app-dynamic-field-control
+                    [field]="roleNameField"
+                    [value]="roleDraft.name"
+                    [disabled]="selectedRole.key === 'owner'"
+                    (valueChange)="roleDraft.name = asString($event)"
+                  ></app-dynamic-field-control>
+                  <app-dynamic-field-control
+                    [field]="roleDescriptionField"
+                    [value]="roleDraft.description"
+                    [disabled]="selectedRole.key === 'owner'"
+                    (valueChange)="roleDraft.description = asString($event)"
+                  ></app-dynamic-field-control>
                 </div>
                 <div class="section-title">
                   <h3>Permisos</h3>
                   <p class="meta">Marca las capacidades que tendrá este rol.</p>
                 </div>
-                <div class="checks">
-                  @for (permission of permissions; track permission.id) {
-                    <label class="check">
-                      <input
-                        type="checkbox"
-                        [checked]="selectedRole.permissions.includes(permission.key)"
-                        [disabled]="!canManageRoles || selectedRole.key === 'owner'"
-                        (change)="toggleRolePermission(selectedRole, permission.key)"
-                      />
-                      {{ permission.key }}
-                    </label>
-                  }
-                </div>
+                <app-assignment-checklist
+                  variant="pills"
+                  [options]="rolePermissionOptions(selectedRole)"
+                  [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                  emptyText="Todavía no hay permisos disponibles."
+                  (optionToggle)="toggleRolePermission(selectedRole, $event)"
+                ></app-assignment-checklist>
                 <div class="section-title">
                   <h3>Servicios y flows disponibles</h3>
                   <p class="meta">
@@ -837,46 +839,19 @@ type RolePanelMode = 'create' | 'edit';
                             >. La selección por sí sola no concede ejecución.
                           </app-status-notice>
                         }
-                        <label>
-                          Alcance
-                          <select
-                            [(ngModel)]="roleResourceAccess.policies[resourceType.key].mode"
-                            [disabled]="!canManageRoles || selectedRole.key === 'owner'"
-                          >
-                            <option value="all">Todos los actuales y futuros</option>
-                            <option value="selected">Solo seleccionados</option>
-                            <option value="none">Ninguno</option>
-                          </select>
-                        </label>
+                        <app-dynamic-field-control
+                          [field]="resourceModeField(resourceType.label)"
+                          [value]="roleResourceAccess.policies[resourceType.key].mode"
+                          [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                          (valueChange)="setResourceMode(resourceType.key, $event)"
+                        ></app-dynamic-field-control>
                         @if (roleResourceAccess.policies[resourceType.key].mode === 'selected') {
-                          <div class="resource-list">
-                            @for (resource of roleResourceAccess.resources[resourceType.key]; track resource.id) {
-                              <label class="resource-option">
-                                <input
-                                  type="checkbox"
-                                  [checked]="
-                                    roleResourceAccess.policies[resourceType.key].resourceIds.includes(resource.id)
-                                  "
-                                  [disabled]="!canManageRoles || selectedRole.key === 'owner'"
-                                  (change)="toggleRoleResource(resourceType.key, resource.id)"
-                                />
-                                <span>
-                                  <strong>{{ resource.name }}</strong>
-                                  <small>{{ resource.key }}</small>
-                                </span>
-                                <small
-                                  class="resource-state"
-                                  [class.inactive]="!resource.active || !resource.published"
-                                >
-                                  {{ resource.active && resource.published ? 'Disponible' : 'No publicado' }}
-                                </small>
-                              </label>
-                            } @empty {
-                              <app-status-notice tone="info">
-                                Todavía no hay recursos de este tipo.
-                              </app-status-notice>
-                            }
-                          </div>
+                          <app-assignment-checklist
+                            [options]="roleResourceOptions(resourceType.key)"
+                            [disabled]="!canManageRoles || selectedRole.key === 'owner'"
+                            emptyText="Todavía no hay recursos de este tipo."
+                            (optionToggle)="toggleRoleResource(resourceType.key, $event)"
+                          ></app-assignment-checklist>
                         } @else {
                           <app-status-notice tone="info">
                             {{
@@ -889,24 +864,21 @@ type RolePanelMode = 'create' | 'edit';
                       </section>
                     }
                   </div>
-                  <button
-                    type="button"
+                  <app-ui-kit-button
+                    [label]="savingRoleResources ? 'Guardando acceso...' : 'Guardar acceso a servicios y flows'"
+                    tone="primary"
                     [disabled]="!canManageRoles || selectedRole.key === 'owner' || savingRoleResources"
-                    (click)="saveRoleResources()"
-                  >
-                    {{ savingRoleResources ? 'Guardando acceso...' : 'Guardar acceso a servicios y flows' }}
-                  </button>
+                    (pressed)="saveRoleResources()"
+                  ></app-ui-kit-button>
                 } @else {
                   <app-status-notice tone="info">Cargando recursos asignados al rol...</app-status-notice>
                 }
-                <button
-                  class="primary"
-                  type="button"
+                <app-ui-kit-button
+                  label="Guardar rol"
+                  tone="primary"
                   [disabled]="!canManageRoles || selectedRole.key === 'owner'"
-                  (click)="saveSelectedRole()"
-                >
-                  Guardar rol
-                </button>
+                  (pressed)="saveSelectedRole()"
+                ></app-ui-kit-button>
               }
             </section>
           </section>
@@ -992,6 +964,106 @@ export class SecurityPageComponent implements OnInit {
     role: 'viewer'
   };
 
+  readonly userSearchField: RuntimeField = {
+    name: 'userSearch',
+    type: 'text',
+    label: 'Buscar',
+    placeholder: 'Email, nombre o rol'
+  };
+  readonly userStatusField: RuntimeField = {
+    name: 'userStatus',
+    type: 'select',
+    label: 'Estado',
+    options: [
+      { label: 'Todos', value: 'all' },
+      { label: 'Activos', value: 'active' },
+      { label: 'Inactivos', value: 'inactive' }
+    ]
+  };
+  readonly newUserEmailField: RuntimeField = {
+    name: 'newUserEmail',
+    type: 'email',
+    label: 'Email',
+    placeholder: 'cliente@example.com',
+    required: true
+  };
+  readonly newUserNameField: RuntimeField = {
+    name: 'newUserName',
+    type: 'text',
+    label: 'Nombre',
+    placeholder: 'Nombre visible'
+  };
+  readonly newUserPasswordField: RuntimeField = {
+    name: 'newUserPassword',
+    type: 'password',
+    label: 'Password temporal',
+    placeholder: 'Clave temporal',
+    required: true
+  };
+  readonly userEditorNameField: RuntimeField = {
+    name: 'userEditorName',
+    type: 'text',
+    label: 'Nombre visible',
+    placeholder: 'Nombre del usuario'
+  };
+  readonly userEditorPasswordField: RuntimeField = {
+    name: 'userEditorPassword',
+    type: 'password',
+    label: 'Resetear contraseña',
+    placeholder: 'Deja vacío para no cambiarla'
+  };
+  readonly roleKeyField: RuntimeField = {
+    name: 'roleKey',
+    type: 'text',
+    label: 'Key',
+    placeholder: 'supervisor',
+    required: true
+  };
+  readonly roleNameField: RuntimeField = {
+    name: 'roleName',
+    type: 'text',
+    label: 'Nombre',
+    placeholder: 'Supervisor',
+    required: true
+  };
+  readonly roleDescriptionField: RuntimeField = {
+    name: 'roleDescription',
+    type: 'text',
+    label: 'Descripción',
+    placeholder: 'Qué puede hacer este perfil'
+  };
+  private readonly resourceModeOptions = [
+    { label: 'Todos los actuales y futuros', value: 'all' },
+    { label: 'Solo seleccionados', value: 'selected' },
+    { label: 'Ninguno', value: 'none' }
+  ];
+  readonly securityTabOptions: SegmentedControlItem[] = [
+    { key: 'users', label: 'Usuarios' },
+    { key: 'roles', label: 'Roles y permisos' },
+    { key: 'audit', label: 'Auditoría' }
+  ];
+
+  get userRoleFilterField(): RuntimeField {
+    return {
+      name: 'userRoleFilter',
+      type: 'select',
+      label: 'Rol',
+      options: [
+        { label: 'Todos', value: '' },
+        ...this.roles.map((role) => ({ label: role.name, value: role.key }))
+      ]
+    };
+  }
+
+  get newUserRoleField(): RuntimeField {
+    return {
+      name: 'newUserRole',
+      type: 'select',
+      label: 'Rol inicial',
+      options: this.roles.map((role) => ({ label: role.name, value: role.key }))
+    };
+  }
+
   get canCreateUsers() {
     return this.auth.state.hasPermission('users.create');
   }
@@ -1030,6 +1102,82 @@ export class SecurityPageComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+  }
+
+  asString(value: unknown) {
+    return value == null ? '' : String(value);
+  }
+
+  setUserSearch(value: unknown) {
+    this.userSearch = this.asString(value);
+    this.scheduleUsersReload();
+  }
+
+  setUserStatus(value: unknown) {
+    const next = this.asString(value);
+    this.userStatusFilter = next === 'active' || next === 'inactive' ? next : 'all';
+    this.loadUsers(1);
+  }
+
+  setUserRoleFilter(value: unknown) {
+    this.userRoleFilter = this.asString(value);
+    this.loadUsers(1);
+  }
+
+  setSecurityTab(value: string) {
+    if (value === 'users' || value === 'roles' || value === 'audit') {
+      this.securityTab = value;
+    }
+  }
+
+  resourceModeField(label: string): RuntimeField {
+    return {
+      name: `resourceMode${label.replace(/\W+/g, '')}`,
+      type: 'select',
+      label: 'Alcance',
+      options: this.resourceModeOptions
+    };
+  }
+
+  setResourceMode(resourceType: RoleResourceType, value: unknown) {
+    const mode = this.asString(value);
+    const policy = this.roleResourceAccess?.policies[resourceType];
+    if (!policy) {
+      return;
+    }
+    policy.mode = mode === 'selected' || mode === 'none' ? mode : 'all';
+  }
+
+  userRoleOptions(user: SecurityUser): AssignmentChecklistOption[] {
+    return this.roles.map((role) => ({
+      key: role.key,
+      label: role.name,
+      checked: user.roles.includes(role.key)
+    }));
+  }
+
+  rolePermissionOptions(role: SecurityRole): AssignmentChecklistOption[] {
+    return this.permissions.map((permission) => ({
+      key: permission.key,
+      label: permission.key,
+      description: permission.description || permission.category,
+      checked: role.permissions.includes(permission.key)
+    }));
+  }
+
+  roleResourceOptions(resourceType: RoleResourceType): AssignmentChecklistOption[] {
+    if (!this.roleResourceAccess) {
+      return [];
+    }
+    const selectedResourceIds = this.roleResourceAccess.policies[resourceType].resourceIds;
+    return this.roleResourceAccess.resources[resourceType].map((resource) => ({
+      key: resource.id,
+      label: resource.name,
+      description: resource.key,
+      statusLabel: resource.active && resource.published ? 'Disponible' : 'No publicado',
+      statusTone: resource.active && resource.published ? 'success' : 'warning',
+      checked: selectedResourceIds.includes(resource.id)
+    }));
   }
 
   load() {

@@ -35,6 +35,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | CatalogItemComponent | `app-catalog-item` | Selectable catalog row with title, metadata and detail | Database, Services and Flows | Stable |
 | SectionHeaderComponent | `app-section-header` | Heading, description, step label and projected actions | Operational designers | Stable |
 | AdminFilterBarComponent | `app-admin-filter-bar` | Responsive filter/search bar with consistent multikit spacing and projected controls | Components, Confisys and Markdown repository | Stable |
+| AdminFormGridComponent | `app-admin-form-grid` | Responsive administrative form grid for property panels and settings without page-local layout CSS | Preferences and future builders | Stable |
 | AdminDataTableComponent | `app-admin-data-table` | Dynamic Admin table with columns, rows, empty state and detail action | Database | Stable |
 | ProcessStepsComponent | `app-process-steps` | Guided stages with complete, active and pending states | Services, Flows and Docs | Stable |
 | WorkflowGuideComponent | `app-workflow-guide` | Current objective, explanation and next command | Services, Flows and Docs | Stable |
@@ -43,15 +44,19 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | StatusNoticeComponent | `app-status-notice` | Empty, info, success, warning and error states | Login, Setup, Database, Services, Flows, Security and dynamic forms | Stable |
 | LoadingSkeletonComponent | `app-loading-skeleton` | Page, list, table and form loading placeholders with accessible status | Route transitions and data-driven modules | Stable |
 | SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database and Flows | Stable |
-| FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Login, Setup, component catalog, Confisys and dynamic field controls | Stable |
-| DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic or native adapters without changing the schema | Dynamic form runtime | Initial multikit renderer |
-| DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field and compare installed presentation kits | Component library and form designer | Initial field palette |
+| FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Dynamic field controls, component catalog and legacy public forms | Stable |
+| DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic, Material, Bootstrap or native adapters without changing the schema | Dynamic form runtime | Initial multikit renderer |
+| DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field through the multikit facade and compare installed presentation kits | Component library and form designer | Initial field palette |
 | FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields, command buttons and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
 | ChicleFormlyFieldTypeComponent | `app-chicle-formly-field-type` | Connect Formly state and validation to the multikit field facade | Formly runtime | Initial internal adapter |
 | ChicleFormlyDisplayTypeComponent | `app-chicle-formly-display-type` | Render declarative title, paragraph and divider content | Formly runtime | Initial internal adapter |
 | PrimengFieldRendererComponent | `app-primeng-field-renderer` | Render the field contract with PrimeNG controls | Dynamic field facade | Initial adapter |
 | IonicFieldRendererComponent | `app-ionic-field-renderer` | Render the field contract with Ionic controls | Dynamic field facade | Initial adapter |
+| MaterialFieldRendererComponent | `app-material-field-renderer` | Render the field contract with Angular Material controls | Dynamic field facade | Initial adapter |
+| BootstrapFieldRendererComponent | `app-bootstrap-field-renderer` | Render the field contract with Bootstrap form classes | Dynamic field facade | Initial adapter |
 | NativeFieldRendererComponent | `app-native-field-renderer` | Render the field contract with native HTML controls | Dynamic field facade | Initial fallback |
+| UiKitButtonComponent | `app-ui-kit-button` | Render actions and submit buttons through PrimeNG, Ionic, Material, Bootstrap or native buttons | Login, Setup, Preferences, Components and future Admin actions | Initial multikit action adapter |
+| UiKitCardComponent | `app-ui-kit-card` | Render surfaces through PrimeNG, Ionic, Material, Bootstrap-compatible or native cards | Metrics, Components and future Admin panels | Initial multikit surface adapter |
 | UiPresentationSwitcherComponent | `app-ui-presentation-switcher` | Preview adaptive, PrimeNG, Ionic and native rendering | Dynamic form runtime | Initial |
 | UiThemeSelectorComponent | `app-ui-theme-selector` | Select installed themes and synchronize Chicle, Ionic and PrimeNG tokens | Component library | Initial |
 | PreviewViewportComponent | `app-preview-viewport` | Device-aware preview shell with desktop, tablet and mobile chrome, size metadata and projected runtime content | Dynamic form designer, dynamic form runtime and screen designer | Stable |
@@ -70,8 +75,8 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | --- | --- | --- |
 | AppComponent | Ionic application shell and router outlet | Stable |
 | HomePageComponent | Operational dashboard | Functional, custom layout |
-| SetupPageComponent | First tenant and owner creation | Functional, shared public shell |
-| LoginPageComponent | Policy-driven authentication | Functional, shared public shell |
+| SetupPageComponent | First tenant and owner creation | Functional, shared public shell, dynamic fields and multikit actions |
+| LoginPageComponent | Policy-driven authentication | Functional, shared public shell, dynamic fields, segmented channel selector and multikit actions |
 | DocsPageComponent | In-app operational Docs | Functional, large page |
 | ConfisysPageComponent | Runtime configuration | Functional, custom layout |
 | DatabasePageComponent | Data viewer and schema designer | Functional; partially uses shared designer language |
@@ -100,27 +105,36 @@ These components are required before the builders grow inside page files:
 3. `ComponentTreeComponent`: ordered screen hierarchy with selection and nesting.
 4. `PropertyInspectorComponent`: edits the selected form, step, field or component without knowing its business module.
 5. `SchemaFieldEditorComponent`: key, label, type, default, required and validation rules.
-6. `DataBindingEditorComponent`: generalized form of the current Flow data mapper.
+6. `DataBindingEditorComponent`: generalized form of the current Flow mapper for forms, screens and actions.
 7. `ActionBindingEditorComponent`: event, service/flow key, payload map, result handling and error handling.
-8. `JsonAuthoringPanelComponent`: synchronized guided/JSON editing with parse errors, reset, draft save and publish.
-9. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
-10. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
-11. `AdminDataTableComponent`: reusable Admin table for Database now; extend with server pagination and filters for Security and Confisys.
-12. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
-13. `AdminFilterBarComponent`: shared Admin search/filter strip for Components, Confisys, Markdown repository and the next Database/Security extraction pass.
-14. `DesignerCatalogPanelComponent`: shared designer side catalog with title, count, New/Trash actions, loading, error, empty and item projection.
+8. `DynamicGridDesignerComponent`: optional GridStack-backed design canvas that emits Chicle layout JSON instead of storing GridStack internals.
+9. `DynamicGridRuntimeComponent`: read-only responsive runtime renderer for Admin and generated apps.
+10. `ScreenComponentPaletteComponent`: registered components grouped by purpose, kit support and permissions.
+11. `ScreenPropertyInspectorComponent`: edits props, bindings, actions, access and presentation for selected screen components.
+12. `JsonAuthoringPanelComponent`: synchronized guided/JSON editing with parse errors, reset, draft save and publish.
+13. `VersionLifecyclePanelComponent`: draft, version, publish, compare and restore pattern shared by Services, Flows and forms.
+14. `TestWorkbenchComponent`: input fixture, execute, response, duration and repeatable cases.
+15. `AdminDataTableComponent`: reusable Admin table for Database now; extend with server pagination and filters for Security and Confisys.
+16. `AdminPaginationComponent`: shared pagination, page-size selection and result totals.
+17. `AdminModalComponent`: shared modal/drawer shell with kit-aware actions.
+18. `ConfirmActionComponent`: consistent confirmation for destructive or draft-replacing actions.
+19. `AdminFilterBarComponent`: shared Admin search/filter strip for Components, Confisys, Markdown repository and the next Database/Security extraction pass.
+20. `EnvironmentResourceCardComponent`: shared variable, secret and service registry resource card for the Deploy Center.
+21. `ReadinessValidationListComponent`: shared readiness checklist with ok, warning and danger states.
+22. `DeploymentBundlePanelComponent`: safe generated artifact viewer without exposing secrets.
+23. `DesignerCatalogPanelComponent`: shared designer side catalog with title, count, New/Trash actions, loading, error, empty and item projection.
 
 ## Dynamic Forms readiness audit
 
 | Capability | Existing reusable pieces | Status |
 | --- | --- | --- |
 | Runtime rendering | `FormlyRuntimeComponent`, `FormRuntimeService`, `FormlySchemaAdapterService` | V1 usable; cards, continuous, paged modes, command buttons, dynamic options and access filtering |
-| Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/native renderers | Initial, usable; includes text, numeric, choice, file/image metadata and GPS fallback |
+| Multikit fields | `DynamicFieldControlComponent`, PrimeNG/Ionic/Material/Bootstrap/native renderers | Initial, usable; includes text, numeric, choice, file/image metadata and GPS fallback |
 | Labels/help/errors | `FieldShellComponent` | Ready |
 | Responsive preview | `PreviewViewportComponent`, `UiPresentationSwitcherComponent` | Ready; preview now separates device simulation, runtime content and integration contract |
 | Form lifecycle guide | `ProcessStepsComponent`, `WorkflowGuideComponent`, `StatusNoticeComponent` | Ready |
 | Designer workspace | `DesignerWorkspaceComponent`, `DesignerCatalogPanelComponent`, catalog items and section components | Ready |
-| Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples | Extract shared insertion component next |
+| Field palette | Inline V1 in `FormsPageComponent` with quick sets; `DynamicFieldLibraryComponent` documents renderer examples through the same multikit facade | Extract shared insertion component next |
 | Step management | Inline V1 in `FormsPageComponent` with add/remove/select | Extract shared component next |
 | Field inspector | Inline V1 in `FormsPageComponent` with duplicate/reorder, options, validations, service bindings, access rules and visibility conditions | Extract shared component next |
 | JSON editor | `JsonAuthoringPanelComponent` shared by Forms, Services and Flows; current JSON can apply to the guide, save draft or publish through `/authoring/json` endpoints | Ready |

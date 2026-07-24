@@ -32,6 +32,7 @@
   --ch-color-danger: #b42318;
   --ch-color-danger-soft: #fff6f6;
   --ch-color-danger-border: #f1b4b4;
+  --ch-color-primary-contrast: #ffffff;
   --ch-shadow-card: 0 16px 42px rgba(20, 50, 80, 0.06);
   --ch-radius: 8px;
   --ch-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -209,12 +210,12 @@ html[data-ui-kit='native'] {
   --ch-kit-button-radius: 2px;
 }
 
-app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-app-page-shell select,
-app-page-shell textarea,
-app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-app-public-page-shell select,
-app-public-page-shell textarea {
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+app-page-shell select:not(.form-select),
+app-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea),
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+app-public-page-shell select:not(.form-select),
+app-public-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea) {
   width: 100%;
   min-width: 0;
   min-height: var(--ch-control-height);
@@ -228,29 +229,29 @@ app-public-page-shell textarea {
   padding: var(--ch-kit-control-padding-y) var(--ch-kit-control-padding-x);
 }
 
-app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file'])::placeholder,
-app-page-shell textarea::placeholder,
-app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file'])::placeholder,
-app-public-page-shell textarea::placeholder {
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext)::placeholder,
+app-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea)::placeholder,
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext)::placeholder,
+app-public-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea)::placeholder {
   color: color-mix(in srgb, var(--ch-color-muted) 78%, var(--ch-color-surface));
 }
 
-app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
-app-page-shell select:focus,
-app-page-shell textarea:focus,
-app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
-app-public-page-shell select:focus,
-app-public-page-shell textarea:focus {
+app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext):focus,
+app-page-shell select:not(.form-select):focus,
+app-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea):focus,
+app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext):focus,
+app-public-page-shell select:not(.form-select):focus,
+app-public-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea):focus {
   outline: 3px solid var(--ch-kit-control-focus);
   border-color: var(--ch-color-primary);
 }
 
-html[data-ui-kit='ionic'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-html[data-ui-kit='ionic'] app-page-shell select,
-html[data-ui-kit='ionic'] app-page-shell textarea,
-html[data-ui-kit='ionic'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-html[data-ui-kit='ionic'] app-public-page-shell select,
-html[data-ui-kit='ionic'] app-public-page-shell textarea {
+html[data-ui-kit='ionic'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+html[data-ui-kit='ionic'] app-page-shell select:not(.form-select),
+html[data-ui-kit='ionic'] app-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea),
+html[data-ui-kit='ionic'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+html[data-ui-kit='ionic'] app-public-page-shell select:not(.form-select),
+html[data-ui-kit='ionic'] app-public-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea) {
   border-top: 0;
   border-right: 0;
   border-left: 0;
@@ -265,12 +266,12 @@ html[data-ui-kit='ionic'] app-public-page-shell select {
   cursor: pointer;
 }
 
-html[data-ui-kit='material'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-html[data-ui-kit='material'] app-page-shell select,
-html[data-ui-kit='material'] app-page-shell textarea,
-html[data-ui-kit='material'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
-html[data-ui-kit='material'] app-public-page-shell select,
-html[data-ui-kit='material'] app-public-page-shell textarea {
+html[data-ui-kit='material'] app-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+html[data-ui-kit='material'] app-page-shell select:not(.form-select),
+html[data-ui-kit='material'] app-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea),
+html[data-ui-kit='material'] app-public-page-shell input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.mat-mdc-input-element):not(.form-control):not(.p-inputtext),
+html[data-ui-kit='material'] app-public-page-shell select:not(.form-select),
+html[data-ui-kit='material'] app-public-page-shell textarea:not(.mat-mdc-input-element):not(.form-control):not(.p-inputtextarea):not(.code-textarea) {
   min-height: 48px;
 }
 

@@ -438,6 +438,147 @@ describe('DynamicServicesService CRUD validation', () => {
     });
   });
 
+  it('normalizes public API key exposure by storing only a hash', () => {
+    const definition = service.validateDefinition({
+      intent: 'query',
+      source: 'internal_table',
+      resultKind: 'list',
+      method: 'GET',
+      url: 'internal://table/confisys',
+      dataTarget: {
+        queryMode: 'single_table',
+        primaryTable: 'confisys',
+        filters: [{ field: 'key', operator: 'contains', valueSource: 'input', inputKey: 'key' }]
+      },
+      exposure: {
+        enabled: true,
+        allowedMethods: ['GET', 'POST'],
+        inputMode: 'body_or_query',
+        responseMode: 'mapped_or_result',
+        security: {
+          mode: 'api_key',
+          headerName: 'x-service-key',
+          apiKey: 'public-test-key-123456'
+        }
+      }
+    });
+
+    expect(definition.exposure).toMatchObject({
+      enabled: true,
+      allowedMethods: ['GET', 'POST'],
+      inputMode: 'body_or_query',
+      responseMode: 'mapped_or_result',
+      security: {
+        mode: 'api_key',
+        headerName: 'x-service-key',
+        algorithm: 'scrypt-sha256'
+      }
+    });
+    expect(definition.exposure.security.apiKey).toBeUndefined();
+    expect(definition.exposure.security.secretHash).toHaveLength(64);
+    expect(definition.exposure.security.secretSalt).toBeTruthy();
+  });
+
+  it('rejects no-auth public exposure for non-read operations', () => {
+    expect(() =>
+      service.validateDefinition({
+        intent: 'create',
+        source: 'internal_table',
+        resultKind: 'single',
+        method: 'POST',
+        url: 'internal://table/custom_clients',
+        dataTarget: {
+          queryMode: 'single_table',
+          primaryTable: 'custom_clients',
+          writeMap: {
+            name: '{{input.name}}'
+          }
+        },
+        exposure: {
+          enabled: true,
+          allowedMethods: ['POST'],
+          security: { mode: 'none' }
+        }
+      })
+    ).toThrow('Una exposición pública sin autenticación solo puede ser GET de lectura o validación');
+  });
+
+  it('validates public credentials using timing-safe hashed secrets', () => {
+    const hashed = service.hashPublicSecret('public-test-key-123456', 'salt-for-test');
+    expect(() =>
+      service.assertPublicExposure(
+        {
+          intent: 'query',
+          source: 'internal_table',
+          resultKind: 'list',
+          method: 'GET',
+          url: 'internal://table/confisys'
+        },
+        {
+          enabled: true,
+          allowedMethods: ['POST'],
+          inputMode: 'body_or_query',
+          security: {
+            mode: 'api_key',
+            headerName: 'x-chicle-api-key',
+            ...hashed
+          }
+        },
+        'POST',
+        { 'x-chicle-api-key': 'public-test-key-123456' }
+      )
+    ).not.toThrow();
+
+    expect(() =>
+      service.assertPublicExposure(
+        {
+          intent: 'query',
+          source: 'internal_table',
+          resultKind: 'list',
+          method: 'GET',
+          url: 'internal://table/confisys'
+        },
+        {
+          enabled: true,
+          allowedMethods: ['POST'],
+          inputMode: 'body_or_query',
+          security: {
+            mode: 'api_key',
+            headerName: 'x-chicle-api-key',
+            ...hashed
+          }
+        },
+        'POST',
+        { 'x-chicle-api-key': 'wrong-public-key-123456' }
+      )
+    ).toThrow('Invalid public service credentials');
+  });
+
+  it('returns a public response without request snapshots', () => {
+    expect(
+      service.publicResponse(
+        {
+          id: 'run-1',
+          status: 'success',
+          responseSnapshot: {
+            result: [{ key: 'ai.baseUrl' }],
+            requestSnapshot: { Authorization: 'secret' }
+          },
+          durationMs: 12,
+          error: null
+        },
+        { enabled: true, responseMode: 'result_only' }
+      )
+    ).toEqual({
+      ok: true,
+      status: 'success',
+      result: [{ key: 'ai.baseUrl' }],
+      runId: 'run-1',
+      durationMs: 12,
+      error: null
+    });
+  });
+
   it('rejects invalid service keys and unsupported HTTP methods early', () => {
     expect(() => service.normalizeKey('No Valido')).toThrow('Key must use snake_case');
     expect(() => service.validateDefinition({ method: 'TRACE', url: 'https://api.example.com' })).toThrow(

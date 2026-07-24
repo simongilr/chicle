@@ -3,10 +3,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  UnauthorizedException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { DataSource, IsNull, Not, Repository } from 'typeorm';
@@ -14,12 +15,14 @@ import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
 import { ConfisysService } from '../confisys/confisys.service';
 import { RbacService } from '../rbac/rbac.service';
+import { Tenant } from '../tenants/tenant.entity';
 import { DynamicService } from './dynamic-service.entity';
 import {
   DynamicServiceDefinition,
   DynamicServiceFilter,
   DynamicServiceHttpMethod,
   DynamicServiceJoin,
+  DynamicServicePublicExposure,
   DynamicServiceSelectField,
   DynamicServiceVersion
 } from './dynamic-service-version.entity';
@@ -42,6 +45,13 @@ export interface DynamicServiceTestRequest {
 
 export interface DynamicServiceExecuteRequest {
   context?: Record<string, unknown>;
+}
+
+export interface DynamicServicePublicExecuteRequest {
+  method: string;
+  headers: Record<string, string | string[] | undefined>;
+  query?: Record<string, unknown>;
+  body?: unknown;
 }
 
 export interface DynamicServiceJsonAuthoringRequest {
@@ -154,6 +164,8 @@ export class DynamicServicesService {
     private readonly versions: Repository<DynamicServiceVersion>,
     @InjectRepository(DynamicServiceRun)
     private readonly runs: Repository<DynamicServiceRun>,
+    @InjectRepository(Tenant)
+    private readonly tenants: Repository<Tenant>,
     private readonly dataSource: DataSource,
     private readonly confisys: ConfisysService,
     private readonly audit: AuditService,
@@ -495,6 +507,36 @@ export class DynamicServicesService {
     return this.executePublished(auth, service, request.context ?? {}, 'frontend');
   }
 
+  async executePublicByKey(tenantSlug: string, serviceKey: string, request: DynamicServicePublicExecuteRequest) {
+    const method = this.publicMethod(request.method);
+    const tenant = await this.tenants.findOne({ where: { slug: tenantSlug, active: true } });
+    if (!tenant) {
+      throw new NotFoundException('Public service not found');
+    }
+
+    const service = await this.services.findOne({
+      where: { key: this.normalizeKey(serviceKey), tenantId: tenant.id, active: true, trashedAt: IsNull() }
+    });
+    if (!service) {
+      throw new NotFoundException('Public service not found');
+    }
+
+    const version = await this.versions.findOne({
+      where: { tenantId: tenant.id, serviceId: service.id, status: 'published' },
+      order: { version: 'DESC' }
+    });
+    if (!version) {
+      throw new NotFoundException('Public service not found');
+    }
+
+    const exposure = version.definition.exposure;
+    this.assertPublicExposure(version.definition, exposure, method, request.headers);
+
+    const input = this.publicInput(exposure, method, request.query ?? {}, request.body);
+    const run = await this.executePublished(this.publicAuthContext(tenant), service, input, 'public_api');
+    return this.publicResponse(run, exposure);
+  }
+
   private async assertResourceAccess(auth: AuthContext, serviceId: string) {
     if (!(await this.rbac.canAccessResource(auth, 'dynamic_service', serviceId))) {
       throw new ForbiddenException('This role cannot execute the requested service');
@@ -562,7 +604,7 @@ export class DynamicServicesService {
           filters: definition.dataTarget?.filters ?? [],
           input: this.maskSecrets(input)
         },
-        actorUserId: auth.user.id
+        actorUserId: auth.user.id ?? null
       })
     );
 
@@ -633,7 +675,7 @@ export class DynamicServicesService {
           filters: definition.dataTarget?.filters ?? [],
           input: this.maskSecrets(input)
         },
-        actorUserId: auth.user.id
+        actorUserId: auth.user.id ?? null
       })
     );
 
@@ -697,7 +739,7 @@ export class DynamicServicesService {
         status: 'running',
         requestSnapshot: null,
         timeoutMs,
-        actorUserId: auth.user.id
+        actorUserId: auth.user.id ?? null
       })
     );
 
@@ -1350,7 +1392,7 @@ export class DynamicServicesService {
       throw new BadRequestException('Query must be an object');
     }
 
-    return {
+    const normalized = {
       intent: definition.intent ?? 'custom',
       source: definition.source ?? 'external_api',
       resultKind: definition.resultKind ?? 'single',
@@ -1378,7 +1420,240 @@ export class DynamicServicesService {
       body: definition.body ?? null,
       timeoutMs: definition.timeoutMs,
       retry: definition.retry ?? { attempts: 0, backoffMs: 0 },
-      responseMap: definition.responseMap ?? {}
+      responseMap: definition.responseMap ?? {},
+      exposure: this.normalizePublicExposure(definition)
+    };
+    return normalized;
+  }
+
+  private normalizePublicExposure(definition: DynamicServiceDefinition): DynamicServicePublicExposure {
+    const exposure = definition.exposure;
+    if (!exposure?.enabled) {
+      return {
+        enabled: false,
+        allowedMethods: [],
+        inputMode: 'body_or_query',
+        responseMode: 'mapped_or_result',
+        security: { mode: 'private' }
+      };
+    }
+
+    const allowedMethods = (exposure.allowedMethods?.length ? exposure.allowedMethods : [definition.method]).filter(
+      (method): method is DynamicServiceHttpMethod => HTTP_METHODS.includes(method)
+    );
+    if (!allowedMethods.length) {
+      throw new BadRequestException('Public exposure requires at least one allowed method');
+    }
+
+    const securityMode = exposure.security?.mode ?? 'api_key';
+    const normalized: DynamicServicePublicExposure = {
+      enabled: true,
+      allowedMethods,
+      inputMode: exposure.inputMode ?? 'body_or_query',
+      responseMode: exposure.responseMode ?? 'mapped_or_result',
+      security: {
+        mode: securityMode,
+        headerName:
+          exposure.security?.headerName?.trim() ||
+          (securityMode === 'api_key' ? 'x-chicle-api-key' : 'authorization')
+      }
+    };
+
+    if (securityMode === 'private') {
+      throw new BadRequestException('Public exposure cannot use private security mode');
+    }
+
+    if (securityMode === 'none') {
+      this.assertNoAuthPublicExposureIsSafe(definition, allowedMethods);
+      return normalized;
+    }
+
+    if (securityMode !== 'api_key' && securityMode !== 'bearer_token') {
+      throw new BadRequestException('Unsupported public service security mode');
+    }
+
+    const plainSecret = exposure.security?.apiKey ?? exposure.security?.token;
+    if (plainSecret) {
+      Object.assign(normalized.security!, this.hashPublicSecret(plainSecret));
+      return normalized;
+    }
+
+    if (!exposure.security?.secretHash || !exposure.security?.secretSalt) {
+      throw new BadRequestException('Public service security requires a new key/token or an existing hash');
+    }
+
+    normalized.security!.secretHash = exposure.security.secretHash;
+    normalized.security!.secretSalt = exposure.security.secretSalt;
+    normalized.security!.algorithm = 'scrypt-sha256';
+    return normalized;
+  }
+
+  private assertNoAuthPublicExposureIsSafe(
+    definition: DynamicServiceDefinition,
+    allowedMethods: DynamicServiceHttpMethod[]
+  ) {
+    const intent = definition.intent ?? 'custom';
+    const safeIntent = intent === 'query' || intent === 'get_one' || intent === 'validate';
+    const readOnlyMethods = allowedMethods.every((method) => method === 'GET');
+    if (!safeIntent || !readOnlyMethods) {
+      throw new BadRequestException('Una exposición pública sin autenticación solo puede ser GET de lectura o validación');
+    }
+  }
+
+  private publicMethod(method: string): DynamicServiceHttpMethod {
+    const normalized = method.toUpperCase() as DynamicServiceHttpMethod;
+    if (!HTTP_METHODS.includes(normalized)) {
+      throw new BadRequestException('Unsupported public service HTTP method');
+    }
+    return normalized;
+  }
+
+  private assertPublicExposure(
+    definition: DynamicServiceDefinition,
+    exposure: DynamicServicePublicExposure | undefined,
+    method: DynamicServiceHttpMethod,
+    headers: Record<string, string | string[] | undefined>
+  ) {
+    if (!exposure?.enabled) {
+      throw new NotFoundException('Public service not found');
+    }
+
+    const allowedMethods = exposure.allowedMethods?.length ? exposure.allowedMethods : [definition.method];
+    if (!allowedMethods.includes(method)) {
+      throw new ForbiddenException('Public service method is not allowed');
+    }
+
+    const security = exposure.security ?? { mode: 'api_key' as const };
+    if (security.mode === 'none') {
+      this.assertNoAuthPublicExposureIsSafe(definition, allowedMethods);
+      return;
+    }
+
+    if (security.mode === 'api_key') {
+      const headerName = (security.headerName || 'x-chicle-api-key').toLowerCase();
+      const presented = this.headerValue(headers, headerName);
+      this.assertPresentedPublicSecret(presented, security.secretHash, security.secretSalt);
+      return;
+    }
+
+    if (security.mode === 'bearer_token') {
+      const authorization = this.headerValue(headers, 'authorization');
+      const match = authorization.match(/^Bearer\s+(.+)$/i);
+      this.assertPresentedPublicSecret(match?.[1], security.secretHash, security.secretSalt);
+      return;
+    }
+
+    throw new ForbiddenException('Public service security mode is not executable');
+  }
+
+  private publicInput(
+    exposure: DynamicServicePublicExposure | undefined,
+    method: DynamicServiceHttpMethod,
+    query: Record<string, unknown>,
+    body: unknown
+  ) {
+    const inputMode = exposure?.inputMode ?? 'body_or_query';
+    if (inputMode === 'query' || (inputMode === 'body_or_query' && method === 'GET')) {
+      return this.flattenQueryInput(query);
+    }
+
+    if (inputMode === 'body' || inputMode === 'body_or_query') {
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        const record = body as Record<string, unknown>;
+        const context = record['context'];
+        return context && typeof context === 'object' && !Array.isArray(context)
+          ? (context as Record<string, unknown>)
+          : record;
+      }
+      return {};
+    }
+
+    return {};
+  }
+
+  private publicResponse(run: DynamicServiceRun, exposure: DynamicServicePublicExposure | undefined) {
+    const snapshot = run.responseSnapshot ?? null;
+    const responseMode = exposure?.responseMode ?? 'mapped_or_result';
+    const result =
+      snapshot && responseMode === 'full_snapshot'
+        ? snapshot
+        : snapshot && responseMode === 'result_only'
+          ? snapshot['result'] ?? snapshot['mapped'] ?? null
+          : snapshot
+            ? snapshot['mapped'] ?? snapshot['result'] ?? snapshot['body'] ?? snapshot
+            : null;
+
+    return {
+      ok: run.status === 'success',
+      status: run.status,
+      result,
+      runId: run.id,
+      durationMs: run.durationMs,
+      error: run.error ?? null
+    };
+  }
+
+  private publicAuthContext(tenant: Tenant): AuthContext {
+    return {
+      tenant,
+      user: {
+        id: null,
+        tenantId: tenant.id,
+        email: 'public-api@chicle.local',
+        name: 'Public API',
+        systemRole: 'viewer',
+        active: true
+      },
+      membership: {
+        id: null,
+        tenantId: tenant.id,
+        userId: null,
+        systemRole: 'viewer',
+        active: true,
+        primaryMembership: false
+      },
+      sessionId: 'public-api',
+      tokenId: 'public-api',
+      roles: [],
+      permissions: []
+    } as unknown as AuthContext;
+  }
+
+  private flattenQueryInput(query: Record<string, unknown>) {
+    return Object.fromEntries(
+      Object.entries(query).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+    );
+  }
+
+  private headerValue(headers: Record<string, string | string[] | undefined>, headerName: string) {
+    const normalizedName = headerName.toLowerCase();
+    const value = Object.entries(headers).find(([key]) => key.toLowerCase() === normalizedName)?.[1];
+    return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
+  }
+
+  private assertPresentedPublicSecret(secret: string | undefined, expectedHash?: string, expectedSalt?: string) {
+    if (!secret || !expectedHash || !expectedSalt) {
+      throw new UnauthorizedException('Invalid public service credentials');
+    }
+
+    const candidate = this.hashPublicSecret(secret, expectedSalt);
+    const candidateBuffer = Buffer.from(candidate.secretHash, 'hex');
+    const expectedBuffer = Buffer.from(expectedHash, 'hex');
+    if (candidateBuffer.length !== expectedBuffer.length || !timingSafeEqual(candidateBuffer, expectedBuffer)) {
+      throw new UnauthorizedException('Invalid public service credentials');
+    }
+  }
+
+  private hashPublicSecret(secret: string, salt = randomBytes(16).toString('hex')) {
+    const value = secret.trim();
+    if (value.length < 16) {
+      throw new BadRequestException('Public service key/token must be at least 16 characters long');
+    }
+
+    return {
+      secretHash: scryptSync(value, salt, 32).toString('hex'),
+      secretSalt: salt,
+      algorithm: 'scrypt-sha256' as const
     };
   }
 

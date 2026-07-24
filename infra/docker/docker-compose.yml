@@ -32,6 +32,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-chicle_secret}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
       JWT_SECRET: ${JWT_SECRET:-change_me}
+      CHICLE_ENV: ${CHICLE_ENV:-local}
+      CHICLE_VAULT_PATH: ${CHICLE_VAULT_PATH:-/app/storage/vault}
+      CHICLE_SECRET_MASTER_KEY: ${CHICLE_SECRET_MASTER_KEY:-}
       CHICLE_CORS_ORIGINS: ${CHICLE_CORS_ORIGINS:-}
       CHICLE_SWAGGER_ENABLED: ${CHICLE_SWAGGER_ENABLED:-}
       CHICLE_SWAGGER_USER: ${CHICLE_SWAGGER_USER:-}
@@ -62,6 +65,7 @@ services:
       - "${API_PORT:-3000}:${API_PORT:-3000}"
     volumes:
       - chicle_files:/app/storage/files
+      - chicle_vault:/app/storage/vault
       - ../../apps/api/src/database/migrations:/app/src/database/migrations
     depends_on:
       db:
@@ -79,4 +83,5 @@ services:
 volumes:
   chicle_db:
   chicle_files:
+  chicle_vault:
   chicle_ollama:

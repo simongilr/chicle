@@ -1,8 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { CodeTextareaComponent } from '../code-textarea/code-textarea.component';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 import { AiAssistantScope, AiAssistantService } from './ai-assistant.service';
 
 interface ChatMessage {
@@ -14,7 +15,7 @@ interface ChatMessage {
 @Component({
   selector: 'app-ai-assistant-launcher',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CodeTextareaComponent, UiKitButtonComponent],
   styles: [
     `
       :host {
@@ -25,26 +26,8 @@ interface ChatMessage {
         pointer-events: none;
       }
 
-      button,
-      textarea {
-        font: inherit;
-      }
-
       .fab {
         pointer-events: auto;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 46px;
-        border: 1px solid var(--ch-color-primary);
-        border-radius: 999px;
-        background: var(--ch-color-primary);
-        color: var(--ch-color-primary-contrast);
-        box-shadow: var(--ch-shadow-card);
-        padding: 0 16px;
-        font-weight: 900;
-        cursor: pointer;
       }
 
       .panel {
@@ -95,12 +78,6 @@ interface ChatMessage {
       .close {
         flex: 0 0 auto;
         width: 34px;
-        height: 34px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        cursor: pointer;
       }
 
       .messages {
@@ -152,27 +129,7 @@ interface ChatMessage {
       }
 
       .suggestion {
-        min-height: 30px;
-        border: 1px solid var(--ch-color-primary-border);
-        border-radius: 999px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 0 10px;
         font-size: 0.76rem;
-        font-weight: 800;
-        cursor: pointer;
-      }
-
-      .suggestion:hover,
-      .suggestion:focus-visible {
-        border-color: var(--ch-color-primary);
-        outline: none;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ch-color-primary) 14%, transparent);
-      }
-
-      .suggestion:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
       }
 
       .thinking-line {
@@ -200,24 +157,6 @@ interface ChatMessage {
         padding: 12px;
       }
 
-      textarea {
-        width: 100%;
-        min-width: 0;
-        min-height: 76px;
-        resize: vertical;
-        border: 1px solid var(--ch-color-border);
-        border-radius: calc(var(--ch-radius) + 2px);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-        line-height: 1.4;
-      }
-
-      textarea:focus {
-        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
-        border-color: var(--ch-color-primary);
-      }
-
       .send-row {
         display: flex;
         align-items: center;
@@ -233,30 +172,6 @@ interface ChatMessage {
 
       .send {
         flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 34px;
-        border: 1px solid var(--ch-color-primary);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-primary-contrast);
-        padding: 0 12px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-
-      .send:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-
-      .send .spinner {
-        width: 13px;
-        height: 13px;
-        border-color: color-mix(in srgb, var(--ch-color-primary-contrast) 36%, transparent);
-        border-top-color: var(--ch-color-primary-contrast);
       }
 
       @keyframes chicle-ai-spin {
@@ -298,9 +213,15 @@ interface ChatMessage {
             <strong>Chicle AI</strong>
             <span>{{ scopeLabel() }} · asistente de configuración</span>
           </span>
-          <button class="close" type="button" title="Cerrar asistente" (click)="toggle()">
-            <i class="pi pi-times" aria-hidden="true"></i>
-          </button>
+          <app-ui-kit-button
+            class="close"
+            label=""
+            ariaLabel="Cerrar asistente"
+            icon="pi pi-times"
+            tone="neutral"
+            variant="outline"
+            (pressed)="toggle()"
+          ></app-ui-kit-button>
         </header>
 
         <div class="messages" aria-live="polite">
@@ -316,14 +237,14 @@ interface ChatMessage {
               @if (message.role === 'assistant' && message.suggestions?.length) {
                 <div class="suggestions" aria-label="Respuestas sugeridas">
                   @for (suggestion of message.suggestions; track suggestion) {
-                    <button
+                    <app-ui-kit-button
                       class="suggestion"
-                      type="button"
+                      [label]="suggestion"
+                      tone="secondary"
+                      variant="outline"
                       [disabled]="sending()"
-                      (click)="sendSuggestion(suggestion)"
-                    >
-                      {{ suggestion }}
-                    </button>
+                      (pressed)="sendSuggestion(suggestion)"
+                    ></app-ui-kit-button>
                   }
                 </div>
               }
@@ -331,36 +252,37 @@ interface ChatMessage {
           }
         </div>
 
-        <form class="composer" (ngSubmit)="send()">
-          <textarea
-            name="assistantPrompt"
-            [(ngModel)]="prompt"
+        <div class="composer">
+          <app-code-textarea
+            controlId="assistant-prompt"
+            [value]="prompt"
+            minHeight="76px"
             [placeholder]="placeholder()"
+            (valueChange)="prompt = $event"
             (keydown)="onPromptKeydown($event)"
-          ></textarea>
+          ></app-code-textarea>
           <div class="send-row">
             <span class="hint">La IA propondrá cambios en la pantalla actual; tú apruebas antes de guardar.</span>
-            <button class="send" type="submit" [disabled]="!canSend() || sending()">
-              @if (sending()) {
-                <span class="spinner" aria-hidden="true"></span>
-              }
-              <span>{{ sending() ? 'Pensando' : 'Enviar' }}</span>
-            </button>
+            <app-ui-kit-button
+              class="send"
+              [label]="sending() ? 'Pensando' : 'Enviar'"
+              [icon]="sending() ? 'pi pi-spin pi-spinner' : ''"
+              [disabled]="!canSend() || sending()"
+              (pressed)="send()"
+            ></app-ui-kit-button>
           </div>
-        </form>
+        </div>
       </section>
     }
 
-    <button
+    <app-ui-kit-button
       class="fab"
-      type="button"
+      label="Chicle AI"
+      ariaLabel="Abrir asistente IA"
+      icon="pi pi-sparkles"
       [attr.aria-expanded]="open()"
-      aria-label="Abrir asistente IA"
-      (click)="toggle()"
-    >
-      <i class="pi pi-sparkles" aria-hidden="true"></i>
-      <span>Chicle AI</span>
-    </button>
+      (pressed)="toggle()"
+    ></app-ui-kit-button>
   `
 })
 export class AiAssistantLauncherComponent {

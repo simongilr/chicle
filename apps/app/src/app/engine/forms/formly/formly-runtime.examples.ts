@@ -134,7 +134,7 @@ export const FORMLY_FIELD_LIBRARY_EXAMPLE: RuntimeForm = {
       name: 'library_intro',
       type: 'paragraph',
       label: '',
-      text: 'Los mismos objetos funcionan con PrimeNG, Ionic o controles base.',
+      text: 'Los mismos objetos funcionan con PrimeNG, Ionic, Material, Bootstrap o controles base.',
       layout: 'full'
     },
     {

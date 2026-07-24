@@ -1,12 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { PublicPageShellComponent } from '../../shared/public-page-shell/public-page-shell.component';
+import { SegmentedControlComponent, SegmentedControlItem } from '../../shared/segmented-control/segmented-control.component';
 import { StatusNoticeComponent, StatusNoticeTone } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 type SecurityChannel = 'web' | 'mobile' | 'device';
 type AuthMethodType = 'password' | 'oauth2' | 'oidc' | 'saml' | 'magic_link' | 'device_code' | 'passkey';
@@ -45,11 +47,12 @@ interface PublicAuthConfig {
   selector: 'app-login-page',
   standalone: true,
   imports: [
-    FieldShellComponent,
-    FormsModule,
+    DynamicFieldControlComponent,
     LoadingSkeletonComponent,
     PublicPageShellComponent,
     RouterLink,
+    SegmentedControlComponent,
+    UiKitButtonComponent,
     StatusNoticeComponent
   ],
   styles: [
@@ -148,50 +151,6 @@ interface PublicAuthConfig {
         gap: 14px;
       }
 
-      input {
-        min-height: 44px;
-        width: 100%;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-        font: inherit;
-      }
-
-      input:focus {
-        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
-        border-color: var(--ch-color-primary);
-      }
-
-      .primary-button,
-      .method-button {
-        min-height: 42px;
-        border-radius: 8px;
-        padding: 0 16px;
-        font: inherit;
-        font-weight: 800;
-      }
-
-      .primary-button {
-        border: 1px solid var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-surface);
-      }
-
-      .primary-button:disabled {
-        border-color: var(--ch-color-border);
-        background: #d7e1eb;
-        color: var(--ch-color-muted);
-      }
-
-      .method-button {
-        width: 100%;
-        border: 1px solid var(--ch-color-border);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-      }
-
       .methods {
         display: grid;
         gap: 10px;
@@ -201,29 +160,6 @@ interface PublicAuthConfig {
         display: grid;
         gap: 8px;
         padding: 14px;
-      }
-
-      .channel-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .channel-tabs button {
-        min-height: 34px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 999px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 0 12px;
-        font: inherit;
-        font-weight: 700;
-      }
-
-      .channel-tabs button.active {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-surface);
       }
 
       @media (max-width: 820px) {
@@ -289,35 +225,32 @@ interface PublicAuthConfig {
           @if (!loading && config?.setupRequired) {
             <a class="link" routerLink="/setup">Crear sistema primero</a>
           } @else if (!loading) {
-            <div class="channel-tabs" aria-label="Canal de seguridad">
-              <button type="button" [class.active]="channel === 'web'" (click)="channel = 'web'">Web</button>
-              <button type="button" [class.active]="channel === 'mobile'" (click)="channel = 'mobile'">Móvil</button>
-              <button type="button" [class.active]="channel === 'device'" (click)="channel = 'device'">Dispositivo</button>
-            </div>
+            <app-segmented-control
+              [items]="channelItems"
+              [value]="channel"
+              ariaLabel="Canal de seguridad"
+              (valueChange)="setChannel($event)"
+            ></app-segmented-control>
 
             @if (passwordEnabledForChannel) {
-              <form class="form" (ngSubmit)="login()">
-                <app-field-shell label="Email" forId="login-email" [required]="true">
-                  <input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    autocomplete="email"
-                    [(ngModel)]="email"
-                  />
-                </app-field-shell>
-                <app-field-shell label="Password" forId="login-password" [required]="true">
-                  <input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    autocomplete="current-password"
-                    [(ngModel)]="password"
-                  />
-                </app-field-shell>
-                <button class="primary-button" type="submit" [disabled]="submitting">
-                  {{ submitting ? 'Entrando...' : 'Entrar con password' }}
-                </button>
+              <form class="form" (submit)="submitLogin($event)">
+                <app-dynamic-field-control
+                  [field]="emailField"
+                  [value]="email"
+                  (valueChange)="email = stringValue($event)"
+                ></app-dynamic-field-control>
+                <app-dynamic-field-control
+                  [field]="passwordField"
+                  [value]="password"
+                  (valueChange)="password = stringValue($event)"
+                ></app-dynamic-field-control>
+                <app-ui-kit-button
+                  [label]="submitting ? 'Entrando...' : 'Entrar con password'"
+                  type="submit"
+                  tone="primary"
+                  [disabled]="submitting"
+                  [full]="true"
+                ></app-ui-kit-button>
               </form>
             }
 
@@ -327,7 +260,12 @@ interface PublicAuthConfig {
                   <article class="method-card">
                     <h3>{{ method.label }}</h3>
                     <p>{{ methodDescription(method) }}</p>
-                    <button class="method-button" type="button">{{ methodButtonLabel(method) }}</button>
+                    <app-ui-kit-button
+                      [label]="methodButtonLabel(method)"
+                      tone="secondary"
+                      variant="outline"
+                      [full]="true"
+                    ></app-ui-kit-button>
                   </article>
                 }
               }
@@ -352,6 +290,31 @@ export class LoginPageComponent implements OnInit {
   loading = true;
   message = 'Cargando política de seguridad...';
   messageTone: StatusNoticeTone = 'info';
+  readonly channelItems: SegmentedControlItem[] = [
+    { key: 'web', label: 'Web' },
+    { key: 'mobile', label: 'Móvil' },
+    { key: 'device', label: 'Dispositivo' }
+  ];
+  readonly emailField: RuntimeField = {
+    name: 'login-email',
+    label: 'Email',
+    type: 'email',
+    required: true,
+    placeholder: 'admin@empresa.com',
+    config: {
+      autocomplete: 'email'
+    }
+  };
+  readonly passwordField: RuntimeField = {
+    name: 'login-password',
+    label: 'Password',
+    type: 'password',
+    required: true,
+    placeholder: 'Ingresa tu password',
+    config: {
+      autocomplete: 'current-password'
+    }
+  };
 
   ngOnInit() {
     this.loadConfig();
@@ -415,6 +378,21 @@ export class LoginPageComponent implements OnInit {
           this.message = 'No se pudo iniciar sesión. Revisa tus credenciales.';
         }
       });
+  }
+
+  submitLogin(event: Event) {
+    event.preventDefault();
+    this.login();
+  }
+
+  setChannel(value: string) {
+    if (value === 'web' || value === 'mobile' || value === 'device') {
+      this.channel = value;
+    }
+  }
+
+  stringValue(value: unknown) {
+    return value === null || value === undefined ? '' : String(value);
   }
 
   private get returnUrl() {

@@ -10,6 +10,7 @@ import { ConfisysModule } from './modules/confisys/confisys.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
 import { DynamicServicesModule } from './modules/dynamic-services/dynamic-services.module';
+import { EnvironmentDeployModule } from './modules/environment-deploy/environment-deploy.module';
 import { FilesModule } from './modules/files/files.module';
 import { FlowsModule } from './modules/flows/flows.module';
 import { MenusModule } from './modules/menus/menus.module';
@@ -36,6 +37,7 @@ import { UsersModule } from './modules/users/users.module';
     MenusModule,
     DynamicFormsModule,
     DynamicServicesModule,
+    EnvironmentDeployModule,
     FlowsModule,
     ActionsModule,
     AiAssistantModule,

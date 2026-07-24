@@ -11,6 +11,8 @@ definitions. Only a published version can execute.
 4. Publish with `POST /api/dynamic-services/:serviceId/versions/:versionId/publish`.
 5. Discover allowed services with `GET /api/dynamic-services/available`.
 6. Execute generically with `POST /api/dynamic-services/by-key/:serviceKey/execute`.
+7. When external consumers need access, enable public exposure in the published definition and call
+   `/api/public/:tenantSlug/services/:serviceKey`.
 
 The frontend uses `DynamicServiceClientService`; a new published service does not require a new Angular HTTP method.
 
@@ -28,7 +30,7 @@ The frontend uses `DynamicServiceClientService`; a new published service does no
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `intent` | enum | `query`, `get_one`, `create`, `update`, `delete`, `validate`, `sync`, `notify`, `custom` |
-| `source` | enum | `external_api`, `internal_table`, `dynamic_record`, `connector` |
+| `source` | enum | `external_api`, `internal_table`, `dynamic_record`, `future_connector` |
 | `resultKind` | enum | `none`, `single`, `list`, `paginated_list`, `boolean`, `file` |
 | `method` | enum | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
 | `url` | string | Required for `external_api`; empty for an internal table |
@@ -41,6 +43,7 @@ The frontend uses `DynamicServiceClientService`; a new published service does no
 | `pagination` | object | Describes page/offset/cursor semantics for consumers |
 | `effects` | array | Declarative result intent; it does not bypass frontend authorization |
 | `dataTarget` | object | Safe plan for internal data |
+| `exposure` | object | Optional public API contract; disabled by default |
 
 Defaults applied by the backend include `intent=custom`, `source=external_api`, `resultKind=single`,
 `pagination.enabled=false`, `effects=[show_response]`, `retry.attempts=0` and `dataTarget.matchMode=all`.
@@ -268,6 +271,122 @@ Internal execution stores:
 `responseMap` reads exact paths rooted at `response`, for example
 `"user": "{{response.result}}"` or `"items": "{{response.body.items}}"`.
 
+## Public service exposure
+
+Dynamic Services are private by default. A service becomes externally callable only when its published definition includes
+`exposure.enabled=true`.
+
+Public endpoint:
+
+```txt
+/api/public/:tenantSlug/services/:serviceKey
+```
+
+The public endpoint:
+
+- resolves the active tenant from `tenantSlug`;
+- executes only active, non-trashed services with a published version;
+- validates the public exposure contract before running the service;
+- records the run as `triggerType=public_api`;
+- returns a sanitized public response and never exposes request snapshots or stored secrets.
+
+Exposure object:
+
+```json
+{
+  "exposure": {
+    "enabled": true,
+    "allowedMethods": ["GET"],
+    "inputMode": "query",
+    "responseMode": "mapped_or_result",
+    "security": {
+      "mode": "api_key",
+      "headerName": "x-chicle-api-key",
+      "apiKey": "temporary-key-only-at-authoring-time"
+    }
+  }
+}
+```
+
+Security modes:
+
+| Mode | Use case | Rule |
+| --- | --- | --- |
+| `private` | Default state | Not callable through `/api/public` |
+| `api_key` | External integrations with a shared key | Sends the key in `headerName`; backend stores only `secretHash` and `secretSalt` |
+| `bearer_token` | External integrations that already use bearer style | Sends `Authorization: Bearer <token>`; backend stores only the hash and salt |
+| `none` | Public read-only catalogs or health-like validations | Allowed only for `GET` and read/validate intents |
+
+Input modes:
+
+| Mode | Behavior |
+| --- | --- |
+| `query` | Uses query parameters, recommended for `GET` |
+| `body` | Uses JSON body |
+| `body_or_query` | Uses query for `GET` and body for other methods |
+
+Response modes:
+
+| Mode | Behavior |
+| --- | --- |
+| `mapped_or_result` | Returns `mapped`, then `result`, then the sanitized snapshot fallback |
+| `result_only` | Returns only the result-like payload |
+| `full_snapshot` | Returns the sanitized execution snapshot |
+
+Authoring rule: plaintext `apiKey` or `token` is accepted only while creating a draft/version so the backend can hash it.
+Published definitions must not be edited by hand to keep plaintext secrets. If the designer shows an existing
+`secretHash` and `secretSalt`, leave the secret input blank unless rotating the key.
+
+No-auth public exposure is intentionally strict. If a service creates, updates, deletes, calls a side-effect API, emits an
+event or uses non-GET methods, it must use `api_key` or `bearer_token`.
+
+Public read example:
+
+```json
+{
+  "intent": "query",
+  "source": "internal_table",
+  "resultKind": "list",
+  "method": "GET",
+  "url": "internal://table/roles",
+  "dataTarget": {
+    "queryMode": "single_table",
+    "primaryTable": "roles",
+    "filters": [
+      {
+        "field": "key",
+        "operator": "contains",
+        "valueSource": "input",
+        "inputKey": "key",
+        "required": false
+      }
+    ],
+    "limit": 50
+  },
+  "responseMap": {
+    "items": "{{response.rows}}"
+  },
+  "exposure": {
+    "enabled": true,
+    "allowedMethods": ["GET"],
+    "inputMode": "query",
+    "responseMode": "mapped_or_result",
+    "security": {
+      "mode": "api_key",
+      "headerName": "x-chicle-api-key",
+      "apiKey": "replace-with-strong-authoring-key"
+    }
+  }
+}
+```
+
+Example call:
+
+```bash
+curl "https://api.company.com/api/public/meteoro/services/public_roles?key=client" \
+  -H "x-chicle-api-key: replace-with-strong-authoring-key"
+```
+
 ## Security and limits
 
 - HTTP and HTTPS only.
@@ -277,8 +396,10 @@ Internal execution stores:
 - Response snapshots are capped by `services.maxResponseBytes`.
 - Authorization, API key, token, secret and cookie headers are masked in history.
 - Execution requires both `services.execute` and role access to the service resource.
+- Public execution does not use user RBAC because it has no user session. Its permission boundary is the published
+  exposure contract, tenant scope, method allow-list and key/token verification.
 
 ## Canonical examples
 
 The valid machine-readable catalog is `docs/examples/dynamic-services.examples.json`. It covers metadata, external
-validation, internal `all`/`any` filters, pagination, test and generic execution.
+validation, internal `all`/`any` filters, multi-table joins, public exposure, tests and generic execution.

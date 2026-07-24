@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { UiKitAwareComponent } from '../../shared/ui-kit/ui-kit-aware.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 export interface FlowTimelineStep {
   id: string;
@@ -22,6 +23,7 @@ export interface FlowTimelineStatus {
 @Component({
   selector: 'app-flow-timeline',
   standalone: true,
+  imports: [UiKitButtonComponent],
   host: {
     '[attr.data-ui-kit]': 'resolvedKit'
   },
@@ -150,16 +152,8 @@ export interface FlowTimelineStatus {
         background: var(--ch-color-border);
       }
 
-      .add {
-        width: 30px;
-        height: 30px;
-        min-height: 30px;
-        padding: 0;
-        border: 1px solid var(--ch-color-primary-border);
-        border-radius: 50%;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-primary);
-        cursor: pointer;
+      app-ui-kit-button.add {
+        width: 34px;
       }
 
       .actions {
@@ -168,32 +162,13 @@ export interface FlowTimelineStatus {
         justify-items: end;
       }
 
-      .test {
-        min-height: 28px;
-        padding: 4px 7px;
-        border: 1px solid var(--ch-color-border);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        border-radius: 6px;
-        font-weight: 800;
-        cursor: pointer;
-      }
-
       .step-tools {
         display: inline-flex;
         gap: 4px;
       }
 
-      .tool {
+      app-ui-kit-button.tool {
         width: 28px;
-        height: 28px;
-        min-height: 28px;
-        padding: 0;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 6px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        cursor: pointer;
       }
 
       @media (max-width: 620px) {
@@ -216,9 +191,14 @@ export interface FlowTimelineStatus {
 
       <div class="connector">
         <span class="line"></span>
-        <button class="add" type="button" title="Agregar primer paso" (click)="addAfter.emit(null)">
-          <i class="pi pi-plus" aria-hidden="true"></i>
-        </button>
+        <app-ui-kit-button
+          class="add"
+          label=""
+          icon="pi pi-plus"
+          tone="secondary"
+          variant="outline"
+          (pressed)="addAfter.emit(null)"
+        ></app-ui-kit-button>
       </div>
 
       @for (step of steps; track step.id) {
@@ -243,28 +223,42 @@ export interface FlowTimelineStatus {
               <span class="branch">Si falla → {{ step.onErrorStepKey }}</span>
             }
           </span>
-          <span class="actions">
+          <span class="actions" (click)="$event.stopPropagation()">
             @if (statusFor(step.key); as status) {
               <span class="status" [class.success]="status === 'success'" [class.failed]="status === 'failed'">
                 {{ status === 'success' ? 'Correcto' : status === 'failed' ? 'Error' : status }}
               </span>
             }
-            <button class="test" type="button" (click)="testClicked($event, step)">
-              <i class="pi pi-bolt" aria-hidden="true"></i> Probar hasta aquí
-            </button>
+            <app-ui-kit-button
+              label="Probar hasta aquí"
+              icon="pi pi-bolt"
+              tone="secondary"
+              variant="outline"
+              (pressed)="testStep.emit(step)"
+            ></app-ui-kit-button>
             <span class="step-tools">
-              <button class="tool" type="button" title="Duplicar paso" (click)="duplicateClicked($event, step)">
-                <i class="pi pi-copy" aria-hidden="true"></i>
-              </button>
+              <app-ui-kit-button
+                class="tool"
+                label=""
+                icon="pi pi-copy"
+                tone="neutral"
+                variant="outline"
+                (pressed)="duplicateStep.emit(step)"
+              ></app-ui-kit-button>
             </span>
           </span>
         </div>
 
         <div class="connector">
           <span class="line"></span>
-          <button class="add" type="button" title="Agregar paso después" (click)="addAfter.emit(step)">
-            <i class="pi pi-plus" aria-hidden="true"></i>
-          </button>
+          <app-ui-kit-button
+            class="add"
+            label=""
+            icon="pi pi-plus"
+            tone="secondary"
+            variant="outline"
+            (pressed)="addAfter.emit(step)"
+          ></app-ui-kit-button>
         </div>
       }
 
@@ -283,16 +277,6 @@ export class FlowTimelineComponent extends UiKitAwareComponent {
 
   statusFor(stepKey: string) {
     return this.statuses.find((status) => status.stepKey === stepKey)?.status;
-  }
-
-  testClicked(event: Event, step: FlowTimelineStep) {
-    event.stopPropagation();
-    this.testStep.emit(step);
-  }
-
-  duplicateClicked(event: Event, step: FlowTimelineStep) {
-    event.stopPropagation();
-    this.duplicateStep.emit(step);
   }
 
   typeLabel(type: string) {

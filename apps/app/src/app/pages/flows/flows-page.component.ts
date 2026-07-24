@@ -6,11 +6,14 @@ import { environment } from '../../../environments/environment';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { FlowLiveClientService, FlowLiveEvent } from '../../core/services/flow-live-client.service';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AiAssistantService, ApplyFlowJsonAction } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { CodeTextareaComponent } from '../../shared/code-textarea/code-textarea.component';
 import { ContextAssistantComponent } from '../../shared/context-assistant/context-assistant.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { JsonAuthoringPanelComponent } from '../../shared/json-authoring-panel/json-authoring-panel.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
@@ -22,6 +25,7 @@ import {
   SegmentedControlItem
 } from '../../shared/segmented-control/segmented-control.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import { FlowDataMapperComponent, FlowDataOption, FlowMapRow } from './flow-data-mapper.component';
 import { FlowGraphComponent } from './flow-graph.component';
@@ -437,12 +441,15 @@ interface FlowJobItem {
     LoadingSkeletonComponent,
     ModuleHeaderComponent,
     CatalogItemComponent,
+    CodeTextareaComponent,
     DesignerCatalogPanelComponent,
     ContextAssistantComponent,
     JsonAuthoringPanelComponent,
+    DynamicFieldControlComponent,
     SectionHeaderComponent,
     SegmentedControlComponent,
     StatusNoticeComponent,
+    UiKitButtonComponent,
     ProcessStepsComponent,
     WorkflowGuideComponent,
     DesignerWorkspaceComponent,
@@ -1363,10 +1370,12 @@ interface FlowJobItem {
           [tone]="currentGuide.tone"
         >
           @if (selectedFlow && currentGuide.actionLabel) {
-            <button type="button" (click)="runGuideAction()">
-              {{ currentGuide.actionLabel }}
-              <i class="pi pi-arrow-right" aria-hidden="true"></i>
-            </button>
+            <app-ui-kit-button
+              [label]="currentGuide.actionLabel"
+              icon="pi pi-arrow-right"
+              variant="outline"
+              (pressed)="runGuideAction()"
+            ></app-ui-kit-button>
           }
         </app-workflow-guide>
       }
@@ -1401,13 +1410,19 @@ interface FlowJobItem {
                 (selected)="selectFlow(flow)"
               ></app-catalog-item>
             }
-            <button catalog-actions type="button" (click)="toggleTrash()">
-              {{ viewingTrash ? 'Activos' : 'Papelera' }}
-            </button>
+            <app-ui-kit-button
+              catalog-actions
+              [label]="viewingTrash ? 'Activos' : 'Papelera'"
+              variant="outline"
+              (pressed)="toggleTrash()"
+            ></app-ui-kit-button>
             @if (!viewingTrash) {
-              <button catalog-actions class="primary" type="button" (click)="startNewFlow()" [disabled]="!canCreate">
-                Nuevo
-              </button>
+              <app-ui-kit-button
+                catalog-actions
+                label="Nuevo"
+                [disabled]="!canCreate"
+                (pressed)="startNewFlow()"
+              ></app-ui-kit-button>
             }
           </app-designer-catalog-panel>
         </ng-container>
@@ -1422,9 +1437,11 @@ interface FlowJobItem {
                   {{ selectedFlow.key }} · {{ selectedFlow.steps.length }} pasos. Restáuralo para volver a editar,
                   probar o publicar.
                 </p>
-                <button class="primary" type="button" (click)="restoreFlow()" [disabled]="!canUpdate">
-                  Restaurar flow
-                </button>
+                <app-ui-kit-button
+                  label="Restaurar flow"
+                  [disabled]="!canUpdate"
+                  (pressed)="restoreFlow()"
+                ></app-ui-kit-button>
               } @else {
                 <h2>Selecciona un flow eliminado</h2>
                 <p class="meta">Desde aquí puedes revisar y restaurar procesos sin mezclarlos con los activos.</p>
@@ -1442,9 +1459,13 @@ interface FlowJobItem {
                 [stepLabel]="selectedFlow ? 'Flow seleccionado' : 'Nuevo flow'"
               >
                 @if (selectedFlow) {
-                  <button class="danger" type="button" (click)="trashFlow()" [disabled]="!canUpdate">
-                    Enviar a papelera
-                  </button>
+                  <app-ui-kit-button
+                    label="Enviar a papelera"
+                    tone="danger"
+                    variant="outline"
+                    [disabled]="!canUpdate"
+                    (pressed)="trashFlow()"
+                  ></app-ui-kit-button>
                 }
               </app-section-header>
 
@@ -1496,18 +1517,11 @@ interface FlowJobItem {
                           </p>
                         </div>
                         <div class="grid">
-                          <label>
-                            Plantilla
-                            <select [(ngModel)]="selectedTemplateId" (ngModelChange)="onTemplateSelected()">
-                              <option value="">Usar el asistente desde cero</option>
-                              @for (template of flowTemplates; track template.id) {
-                                <option [value]="template.id">
-                                  {{ template.name }} ·
-                                  {{ template.scope === 'system' ? 'Sistema' : 'Organización' }}
-                                </option>
-                              }
-                            </select>
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('selectedTemplateId', 'select', 'Plantilla', '', templateOptions)"
+                            [value]="selectedTemplateId"
+                            (valueChange)="selectedTemplateId = controlString($event); onTemplateSelected()"
+                          ></app-dynamic-field-control>
                           @if (selectedTemplate) {
                             <div class="hint">
                               <strong>{{ selectedTemplate.name }}</strong
@@ -1521,16 +1535,19 @@ interface FlowJobItem {
 
                     <div class="starter-grid">
                       @for (starter of starters; track starter.key) {
-                        <button
+                        <article
                           class="starter"
-                          type="button"
+                          role="button"
+                          tabindex="0"
                           [class.active]="selectedStarter === starter.key"
                           (click)="chooseStarter(starter.key)"
+                          (keydown.enter)="chooseStarter(starter.key)"
+                          (keydown.space)="chooseStarter(starter.key)"
                         >
                           <i [class]="starter.icon" aria-hidden="true"></i>
                           <strong>{{ starter.label }}</strong>
                           <span class="meta">{{ starter.summary }}</span>
-                        </button>
+                        </article>
                       }
                     </div>
 
@@ -1549,48 +1566,35 @@ interface FlowJobItem {
                         @if (selectedStarter === 'multi_service') {
                           @for (serviceKey of starterServiceKeys; track $index) {
                             <div class="map-row">
-                              <label>
-                                Servicio {{ $index + 1 }}
-                                <select
-                                  [(ngModel)]="starterServiceKeys[$index]"
-                                  (ngModelChange)="onStarterServicesChanged()"
-                                >
-                                  <option value="">Selecciona un servicio</option>
-                                  @for (service of publishedServices; track service.id) {
-                                    <option [value]="service.key">
-                                      {{ service.name }}
-                                    </option>
-                                  }
-                                </select>
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('starterService' + $index, 'select', 'Servicio ' + ($index + 1), '', publishedServiceOptions)"
+                                [value]="starterServiceKeys[$index]"
+                                (valueChange)="starterServiceKeys[$index] = controlString($event); onStarterServicesChanged()"
+                              ></app-dynamic-field-control>
                               <span class="meta">Se ejecuta después del servicio {{ $index || 'de entrada' }}.</span>
-                              <button
-                                type="button"
-                                title="Quitar servicio"
-                                (click)="removeStarterService($index)"
+                              <app-ui-kit-button
+                                label="Quitar"
+                                icon="pi pi-trash"
+                                tone="danger"
+                                variant="outline"
                                 [disabled]="starterServiceKeys.length <= 2"
-                              >
-                                <i class="pi pi-trash" aria-hidden="true"></i>
-                              </button>
+                                (pressed)="removeStarterService($index)"
+                              ></app-ui-kit-button>
                             </div>
                           }
-                          <button type="button" (click)="addStarterService()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                            Agregar otro servicio
-                          </button>
+                          <app-ui-kit-button
+                            label="Agregar otro servicio"
+                            icon="pi pi-plus"
+                            variant="outline"
+                            (pressed)="addStarterService()"
+                          ></app-ui-kit-button>
                         } @else {
                           <div class="grid">
-                            <label>
-                              Servicio
-                              <select [(ngModel)]="starterServiceKeys[0]" (ngModelChange)="onStarterServicesChanged()">
-                                <option value="">Selecciona un servicio</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">
-                                    {{ service.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('starterService0', 'select', 'Servicio', '', publishedServiceOptions)"
+                              [value]="starterServiceKeys[0]"
+                              (valueChange)="starterServiceKeys[0] = controlString($event); onStarterServicesChanged()"
+                            ></app-dynamic-field-control>
                           </div>
                         }
                         @if (!publishedServices.length) {
@@ -1604,42 +1608,27 @@ interface FlowJobItem {
                   }
 
                   <div class="grid">
-                    <label>
-                      Nombre del proceso
-                      <input
-                        [(ngModel)]="flowDraft.name"
-                        (ngModelChange)="onFlowIdentityChanged(true)"
-                        placeholder="Validar una solicitud"
-                      />
-                    </label>
-                    <label>
-                      ¿Qué resultado esperas?
-                      <input
-                        [(ngModel)]="flowDraft.description"
-                        (ngModelChange)="onFlowIdentityChanged()"
-                        placeholder="Aceptar solicitudes con datos completos"
-                      />
-                    </label>
-                    <label>
-                      Categoría
-                      <select [(ngModel)]="flowDraft.category" (ngModelChange)="onFlowIdentityChanged()">
-                        <option value="operaciones">Operaciones</option>
-                        <option value="ventas">Ventas</option>
-                        <option value="seguridad">Seguridad</option>
-                        <option value="integraciones">Integraciones</option>
-                        <option value="experiencia">Experiencia de usuario</option>
-                        <option value="otro">Otro</option>
-                      </select>
-                    </label>
-                    <label>
-                      Identificador técnico
-                      <input
-                        [(ngModel)]="flowDraft.key"
-                        (ngModelChange)="onFlowIdentityChanged()"
-                        placeholder="validar_solicitud"
-                        [disabled]="!!selectedFlow"
-                      />
-                    </label>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('flowName', 'text', 'Nombre del proceso', 'Validar una solicitud')"
+                      [value]="flowDraft.name"
+                      (valueChange)="setObjectString(flowDraft, 'name', $event); onFlowIdentityChanged(true)"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('flowDescription', 'text', '¿Qué resultado esperas?', 'Aceptar solicitudes con datos completos')"
+                      [value]="flowDraft.description"
+                      (valueChange)="setObjectString(flowDraft, 'description', $event); onFlowIdentityChanged()"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('flowCategory', 'select', 'Categoría', '', flowCategoryOptions)"
+                      [value]="flowDraft.category"
+                      (valueChange)="setObjectString(flowDraft, 'category', $event); onFlowIdentityChanged()"
+                    ></app-dynamic-field-control>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('flowKey', 'text', 'Identificador técnico', 'validar_solicitud')"
+                      [value]="flowDraft.key"
+                      [disabled]="!!selectedFlow"
+                      (valueChange)="setObjectString(flowDraft, 'key', $event); onFlowIdentityChanged()"
+                    ></app-dynamic-field-control>
                   </div>
                 </section>
 
@@ -1665,21 +1654,17 @@ interface FlowJobItem {
                     [icon]="flowEntryReady ? 'pi pi-check' : 'pi pi-bolt'"
                   ></app-context-assistant>
                   <div class="grid">
-                    <label>
-                      Canal de entrada
-                      <select [(ngModel)]="entryMode" (ngModelChange)="onEntryModeChanged()">
-                        @for (option of entryModeOptions; track option.value) {
-                          <option [value]="option.value">
-                            {{ option.label }}
-                          </option>
-                        }
-                      </select>
-                    </label>
+                    <app-dynamic-field-control
+                      [field]="runtimeField('entryMode', 'select', 'Canal de entrada', '', entryModeSelectOptions)"
+                      [value]="entryMode"
+                      (valueChange)="entryMode = controlString($event) === '' ? 'direct' : toFlowEntryMode($event); onEntryModeChanged()"
+                    ></app-dynamic-field-control>
                     @if (entryMode !== 'direct') {
-                      <label>
-                        Clave del activador
-                        <input [(ngModel)]="entryKey" (ngModelChange)="refreshAuthoringDefinition()" />
-                      </label>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('entryKey', 'text', 'Clave del activador', 'record.created')"
+                        [value]="entryKey"
+                        (valueChange)="entryKey = controlString($event); refreshAuthoringDefinition()"
+                      ></app-dynamic-field-control>
                     }
                   </div>
                   <div class="hint">
@@ -1704,9 +1689,12 @@ interface FlowJobItem {
                         <p class="meta">Aparecerán como opciones al conectar servicios, reglas y respuestas.</p>
                       </div>
                     </div>
-                    <button type="button" (click)="addFlowInput()">
-                      <i class="pi pi-plus" aria-hidden="true"></i> Agregar dato
-                    </button>
+                    <app-ui-kit-button
+                      label="Agregar dato"
+                      icon="pi pi-plus"
+                      variant="outline"
+                      (pressed)="addFlowInput()"
+                    ></app-ui-kit-button>
                   </div>
                   <app-context-assistant
                     title="Define solo los datos que llegan desde afuera"
@@ -1729,39 +1717,38 @@ interface FlowJobItem {
                   ></app-context-assistant>
                   @for (field of flowInputs; track $index) {
                     <div class="input-field-row">
-                      <label>
-                        Identificador
-                        <input [(ngModel)]="field.key" (ngModelChange)="onFlowInputsChanged()" placeholder="email" />
-                      </label>
-                      <label>
-                        Nombre visible
-                        <input [(ngModel)]="field.label" (ngModelChange)="onFlowInputsChanged()" placeholder="Correo" />
-                      </label>
-                      <label>
-                        Tipo
-                        <select [(ngModel)]="field.type" (ngModelChange)="onFlowInputsChanged()">
-                          <option value="text">Texto</option>
-                          <option value="email">Correo</option>
-                          <option value="number">Número</option>
-                          <option value="boolean">Sí / no</option>
-                          <option value="date">Fecha</option>
-                        </select>
-                      </label>
-                      <label>
-                        Ejemplo
-                        <input
-                          [(ngModel)]="field.example"
-                          (ngModelChange)="onFlowInputsChanged()"
-                          placeholder="persona@example.com"
-                        />
-                      </label>
-                      <label class="inline-check">
-                        <input type="checkbox" [(ngModel)]="field.required" (ngModelChange)="onFlowInputsChanged()" />
-                        Obligatorio
-                      </label>
-                      <button type="button" title="Quitar dato" (click)="removeFlowInput($index)">
-                        <i class="pi pi-trash" aria-hidden="true"></i>
-                      </button>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('inputKey' + $index, 'text', 'Identificador', 'email')"
+                        [value]="field.key"
+                        (valueChange)="setObjectString(field, 'key', $event); onFlowInputsChanged()"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('inputLabel' + $index, 'text', 'Nombre visible', 'Correo')"
+                        [value]="field.label"
+                        (valueChange)="setObjectString(field, 'label', $event); onFlowInputsChanged()"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('inputType' + $index, 'select', 'Tipo', '', flowInputTypeOptions)"
+                        [value]="field.type"
+                        (valueChange)="setObjectString(field, 'type', $event); onFlowInputsChanged()"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('inputExample' + $index, 'text', 'Ejemplo', 'persona@example.com')"
+                        [value]="field.example"
+                        (valueChange)="setObjectString(field, 'example', $event); onFlowInputsChanged()"
+                      ></app-dynamic-field-control>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('inputRequired' + $index, 'checkbox', 'Obligatorio', 'Dato obligatorio')"
+                        [value]="field.required"
+                        (valueChange)="setObjectBoolean(field, 'required', $event); onFlowInputsChanged()"
+                      ></app-dynamic-field-control>
+                      <app-ui-kit-button
+                        label="Quitar"
+                        icon="pi pi-trash"
+                        tone="danger"
+                        variant="outline"
+                        (pressed)="removeFlowInput($index)"
+                      ></app-ui-kit-button>
                     </div>
                   } @empty {
                     <div class="hint">
@@ -1881,25 +1868,28 @@ interface FlowJobItem {
 
                 <div class="row" style="margin-top: 14px;">
                   @if (selectedFlow) {
-                    <button class="primary" type="button" (click)="saveFlow()" [disabled]="!canUpdate">
-                      Guardar cambios
-                    </button>
-                    <button type="button" (click)="saveFlow('build')">Guardar y continuar</button>
+                    <app-ui-kit-button
+                      label="Guardar cambios"
+                      [disabled]="!canUpdate"
+                      (pressed)="saveFlow()"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Guardar y continuar"
+                      variant="outline"
+                      (pressed)="saveFlow('build')"
+                    ></app-ui-kit-button>
                   } @else {
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="selectedTemplateId ? createFromTemplate() : createFlow()"
-                      [disabled]="!canCreate || !canCreateDraft || creatingFlow"
-                    >
-                      {{
+                    <app-ui-kit-button
+                      [label]="
                         creatingFlow
                           ? 'Creando proceso...'
                           : selectedTemplateId
                             ? 'Crear desde plantilla'
                             : 'Crear proceso completo'
-                      }}
-                    </button>
+                      "
+                      [disabled]="!canCreate || !canCreateDraft || creatingFlow"
+                      (pressed)="selectedTemplateId ? createFromTemplate() : createFlow()"
+                    ></app-ui-kit-button>
                   }
                 </div>
               }
@@ -1934,7 +1924,12 @@ interface FlowJobItem {
                           (valueChange)="setBuildView($event)"
                           ariaLabel="Vista del recorrido"
                         ></app-segmented-control>
-                        <button type="button" (click)="startNewStep()">Agregar paso</button>
+                        <app-ui-kit-button
+                          label="Agregar paso"
+                          icon="pi pi-plus"
+                          variant="outline"
+                          (pressed)="startNewStep()"
+                        ></app-ui-kit-button>
                       </div>
                     </div>
 
@@ -2003,25 +1998,11 @@ interface FlowJobItem {
                         [icon]="stepPurposeReady ? 'pi pi-check' : 'pi pi-lightbulb'"
                       ></app-context-assistant>
                       <div class="grid">
-                          <label>
-                            Tipo de paso
-                            <select [ngModel]="stepDraft.type" (ngModelChange)="setStepType($event)">
-                              <optgroup label="Operaciones comunes">
-                                <option value="dynamic_service">Ejecutar un servicio</option>
-                                <option value="validation">Validar un dato</option>
-                                <option value="decision">Tomar una decisión</option>
-                                <option value="formula">Calcular un valor</option>
-                                <option value="response">Construir la respuesta</option>
-                              </optgroup>
-                              <optgroup label="Orquestación avanzada">
-                                <option value="parallel">Ejecutar varios servicios a la vez</option>
-                                <option value="foreach">Procesar cada elemento de una lista</option>
-                                <option value="subflow">Ejecutar otro flow</option>
-                                <option value="delay">Esperar antes de continuar</option>
-                                <option value="emit_event">Emitir un evento</option>
-                              </optgroup>
-                            </select>
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('stepType', 'select', 'Tipo de paso', '', stepTypeOptions)"
+                            [value]="stepDraft.type"
+                            (valueChange)="setStepTypeFromControl($event)"
+                          ></app-dynamic-field-control>
                           <div class="hint">
                             <strong>{{ stepTypeLabel(stepDraft.type) }}</strong
                             ><br />
@@ -2030,18 +2011,16 @@ interface FlowJobItem {
                         </div>
 
                       <div class="grid">
-                        <label>
-                          Nombre visible
-                          <input
-                            [(ngModel)]="stepDraft.name"
-                            (ngModelChange)="syncStepKey()"
-                            placeholder="Validar correo"
-                          />
-                        </label>
-                        <label>
-                          Guardar resultado como
-                          <input [(ngModel)]="stepDraft.outputKey" placeholder="validacion_correo" />
-                        </label>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('stepName', 'text', 'Nombre visible', 'Validar correo')"
+                          [value]="stepDraft.name"
+                          (valueChange)="setObjectString(stepDraft, 'name', $event); syncStepKey()"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('stepOutputKey', 'text', 'Guardar resultado como', 'validacion_correo')"
+                          [value]="stepDraft.outputKey"
+                          (valueChange)="setObjectString(stepDraft, 'outputKey', $event)"
+                        ></app-dynamic-field-control>
                       </div>
 
                       <div class="configuration-title step-phase" id="flow-step-configure">
@@ -2075,53 +2054,31 @@ interface FlowJobItem {
                       <div class="guided-panel">
                         @if (stepDraft.type === 'dynamic_service') {
                           <div class="grid">
-                            <label>
-                              Servicio publicado
-                              <select [(ngModel)]="stepDraft.serviceKey" (ngModelChange)="onServiceSelected()">
-                                <option value="">Selecciona un servicio</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Timeout ms
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.timeoutMs"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Reintentos
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.retryAttempts"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Backoff ms
-                              <input
-                                type="number"
-                                [(ngModel)]="stepDraft.retryBackoffMs"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
-                            <label>
-                              Si luego falla, compensar con
-                              <select
-                                [(ngModel)]="stepDraft.compensationServiceKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              >
-                                <option value="">No ejecutar compensación</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">
-                                    {{ service.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepServiceKey', 'select', 'Servicio publicado', '', publishedServiceOptions)"
+                              [value]="stepDraft.serviceKey"
+                              (valueChange)="setObjectString(stepDraft, 'serviceKey', $event); onServiceSelected()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepTimeoutMs', 'number', 'Timeout ms', '8000')"
+                              [value]="stepDraft.timeoutMs"
+                              (valueChange)="setObjectNumber(stepDraft, 'timeoutMs', $event, 8000); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepRetryAttempts', 'number', 'Reintentos', '0')"
+                              [value]="stepDraft.retryAttempts"
+                              (valueChange)="setObjectNumber(stepDraft, 'retryAttempts', $event, 0); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepRetryBackoffMs', 'number', 'Backoff ms', '0')"
+                              [value]="stepDraft.retryBackoffMs"
+                              (valueChange)="setObjectNumber(stepDraft, 'retryBackoffMs', $event, 0); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepCompensationServiceKey', 'select', 'Si luego falla, compensar con', '', compensationServiceOptions)"
+                              [value]="stepDraft.compensationServiceKey"
+                              (valueChange)="setObjectString(stepDraft, 'compensationServiceKey', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                           </div>
                           @if (selectedService; as service) {
                             <div class="hint">
@@ -2150,38 +2107,33 @@ interface FlowJobItem {
                           <div class="branch-list">
                             @for (branch of stepDraft.parallelBranches; track $index; let index = $index) {
                               <div class="branch-row">
-                                <label>
-                                  Nombre de la rama
-                                  <input
-                                    [(ngModel)]="branch.key"
-                                    (ngModelChange)="syncGuidedStepJson()"
-                                    placeholder="consulta_{{ index + 1 }}"
-                                  />
-                                </label>
-                                <label>
-                                  Servicio publicado
-                                  <select [(ngModel)]="branch.serviceKey" (ngModelChange)="syncGuidedStepJson()">
-                                    <option value="">Selecciona un servicio</option>
-                                    @for (service of publishedServices; track service.id) {
-                                      <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                    }
-                                  </select>
-                                </label>
-                                <button
-                                  type="button"
-                                  title="Quitar rama"
+                                <app-dynamic-field-control
+                                  [field]="runtimeField('parallelBranchKey' + index, 'text', 'Nombre de la rama', 'consulta_' + (index + 1))"
+                                  [value]="branch.key"
+                                  (valueChange)="setObjectString(branch, 'key', $event); syncGuidedStepJson()"
+                                ></app-dynamic-field-control>
+                                <app-dynamic-field-control
+                                  [field]="runtimeField('parallelBranchService' + index, 'select', 'Servicio publicado', '', publishedServiceOptions)"
+                                  [value]="branch.serviceKey"
+                                  (valueChange)="setObjectString(branch, 'serviceKey', $event); syncGuidedStepJson()"
+                                ></app-dynamic-field-control>
+                                <app-ui-kit-button
+                                  label="Quitar"
+                                  icon="pi pi-trash"
+                                  tone="danger"
+                                  variant="outline"
                                   [disabled]="stepDraft.parallelBranches.length <= 2"
-                                  (click)="removeParallelBranch(index)"
-                                >
-                                  <i class="pi pi-trash" aria-hidden="true"></i>
-                                </button>
+                                  (pressed)="removeParallelBranch(index)"
+                                ></app-ui-kit-button>
                               </div>
                             }
                           </div>
-                          <button type="button" (click)="addParallelBranch()">
-                              <i class="pi pi-plus" aria-hidden="true"></i>
-                              Agregar servicio paralelo
-                          </button>
+                          <app-ui-kit-button
+                            label="Agregar servicio paralelo"
+                            icon="pi pi-plus"
+                            variant="outline"
+                            (pressed)="addParallelBranch()"
+                          ></app-ui-kit-button>
                         } @else if (stepDraft.type === 'foreach') {
                           <div class="section-heading">
                             <div class="mini-title">Repite un servicio por cada elemento</div>
@@ -2191,59 +2143,37 @@ interface FlowJobItem {
                             </p>
                           </div>
                           <div class="grid">
-                            <label>
-                              Ruta de la lista
-                              <input
-                                [(ngModel)]="stepDraft.foreachItemsPath"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.items"
-                              />
-                            </label>
-                            <label>
-                              Servicio publicado
-                                <select
-                                  [(ngModel)]="stepDraft.foreachServiceKey"
-                                  (ngModelChange)="syncGuidedStepJson()"
-                                >
-                                <option value="">Selecciona un servicio</option>
-                                @for (service of publishedServices; track service.id) {
-                                  <option [value]="service.key">{{ service.name }} · {{ service.key }}</option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Nombre del elemento
-                              <input
-                                [(ngModel)]="stepDraft.foreachItemInputKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="item"
-                              />
-                            </label>
-                            <label>
-                              Ejecuciones simultáneas
-                              <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                [(ngModel)]="stepDraft.foreachConcurrency"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('foreachItemsPath', 'text', 'Ruta de la lista', 'input.items')"
+                              [value]="stepDraft.foreachItemsPath"
+                              (valueChange)="setObjectString(stepDraft, 'foreachItemsPath', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('foreachServiceKey', 'select', 'Servicio publicado', '', publishedServiceOptions)"
+                              [value]="stepDraft.foreachServiceKey"
+                              (valueChange)="setObjectString(stepDraft, 'foreachServiceKey', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('foreachItemInputKey', 'text', 'Nombre del elemento', 'item')"
+                              [value]="stepDraft.foreachItemInputKey"
+                              (valueChange)="setObjectString(stepDraft, 'foreachItemInputKey', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('foreachConcurrency', 'number', 'Ejecuciones simultáneas', '4')"
+                              [value]="stepDraft.foreachConcurrency"
+                              (valueChange)="setObjectNumber(stepDraft, 'foreachConcurrency', $event, 4); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                           </div>
                         } @else if (stepDraft.type === 'subflow') {
                           <div class="section-heading">
                             <div class="mini-title">Reutiliza otro flow publicado</div>
                             <p class="meta">El resultado del flow hijo queda disponible como salida de este paso.</p>
                           </div>
-                          <label>
-                            Flow publicado
-                            <select [(ngModel)]="stepDraft.subflowKey" (ngModelChange)="syncGuidedStepJson()">
-                              <option value="">Selecciona un flow</option>
-                              @for (flow of publishedSubflows; track flow.id) {
-                                <option [value]="flow.key">{{ flow.name }} · {{ flow.key }}</option>
-                              }
-                            </select>
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('subflowKey', 'select', 'Flow publicado', '', publishedSubflowOptions)"
+                            [value]="stepDraft.subflowKey"
+                            (valueChange)="setObjectString(stepDraft, 'subflowKey', $event); syncGuidedStepJson()"
+                          ></app-dynamic-field-control>
                         } @else if (stepDraft.type === 'delay') {
                           <div class="section-heading">
                             <div class="mini-title">Espera antes de continuar</div>
@@ -2252,16 +2182,11 @@ interface FlowJobItem {
                                 Confisys.
                             </p>
                           </div>
-                          <label>
-                            Duración en milisegundos
-                            <input
-                              type="number"
-                              min="0"
-                              max="30000"
-                              [(ngModel)]="stepDraft.delayMs"
-                              (ngModelChange)="syncGuidedStepJson()"
-                            />
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('delayMs', 'number', 'Duración en milisegundos', '1000')"
+                            [value]="stepDraft.delayMs"
+                            (valueChange)="setObjectNumber(stepDraft, 'delayMs', $event, 1000); syncGuidedStepJson()"
+                          ></app-dynamic-field-control>
                         } @else if (stepDraft.type === 'emit_event') {
                           <div class="section-heading">
                             <div class="mini-title">Publica un evento durable</div>
@@ -2270,21 +2195,18 @@ interface FlowJobItem {
                             </p>
                           </div>
                           <div class="grid">
-                            <label>
-                              Nombre del evento
-                              <input
-                                [(ngModel)]="stepDraft.eventKey"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="pedido.aprobado"
-                              />
-                            </label>
-                            <label>
-                              Datos del evento
-                              <textarea
-                                [(ngModel)]="stepDraft.eventPayloadText"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              ></textarea>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('eventKey', 'text', 'Nombre del evento', 'pedido.aprobado')"
+                              [value]="stepDraft.eventKey"
+                              (valueChange)="setObjectString(stepDraft, 'eventKey', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-code-textarea
+                              label="Datos del evento"
+                              controlId="eventPayloadText"
+                              [value]="stepDraft.eventPayloadText"
+                              minHeight="132px"
+                              (valueChange)="setObjectString(stepDraft, 'eventPayloadText', $event); syncGuidedStepJson()"
+                            ></app-code-textarea>
                           </div>
                         } @else if (stepDraft.type === 'decision') {
                           <div class="section-heading">
@@ -2294,46 +2216,26 @@ interface FlowJobItem {
                               </p>
                           </div>
                           <div class="grid">
-                            <label>
-                              Dato a revisar
-                              <input
-                                [(ngModel)]="stepDraft.decisionLeft"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.edad"
-                              />
-                            </label>
-                            <label>
-                              Comparación
-                              <select [(ngModel)]="stepDraft.decisionOperator" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="===">Es igual a</option>
-                                <option value="!==">Es diferente de</option>
-                                <option value=">">Es mayor que</option>
-                                <option value=">=">Es mayor o igual que</option>
-                                <option value="<">Es menor que</option>
-                                <option value="<=">Es menor o igual que</option>
-                                <option value="in">Contiene</option>
-                              </select>
-                            </label>
-                            <label>
-                              Tipo del valor
-                                <select
-                                  [(ngModel)]="stepDraft.decisionRightType"
-                                  (ngModelChange)="syncGuidedStepJson()"
-                                >
-                                <option value="text">Texto</option>
-                                <option value="number">Número</option>
-                                <option value="boolean">Sí / no</option>
-                                <option value="path">Otro dato del proceso</option>
-                              </select>
-                            </label>
-                            <label>
-                              Valor para comparar
-                              <input
-                                [(ngModel)]="stepDraft.decisionRight"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="18"
-                              />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('decisionLeft', 'text', 'Dato a revisar', 'input.edad')"
+                              [value]="stepDraft.decisionLeft"
+                              (valueChange)="setObjectString(stepDraft, 'decisionLeft', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('decisionOperator', 'select', 'Comparación', '', decisionOperatorOptions)"
+                              [value]="stepDraft.decisionOperator"
+                              (valueChange)="setObjectString(stepDraft, 'decisionOperator', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('decisionRightType', 'select', 'Tipo del valor', '', decisionRightTypeOptions)"
+                              [value]="stepDraft.decisionRightType"
+                              (valueChange)="setObjectString(stepDraft, 'decisionRightType', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('decisionRight', 'text', 'Valor para comparar', '18')"
+                              [value]="stepDraft.decisionRight"
+                              (valueChange)="setObjectString(stepDraft, 'decisionRight', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                           </div>
                         } @else if (stepDraft.type === 'formula') {
                           <div class="section-heading">
@@ -2341,117 +2243,73 @@ interface FlowJobItem {
                             <p class="meta">Usa rutas como <code>input.total</code> o números directos.</p>
                           </div>
                           <div class="grid">
-                            <label>
-                              Primer valor
-                              <input
-                                [(ngModel)]="stepDraft.formulaLeft"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.total"
-                              />
-                            </label>
-                            <label>
-                              Operación
-                              <select [(ngModel)]="stepDraft.formulaOperator" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="+">Sumar</option>
-                                <option value="-">Restar</option>
-                                <option value="*">Multiplicar</option>
-                                <option value="/">Dividir</option>
-                                <option value="%">Residuo</option>
-                              </select>
-                            </label>
-                            <label>
-                              Segundo valor
-                              <input
-                                [(ngModel)]="stepDraft.formulaRight"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="0.19"
-                              />
-                            </label>
-                            <label>
-                              Decimales
-                              <input
-                                type="number"
-                                min="0"
-                                max="10"
-                                [(ngModel)]="stepDraft.formulaPrecision"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('formulaLeft', 'text', 'Primer valor', 'input.total')"
+                              [value]="stepDraft.formulaLeft"
+                              (valueChange)="setObjectString(stepDraft, 'formulaLeft', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('formulaOperator', 'select', 'Operación', '', formulaOperatorOptions)"
+                              [value]="stepDraft.formulaOperator"
+                              (valueChange)="setObjectString(stepDraft, 'formulaOperator', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('formulaRight', 'text', 'Segundo valor', '0.19')"
+                              [value]="stepDraft.formulaRight"
+                              (valueChange)="setObjectString(stepDraft, 'formulaRight', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('formulaPrecision', 'number', 'Decimales', '2')"
+                              [value]="stepDraft.formulaPrecision"
+                              (valueChange)="setObjectNumber(stepDraft, 'formulaPrecision', $event, 2); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                           </div>
                         } @else if (stepDraft.type === 'validation') {
                           <div class="grid">
-                            <label>
-                              Campo
-                              <input
-                                [(ngModel)]="stepDraft.validationField"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="input.email"
-                              />
-                            </label>
-                            <label>
-                              Operador
-                                <select
-                                  [(ngModel)]="stepDraft.validationOperator"
-                                  (ngModelChange)="syncGuidedStepJson()"
-                                >
-                                <option value="required">Requerido</option>
-                                <option value="equals">Igual a</option>
-                                <option value="not_equals">Diferente de</option>
-                                <option value="not_empty">No vacío</option>
-                                <option value="greater_than">Mínimo</option>
-                                <option value="less_than">Máximo</option>
-                                <option value="contains">Contiene</option>
-                                <option value="email">Correo válido</option>
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('validationField', 'text', 'Campo', 'input.email')"
+                              [value]="stepDraft.validationField"
+                              (valueChange)="setObjectString(stepDraft, 'validationField', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('validationOperator', 'select', 'Operador', '', validationOperatorOptions)"
+                              [value]="stepDraft.validationOperator"
+                              (valueChange)="setObjectString(stepDraft, 'validationOperator', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                             @if (validationNeedsValue) {
-                              <label>
-                                Valor esperado
-                                <input
-                                  [(ngModel)]="stepDraft.validationValue"
-                                  (ngModelChange)="syncGuidedStepJson()"
-                                  placeholder="Valor de comparación"
-                                />
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('validationValue', 'text', 'Valor esperado', 'Valor de comparación')"
+                                [value]="stepDraft.validationValue"
+                                (valueChange)="setObjectString(stepDraft, 'validationValue', $event); syncGuidedStepJson()"
+                              ></app-dynamic-field-control>
                             }
-                            <label>
-                              Mensaje si no cumple
-                              <input
-                                [(ngModel)]="stepDraft.validationMessage"
-                                (ngModelChange)="syncGuidedStepJson()"
-                                placeholder="El correo es obligatorio"
-                              />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('validationMessage', 'text', 'Mensaje si no cumple', 'El correo es obligatorio')"
+                              [value]="stepDraft.validationMessage"
+                              (valueChange)="setObjectString(stepDraft, 'validationMessage', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
                           </div>
                         } @else if (stepDraft.type === 'response') {
                           <div class="grid">
-                            <label>
-                              Estado
-                              <select [(ngModel)]="stepDraft.responseStatus" (ngModelChange)="syncGuidedStepJson()">
-                                <option value="success">success</option>
-                                <option value="failed">failed</option>
-                                <option value="partial">partial</option>
-                              </select>
-                            </label>
-                            <label>
-                              Cuerpo de respuesta JSON
-                              <textarea
-                                [(ngModel)]="stepDraft.responseBodyText"
-                                (ngModelChange)="syncGuidedStepJson()"
-                              ></textarea>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('responseStatus', 'select', 'Estado', '', responseStatusOptions)"
+                              [value]="stepDraft.responseStatus"
+                              (valueChange)="setObjectString(stepDraft, 'responseStatus', $event); syncGuidedStepJson()"
+                            ></app-dynamic-field-control>
+                            <app-code-textarea
+                              label="Cuerpo de respuesta JSON"
+                              controlId="responseBodyText"
+                              [value]="stepDraft.responseBodyText"
+                              minHeight="132px"
+                              (valueChange)="setObjectString(stepDraft, 'responseBodyText', $event); syncGuidedStepJson()"
+                            ></app-code-textarea>
                           </div>
                         } @else if (stepDraft.type === 'action') {
-                          <label>
-                            Acción declarativa
-                            <select [(ngModel)]="stepDraft.actionName" (ngModelChange)="syncGuidedStepJson()">
-                              <option value="create_record">create_record</option>
-                              <option value="show_modal">show_modal</option>
-                              <option value="navigate">navigate</option>
-                              <option value="queue_offline">queue_offline</option>
-                              <option value="upload_files">upload_files</option>
-                            </select>
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('actionName', 'select', 'Acción declarativa', '', actionNameOptions)"
+                            [value]="stepDraft.actionName"
+                            (valueChange)="setObjectString(stepDraft, 'actionName', $event); syncGuidedStepJson()"
+                          ></app-dynamic-field-control>
                         } @else {
                           <div class="hint">
                             {{ stepTypeSummary(stepDraft.type) }}
@@ -2528,46 +2386,24 @@ interface FlowJobItem {
                         </div>
                         @if (stepDraft.type === 'decision') {
                           <div class="grid">
-                            <label>
-                              Si se cumple
-                              <select [(ngModel)]="stepDraft.onTrueStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
-                            <label>
-                              Si no se cumple
-                              <select [(ngModel)]="stepDraft.onFalseStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('onTrueStepKey', 'select', 'Si se cumple', '', targetStepOptions)"
+                              [value]="stepDraft.onTrueStepKey"
+                              (valueChange)="setObjectString(stepDraft, 'onTrueStepKey', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('onFalseStepKey', 'select', 'Si no se cumple', '', targetStepOptions)"
+                              [value]="stepDraft.onFalseStepKey"
+                              (valueChange)="setObjectString(stepDraft, 'onFalseStepKey', $event)"
+                            ></app-dynamic-field-control>
                           </div>
                         } @else {
                           <div class="grid">
-                            <label>
-                              {{
-                                stepDraft.type === 'dynamic_service'
-                                  ? 'Cuando el servicio responde bien'
-                                  : 'Cuando termina correctamente'
-                              }}
-                              <select [(ngModel)]="stepDraft.nextStepKey">
-                                <option value="">Siguiente paso de la lista</option>
-                                @for (step of availableTargetSteps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('nextStepKey', 'select', stepDraft.type === 'dynamic_service' ? 'Cuando el servicio responde bien' : 'Cuando termina correctamente', '', targetStepOptions)"
+                              [value]="stepDraft.nextStepKey"
+                              (valueChange)="setObjectString(stepDraft, 'nextStepKey', $event)"
+                            ></app-dynamic-field-control>
                             @if (
                               stepDraft.type === 'validation' ||
                               stepDraft.type === 'dynamic_service' ||
@@ -2575,34 +2411,18 @@ interface FlowJobItem {
                               stepDraft.type === 'foreach' ||
                               stepDraft.type === 'subflow'
                             ) {
-                              <label>
-                                {{
-                                  stepDraft.type === 'validation'
-                                    ? 'Cuando no cumple'
-                                    : 'Cuando la operación devuelve error'
-                                }}
-                                <select [(ngModel)]="stepDraft.onErrorStepKey">
-                                  <option value="">Detener y mostrar el error</option>
-                                  @for (step of availableTargetSteps; track step.id) {
-                                    <option [value]="step.key">
-                                      {{ step.name }}
-                                    </option>
-                                  }
-                                </select>
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('onErrorStepKey', 'select', stepDraft.type === 'validation' ? 'Cuando no cumple' : 'Cuando la operación devuelve error', '', errorTargetStepOptions)"
+                                [value]="stepDraft.onErrorStepKey"
+                                (valueChange)="setObjectString(stepDraft, 'onErrorStepKey', $event)"
+                              ></app-dynamic-field-control>
                             }
                             @if (stepDraft.type === 'dynamic_service') {
-                              <label>
-                                Cuando supera el tiempo límite
-                                <select [(ngModel)]="stepDraft.onTimeoutStepKey">
-                                  <option value="">Usar la ruta de error o detener</option>
-                                  @for (step of availableTargetSteps; track step.id) {
-                                    <option [value]="step.key">
-                                      {{ step.name }}
-                                    </option>
-                                  }
-                                </select>
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('onTimeoutStepKey', 'select', 'Cuando supera el tiempo límite', '', timeoutTargetStepOptions)"
+                                [value]="stepDraft.onTimeoutStepKey"
+                                (valueChange)="setObjectString(stepDraft, 'onTimeoutStepKey', $event)"
+                              ></app-dynamic-field-control>
                             }
                           </div>
                         }
@@ -2621,26 +2441,29 @@ interface FlowJobItem {
                                 avanzado.
                             </p>
                           </div>
-                          <label class="inline-check">
-                            <input type="checkbox" [(ngModel)]="stepDraft.advancedMode" />
-                            Editar JSON
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('stepAdvancedMode', 'checkbox', 'Editar JSON', 'Permite editar la definición técnica del paso.')"
+                            [value]="stepDraft.advancedMode"
+                            (valueChange)="setObjectBoolean(stepDraft, 'advancedMode', $event)"
+                          ></app-dynamic-field-control>
                         </div>
                         <div class="grid">
-                          <label>
-                            Configuración JSON
-                            <textarea
-                              [(ngModel)]="stepDraft.configText"
-                              [disabled]="!stepDraft.advancedMode"
-                            ></textarea>
-                          </label>
-                          <label>
-                            Mapa de datos JSON
-                            <textarea
-                              [(ngModel)]="stepDraft.inputMapText"
-                              [disabled]="!stepDraft.advancedMode"
-                            ></textarea>
-                          </label>
+                          <app-code-textarea
+                            label="Configuración JSON"
+                            controlId="stepConfigText"
+                            [value]="stepDraft.configText"
+                            [disabled]="!stepDraft.advancedMode"
+                            minHeight="190px"
+                            (valueChange)="setObjectString(stepDraft, 'configText', $event)"
+                          ></app-code-textarea>
+                          <app-code-textarea
+                            label="Mapa de datos JSON"
+                            controlId="stepInputMapText"
+                            [value]="stepDraft.inputMapText"
+                            [disabled]="!stepDraft.advancedMode"
+                            minHeight="190px"
+                            (valueChange)="setObjectString(stepDraft, 'inputMapText', $event)"
+                          ></app-code-textarea>
                         </div>
                         <app-context-assistant
                             [title]="
@@ -2665,14 +2488,16 @@ interface FlowJobItem {
                             <span class="meta">Normalmente se generan automáticamente.</span>
                           </summary>
                           <div class="grid">
-                            <label>
-                              Identificador del paso
-                              <input [(ngModel)]="stepDraft.key" placeholder="validar_correo" />
-                            </label>
-                            <label>
-                              Orden
-                              <input type="number" [(ngModel)]="stepDraft.position" />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepKey', 'text', 'Identificador del paso', 'validar_correo')"
+                              [value]="stepDraft.key"
+                              (valueChange)="setObjectString(stepDraft, 'key', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('stepPosition', 'number', 'Orden', '10')"
+                              [value]="stepDraft.position"
+                              (valueChange)="setObjectNumber(stepDraft, 'position', $event, 10)"
+                            ></app-dynamic-field-control>
                           </div>
                         </details>
                       </section>
@@ -2685,35 +2510,40 @@ interface FlowJobItem {
                           }}
                         </span>
                         @if (stepDraft.id && stepHasChanges) {
-                          <button type="button" (click)="resetStepChanges()">Deshacer cambios</button>
+                          <app-ui-kit-button
+                            label="Deshacer cambios"
+                            variant="outline"
+                            (pressed)="resetStepChanges()"
+                          ></app-ui-kit-button>
                         }
-                        <button
-                          type="button"
-                          (click)="saveStep('stay')"
+                        <app-ui-kit-button
+                          label="Guardar"
+                          icon="pi pi-save"
+                          variant="outline"
                           [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          <i class="pi pi-save" aria-hidden="true"></i> Guardar
-                        </button>
-                        <button
-                          class="primary"
-                          type="button"
-                          (click)="saveStep('test')"
+                          (pressed)="saveStep('stay')"
+                        ></app-ui-kit-button>
+                        <app-ui-kit-button
+                          label="Guardar y probar"
+                          icon="pi pi-bolt"
                           [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          <i class="pi pi-bolt" aria-hidden="true"></i> Guardar y probar
-                        </button>
-                        <button
-                          type="button"
-                          (click)="saveStep('next')"
+                          (pressed)="saveStep('test')"
+                        ></app-ui-kit-button>
+                        <app-ui-kit-button
+                          label="Guardar y agregar siguiente"
+                          icon="pi pi-arrow-right"
+                          variant="outline"
                           [disabled]="!canUpdate || stepDraftIssues.length > 0"
-                        >
-                          Guardar y agregar siguiente
-                          <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                        </button>
+                          (pressed)="saveStep('next')"
+                        ></app-ui-kit-button>
                         @if (stepDraft.id) {
-                          <button class="danger" type="button" (click)="deleteStep()" [disabled]="!canUpdate">
-                            Eliminar paso
-                          </button>
+                          <app-ui-kit-button
+                            label="Eliminar paso"
+                            tone="danger"
+                            variant="outline"
+                            [disabled]="!canUpdate"
+                            (pressed)="deleteStep()"
+                          ></app-ui-kit-button>
                         }
                       </div>
                     </div>
@@ -2759,14 +2589,12 @@ interface FlowJobItem {
                       <pre>{{ selectedFlow.definitionPreview | json }}</pre>
                     </details>
 
-                    <button
-                      type="button"
-                      style="margin-top: 12px;"
-                      (click)="activeStage = 'test'"
+                    <app-ui-kit-button
+                      label="Continuar a pruebas"
+                      variant="outline"
                       [disabled]="selectedFlow.steps.length === 0"
-                    >
-                      Continuar a pruebas
-                    </button>
+                      (pressed)="activeStage = 'test'"
+                    ></app-ui-kit-button>
                   </section>
                 </div>
               }
@@ -2795,55 +2623,38 @@ interface FlowJobItem {
                         <p class="meta">Completa el formulario como lo haría una pantalla real.</p>
                       </div>
                       @for (field of flowInputs; track field.key) {
-                        <label [for]="'flow-test-input-' + field.key">
-                          {{ field.label || field.key }}{{ field.required ? ' *' : '' }}
-                          @if (field.type === 'boolean') {
-                            <select
-                              [id]="'flow-test-input-' + field.key"
-                              [ngModel]="testInputValues[field.key]"
-                              (ngModelChange)="setTestInputValue(field, $event)"
-                            >
-                              <option [ngValue]="true">Sí</option>
-                              <option [ngValue]="false">No</option>
-                            </select>
-                          } @else {
-                            <input
-                              [id]="'flow-test-input-' + field.key"
-                              [type]="testInputType(field)"
-                              [ngModel]="testInputValues[field.key]"
-                              (ngModelChange)="setTestInputValue(field, $event)"
-                            />
-                          }
-                        </label>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('flowTestInput' + field.key, field.type === 'boolean' ? 'select' : field.type, field.label || field.key, '', field.type === 'boolean' ? booleanOptions : [], field.required)"
+                          [value]="testInputValues[field.key]"
+                          (valueChange)="setTestInputValue(field, $event)"
+                        ></app-dynamic-field-control>
                       } @empty {
                         <div class="hint">Este proceso no definió entradas. Puedes usar el JSON avanzado.</div>
                       }
                       <details>
                         <summary><strong>JSON avanzado</strong></summary>
-                        <textarea [(ngModel)]="testInputText" (ngModelChange)="syncTestValuesFromJson()"></textarea>
+                        <app-code-textarea
+                          controlId="flowTestInputText"
+                          [value]="testInputText"
+                          minHeight="132px"
+                          (valueChange)="testInputText = $event; syncTestValuesFromJson()"
+                        ></app-code-textarea>
                       </details>
                     </div>
                     <div>
-                      <label>
-                        Probar hasta
-                        <select [(ngModel)]="previewThroughStepKey">
-                          <option value="">Todo el borrador</option>
-                          @for (step of selectedFlow.steps; track step.id) {
-                            <option [value]="step.key">{{ step.name }}</option>
-                          }
-                        </select>
-                      </label>
+                      <app-dynamic-field-control
+                        [field]="runtimeField('previewThroughStepKey', 'select', 'Probar hasta', '', previewStepOptions)"
+                        [value]="previewThroughStepKey"
+                        (valueChange)="previewThroughStepKey = controlString($event)"
+                      ></app-dynamic-field-control>
                       <div class="callout" style="margin-top: 10px;">
                         Esta prueba usa los pasos que estás editando. No necesitas crear ni publicar una versión.
                       </div>
-                      <button
-                        class="primary"
-                        type="button"
-                        (click)="previewFlow()"
+                      <app-ui-kit-button
+                        [label]="executing ? 'Probando...' : 'Probar borrador'"
                         [disabled]="executing || selectedFlow.steps.length === 0"
-                      >
-                        {{ executing ? 'Probando...' : 'Probar borrador' }}
-                      </button>
+                        (pressed)="previewFlow()"
+                      ></app-ui-kit-button>
                     </div>
                   </div>
 
@@ -2891,12 +2702,17 @@ interface FlowJobItem {
                       </details>
                       <div class="row">
                         @if (lastPreview.status === 'success') {
-                          <button class="primary" type="button" (click)="continueFromPreview()">
-                            Usar resultado y continuar
-                            <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                          </button>
+                          <app-ui-kit-button
+                            label="Usar resultado y continuar"
+                            icon="pi pi-arrow-right"
+                            (pressed)="continueFromPreview()"
+                          ></app-ui-kit-button>
                         } @else {
-                          <button type="button" (click)="editFailedPreviewStep()">Corregir paso con error</button>
+                          <app-ui-kit-button
+                            label="Corregir paso con error"
+                            variant="outline"
+                            (pressed)="editFailedPreviewStep()"
+                          ></app-ui-kit-button>
                         }
                       </div>
                     </div>
@@ -2917,17 +2733,23 @@ interface FlowJobItem {
                             <h3>Casos guardados</h3>
                             <p class="meta">{{ testCases.length }} escenarios</p>
                           </div>
-                          <button type="button" title="Nuevo caso" (click)="startNewTestCase()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                          </button>
+                          <app-ui-kit-button
+                            label="Nuevo"
+                            icon="pi pi-plus"
+                            variant="outline"
+                            (pressed)="startNewTestCase()"
+                          ></app-ui-kit-button>
                         </div>
                         <div class="test-case-list">
                           @for (testCase of testCases; track testCase.id) {
-                            <button
+                            <article
                               class="test-case"
-                              type="button"
+                              role="button"
+                              tabindex="0"
                               [class.active]="testCase.id === testCaseDraft.id"
                               (click)="selectTestCase(testCase)"
+                              (keydown.enter)="selectTestCase(testCase)"
+                              (keydown.space)="selectTestCase(testCase)"
                             >
                               <strong>{{ testCase.name }}</strong>
                               <span class="meta">
@@ -2945,21 +2767,18 @@ interface FlowJobItem {
                                   {{ testCase.lastResult.passed ? 'PASÓ' : 'FALLÓ' }}
                                 </span>
                               }
-                            </button>
+                            </article>
                           } @empty {
                             <div class="hint">Guarda el primer escenario para repetirlo después de cada cambio.</div>
                           }
                         </div>
-                        <button
-                          class="primary"
-                          type="button"
-                          style="margin-top: 10px; width: 100%;"
-                          (click)="runTestSuite()"
+                        <app-ui-kit-button
+                          [label]="runningTests ? 'Ejecutando suite...' : 'Ejecutar todos'"
+                          icon="pi pi-play"
+                          [full]="true"
                           [disabled]="runningTests || !testCases.length"
-                        >
-                          <i class="pi pi-play" aria-hidden="true"></i>
-                          {{ runningTests ? 'Ejecutando suite...' : 'Ejecutar todos' }}
-                        </button>
+                          (pressed)="runTestSuite()"
+                        ></app-ui-kit-button>
                       </section>
 
                       <section>
@@ -2972,82 +2791,74 @@ interface FlowJobItem {
                           </p>
                         </div>
                         <div class="grid">
-                          <label>
-                            Nombre del escenario
-                            <input [(ngModel)]="testCaseDraft.name" placeholder="Solicitud válida" />
-                          </label>
-                          <label>
-                            Probar
-                            <select [(ngModel)]="testCaseDraft.target">
-                              <option value="draft">Borrador actual</option>
-                              <option value="published">Versión publicada</option>
-                            </select>
-                          </label>
-                          <label>
-                            Resultado esperado
-                            <select [(ngModel)]="testCaseDraft.expectedStatus">
-                              <option value="success">Debe terminar correctamente</option>
-                              <option value="failed">Debe fallar de forma controlada</option>
-                            </select>
-                          </label>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('testCaseName', 'text', 'Nombre del escenario', 'Solicitud válida')"
+                            [value]="testCaseDraft.name"
+                            (valueChange)="setObjectString(testCaseDraft, 'name', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('testCaseTarget', 'select', 'Probar', '', flowTestTargetOptions)"
+                            [value]="testCaseDraft.target"
+                            (valueChange)="setObjectString(testCaseDraft, 'target', $event)"
+                          ></app-dynamic-field-control>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('testCaseExpectedStatus', 'select', 'Resultado esperado', '', expectedStatusOptions)"
+                            [value]="testCaseDraft.expectedStatus"
+                            (valueChange)="setObjectString(testCaseDraft, 'expectedStatus', $event)"
+                          ></app-dynamic-field-control>
                           @if (testCaseDraft.target === 'draft') {
-                            <label>
-                              Ejecutar hasta
-                              <select [(ngModel)]="testCaseDraft.throughStepKey">
-                                <option value="">Todo el proceso</option>
-                                @for (step of selectedFlow.steps; track step.id) {
-                                  <option [value]="step.key">
-                                    {{ step.name }}
-                                  </option>
-                                }
-                              </select>
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('testCaseThroughStepKey', 'select', 'Ejecutar hasta', '', testCaseStepOptions)"
+                              [value]="testCaseDraft.throughStepKey"
+                              (valueChange)="setObjectString(testCaseDraft, 'throughStepKey', $event)"
+                            ></app-dynamic-field-control>
                           }
                         </div>
-                        <label style="margin-top: 10px;">
-                          Entrada JSON
-                          <textarea [(ngModel)]="testCaseDraft.inputText"></textarea>
-                        </label>
+                        <app-code-textarea
+                          label="Entrada JSON"
+                          controlId="testCaseInputText"
+                          [value]="testCaseDraft.inputText"
+                          minHeight="132px"
+                          (valueChange)="setObjectString(testCaseDraft, 'inputText', $event)"
+                        ></app-code-textarea>
 
                         <div class="toolbar" style="margin-top: 12px;">
                           <div>
                             <div class="mini-title">Comprobaciones</div>
                             <p class="meta">Ejemplo: <code>output.body.ok</code> es igual a <code>true</code>.</p>
                           </div>
-                          <button type="button" (click)="addTestAssertion()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                            Agregar
-                          </button>
+                          <app-ui-kit-button
+                            label="Agregar"
+                            icon="pi pi-plus"
+                            variant="outline"
+                            (pressed)="addTestAssertion()"
+                          ></app-ui-kit-button>
                         </div>
                         @for (assertion of testCaseDraft.assertions; track $index) {
                           <div class="assertion-row">
-                            <label>
-                              Campo de respuesta
-                              <input [(ngModel)]="assertion.path" placeholder="output.body.ok" />
-                            </label>
-                            <label>
-                              Comprobar
-                              <select [(ngModel)]="assertion.operator">
-                                <option value="equals">Es igual a</option>
-                                <option value="not_equals">Es diferente de</option>
-                                <option value="contains">Contiene</option>
-                                <option value="exists">Existe</option>
-                                <option value="truthy">Es verdadero</option>
-                                <option value="greater_than">Es mayor que</option>
-                                <option value="less_than">Es menor que</option>
-                              </select>
-                            </label>
-                            <label>
-                              Valor esperado
-                              <input
-                                [(ngModel)]="assertion.expectedText"
-                                [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
-                                placeholder="true"
-                              />
-                            </label>
-                            <button type="button" title="Quitar comprobación" (click)="removeTestAssertion($index)">
-                              <i class="pi pi-trash" aria-hidden="true"></i>
-                            </button>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('assertionPath' + $index, 'text', 'Campo de respuesta', 'output.body.ok')"
+                              [value]="assertion.path"
+                              (valueChange)="setObjectString(assertion, 'path', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('assertionOperator' + $index, 'select', 'Comprobar', '', assertionOperatorOptions)"
+                              [value]="assertion.operator"
+                              (valueChange)="setObjectString(assertion, 'operator', $event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('assertionExpected' + $index, 'text', 'Valor esperado', 'true')"
+                              [value]="assertion.expectedText"
+                              [disabled]="assertion.operator === 'exists' || assertion.operator === 'truthy'"
+                              (valueChange)="setObjectString(assertion, 'expectedText', $event)"
+                            ></app-dynamic-field-control>
+                            <app-ui-kit-button
+                              label="Quitar"
+                              icon="pi pi-trash"
+                              tone="danger"
+                              variant="outline"
+                              (pressed)="removeTestAssertion($index)"
+                            ></app-ui-kit-button>
                           </div>
                         } @empty {
                           <div class="hint">
@@ -3062,25 +2873,36 @@ interface FlowJobItem {
                           <p class="meta">
                             Opcional. Solo se comparan las propiedades escritas; las propiedades adicionales se ignoran.
                           </p>
-                          <textarea
-                            [(ngModel)]="testCaseDraft.expectedOutputText"
-                            placeholder='{"body":{"ok":true}}'
-                          ></textarea>
+                          <app-code-textarea
+                            controlId="testCaseExpectedOutputText"
+                            [value]="testCaseDraft.expectedOutputText"
+                            minHeight="132px"
+                            (valueChange)="setObjectString(testCaseDraft, 'expectedOutputText', $event)"
+                          ></app-code-textarea>
                         </details>
 
                         <div class="row" style="margin-top: 12px;">
-                          <button class="primary" type="button" (click)="saveTestCase()" [disabled]="runningTests">
-                            <i class="pi pi-save" aria-hidden="true"></i>
-                            {{ testCaseDraft.id ? 'Guardar caso' : 'Crear caso' }}
-                          </button>
+                          <app-ui-kit-button
+                            [label]="testCaseDraft.id ? 'Guardar caso' : 'Crear caso'"
+                            icon="pi pi-save"
+                            [disabled]="runningTests"
+                            (pressed)="saveTestCase()"
+                          ></app-ui-kit-button>
                           @if (testCaseDraft.id) {
-                            <button type="button" (click)="runSelectedTestCase()" [disabled]="runningTests">
-                              <i class="pi pi-play" aria-hidden="true"></i>
-                              Ejecutar caso
-                            </button>
-                            <button class="danger" type="button" (click)="deleteTestCase()" [disabled]="runningTests">
-                              Eliminar
-                            </button>
+                            <app-ui-kit-button
+                              label="Ejecutar caso"
+                              icon="pi pi-play"
+                              variant="outline"
+                              [disabled]="runningTests"
+                              (pressed)="runSelectedTestCase()"
+                            ></app-ui-kit-button>
+                            <app-ui-kit-button
+                              label="Eliminar"
+                              tone="danger"
+                              variant="outline"
+                              [disabled]="runningTests"
+                              (pressed)="deleteTestCase()"
+                            ></app-ui-kit-button>
                           }
                         </div>
 
@@ -3130,15 +2952,16 @@ interface FlowJobItem {
                   </details>
 
                   <div class="row" style="margin-top: 14px;">
-                    <button type="button" (click)="activeStage = 'build'">Volver a pasos</button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="activeStage = 'publish'"
+                    <app-ui-kit-button
+                      label="Volver a pasos"
+                      variant="outline"
+                      (pressed)="activeStage = 'build'"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Continuar a publicar"
                       [disabled]="lastPreview?.status !== 'success'"
-                    >
-                      Continuar a publicar
-                    </button>
+                      (pressed)="activeStage = 'publish'"
+                    ></app-ui-kit-button>
                   </div>
                 </section>
               }
@@ -3194,30 +3017,25 @@ interface FlowJobItem {
                   </div>
 
                   <div class="row">
-                    <button
-                      type="button"
-                      (click)="createVersion()"
+                    <app-ui-kit-button
+                      label="1. Crear versión"
+                      variant="outline"
                       [disabled]="!canPublish || designerIssues.length > 0"
-                    >
-                      1. Crear versión
-                    </button>
-                    <button
-                      class="primary"
-                      type="button"
-                      (click)="publishLatest()"
+                      (pressed)="createVersion()"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="2. Publicar versión"
                       [disabled]="
                         !canPublish || !selectedFlow.latestVersion || selectedFlow.latestVersion.status === 'published'
                       "
-                    >
-                      2. Publicar versión
-                    </button>
-                    <button
-                      type="button"
-                      (click)="executeFlow()"
+                      (pressed)="publishLatest()"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Probar versión publicada"
+                      variant="outline"
                       [disabled]="executing || !selectedFlow.publishedVersion"
-                    >
-                      Probar versión publicada
-                    </button>
+                      (pressed)="executeFlow()"
+                    ></app-ui-kit-button>
                   </div>
 
                   @if (selectedFlow.publishedVersion) {
@@ -3243,9 +3061,12 @@ interface FlowJobItem {
                           <h3>Historial de versiones</h3>
                           <p class="meta">Compara o recupera una versión sin modificar la publicada.</p>
                         </div>
-                        <button type="button" title="Actualizar versiones" (click)="loadVersions()">
-                          <i class="pi pi-refresh" aria-hidden="true"></i>
-                        </button>
+                        <app-ui-kit-button
+                          label="Actualizar"
+                          icon="pi pi-refresh"
+                          variant="outline"
+                          (pressed)="loadVersions()"
+                        ></app-ui-kit-button>
                       </div>
                       <div class="version-list">
                         @for (version of flowVersions; track version.id) {
@@ -3255,21 +3076,19 @@ interface FlowJobItem {
                               <div class="meta">{{ version.status }} · {{ version.createdAt }}</div>
                             </div>
                             <div class="row">
-                              <button
-                                type="button"
-                                title="Usar para comparar"
-                                (click)="selectVersionForComparison(version.id)"
-                              >
-                                <i class="pi pi-clone" aria-hidden="true"></i>
-                              </button>
-                              <button
-                                type="button"
-                                title="Restaurar como borrador"
-                                (click)="restoreVersionDraft(version)"
+                              <app-ui-kit-button
+                                label="Comparar"
+                                icon="pi pi-clone"
+                                variant="outline"
+                                (pressed)="selectVersionForComparison(version.id)"
+                              ></app-ui-kit-button>
+                              <app-ui-kit-button
+                                label="Restaurar"
+                                icon="pi pi-history"
+                                variant="outline"
                                 [disabled]="!canUpdate"
-                              >
-                                <i class="pi pi-history" aria-hidden="true"></i>
-                              </button>
+                                (pressed)="restoreVersionDraft(version)"
+                              ></app-ui-kit-button>
                             </div>
                           </div>
                         } @empty {
@@ -3308,32 +3127,43 @@ interface FlowJobItem {
                         <p class="meta">Duplica el borrador o guárdalo como plantilla de la organización.</p>
                       </div>
                       <div class="grid">
-                        <label>
-                          Nombre de la copia
-                          <input [(ngModel)]="duplicateDraft.name" placeholder="Copia de este flow" />
-                        </label>
-                        <label>
-                          Key de la copia
-                          <input [(ngModel)]="duplicateDraft.key" placeholder="copia_del_flow" />
-                        </label>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('duplicateName', 'text', 'Nombre de la copia', 'Copia de este flow')"
+                          [value]="duplicateDraft.name"
+                          (valueChange)="setObjectString(duplicateDraft, 'name', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('duplicateKey', 'text', 'Key de la copia', 'copia_del_flow')"
+                          [value]="duplicateDraft.key"
+                          (valueChange)="setObjectString(duplicateDraft, 'key', $event)"
+                        ></app-dynamic-field-control>
                       </div>
-                      <button type="button" (click)="duplicateFlow()" [disabled]="!canCreate">
-                        <i class="pi pi-copy" aria-hidden="true"></i> Duplicar como borrador
-                      </button>
+                      <app-ui-kit-button
+                        label="Duplicar como borrador"
+                        icon="pi pi-copy"
+                        variant="outline"
+                        [disabled]="!canCreate"
+                        (pressed)="duplicateFlow()"
+                      ></app-ui-kit-button>
                       <div class="grid">
-                        <label>
-                          Nombre de la plantilla
-                          <input [(ngModel)]="templateDraft.name" placeholder="Proceso reutilizable" />
-                        </label>
-                        <label>
-                          Key de la plantilla
-                          <input [(ngModel)]="templateDraft.key" placeholder="proceso_reutilizable" />
-                        </label>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('templateName', 'text', 'Nombre de la plantilla', 'Proceso reutilizable')"
+                          [value]="templateDraft.name"
+                          (valueChange)="setObjectString(templateDraft, 'name', $event)"
+                        ></app-dynamic-field-control>
+                        <app-dynamic-field-control
+                          [field]="runtimeField('templateKey', 'text', 'Key de la plantilla', 'proceso_reutilizable')"
+                          [value]="templateDraft.key"
+                          (valueChange)="setObjectString(templateDraft, 'key', $event)"
+                        ></app-dynamic-field-control>
                       </div>
-                      <button type="button" (click)="saveFlowTemplate()" [disabled]="!canUpdate">
-                        <i class="pi pi-bookmark" aria-hidden="true"></i>
-                        Guardar como plantilla
-                      </button>
+                      <app-ui-kit-button
+                        label="Guardar como plantilla"
+                        icon="pi pi-bookmark"
+                        variant="outline"
+                        [disabled]="!canUpdate"
+                        (pressed)="saveFlowTemplate()"
+                      ></app-ui-kit-button>
                     </section>
 
                     <section class="operation-panel" style="grid-column: 1 / -1;">
@@ -3343,17 +3173,17 @@ interface FlowJobItem {
                           <p class="meta">Éxito, latencia y pasos problemáticos sobre ejecuciones reales.</p>
                         </div>
                         <div class="row">
-                          <select [(ngModel)]="observabilityStatus" aria-label="Filtrar estado">
-                            <option value="">Todos los estados</option>
-                            <option value="success">Correctas</option>
-                            <option value="failed">Fallidas</option>
-                            <option value="timeout">Timeout</option>
-                            <option value="cancelled">Canceladas</option>
-                          </select>
-                          <button type="button" (click)="loadObservability()">
-                            <i class="pi pi-chart-line" aria-hidden="true"></i>
-                            Actualizar
-                          </button>
+                          <app-dynamic-field-control
+                            [field]="runtimeField('observabilityStatus', 'select', 'Estado', '', observabilityStatusOptions)"
+                            [value]="observabilityStatus"
+                            (valueChange)="observabilityStatus = controlString($event)"
+                          ></app-dynamic-field-control>
+                          <app-ui-kit-button
+                            label="Actualizar"
+                            icon="pi pi-chart-line"
+                            variant="outline"
+                            (pressed)="loadObservability()"
+                          ></app-ui-kit-button>
                         </div>
                       </div>
                       @if (observability) {
@@ -3402,18 +3232,24 @@ interface FlowJobItem {
                             <h3>Activadores</h3>
                             <p class="meta">Define cuándo se encola este proceso.</p>
                           </div>
-                          <button type="button" title="Nuevo activador" (click)="startNewTrigger()">
-                            <i class="pi pi-plus" aria-hidden="true"></i>
-                          </button>
+                          <app-ui-kit-button
+                            label="Nuevo"
+                            icon="pi pi-plus"
+                            variant="outline"
+                            (pressed)="startNewTrigger()"
+                          ></app-ui-kit-button>
                         </div>
 
                         <div class="runtime-list">
                           @for (trigger of triggers; track trigger.id) {
-                            <button
+                            <article
                               class="runtime-item"
-                              type="button"
+                              role="button"
+                              tabindex="0"
                               [class.selected]="trigger.id === triggerDraft.id"
                               (click)="selectTrigger(trigger)"
+                              (keydown.enter)="selectTrigger(trigger)"
+                              (keydown.space)="selectTrigger(trigger)"
                             >
                               <span class="toolbar" style="margin: 0;">
                                 <strong>{{ triggerTypeLabel(trigger.type) }}</strong>
@@ -3425,7 +3261,7 @@ interface FlowJobItem {
                               @if (trigger.type === 'schedule' && trigger.nextFireAt) {
                                 <span class="meta">Próxima ejecución: {{ trigger.nextFireAt }}</span>
                               }
-                            </button>
+                            </article>
                           } @empty {
                             <div class="hint">Sin activadores. El flow solo se ejecuta manualmente.</div>
                           }
@@ -3433,61 +3269,55 @@ interface FlowJobItem {
 
                         <div class="guided-panel">
                           <div class="grid">
-                            <label>
-                              Tipo
-                              <select [(ngModel)]="triggerDraft.type" (ngModelChange)="onTriggerTypeChanged()">
-                                <option value="manual">Manual</option>
-                                <option value="http">Webhook HTTP</option>
-                                <option value="record_event">Evento de record</option>
-                                <option value="form_submit">Envío de formulario</option>
-                                <option value="schedule">Programado</option>
-                              </select>
-                            </label>
-                            <label>
-                              Clave
-                              <input [(ngModel)]="triggerDraft.key" placeholder="record.created" />
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('triggerType', 'select', 'Tipo', '', triggerTypeOptions)"
+                              [value]="triggerDraft.type"
+                              (valueChange)="setTriggerTypeFromControl($event)"
+                            ></app-dynamic-field-control>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('triggerKey', 'text', 'Clave', 'record.created')"
+                              [value]="triggerDraft.key"
+                              (valueChange)="setObjectString(triggerDraft, 'key', $event)"
+                            ></app-dynamic-field-control>
                             @if (triggerDraft.type === 'http') {
-                              <label>
-                                {{ triggerDraft.id ? 'Nuevo secreto (opcional)' : 'Secreto del webhook' }}
-                                <input
-                                  type="password"
-                                  minlength="16"
-                                  [(ngModel)]="triggerDraft.secret"
-                                  autocomplete="new-password"
-                                  placeholder="Mínimo 16 caracteres"
-                                />
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('triggerSecret', 'password', triggerDraft.id ? 'Nuevo secreto (opcional)' : 'Secreto del webhook', 'Mínimo 16 caracteres')"
+                                [value]="triggerDraft.secret"
+                                (valueChange)="setObjectString(triggerDraft, 'secret', $event)"
+                              ></app-dynamic-field-control>
                             }
                             @if (triggerDraft.type === 'schedule') {
-                              <label>
-                                Ejecutar cada (segundos)
-                                <input type="number" min="10" [(ngModel)]="triggerDraft.intervalSeconds" />
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('triggerIntervalSeconds', 'number', 'Ejecutar cada (segundos)', '60')"
+                                [value]="triggerDraft.intervalSeconds"
+                                (valueChange)="setObjectNumber(triggerDraft, 'intervalSeconds', $event, 60)"
+                              ></app-dynamic-field-control>
                             }
                             @if (
                               triggerDraft.type === 'record_event' ||
                               triggerDraft.type === 'form_submit' ||
                               triggerDraft.type === 'http'
                             ) {
-                              <label>
-                                Forma de entrada
-                                <select [(ngModel)]="triggerDraft.inputMode">
-                                  <option value="payload">Usar payload directamente</option>
-                                  <option value="envelope">Conservar sobre del evento</option>
-                                </select>
-                              </label>
+                              <app-dynamic-field-control
+                                [field]="runtimeField('triggerInputMode', 'select', 'Forma de entrada', '', triggerInputModeOptions)"
+                                [value]="triggerDraft.inputMode"
+                                (valueChange)="setObjectString(triggerDraft, 'inputMode', $event)"
+                              ></app-dynamic-field-control>
                             }
-                            <label class="inline-check">
-                              <input type="checkbox" [(ngModel)]="triggerDraft.active" />
-                              Activador activo
-                            </label>
+                            <app-dynamic-field-control
+                              [field]="runtimeField('triggerActive', 'checkbox', 'Activador activo', 'El activador queda disponible después de guardar.')"
+                              [value]="triggerDraft.active"
+                              (valueChange)="setObjectBoolean(triggerDraft, 'active', $event)"
+                            ></app-dynamic-field-control>
                           </div>
                           @if (triggerDraft.type === 'schedule') {
-                            <label>
-                              Entrada programada JSON
-                              <textarea [(ngModel)]="triggerDraft.inputText"></textarea>
-                            </label>
+                            <app-code-textarea
+                              label="Entrada programada JSON"
+                              controlId="triggerInputText"
+                              [value]="triggerDraft.inputText"
+                              minHeight="132px"
+                              (valueChange)="setObjectString(triggerDraft, 'inputText', $event)"
+                            ></app-code-textarea>
                           }
                           @if (triggerDraft.id && triggerDraft.type === 'http') {
                             <div class="code-line">
@@ -3495,20 +3325,29 @@ interface FlowJobItem {
                             </div>
                           }
                           <div class="row">
-                            <button class="primary" type="button" (click)="saveTrigger()" [disabled]="savingTrigger">
-                              <i class="pi pi-save" aria-hidden="true"></i>
-                              {{ triggerDraft.id ? 'Guardar activador' : 'Crear activador' }}
-                            </button>
+                            <app-ui-kit-button
+                              [label]="triggerDraft.id ? 'Guardar activador' : 'Crear activador'"
+                              icon="pi pi-save"
+                              [disabled]="savingTrigger"
+                              (pressed)="saveTrigger()"
+                            ></app-ui-kit-button>
                             @if (triggerDraft.id && triggerDraft.type === 'manual') {
-                              <button type="button" (click)="fireManualTrigger()" [disabled]="savingTrigger">
-                                <i class="pi pi-play" aria-hidden="true"></i>
-                                Disparar ahora
-                              </button>
+                              <app-ui-kit-button
+                                label="Disparar ahora"
+                                icon="pi pi-play"
+                                variant="outline"
+                                [disabled]="savingTrigger"
+                                (pressed)="fireManualTrigger()"
+                              ></app-ui-kit-button>
                             }
                             @if (triggerDraft.id) {
-                              <button class="danger" type="button" (click)="deleteTrigger()" [disabled]="savingTrigger">
-                                Eliminar
-                              </button>
+                              <app-ui-kit-button
+                                label="Eliminar"
+                                tone="danger"
+                                variant="outline"
+                                [disabled]="savingTrigger"
+                                (pressed)="deleteTrigger()"
+                              ></app-ui-kit-button>
                             }
                           </div>
                         </div>
@@ -3523,13 +3362,18 @@ interface FlowJobItem {
                             </span>
                           </div>
                           <div class="row">
-                            <button type="button" title="Actualizar cola" (click)="loadJobs()">
-                              <i class="pi pi-refresh" aria-hidden="true"></i>
-                            </button>
-                            <button class="primary" type="button" (click)="enqueueFlow()" [disabled]="executing">
-                              <i class="pi pi-send" aria-hidden="true"></i>
-                              Encolar prueba
-                            </button>
+                            <app-ui-kit-button
+                              label="Actualizar"
+                              icon="pi pi-refresh"
+                              variant="outline"
+                              (pressed)="loadJobs()"
+                            ></app-ui-kit-button>
+                            <app-ui-kit-button
+                              label="Encolar prueba"
+                              icon="pi pi-send"
+                              [disabled]="executing"
+                              (pressed)="enqueueFlow()"
+                            ></app-ui-kit-button>
                           </div>
                         </div>
                         @if (lastLiveEvent) {
@@ -3562,10 +3406,19 @@ interface FlowJobItem {
                               }
                               <div class="row">
                                 @if (job.status === 'queued' || job.status === 'waiting') {
-                                  <button type="button" (click)="cancelJob(job)">Cancelar</button>
+                                  <app-ui-kit-button
+                                    label="Cancelar"
+                                    tone="danger"
+                                    variant="outline"
+                                    (pressed)="cancelJob(job)"
+                                  ></app-ui-kit-button>
                                 }
                                 @if (job.status === 'failed' || job.status === 'cancelled') {
-                                  <button type="button" (click)="retryJob(job)">Reintentar</button>
+                                  <app-ui-kit-button
+                                    label="Reintentar"
+                                    variant="outline"
+                                    (pressed)="retryJob(job)"
+                                  ></app-ui-kit-button>
                                 }
                               </div>
                             </div>
@@ -3726,6 +3579,116 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
       label: 'Horario',
       summary: 'Se encola periódicamente después de publicarlo.'
     }
+  ];
+  readonly flowCategoryOptions = [
+    { label: 'Operaciones', value: 'operaciones' },
+    { label: 'Ventas', value: 'ventas' },
+    { label: 'Seguridad', value: 'seguridad' },
+    { label: 'Integraciones', value: 'integraciones' },
+    { label: 'Experiencia de usuario', value: 'experiencia' },
+    { label: 'Otro', value: 'otro' }
+  ];
+  readonly flowInputTypeOptions = [
+    { label: 'Texto', value: 'text' },
+    { label: 'Correo', value: 'email' },
+    { label: 'Número', value: 'number' },
+    { label: 'Sí / no', value: 'boolean' },
+    { label: 'Fecha', value: 'date' }
+  ];
+  readonly stepTypeOptions = [
+    { label: 'Ejecutar un servicio', value: 'dynamic_service' },
+    { label: 'Validar un dato', value: 'validation' },
+    { label: 'Tomar una decisión', value: 'decision' },
+    { label: 'Calcular un valor', value: 'formula' },
+    { label: 'Construir la respuesta', value: 'response' },
+    { label: 'Ejecutar varios servicios a la vez', value: 'parallel' },
+    { label: 'Procesar cada elemento de una lista', value: 'foreach' },
+    { label: 'Ejecutar otro flow', value: 'subflow' },
+    { label: 'Esperar antes de continuar', value: 'delay' },
+    { label: 'Emitir un evento', value: 'emit_event' }
+  ];
+  readonly decisionOperatorOptions = [
+    { label: 'Es igual a', value: '===' },
+    { label: 'Es diferente de', value: '!==' },
+    { label: 'Es mayor que', value: '>' },
+    { label: 'Es mayor o igual que', value: '>=' },
+    { label: 'Es menor que', value: '<' },
+    { label: 'Es menor o igual que', value: '<=' },
+    { label: 'Contiene', value: 'in' }
+  ];
+  readonly decisionRightTypeOptions = [
+    { label: 'Texto', value: 'text' },
+    { label: 'Número', value: 'number' },
+    { label: 'Sí / no', value: 'boolean' },
+    { label: 'Otro dato del proceso', value: 'path' }
+  ];
+  readonly formulaOperatorOptions = [
+    { label: 'Sumar', value: '+' },
+    { label: 'Restar', value: '-' },
+    { label: 'Multiplicar', value: '*' },
+    { label: 'Dividir', value: '/' },
+    { label: 'Residuo', value: '%' }
+  ];
+  readonly validationOperatorOptions = [
+    { label: 'Requerido', value: 'required' },
+    { label: 'Igual a', value: 'equals' },
+    { label: 'Diferente de', value: 'not_equals' },
+    { label: 'No vacío', value: 'not_empty' },
+    { label: 'Mínimo', value: 'greater_than' },
+    { label: 'Máximo', value: 'less_than' },
+    { label: 'Contiene', value: 'contains' },
+    { label: 'Correo válido', value: 'email' }
+  ];
+  readonly responseStatusOptions = [
+    { label: 'success', value: 'success' },
+    { label: 'failed', value: 'failed' },
+    { label: 'partial', value: 'partial' }
+  ];
+  readonly actionNameOptions = [
+    { label: 'create_record', value: 'create_record' },
+    { label: 'show_modal', value: 'show_modal' },
+    { label: 'navigate', value: 'navigate' },
+    { label: 'queue_offline', value: 'queue_offline' },
+    { label: 'upload_files', value: 'upload_files' }
+  ];
+  readonly flowTestTargetOptions = [
+    { label: 'Borrador actual', value: 'draft' },
+    { label: 'Versión publicada', value: 'published' }
+  ];
+  readonly expectedStatusOptions = [
+    { label: 'Debe terminar correctamente', value: 'success' },
+    { label: 'Debe fallar de forma controlada', value: 'failed' }
+  ];
+  readonly assertionOperatorOptions = [
+    { label: 'Es igual a', value: 'equals' },
+    { label: 'Es diferente de', value: 'not_equals' },
+    { label: 'Contiene', value: 'contains' },
+    { label: 'Existe', value: 'exists' },
+    { label: 'Es verdadero', value: 'truthy' },
+    { label: 'Es mayor que', value: 'greater_than' },
+    { label: 'Es menor que', value: 'less_than' }
+  ];
+  readonly observabilityStatusOptions = [
+    { label: 'Todos los estados', value: '' },
+    { label: 'Correctas', value: 'success' },
+    { label: 'Fallidas', value: 'failed' },
+    { label: 'Timeout', value: 'timeout' },
+    { label: 'Canceladas', value: 'cancelled' }
+  ];
+  readonly triggerTypeOptions = [
+    { label: 'Manual', value: 'manual' },
+    { label: 'Webhook HTTP', value: 'http' },
+    { label: 'Evento de record', value: 'record_event' },
+    { label: 'Envío de formulario', value: 'form_submit' },
+    { label: 'Programado', value: 'schedule' }
+  ];
+  readonly triggerInputModeOptions = [
+    { label: 'Usar payload directamente', value: 'payload' },
+    { label: 'Conservar sobre del evento', value: 'envelope' }
+  ];
+  readonly booleanOptions = [
+    { label: 'Sí', value: true },
+    { label: 'No', value: false }
   ];
   readonly capabilityGroups = [
     {
@@ -4456,6 +4419,158 @@ export class FlowsPageComponent implements OnInit, OnDestroy {
     this.unregisterAssistantState();
     this.liveSubscription?.unsubscribe();
     this.flowLive.disconnect();
+  }
+
+  runtimeField(
+    name: string,
+    type: string,
+    label: string,
+    placeholder = '',
+    options: Array<{ label: string; value: unknown }> = [],
+    required = false
+  ): RuntimeField {
+    return {
+      name,
+      type,
+      label,
+      placeholder,
+      options,
+      required
+    };
+  }
+
+  controlString(value: unknown) {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  controlBoolean(value: unknown) {
+    return value === true || value === 'true' || value === '1' || value === 1;
+  }
+
+  toFlowEntryMode(value: unknown) {
+    return this.flowEntryMode(value);
+  }
+
+  setStepTypeFromControl(value: unknown) {
+    this.setStepType(this.controlString(value) as FlowStepType);
+  }
+
+  setTriggerTypeFromControl(value: unknown) {
+    this.triggerDraft.type = this.controlString(value) as FlowTriggerType;
+    this.onTriggerTypeChanged();
+  }
+
+  setObjectValue(target: object, key: string, value: unknown) {
+    (target as Record<string, unknown>)[key] = value;
+  }
+
+  setObjectString(target: object, key: string, value: unknown) {
+    this.setObjectValue(target, key, this.controlString(value));
+  }
+
+  setObjectBoolean(target: object, key: string, value: unknown) {
+    this.setObjectValue(target, key, this.controlBoolean(value));
+  }
+
+  setObjectNumber(target: object, key: string, value: unknown, fallback = 0) {
+    this.setObjectValue(target, key, this.asNumber(value, fallback));
+  }
+
+  get templateOptions() {
+    return [
+      { label: 'Usar el asistente desde cero', value: '' },
+      ...this.flowTemplates.map((template) => ({
+        label: `${template.name} · ${template.scope === 'system' ? 'Sistema' : 'Organización'}`,
+        value: template.id
+      }))
+    ];
+  }
+
+  get entryModeSelectOptions() {
+    return this.entryModeOptions.map((option) => ({
+      label: option.label,
+      value: option.value
+    }));
+  }
+
+  get publishedServiceOptions() {
+    return [
+      { label: 'Selecciona un servicio', value: '' },
+      ...this.publishedServices.map((service) => ({
+        label: `${service.name} · ${service.key}`,
+        value: service.key
+      }))
+    ];
+  }
+
+  get compensationServiceOptions() {
+    return [
+      { label: 'No ejecutar compensación', value: '' },
+      ...this.publishedServices.map((service) => ({
+        label: `${service.name} · ${service.key}`,
+        value: service.key
+      }))
+    ];
+  }
+
+  get publishedSubflowOptions() {
+    return [
+      { label: 'Selecciona un flow', value: '' },
+      ...this.publishedSubflows.map((flow) => ({
+        label: `${flow.name} · ${flow.key}`,
+        value: flow.key
+      }))
+    ];
+  }
+
+  get targetStepOptions() {
+    return [
+      { label: 'Siguiente paso de la lista', value: '' },
+      ...this.availableTargetSteps.map((step) => ({
+        label: step.name,
+        value: step.key
+      }))
+    ];
+  }
+
+  get errorTargetStepOptions() {
+    return [
+      { label: 'Detener y mostrar el error', value: '' },
+      ...this.availableTargetSteps.map((step) => ({
+        label: step.name,
+        value: step.key
+      }))
+    ];
+  }
+
+  get timeoutTargetStepOptions() {
+    return [
+      { label: 'Usar la ruta de error o detener', value: '' },
+      ...this.availableTargetSteps.map((step) => ({
+        label: step.name,
+        value: step.key
+      }))
+    ];
+  }
+
+  get previewStepOptions() {
+    return [
+      { label: 'Todo el borrador', value: '' },
+      ...(this.selectedFlow?.steps ?? []).map((step) => ({
+        label: step.name,
+        value: step.key
+      }))
+    ];
+  }
+
+  get testCaseStepOptions() {
+    return [
+      { label: 'Todo el proceso', value: '' },
+      ...(this.selectedFlow?.steps ?? []).map((step) => ({
+        label: step.name,
+        value: step.key
+      }))
+    ];
   }
 
   loadServices() {

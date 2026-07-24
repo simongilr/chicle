@@ -119,6 +119,20 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
     summary: "Arquitectura de presentación, temas, kits visuales y adapters.",
   },
   {
+    title: "Dynamic grid layout contract",
+    path: "dynamic-grid-layout-contract.md",
+    category: "Frontend",
+    summary:
+      "Rules for screen layouts, GridStack design mode, runtime rendering and multikit components.",
+  },
+  {
+    title: "App template factory architecture",
+    path: "app-template-factory-architecture.md",
+    category: "Architecture",
+    summary:
+      "Portable app packages, template import/export, screen contracts and artifact generation boundaries.",
+  },
+  {
     title: "UI components",
     path: "ui-components.md",
     category: "Frontend",

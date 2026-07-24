@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { AppMenuItem } from '../../core/navigation/app-menu.types';
 import { AppMenuService } from '../../core/navigation/app-menu.service';
+import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 
 interface NavGroup {
   label: string;
@@ -13,7 +14,7 @@ interface NavGroup {
 @Component({
   selector: 'app-main-nav',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, UiKitButtonComponent],
   styles: [
     `
       .app-nav {
@@ -62,11 +63,7 @@ interface NavGroup {
         min-width: 0;
       }
 
-      .nav-link,
-      .logout-button,
-      .menu-button,
-      .dropdown-button,
-      .drawer-close {
+      .nav-link {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -84,17 +81,16 @@ interface NavGroup {
         white-space: nowrap;
       }
 
+      .logout-button,
+      .dropdown-button,
+      .drawer-close {
+        display: inline-block;
+      }
+
       .nav-link.active {
         border-color: var(--ch-color-primary);
         background: var(--ch-color-primary);
         color: var(--ch-color-primary-contrast);
-      }
-
-      .logout-button,
-      .menu-button,
-      .dropdown-button,
-      .drawer-close {
-        cursor: pointer;
       }
 
       .nav-icon {
@@ -140,7 +136,6 @@ interface NavGroup {
         display: none;
         width: 42px;
         min-width: 42px;
-        padding: 8px;
       }
 
       .menu-label {
@@ -268,17 +263,16 @@ interface NavGroup {
 
           @if (manualItems().length) {
             <div class="dropdown">
-              <button
+              <app-ui-kit-button
                 class="dropdown-button"
-                type="button"
+                icon="pi pi-book"
+                [label]="i18n.translate('nav.group.manual')"
+                tone="neutral"
+                variant="outline"
                 [class.active]="activeDropdown() === 'manual'"
                 [attr.aria-expanded]="activeDropdown() === 'manual'"
-                (click)="toggleDropdown('manual')"
-              >
-                <i class="pi pi-book" aria-hidden="true"></i>
-                <span>{{ i18n.translate('nav.group.manual') }}</span>
-                <i class="pi pi-angle-down" aria-hidden="true"></i>
-              </button>
+                (pressed)="toggleDropdown('manual')"
+              ></app-ui-kit-button>
               @if (activeDropdown() === 'manual') {
                 <div class="dropdown-panel">
                   @for (item of manualItems(); track item.key) {
@@ -317,17 +311,16 @@ interface NavGroup {
 
           @if (adminItems().length) {
             <div class="dropdown">
-              <button
+              <app-ui-kit-button
                 class="dropdown-button"
-                type="button"
+                icon="pi pi-shield"
+                [label]="i18n.translate('nav.group.admin')"
+                tone="neutral"
+                variant="outline"
                 [class.active]="activeDropdown() === 'admin'"
                 [attr.aria-expanded]="activeDropdown() === 'admin'"
-                (click)="toggleDropdown('admin')"
-              >
-                <i class="pi pi-shield" aria-hidden="true"></i>
-                <span>{{ i18n.translate('nav.group.admin') }}</span>
-                <i class="pi pi-angle-down" aria-hidden="true"></i>
-              </button>
+                (pressed)="toggleDropdown('admin')"
+              ></app-ui-kit-button>
               @if (activeDropdown() === 'admin') {
                 <div class="dropdown-panel">
                   @for (item of adminItems(); track item.key) {
@@ -351,16 +344,16 @@ interface NavGroup {
 
           @if (buildItems().length) {
             <div class="dropdown">
-              <button
+              <app-ui-kit-button
                 class="dropdown-button"
-                type="button"
+                icon="pi pi-pencil"
+                [label]="i18n.translate('nav.group.build')"
+                tone="neutral"
+                variant="outline"
                 [class.active]="activeDropdown() === 'build'"
                 [attr.aria-expanded]="activeDropdown() === 'build'"
-                (click)="toggleDropdown('build')"
-              >
-                <i class="pi pi-pencil" aria-hidden="true"></i>
-                <span>{{ i18n.translate('nav.group.build') }}</span>
-              </button>
+                (pressed)="toggleDropdown('build')"
+              ></app-ui-kit-button>
               @if (activeDropdown() === 'build') {
                 <div class="dropdown-panel">
                   @for (item of buildItems(); track item.key) {
@@ -383,23 +376,28 @@ interface NavGroup {
           }
 
           @if (auth.state.isAuthenticated) {
-            <button class="logout-button" type="button" (click)="logout()">
-              <i class="pi pi-sign-out" aria-hidden="true"></i>
-              <span>{{ i18n.translate('nav.logout') }}</span>
-            </button>
+            <app-ui-kit-button
+              class="logout-button"
+              icon="pi pi-sign-out"
+              [label]="i18n.translate('nav.logout')"
+              tone="neutral"
+              variant="outline"
+              (pressed)="logout()"
+            ></app-ui-kit-button>
           }
         </nav>
 
-        <button
+        <app-ui-kit-button
           class="menu-button"
-          type="button"
+          label=""
+          [ariaLabel]="i18n.translate('nav.menu')"
+          icon="pi pi-bars"
+          tone="neutral"
+          variant="outline"
           [attr.aria-expanded]="drawerOpen()"
           aria-controls="main-navigation-drawer"
-          (click)="drawerOpen.set(true)"
-        >
-          <i class="pi pi-bars" aria-hidden="true"></i>
-          <span class="menu-label">{{ i18n.translate('nav.menu') }}</span>
-        </button>
+          (pressed)="drawerOpen.set(true)"
+        ></app-ui-kit-button>
       </div>
     </header>
 
@@ -411,10 +409,15 @@ interface NavGroup {
             <div class="brand">Chicle Engine</div>
             <div class="context-label">{{ contextLabel }}</div>
           </div>
-          <button class="drawer-close" type="button" (click)="closeMenus()">
-            <i class="pi pi-times" aria-hidden="true"></i>
-            <span class="menu-label">{{ i18n.translate('nav.close') }}</span>
-          </button>
+          <app-ui-kit-button
+            class="drawer-close"
+            label=""
+            [ariaLabel]="i18n.translate('nav.close')"
+            icon="pi pi-times"
+            tone="neutral"
+            variant="outline"
+            (pressed)="closeMenus()"
+          ></app-ui-kit-button>
         </div>
 
         <div class="drawer-content">
@@ -441,10 +444,15 @@ interface NavGroup {
 
         @if (auth.state.isAuthenticated) {
           <div class="drawer-footer">
-            <button class="logout-button" type="button" (click)="logout()">
-              <i class="pi pi-sign-out" aria-hidden="true"></i>
-              <span>{{ i18n.translate('nav.logout') }}</span>
-            </button>
+            <app-ui-kit-button
+              class="logout-button"
+              icon="pi pi-sign-out"
+              [label]="i18n.translate('nav.logout')"
+              tone="neutral"
+              variant="outline"
+              [full]="true"
+              (pressed)="logout()"
+            ></app-ui-kit-button>
           </div>
         }
       </aside>
@@ -527,7 +535,7 @@ export class MainNavComponent implements OnInit {
       return 'primary';
     }
 
-    if (['confisys', 'database', 'security', 'users', 'roles', 'permissions'].includes(item.key)) {
+    if (['confisys', 'database', 'environments', 'security', 'users', 'roles', 'permissions'].includes(item.key)) {
       return 'admin';
     }
 

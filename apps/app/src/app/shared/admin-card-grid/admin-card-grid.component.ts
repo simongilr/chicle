@@ -18,6 +18,11 @@ import { Component, Input } from '@angular/core';
         min-width: 0;
       }
 
+      .grid > * {
+        min-width: 0;
+        max-width: 100%;
+      }
+
       :host([data-compact='true']) .grid {
         align-items: start;
       }

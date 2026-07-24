@@ -140,6 +140,17 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 35
   },
   {
+    key: 'environments',
+    label: 'Ambientes',
+    i18nKey: 'nav.environments',
+    route: '/environments',
+    icon: 'pi pi-cloud',
+    permissions: ['env.read'],
+    group: 'Administración',
+    placement: 'admin',
+    sortOrder: 36
+  },
+  {
     key: 'services',
     label: 'Servicios',
     i18nKey: 'nav.services',
@@ -239,9 +250,22 @@ export class AppMenuService {
   private mergeWithFallback(items: AppMenuItem[]) {
     const byKey = new Map(items.map((item) => [item.key, item]));
     for (const fallback of FALLBACK_AUTH_MENU) {
-      if (!byKey.has(fallback.key)) {
+      const current = byKey.get(fallback.key);
+      if (!current) {
         byKey.set(fallback.key, fallback);
+        continue;
       }
+
+      byKey.set(fallback.key, {
+        ...fallback,
+        ...current,
+        i18nKey: current.i18nKey ?? fallback.i18nKey,
+        group: current.group ?? fallback.group,
+        placement: current.placement ?? fallback.placement,
+        roles: current.roles ?? fallback.roles,
+        permissions: current.permissions ?? fallback.permissions,
+        priority: current.priority ?? fallback.priority
+      });
     }
 
     return Array.from(byKey.values());

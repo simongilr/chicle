@@ -154,7 +154,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         badge="UI Catalog"
       ></app-module-header>
 
-      <app-admin-filter-bar ariaLabel="Component catalog filters" minColumnWidth="170px" [kit]="previewKit">
+      <app-admin-filter-bar ariaLabel="Component catalog filters" minColumnWidth="210px" [kit]="previewKit">
         <app-dynamic-field-control
           [field]="searchField"
           [value]="search"
@@ -200,8 +200,8 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           <div>
             <strong>Controles importados e integrados</strong>
             <span>
-              Esta galería usa el runtime real de Formly y los mismos adaptadores disponibles para
-              formularios y pantallas dinámicas.
+              Esta galería usa la fachada multikit real y los mismos adaptadores disponibles para
+              formularios, pantallas dinámicas y apps generadas.
             </span>
           </div>
           <div class="field-library-actions">
@@ -282,7 +282,7 @@ export class ComponentsPageComponent {
     name: 'component-search',
     type: 'search',
     label: 'Buscar',
-    placeholder: 'Nombre, selector, propósito o pantalla'
+    placeholder: 'Nombre, selector o pantalla'
   };
 
   get categoryField(): RuntimeField {

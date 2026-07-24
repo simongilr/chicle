@@ -29,31 +29,126 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         min-width: 0;
       }
 
-      mat-form-field {
+      .material-field {
         width: 100%;
+        min-width: 0;
+        --mdc-outlined-text-field-container-shape: var(--ch-kit-control-radius, 4px);
+        --mdc-outlined-text-field-outline-color: var(--ch-color-border);
+        --mdc-outlined-text-field-hover-outline-color: var(--ch-color-primary-border);
+        --mdc-outlined-text-field-focus-outline-color: var(--ch-color-primary);
+        --mdc-outlined-text-field-input-text-color: var(--ch-color-text);
+        --mdc-outlined-text-field-caret-color: var(--ch-color-primary);
+        --mdc-outlined-text-field-label-text-color: var(--ch-color-muted);
+        --mdc-outlined-text-field-focus-label-text-color: var(--ch-color-primary);
+        --mdc-outlined-text-field-disabled-input-text-color: var(--ch-color-muted);
+        --mdc-outlined-text-field-disabled-outline-color: color-mix(in srgb, var(--ch-color-border) 70%, transparent);
+        --mat-form-field-container-height: var(--ch-control-height);
+        --mat-form-field-container-vertical-padding: 0;
+        --mat-select-enabled-trigger-text-color: var(--ch-color-text);
+        --mat-select-placeholder-text-color: var(--ch-color-muted);
+        --mat-select-disabled-trigger-text-color: var(--ch-color-muted);
+        display: block;
       }
 
       :host ::ng-deep .mat-mdc-text-field-wrapper {
+        height: var(--ch-control-height);
         min-height: var(--ch-control-height);
+        background: var(--ch-color-surface);
+        padding-inline: 12px;
       }
 
       :host ::ng-deep .mat-mdc-form-field-flex {
+        height: var(--ch-control-height);
         min-height: var(--ch-control-height);
         align-items: center;
       }
 
       :host ::ng-deep .mat-mdc-form-field-infix {
-        min-height: var(--ch-control-height);
-        padding-top: 10px;
-        padding-bottom: 8px;
+        display: flex;
+        align-items: center;
+        width: auto;
+        min-width: 0;
+        height: var(--ch-control-height);
+        min-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      :host ::ng-deep .mat-mdc-floating-label {
+        display: none;
       }
 
       :host ::ng-deep .mat-mdc-select-trigger {
+        display: flex;
+        align-items: center;
+        width: 100%;
         min-height: 24px;
+        min-width: 0;
+        line-height: 1.35;
+      }
+
+      :host ::ng-deep .mat-mdc-select-value {
+        color: var(--ch-color-text);
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      :host ::ng-deep .mat-mdc-select-value-text {
+        color: var(--ch-color-text);
+        font: inherit;
+        line-height: 1.35;
+      }
+
+      :host ::ng-deep .mat-mdc-select-placeholder {
+        color: var(--ch-color-muted);
+        opacity: 0.82;
+      }
+
+      :host ::ng-deep .mat-mdc-select-arrow,
+      :host ::ng-deep .mat-mdc-select-arrow svg {
+        color: var(--ch-color-muted);
+        fill: var(--ch-color-muted);
+      }
+
+      :host ::ng-deep input.mat-mdc-input-element {
+        min-height: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--ch-color-text) !important;
+        outline: 0 !important;
+        padding: 0 !important;
+        line-height: 1.35 !important;
+        caret-color: var(--ch-color-primary) !important;
+      }
+
+      :host ::ng-deep input.mat-mdc-input-element::placeholder,
+      :host ::ng-deep textarea.mat-mdc-input-element::placeholder {
+        color: var(--ch-color-muted);
+        opacity: 0.82;
       }
 
       :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
         display: none;
+      }
+
+      .textarea-field ::ng-deep .mat-mdc-text-field-wrapper,
+      .textarea-field ::ng-deep .mat-mdc-form-field-flex,
+      .textarea-field ::ng-deep .mat-mdc-form-field-infix {
+        height: auto;
+        min-height: 86px;
+        align-items: stretch;
+      }
+
+      .textarea-field ::ng-deep textarea.mat-mdc-input-element {
+        min-height: 74px !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--ch-color-text) !important;
+        outline: 0 !important;
+        padding: 10px 0 !important;
+        resize: vertical;
       }
 
       .boolean-control,
@@ -77,7 +172,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
   template: `
     @switch (controlType) {
       @case ('textarea') {
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field class="material-field textarea-field" appearance="outline" subscriptSizing="dynamic">
           <textarea
             matInput
             [id]="controlId"
@@ -92,7 +187,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         </mat-form-field>
       }
       @case ('select') {
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field class="material-field" appearance="outline" subscriptSizing="dynamic">
           <mat-select
             [id]="controlId"
             [name]="field.name"
@@ -181,7 +276,7 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
         ></app-mobile-evidence-control>
       }
       @default {
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-form-field class="material-field" appearance="outline" subscriptSizing="dynamic">
           <input
             matInput
             [id]="controlId"

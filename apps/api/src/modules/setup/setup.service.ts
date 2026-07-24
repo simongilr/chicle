@@ -7,6 +7,7 @@ import { AuditEvent } from '../audit/audit-event.entity';
 import { AuthLoginAttempt } from '../auth/auth-login-attempt.entity';
 import { AuthSession } from '../auth/auth-session.entity';
 import { ConfisysService } from '../confisys/confisys.service';
+import { EnvironmentDeployService } from '../environment-deploy/environment-deploy.service';
 import { DynamicForm } from '../dynamic-forms/dynamic-form.entity';
 import { MenuItem } from '../menus/menu-item.entity';
 import { MenusService } from '../menus/menus.service';
@@ -40,6 +41,7 @@ export class SetupService {
     private readonly confisys: ConfisysService,
     private readonly rbac: RbacService,
     private readonly menus: MenusService,
+    private readonly environmentDeploy: EnvironmentDeployService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource
   ) {}
@@ -103,6 +105,8 @@ export class SetupService {
 
       return createdTenant;
     });
+
+    await this.environmentDeploy.ensureTenantDefaults(savedTenant.id);
 
     return {
       tenant: savedTenant,

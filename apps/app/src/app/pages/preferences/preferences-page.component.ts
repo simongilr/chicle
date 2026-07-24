@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { AdminFormGridComponent } from '../../shared/admin-form-grid/admin-form-grid.component';
 import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
@@ -23,6 +24,7 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
   standalone: true,
   imports: [
     AdminPanelComponent,
+    AdminFormGridComponent,
     DynamicFieldControlComponent,
     ModuleHeaderComponent,
     PageShellComponent,
@@ -66,17 +68,6 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
       p {
         color: var(--ch-color-muted);
         line-height: 1.45;
-      }
-
-      .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .field-grid app-dynamic-field-control:nth-child(1),
-      .field-grid app-dynamic-field-control:nth-child(2) {
-        grid-column: span 1;
       }
 
       .actions {
@@ -159,10 +150,6 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
       }
 
       @media (max-width: 680px) {
-        .field-grid {
-          grid-template-columns: 1fr;
-        }
-
         .actions {
           justify-content: stretch;
         }
@@ -189,7 +176,7 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
           [description]="'preferences.panel.description' | t"
           [kit]="preferences().kit"
         >
-          <div class="field-grid">
+          <app-admin-form-grid ariaLabel="Preferencias visuales" minColumnWidth="230px">
             <app-dynamic-field-control
               [field]="themeField"
               [value]="preferences().themeKey"
@@ -232,7 +219,7 @@ import { UiThemeService } from '../../core/ui/ui-theme.service';
               [presentation]="activePresentation()"
               (valueChange)="setLanguage($event)"
             ></app-dynamic-field-control>
-          </div>
+          </app-admin-form-grid>
 
           <div class="actions">
             <app-ui-kit-button

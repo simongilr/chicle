@@ -230,7 +230,14 @@ interface FlowGraphConnection {
     <div class="graph" aria-label="Mapa de ejecución">
       @for (step of orderedSteps; track step.id; let index = $index; let last = $last) {
         <div class="node-wrap">
-          <button class="node" type="button" [class.active]="step.id === selectedStepId" (click)="selected.emit(step)">
+          <article
+            class="node"
+            role="button"
+            tabindex="0"
+            [class.active]="step.id === selectedStepId"
+            (click)="selected.emit(step)"
+            (keydown.enter)="selected.emit(step)"
+          >
             <span class="node-head">
               <span class="index">{{ index + 1 }}</span>
               <span class="title">
@@ -267,7 +274,7 @@ interface FlowGraphConnection {
                 </span>
               }
             </span>
-          </button>
+          </article>
           @if (!last) {
             <span class="spine" aria-hidden="true"><i class="pi pi-chevron-down"></i></span>
           }

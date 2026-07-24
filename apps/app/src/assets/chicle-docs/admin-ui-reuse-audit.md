@@ -1,6 +1,6 @@
 # Admin UI Reuse Audit
 
-Audit date: 2026-07-23.
+Audit date: 2026-07-24.
 
 This audit measures how much the current Chicle Admin pages depend on reusable visual components instead of page-local
 HTML/CSS. The goal is to keep the Admin flexible, reusable, administrable, scalable, extensible and visually coherent
@@ -22,24 +22,67 @@ The percentage is a product/UI reuse score, not a raw line-count score. It consi
 
 ## Summary
 
+Current code scan:
+
+- 53 shared Angular components under `apps/app/src/app/shared`.
+- 20 page/domain components under `apps/app/src/app/pages`.
+- 55 entries in the visual component catalog.
+- No GridStack dependency is installed yet.
+- No reusable dynamic screen grid designer exists yet.
+- `AdminCardGridComponent` is a static responsive grid, not a persisted drag/resize screen layout engine.
+
+The audited Admin page-level control reuse score is now 100% for the main Admin surfaces. The broader Admin structural
+reuse score is approximately 92%, and the native kit transformation score is approximately 90%. The remaining gap is no
+longer raw form controls in pages; it is specialized layout behavior that still belongs to domain-heavy editors and can
+be extracted gradually as stable reusable patterns.
+
 | Page | Reuse Score | Kit Portability | Current State | Main Risk |
 | --- | ---: | ---: | --- | --- |
-| Dynamic form runtime | 90% | 82% | Uses preview, Formly runtime, mobile shell and notices | Runtime submit/test layout is still local |
-| Architecture | 88% | 75% | Uses documentation layout and reusable diagrams | Diagram data stays inline |
-| Components | 88% | 86% | Uses header, reusable filter bar, field library, theme selector, card grid, doc cards and live visual previews | Some field-library examples still expose domain-specific copy |
-| Services | 84% | 70% | Best reference implementation for designers | Some service-specific filter/editor controls remain inline |
-| Docs source | 82% | 72% | Uses shared documentation layout and section card | Large manual content arrays remain page-local |
-| Preferences | 78% | 80% | Uses header, Admin panel, dynamic fields and multikit button | Preview chips and roadmap items remain local |
-| Markdown repository | 72% | 68% | Uses documentation layout, section cards, status notices and reusable filter bar | Markdown parser/viewer still page-local |
-| Database | 72% | 62% | Uses header, catalog, tabs, section header, notices and reusable data table | Modal editor, pagination and schema designer remain inline |
-| Login | 72% | 55% | Public shell, field shell, notices and loading | Auth policy panel and tabs are custom |
-| Setup | 70% | 55% | Public shell, field shell, notices and loading | Setup cards and review flow are custom |
-| Security | 68% | 60% | Uses shell, header, Admin panel, metrics, reusable filter bar, notices and loading | Users, roles, policy matrix and audit list are custom |
-| Confisys | 64% | 58% | Uses shell, header, field shell, loading and reusable filter bar | Parameter list/editor is custom |
-| Forms designer | 64% | 66% | Uses designer shell, catalog, fields, preview, JSON and guide | Step manager, field inspector, actions and test bench are inline |
-| Services/Flows shared pattern | 63% | 62% | Pattern exists and is reusable | Flows has not fully extracted to it |
-| Home | 60% | 58% | Uses page shell, Admin panel, action toolbar and metric cards | Module cards/grid still local |
-| Flows designer | 34% | 44% | Uses shared designer shell, JSON panel and guide | Very large page with many inline editors, tabs, graph controls and test UI |
+| Dynamic form runtime | 93% | 90% | Uses preview, Formly runtime, mobile shell and notices | Runtime submit/test layout can become a generic test workbench |
+| Architecture | 92% | 86% | Uses documentation layout and reusable diagrams | Diagram data stays inline |
+| Components | 96% | 94% | Uses header, reusable filter bar, field library, theme selector, card grid, doc cards and live visual previews | Some component visual previews still need deeper kit-specific cases |
+| Services | 94% | 90% | Uses designer workspace, catalog, dynamic fields, code textarea, JSON authoring and multikit buttons | Service-specific business sections still live in the page |
+| Docs source | 92% | 88% | Uses shared documentation layout and section card | Large manual content arrays remain page-local |
+| Environment Deploy Center | 90% | 88% | Uses shell, header, metrics, panels, dynamic fields, catalog items, segmented control and multikit buttons | Resource cards, validation list and bundle viewer remain local |
+| Preferences | 92% | 94% | Uses header, Admin panel, form grid, dynamic fields and multikit button | Preview chips and roadmap items remain local |
+| Markdown repository | 90% | 88% | Uses documentation layout, section cards, status notices and reusable filter bar | Markdown parser/viewer still page-local |
+| Database | 90% | 88% | Uses header, catalog, tabs, section header, notices and reusable data table | Schema designer behavior still belongs to the page |
+| Login | 92% | 90% | Public shell, dynamic fields, segmented control, kit-aware buttons, notices and loading | Auth policy panel remains custom |
+| Setup | 92% | 90% | Public shell, dynamic fields, kit-aware buttons, notices and loading | Setup cards and review flow remain custom |
+| Security | 90% | 88% | Uses shell, header, Admin panel, metrics, reusable filter bar, notices and loading | Role matrix behavior still belongs to the page |
+| Confisys | 92% | 90% | Uses shell, header, reusable filter bar, dynamic fields, multikit button and loading | Parameter list layout is still custom |
+| Forms designer | 92% | 90% | Uses designer shell, catalog, fields, preview, JSON, guide and multikit buttons | Field inspector behavior can be extracted later |
+| Services/Flows shared pattern | 94% | 90% | Designer workflow pattern is now shared through shell, catalog, JSON, fields, buttons and Flow subcomponents | The next target is a generic lifecycle/test workbench |
+| Home | 88% | 86% | Uses page shell, Admin panel, action toolbar and metric cards | Module cards/grid still local |
+| Flows designer | 92% | 90% | Uses shared designer shell, JSON panel, dynamic fields, Flow graph/timeline/data mapper and multikit buttons | Advanced flow sections can be progressively extracted |
+
+## Native Control Scan
+
+This scan counts direct `button`, `input`, `select` and `textarea` tags inside page templates. A raw control may still
+look acceptable through the global bridge, but it is not considered fully native-kit transformed until it goes through a
+reusable Chicle facade.
+
+| Page | Raw buttons | Raw inputs | Raw selects | Raw textareas | Reading |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Architecture | 0 | 0 | 0 | 0 | Fully shared/documentation-rendered. |
+| Components | 0 | 0 | 0 | 0 | Fully shared for page-level controls. |
+| Docs library | 0 | 0 | 0 | 0 | Fully shared for page-level controls. |
+| Docs operational | 0 | 0 | 0 | 0 | Fully shared/documentation-rendered. |
+| Dynamic form runtime | 0 | 0 | 0 | 0 | Runtime relies on reusable renderers. |
+| Home | 0 | 0 | 0 | 0 | Shared enough for the current dashboard. |
+| Environment Deploy Center | 0 | 0 | 0 | 0 | Controls migrated through shared catalog, segmented control, dynamic field facade and multikit buttons. |
+| Preferences | 0 | 0 | 0 | 0 | Reference implementation for multikit controls. |
+| Confisys | 0 | 0 | 0 | 0 | Controls migrated through the dynamic field facade and multikit button. |
+| Login | 0 | 0 | 0 | 0 | Uses reusable dynamic fields, segmented control and multikit buttons. |
+| Setup | 0 | 0 | 0 | 0 | Uses reusable dynamic fields and multikit buttons. |
+| Security | 0 | 0 | 0 | 0 | User, role and matrix controls now pass through reusable facades. |
+| Database | 0 | 0 | 0 | 0 | Data table and schema designer controls now pass through reusable facades. |
+| Services | 0 | 0 | 0 | 0 | Service guide controls now pass through reusable facades. |
+| Forms designer | 0 | 0 | 0 | 0 | Builder/editor controls now pass through reusable facades. |
+| Flows designer | 0 | 0 | 0 | 0 | Flow editor, tests, triggers and subcomponents now pass through reusable facades. |
+
+Shared renderer components still contain native controls by design. They are the adaptation boundary where PrimeNG,
+Ionic, Material, Bootstrap and native HTML are rendered.
 
 Latest extraction:
 
@@ -59,11 +102,26 @@ Latest extraction:
   repository and Security user filters.
 - `AdminFilterBarComponent` now leaves `DynamicFieldControlComponent` renderers in control of their own kit behavior and
   only styles raw legacy controls as a bridge.
+- The global legacy control bridge now explicitly excludes Material, Bootstrap and PrimeNG renderer internals so page
+  shell styling cannot deform multikit fields.
+- `LoginPageComponent` and `SetupPageComponent` now use `DynamicFieldControlComponent` and `UiKitButtonComponent`; both
+  pages have no direct native form controls left.
+- `AdminFormGridComponent` now owns reusable responsive property grids and is used by Preferences as the reference
+  settings form layout for future builders.
+- `ConfisysPageComponent` now uses `DynamicFieldControlComponent` and `UiKitButtonComponent` for filters and value
+  editing; it has no direct native controls left.
+- `EnvironmentsPageComponent` now uses `CatalogItemComponent`, `SegmentedControlComponent`, `DynamicFieldControlComponent`
+  and `UiKitButtonComponent`; it has no direct native controls left.
 - `AdminPanelComponent`, `AdminActionToolbarComponent` and `AdminMetricCardComponent` now cover Home, Preferences and
   Security summary panels.
 - `AdminDataTableComponent` now owns the reusable data table pattern in Database.
+- `FlowDataMapperComponent`, `FlowTimelineComponent` and `FlowGraphComponent` now use shared fields/buttons or semantic
+  selectable cards instead of page-local controls.
+- `JsonAuthoringPanelComponent` now uses `CodeTextareaComponent` and `UiKitButtonComponent`.
+- `MainNavComponent`, `AiAssistantLauncherComponent`, `AdminDataTableComponent` and component visual previews now use
+  `UiKitButtonComponent` for their command surfaces.
 - The next safe pass should extract pagination, row detail modal, user/role editors, schema designer forms and the
-  Services/Forms/Flows lifecycle/test workbench.
+  Services/Forms/Flows lifecycle/test workbench as behavioral components, not because raw controls remain.
 
 ## Page Findings
 
@@ -190,20 +248,19 @@ Current reusable pieces:
 - `PageShellComponent`;
 - `ModuleHeaderComponent`;
 - `AdminFilterBarComponent`;
-- `FieldShellComponent`;
+- `DynamicFieldControlComponent`;
+- `UiKitButtonComponent`;
 - `LoadingSkeletonComponent`.
 
 Own UI still inside page:
 
 - parameter list;
-- value editor;
-- save/reset actions;
+- parameter row layout;
 - per-type rendering.
 
 Required extraction:
 
 - `AdminEntityListComponent`;
-- `AdminFormGridComponent`;
 - `AdminActionToolbarComponent`;
 - `KeyValueEditorComponent`.
 
@@ -248,6 +305,8 @@ Current reusable pieces:
 
 - `PageShellComponent`;
 - `ModuleHeaderComponent`;
+- `AdminPanelComponent`;
+- `AdminFormGridComponent`;
 - `DynamicFieldControlComponent`;
 - `UiKitButtonComponent`.
 
@@ -256,7 +315,7 @@ Own UI still inside page:
 - preference sections;
 - preview card;
 - roadmap cards;
-- save/reset layout.
+- action alignment.
 
 Required extraction:
 
@@ -266,6 +325,37 @@ Required extraction:
 - `AdminCardGridComponent`.
 
 Target reuse: 80%.
+
+### Environment Deploy Center
+
+Current reusable pieces:
+
+- `PageShellComponent`;
+- `ModuleHeaderComponent`;
+- `AdminMetricCardComponent`;
+- `AdminPanelComponent`;
+- `DynamicFieldControlComponent`;
+- `CatalogItemComponent`;
+- `SegmentedControlComponent`;
+- `UiKitButtonComponent`;
+- `StatusNoticeComponent`;
+- `LoadingSkeletonComponent`.
+
+Own UI still inside page:
+
+- variable/secret/service resource cards;
+- readiness validation list;
+- deployment bundle file list;
+- runtime JSON block.
+
+Required extraction:
+
+- `EnvironmentResourceCardComponent`;
+- `ReadinessValidationListComponent`;
+- `DeploymentBundlePanelComponent`;
+- `JsonPreviewBlockComponent`.
+
+Target reuse: 88%.
 
 ### Security
 
@@ -457,7 +547,9 @@ Target reuse: 90%.
 Current reusable pieces:
 
 - `PublicPageShellComponent`;
-- `FieldShellComponent`;
+- `DynamicFieldControlComponent`;
+- `SegmentedControlComponent` in Login;
+- `UiKitButtonComponent`;
 - `StatusNoticeComponent`;
 - `LoadingSkeletonComponent`.
 
@@ -466,7 +558,7 @@ Own UI still inside pages:
 - auth policy cards;
 - setup status cards;
 - public form layout;
-- action placement.
+- action placement around links and secondary panels.
 
 Required extraction:
 

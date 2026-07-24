@@ -88,6 +88,29 @@ Admin concentrates everything that is administrable, designable and configurable
 business apps and deployable artifacts that execute what Admin publishes through the API. Docker packages and delivers
 artifacts; it does not govern audit, quality or performance. Those capabilities belong to Chicle operational support.
 
+## Deployment And Service Topology
+
+Chicle can run as a compact modular API or as separated services without changing the dynamic contracts used by Admin
+and business apps.
+
+The platform rule is:
+
+```txt
+Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Dynamic Runtime -> DB / Events / Registered Services
+```
+
+The API Kernel is the governed entry point for permissions, tenant scope, validation, audit, limits and contract
+publication. The Dynamic Runtime executes services, forms, flows and actions. A capability can live inside the API,
+inside a worker or inside a registered microservice as long as it keeps the same logical contract.
+
+Extraction is a deployment decision, not a product contract rewrite. A module can be separated when it needs
+independent scaling, isolation, ownership, deployment cadence or workload protection. The extracted service is
+registered in the Environment And Deploy Center, and dynamic objects keep calling it by logical key and operation.
+
+Chicle does not let frontend apps store private service URLs or secrets. Admin configures environment profiles,
+runtime variables, Chicle Vault secrets and service registry entries. Business apps receive only public runtime config
+and call the API using the active tenant and session context.
+
 ## Architectural Precepts
 
 Chicle is governed by ten precepts. Every technical decision must align with them:
@@ -139,6 +162,10 @@ Templates and plugins declare:
 
 The core does not contain product-specific rules. Product-specific rules live in installable capabilities and
 tenant configuration.
+
+Template export/import is the first App Factory capability. A template package stores versioned Chicle contracts and
+assets, not generated application source code. Artifact generation is a later packaging concern and may use file
+template engines only for deployable files, environment templates and generated manifests.
 
 ## Declarative Runtime
 

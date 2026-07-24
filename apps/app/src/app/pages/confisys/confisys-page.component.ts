@@ -1,12 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
-import { FieldShellComponent } from '../../shared/field-shell/field-shell.component';
+import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { LoadingSkeletonComponent } from '../../shared/loading-skeleton/loading-skeleton.component';
 import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
+import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 
 type ConfisysValueType = 'string' | 'number' | 'boolean' | 'json';
 
@@ -34,31 +35,16 @@ interface ConfisysSaveResponse {
 @Component({
   selector: 'app-confisys-page',
   standalone: true,
-  imports: [AdminFilterBarComponent, FieldShellComponent, FormsModule, LoadingSkeletonComponent, ModuleHeaderComponent, PageShellComponent],
+  imports: [
+    AdminFilterBarComponent,
+    DynamicFieldControlComponent,
+    LoadingSkeletonComponent,
+    ModuleHeaderComponent,
+    PageShellComponent,
+    UiKitButtonComponent
+  ],
   styles: [
     `
-      button {
-        min-height: 38px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 8px 12px;
-        font: inherit;
-        font-weight: 800;
-      }
-
-      button.primary {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary);
-        color: var(--ch-color-surface);
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-
       .shell {
         display: grid;
         gap: 18px;
@@ -94,30 +80,6 @@ interface ConfisysSaveResponse {
       .hint {
         color: var(--ch-color-muted);
         line-height: 1.5;
-      }
-
-      input,
-      select,
-      textarea {
-        width: 100%;
-        border: 1px solid var(--ch-color-border);
-        border-radius: 8px;
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 10px 12px;
-        font: inherit;
-      }
-
-      textarea {
-        min-height: 86px;
-        resize: vertical;
-      }
-
-      input:focus,
-      select:focus,
-      textarea:focus {
-        outline: 3px solid color-mix(in srgb, var(--ch-color-primary) 18%, transparent);
-        border-color: var(--ch-color-primary);
       }
 
       .params {
@@ -195,22 +157,16 @@ interface ConfisysSaveResponse {
         ></app-module-header>
 
         <app-admin-filter-bar ariaLabel="Confisys filters" minColumnWidth="220px">
-          <app-field-shell label="Buscar" forId="confisys-search">
-            <input
-              id="confisys-search"
-              type="search"
-              [(ngModel)]="filter"
-              placeholder="Key, categoría o descripción"
-            />
-          </app-field-shell>
-          <app-field-shell label="Categoría" forId="confisys-category">
-            <select id="confisys-category" [(ngModel)]="category">
-              <option value="">Todas las categorías</option>
-              @for (item of categories; track item) {
-                <option [value]="item">{{ item }}</option>
-              }
-            </select>
-          </app-field-shell>
+          <app-dynamic-field-control
+            [field]="searchField"
+            [value]="filter"
+            (valueChange)="filter = asString($event)"
+          ></app-dynamic-field-control>
+          <app-dynamic-field-control
+            [field]="categoryField"
+            [value]="category"
+            (valueChange)="category = asString($event)"
+          ></app-dynamic-field-control>
         </app-admin-filter-bar>
 
         <section class="params">
@@ -246,26 +202,22 @@ interface ConfisysSaveResponse {
               </div>
 
               <div class="value-block">
-                @if (entry.valueType === 'boolean') {
-                  <select [(ngModel)]="entry.draftValue" [disabled]="!entry.editable">
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                } @else {
-                  <textarea [(ngModel)]="entry.draftValue" [disabled]="!entry.editable"></textarea>
-                }
+                <app-dynamic-field-control
+                  [field]="entryValueField(entry)"
+                  [value]="entry.draftValue"
+                  [disabled]="!entry.editable"
+                  (valueChange)="entry.draftValue = asString($event)"
+                ></app-dynamic-field-control>
                 <span class="meta">Editable: {{ entry.editable ? 'sí' : 'no' }}</span>
               </div>
 
               <div class="action-block">
-                <button
-                  class="primary"
-                  type="button"
-                  [disabled]="!canUpdate || !entry.editable || entry.saving"
-                  (click)="save(entry)"
-                >
-                  Guardar
-                </button>
+                <app-ui-kit-button
+                  label="Guardar"
+                  tone="primary"
+                  [disabled]="!canUpdate || !entry.editable || !!entry.saving"
+                  (pressed)="save(entry)"
+                ></app-ui-kit-button>
                 <span class="state" [class.error]="entry.error">
                   {{ entry.error || (entry.saved ? 'Guardado. Reinicia API.' : '') }}
                 </span>
@@ -281,6 +233,13 @@ export class ConfisysPageComponent implements OnInit {
   private readonly api = inject(ApiClientService);
   readonly auth = inject(AuthService);
 
+  readonly searchField: RuntimeField = {
+    name: 'confisysSearch',
+    type: 'search',
+    label: 'Buscar',
+    placeholder: 'Key, categoría o descripción'
+  };
+
   entries: ConfisysEntry[] = [];
   loading = true;
   filter = '';
@@ -288,6 +247,18 @@ export class ConfisysPageComponent implements OnInit {
 
   get categories() {
     return Array.from(new Set(this.entries.map((entry) => entry.category))).sort();
+  }
+
+  get categoryField(): RuntimeField {
+    return {
+      name: 'confisysCategory',
+      type: 'select',
+      label: 'Categoría',
+      options: [
+        { label: 'Todas las categorías', value: '' },
+        ...this.categories.map((item) => ({ label: item, value: item }))
+      ]
+    };
   }
 
   get filteredEntries() {
@@ -301,6 +272,34 @@ export class ConfisysPageComponent implements OnInit {
 
   get canUpdate() {
     return this.auth.state.hasPermission('confisys.update');
+  }
+
+  entryValueField(entry: ConfisysEntry): RuntimeField {
+    if (entry.valueType === 'boolean') {
+      return {
+        name: `${entry.key}-value`,
+        type: 'select',
+        label: 'Valor',
+        options: [
+          { label: 'true', value: 'true' },
+          { label: 'false', value: 'false' }
+        ]
+      };
+    }
+
+    return {
+      name: `${entry.key}-value`,
+      type: 'textarea',
+      label: 'Valor',
+      placeholder: 'Valor del parámetro',
+      config: {
+        rows: entry.valueType === 'json' ? 6 : 3
+      }
+    };
+  }
+
+  asString(value: unknown) {
+    return value === null || value === undefined ? '' : String(value);
   }
 
   ngOnInit() {

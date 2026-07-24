@@ -20,6 +20,7 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
         display: grid;
         align-content: start;
         gap: 14px;
+        overflow: hidden;
         min-width: 0;
         height: 100%;
         border: 1px solid var(--ch-color-border);
@@ -35,6 +36,7 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
         align-items: flex-start;
         justify-content: space-between;
         gap: 12px;
+        min-width: 0;
       }
 
       .identity,
@@ -42,6 +44,13 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
         display: grid;
         gap: 6px;
         min-width: 0;
+        max-width: 100%;
+      }
+
+      .card > *,
+      .detail > * {
+        min-width: 0;
+        max-width: 100%;
       }
 
       h2,
@@ -105,8 +114,13 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
       }
 
       pre {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        min-width: 0;
         max-width: 100%;
-        overflow: auto;
+        overflow-x: auto;
+        overflow-y: hidden;
         border-radius: 6px;
         background: color-mix(in srgb, var(--ch-color-text) 88%, #10263e);
         color: var(--ch-color-surface);
@@ -115,6 +129,7 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
         line-height: 1.5;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       @media (max-width: 620px) {

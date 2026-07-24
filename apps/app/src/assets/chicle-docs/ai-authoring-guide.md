@@ -132,6 +132,40 @@ Recommended input: roles.key when the user will send values such as client.
 The final JSON should use `queryMode=multi_table`, a filter on the chosen `roles` alias field, and explicit selected
 columns. Do not invent `name` or any other field if it is not present in the table catalog.
 
+### Public service exposure
+
+When the user asks for a service that can be consumed by an external API, webhook client, partner system or public URL,
+the assistant must keep the same Dynamic Service contract and add `definition.exposure`.
+
+Rules:
+
+- Keep services private unless the user explicitly asks for external or public consumption.
+- Prefer `api_key` for external integrations; use `bearer_token` only when the caller already sends bearer credentials.
+- Never propose `security.mode=none` for create, update, delete, notify, sync, side-effect HTTP calls or non-GET methods.
+- For no-auth exposure, require `allowedMethods=["GET"]` and intent `query`, `get_one` or `validate`.
+- Plaintext `apiKey` or `token` is allowed only in the authoring request so the backend can hash it. Do not store or
+  repeat plaintext secrets in examples, chat history summaries or documentation.
+- Show the final URL as `/api/public/:tenantSlug/services/:serviceKey`.
+- Explain that public runs are logged with `triggerType=public_api`.
+
+Minimal API-key exposure:
+
+```json
+{
+  "exposure": {
+    "enabled": true,
+    "allowedMethods": ["GET"],
+    "inputMode": "query",
+    "responseMode": "mapped_or_result",
+    "security": {
+      "mode": "api_key",
+      "headerName": "x-chicle-api-key",
+      "apiKey": "temporary-authoring-secret"
+    }
+  }
+}
+```
+
 ### Stateful decision protocol
 
 This protocol applies to every guided authoring screen, not only to role services:

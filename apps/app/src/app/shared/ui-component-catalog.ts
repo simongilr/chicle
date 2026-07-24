@@ -132,6 +132,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
       '<app-designer-catalog-panel title="Servicios" summary="2 servicios"><button catalog-actions>Nuevo</button>...</app-designer-catalog-panel>'
   },
   {
+    name: 'AssignmentChecklistComponent',
+    selector: 'app-assignment-checklist',
+    category: 'Diseñadores',
+    purpose:
+      'Lista reutilizable de asignaciones con checkboxes multikit para roles, permisos, recursos y políticas por tenant.',
+    importPath: 'shared/assignment-checklist/assignment-checklist.component',
+    usedBy: ['Security', 'Future resource policies'],
+    status: 'stable',
+    example:
+      '<app-assignment-checklist [options]="roleOptions" variant="pills" (optionToggle)="toggle($event)"></app-assignment-checklist>'
+  },
+  {
     name: 'CatalogItemComponent',
     selector: 'app-catalog-item',
     category: 'Diseñadores',
@@ -161,6 +173,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Components', 'Confisys', 'Markdown repository'],
     status: 'stable',
     example: '<app-admin-filter-bar><label>Buscar<input type="search" /></label></app-admin-filter-bar>'
+  },
+  {
+    name: 'AdminFormGridComponent',
+    selector: 'app-admin-form-grid',
+    category: 'Formularios',
+    purpose:
+      'Grid responsive para formularios administrativos y paneles de propiedades sin acoplar cada página a CSS propio.',
+    importPath: 'shared/admin-form-grid/admin-form-grid.component',
+    usedBy: ['Preferences', 'Future screen designer', 'Future app designer'],
+    status: 'stable',
+    example:
+      '<app-admin-form-grid><app-dynamic-field-control [field]="field"></app-dynamic-field-control></app-admin-form-grid>'
   },
   {
     name: 'AdminDataTableComponent',
@@ -292,6 +316,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
       '<app-json-authoring-panel artifactLabel="Formulario" endpoint="/api/forms/authoring/json" [value]="jsonText"></app-json-authoring-panel>'
   },
   {
+    name: 'CodeTextareaComponent',
+    selector: 'app-code-textarea',
+    category: 'Diseñadores',
+    purpose:
+      'Textarea reusable para JSON, fixtures y snippets de prueba con tema consistente y sin lógica de página.',
+    importPath: 'shared/code-textarea/code-textarea.component',
+    usedBy: ['Services', 'Future flow tests', 'Future form tests'],
+    status: 'stable',
+    example:
+      '<app-code-textarea label="JSON de prueba" [value]="jsonText" (valueChange)="jsonText = $event"></app-code-textarea>'
+  },
+  {
     name: 'LoadingSkeletonComponent',
     selector: 'app-loading-skeleton',
     category: 'Guía y estados',
@@ -364,6 +400,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Components', 'Dynamic form designer'],
     status: 'initial',
     example: '<app-dynamic-field-library [viewportWidth]="390"></app-dynamic-field-library>'
+  },
+  {
+    name: 'SchemaFieldEditorComponent',
+    selector: 'app-schema-field-editor',
+    category: 'Formularios',
+    purpose:
+      'Editor reutilizable de columnas custom con controles multikit para nombre, tipo, longitud, default, nullable y eliminación.',
+    importPath: 'shared/schema-field-editor/schema-field-editor.component',
+    usedBy: ['Database'],
+    status: 'stable',
+    example:
+      '<app-schema-field-editor [field]="column" [columnTypes]="columnTypes" (fieldChange)="column = $event"></app-schema-field-editor>'
   },
   {
     name: 'MobileFormShellComponent',

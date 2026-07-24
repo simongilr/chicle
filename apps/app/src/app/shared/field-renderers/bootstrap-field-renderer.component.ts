@@ -16,13 +16,34 @@ import { MobileEvidenceControlComponent } from '../mobile-form/mobile-evidence-c
 
       .form-control,
       .form-select {
-        min-height: 38px;
+        width: 100%;
+        min-height: var(--ch-control-height);
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-kit-control-radius, 0.375rem);
+        background-color: var(--ch-color-surface);
+        color: var(--ch-color-text);
+        box-shadow: none;
+        font: inherit;
+        line-height: 1.35;
+        padding: var(--ch-kit-control-padding-y, 0.5rem) var(--ch-kit-control-padding-x, 0.75rem);
+      }
+
+      textarea.form-control {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      .form-control::placeholder {
+        color: color-mix(in srgb, var(--ch-color-muted) 78%, var(--ch-color-surface));
+        opacity: 1;
       }
 
       .form-control:focus,
       .form-select:focus,
       .form-check-input:focus {
         border-color: color-mix(in srgb, var(--ch-color-primary) 72%, var(--ch-color-surface));
+        color: var(--ch-color-text);
+        background-color: var(--ch-color-surface);
         box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ch-color-primary) 24%, transparent);
       }
 

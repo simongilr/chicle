@@ -47,6 +47,13 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'environments',
+    loadComponent: () =>
+      import('./pages/environments/environments-page.component').then((module) => module.EnvironmentsPageComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['env.read'] }
+  },
+  {
     path: 'security',
     loadComponent: () =>
       import('./pages/security/security-page.component').then((module) => module.SecurityPageComponent),

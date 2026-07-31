@@ -92,6 +92,83 @@ Text and language are also part of the platform contract. Admin and generated ap
 text through versioned text bundles with local fallbacks, backend-controlled defaults and artifact-level preferences.
 This keeps products portable, multilingual, offline-capable and safe to export/import without embedding secrets.
 
+## Tenant App Governance
+
+Chicle treats each organization as an application portfolio, not as a single fixed app. A tenant can own as many apps,
+pages, landing pages, component templates and installed packages as its operational limits allow. There is no
+hard-coded assumption that one tenant equals one product.
+
+The governance hierarchy is:
+
+```txt
+Organization / Tenant
+  -> Apps
+     -> Screens / Pages
+        -> Regions
+           -> Components
+              -> Bindings
+              -> Actions
+  -> Landing Pages
+  -> Component Templates
+  -> Menus
+  -> Roles And Resource Policies
+  -> Text Packages
+  -> Themes And Artifact Preferences
+  -> Template Installs
+```
+
+Admin is the control plane for this hierarchy. Owners and admins create, preview, publish, unpublish, duplicate, export,
+trash, restore and audit apps or pages from Admin. Business users consume only the published runtime contracts allowed
+by tenant, role, target and route.
+
+Every generated app is connected back to its tenant registry:
+
+- `tenantId` scopes the app, screen, route, menu, text, permissions and runtime data.
+- `appKey` identifies one product inside the tenant.
+- `screenKey` identifies one page or route inside the app.
+- `target` determines where the contract can render: admin, web, mobile, desktop, public or embedded.
+- `status`, versions and publication rules decide what is editable versus what the runtime can execute.
+- resource policies decide which roles can view, edit, publish, export or run each app artifact.
+
+Public pages and landing pages still belong to a tenant. They can expose public runtime contracts, but secrets,
+private service URLs, unpublished objects and owner/admin capabilities remain server-side.
+
+## Generated App Runtime
+
+A generated app is a deployable runtime artifact plus a published tenant contract. The artifact can be web, Ionic
+mobile, desktop or embedded. It does not need custom source code for every screen.
+
+At boot, the artifact resolves:
+
+```txt
+environment profile
+  -> public runtime config
+  -> tenant slug
+  -> app key
+  -> bundled default contract and text package
+  -> API contract refresh when available
+  -> published app/screen graph
+```
+
+The renderer then uses the component registry:
+
+```txt
+componentKey
+  -> allowed inputs and actions
+  -> target support
+  -> kit renderer
+  -> permissions
+  -> text keys
+```
+
+For Ionic mobile artifacts, this means Chicle renders through real Ionic-capable components such as `ion-input`,
+`ion-select`, `ion-button`, `ion-card`, mobile navigation and native-capable controls when the selected component
+adapter supports them. Chicle does not download or execute arbitrary frontend code from the database. New visual
+capabilities must be registered, tested and packaged before Admin can activate them in an app contract.
+
+Admin changes activate, deactivate or rearrange components by publishing a new app or screen version. Runtime artifacts
+pick up those changes according to the active deployment refresh policy and keep safe bundled defaults for offline boot.
+
 ## Deployment And Service Topology
 
 Chicle can run as a compact modular API or as separated services without changing the dynamic contracts used by Admin

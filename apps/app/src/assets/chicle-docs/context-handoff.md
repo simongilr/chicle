@@ -17,7 +17,8 @@ We are creating a new product called Chicle Engine. It must stay generic. Contai
 
 ## Product Idea
 
-Chicle Engine is a plug and play application engine. A user should be able to run it, complete a setup wizard, optionally load a template, and start operating.
+Chicle Engine is a plug and play application factory. A user should be able to run it, complete a setup wizard, open
+Admin, create or install tenant apps, publish them and operate from web, mobile or desktop runtimes.
 
 ## Core Must Stay Generic
 
@@ -33,15 +34,51 @@ Do not add core modules named after containers-domain concepts such as container
 - permissions
 - settings
 - menus
+- App Studio
+- dynamic apps
+- dynamic screens
+- landing pages
+- component templates
 - dynamic forms
+- dynamic services
 - workflows
 - actions
 - records
 - events
+- text packages
+- artifact preferences
 - files/evidence
 - devices
 - offline sync
 - audit
+- environment/deploy center
+- Chicle AI
+
+## App Studio Direction
+
+App Studio belongs to Admin. It manages a tenant app portfolio, not isolated pages. A tenant can own many apps, and each
+app owns its screens, routes, navigation, login/security, component bindings, text namespace, theme, permissions,
+versions, publication state, package dependencies and audit history.
+
+Generated web, mobile and desktop apps are runtime artifacts. They boot with tenant/app/environment configuration,
+load bundled defaults and resolve the active published contract through the API:
+
+```txt
+tenant + appKey + target + route
+  -> published app version
+  -> published screen version
+  -> registered components
+  -> bindings/actions runtime
+  -> text and presentation
+```
+
+Prompts such as "create an app called Tuerca with login, home and a menu of forms" must produce an app graph:
+
+```txt
+App -> Screens -> Components -> Bindings -> Actions -> Text -> Policies -> Tests
+```
+
+The assistant applies reviewable drafts only. Admin users save, version and publish explicitly from App Studio.
 
 ## Template Rule
 
@@ -49,6 +86,11 @@ Do not add core modules named after containers-domain concepts such as container
 
 ## Development Next Step
 
-Continue from the scaffold, install dependencies, and make the API and app boot locally. Then implement setup, tenants and auth first.
+Continue App Studio V2. The immediate goal is to make `/apps` a real tenant app portfolio and selected-app workspace:
+overview, pages, navigation, login/security, components, forms/services/flows, texts, theme, preview, publish and
+export/install.
 
-Before implementing auth, roles, permissions or transport security, read `docs/security-auth-review.md`.
+Before implementing auth, roles, permissions or transport security, read `docs/security-auth-review.md`. Before
+changing app, screen, component or package behavior, read `docs/platform-architecture.md`,
+`docs/screen-app-designer-architecture.md`, `docs/app-template-factory-architecture.md` and
+`docs/ai-authoring-guide.md`.

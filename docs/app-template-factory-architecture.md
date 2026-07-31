@@ -3,9 +3,9 @@
 Chicle App Factory is the layer that turns configured products into reusable, installable and exportable application
 templates. It is the path to build business apps without copying code for every customer.
 
-The MVP does not require GridStack or LiquidJS to be useful. The foundation is a portable template package made of
-validated Chicle contracts. GridStack and LiquidJS are optional adapters that can be added when the visual designer and
-artifact generator need them.
+The foundation is a tenant app graph and a portable template package made of validated Chicle contracts. GridStack and
+LiquidJS are optional adapters. They support design-time canvases or generated files when useful, but they do not define
+the runtime contract.
 
 ## Core Principle
 
@@ -15,11 +15,13 @@ Allowed in a template:
 
 - manifest;
 - metadata;
+- apps;
 - tables and controlled schema changes;
 - dynamic services;
 - dynamic forms;
 - flows;
 - screens;
+- landing pages;
 - component templates;
 - menus;
 - roles, permissions and resource policies;
@@ -43,12 +45,16 @@ Not allowed in a template:
 
 ## MVP Scope
 
-The first usable App Factory does four things:
+The first usable App Factory does these things:
 
-1. **Package** an app/template from existing Chicle objects.
-2. **Export** that package as a portable file.
-3. **Import** a package into another Chicle installation.
-4. **Install** it safely into a tenant with preview, validation and conflict handling.
+1. **Create** a tenant app in App Studio.
+2. **Manage** app screens, navigation, login/security, preferences, text, permissions and dependencies.
+3. **Preview** the app across desktop, tablet, mobile, public or embedded targets.
+4. **Publish** app and screen versions as runtime contracts.
+5. **Package** an app/template from existing Chicle objects.
+6. **Export** that package as a portable file.
+7. **Import** a package into another Chicle installation.
+8. **Install** it safely into a tenant with preview, validation and conflict handling.
 
 This is enough to share a configured app, move it between environments, reuse it for another client and let Chicle AI
 understand what the app contains.
@@ -72,11 +78,14 @@ understand what the app contains.
     "capabilities": ["camera", "gps", "offline_queue"]
   },
   "objects": {
+    "apps": [],
+    "appVersions": [],
     "schemaChanges": [],
     "services": [],
     "forms": [],
     "flows": [],
     "screens": [],
+    "landingPages": [],
     "componentTemplates": [],
     "menus": [],
     "permissions": [],
@@ -103,6 +112,26 @@ understand what the app contains.
 }
 ```
 
+## App Graph Before Package
+
+A package starts from an app graph, not from a manually selected pile of files. Admin may still let an advanced user
+select extra dependencies, but the default export scope is one app and everything needed by that app.
+
+```txt
+Tenant
+  -> App
+     -> App version
+     -> Screens and screen versions
+     -> Navigation groups
+     -> Component templates
+     -> Forms, services and flows referenced by components
+     -> Text namespaces and artifact preferences
+     -> Roles, permissions and resource policies
+     -> Tables, schema changes, assets, docs and tests
+```
+
+The export process walks this graph recursively and produces a dependency report before the package is generated.
+
 ## Export Flow
 
 ```txt
@@ -121,6 +150,10 @@ Export must include referenced objects recursively. A screen that uses a form mu
 service must include that service. A flow that calls several services must include all of them. Permissions and menus
 must be included when the app needs them to operate. Text namespaces referenced by screens, menus, forms, flows and
 runtime messages must be included as public text bundles with safe fallbacks.
+
+Tenant ownership is preserved as install context, not as a fixed exported tenant id. A package can be installed into a
+different tenant, but all objects are recreated under the receiving tenant with conflict handling, audit and draft-first
+publication rules.
 
 ## Import And Install Flow
 
@@ -175,6 +208,51 @@ The screen contract should compose:
 
 The screen designer can later use GridStack for drag and resize, but the runtime should use the Chicle screen contract.
 That keeps templates portable and avoids locking Chicle to one grid library.
+
+Screens always belong to an app. A screen may be private, public, embedded or internal, but it still resolves through
+tenant, app key, route, target, publication state and permissions.
+
+## App Portfolio Management
+
+Each tenant owns an app portfolio. The Admin must expose a tenant-scoped App Studio where owners and admins manage:
+
+- business apps;
+- internal admin-like apps;
+- public landing pages;
+- embedded pages;
+- reusable component templates;
+- app-level themes, locales and artifact preferences;
+- navigation groups and menus;
+- publication status and version history;
+- export/import packages.
+
+The portfolio UI must be searchable and paginated from the beginning. Chicle should assume that a tenant may eventually
+have hundreds of pages and many apps. Users should be able to filter by app, status, target, category, route, template
+source, owner, last update and publication state.
+
+Generated apps do not become disconnected code. Every generated artifact keeps a logical link to its app key, version,
+tenant, text package, service registry entries and publication metadata. Runtime apps refresh their published contracts
+from the API when allowed by the deployment profile, and use bundled defaults when offline or packaged.
+
+## Runtime Artifact Model
+
+Generated web, Ionic/mobile and desktop artifacts are runtime shells plus bundled defaults. They do not need one custom
+source tree per customer screen.
+
+At boot, an artifact resolves:
+
+```txt
+environment profile
+  -> tenant/app bootstrap config
+  -> bundled app defaults
+  -> API runtime contract refresh
+  -> published app/screen/component graph
+  -> text and presentation bundles
+```
+
+When Admin activates, disables, adds or removes a component, it changes the app/screen contract and publishes a new
+version. Runtime artifacts pick up the new contract according to their refresh policy. A truly new component requires a
+registered capability with supported kit renderers and tests before any app can use it.
 
 ## Components
 
@@ -243,7 +321,7 @@ Component templates must use the same portable contract:
 
 ## Library Strategy
 
-| Library | MVP role | Later role |
+| Library | Baseline role | Expansion role |
 | --- | --- | --- |
 | Angular | Admin and web runtime shell | Same |
 | Ionic | Mobile runtime and native-capable controls | Same |
@@ -291,8 +369,12 @@ The MVP should export/import templates before trying to generate many artifact t
 | `component_registry` | Components allowed in screens/templates. |
 | `dynamic_component_templates` | Reusable component compositions such as modals, cards and compound blocks. |
 | `dynamic_component_template_versions` | Immutable versions of reusable component templates. |
+| `dynamic_apps` | Tenant app containers and app portfolio entries. |
+| `dynamic_app_versions` | Immutable app manifest versions. |
 | `dynamic_screens` | Screen definitions. |
 | `dynamic_screen_versions` | Published screen versions. |
+| `dynamic_landing_pages` | Public page definitions that share the same component/runtime model. |
+| `dynamic_landing_page_versions` | Immutable landing page versions with SEO and public routing metadata. |
 | `template_assets` | Images, icons, files and docs referenced by packages. |
 | `translation_namespaces` | Text namespaces installed by templates and artifacts. |
 | `translation_bundle_versions` | Immutable text bundles by namespace, locale and version. |
@@ -307,11 +389,13 @@ Existing objects such as `dynamic_services`, `dynamic_forms`, `flows`, `menus`, 
 2. **Template Exporter**: select objects, validate references and export package.
 3. **Template Importer**: upload, inspect and dry-run a package.
 4. **Template Installer**: resolve conflicts and apply safely.
-5. **Screen Designer**: create screens using registered components and layout contracts.
-6. **Component Registry**: manage reusable component metadata and kit support.
-7. **Component Template Designer**: create reusable cards, modals, drawers and compound blocks from registered components.
-8. **Artifact Builder**: generate deployable assets only after runtime contracts are stable.
-9. **Text And Artifact Preferences**: manage default language, supported locales and runtime presentation preferences
+5. **App Studio**: govern all apps, pages, navigation, app preferences and publication per tenant.
+6. **Screen Designer**: create screens using registered components and layout contracts.
+7. **Landing Builder**: create public pages, SEO metadata, external share links and CMS-friendly embeds.
+8. **Component Registry**: manage reusable component metadata and kit support.
+9. **Component Template Designer**: create reusable cards, modals, drawers and compound blocks from registered components.
+10. **Artifact Builder**: generate deployable assets only after runtime contracts are stable.
+11. **Text And Artifact Preferences**: manage default language, supported locales and runtime presentation preferences
    for generated apps.
 
 ## Chicle AI Role

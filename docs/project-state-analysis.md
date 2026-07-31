@@ -1,12 +1,12 @@
 # Project State Analysis
 
-Analysis date: 2026-07-22.
+Analysis date: 2026-07-31.
 
 ## Current State
 
-Chicle Engine is no longer in a simple scaffold phase. The project has a functional platform base: NestJS API, Angular
-/ Ionic Admin, MariaDB, Docker, initial security, dynamic runtime, visual designers, local AI assistant, living
-documentation and JSON contracts for services, forms and flows.
+Chicle Engine is no longer in a simple scaffold phase. The project has a functional platform base: NestJS API,
+Angular/Ionic Admin, MariaDB, Docker, initial security, dynamic runtime, visual designers, local AI assistant, living
+documentation and JSON contracts for services, forms, flows, apps and screens.
 
 The real architecture should be read as:
 
@@ -17,7 +17,9 @@ Admin / Business Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Event
 Chicle support includes AI, Docker artifacts, workers, backup, audit, code quality and API performance.
 
 Admin concentrates everything administrable, designable and configurable. Web, mobile and desktop apps are business
-apps that execute what Admin publishes through the API.
+apps that execute what Admin publishes through the API. App Studio is the control plane for the tenant app portfolio:
+many apps per organization, each with isolated screens, navigation, login/security, text, preferences, permissions,
+versions, publication, export and install history.
 
 ## Approximate Progress
 
@@ -29,12 +31,14 @@ apps that execute what Admin publishes through the API.
 | Security foundation | Auth, RBAC, roles, permissions, tenant scope and initial admin screens | 65% |
 | Confisys | Table, seed, startup cache and admin screen | 70% |
 | Admin navigation | Responsive menu, groups, permissions and main routes | 75% |
-| Reusable components | Catalog, shell, docs layout, designer workspace and partial UI kits | 65% |
+| Reusable components | Catalog, shell, docs layout, designer workspace and multikit facades | 90% |
 | Dynamic Services | CRUD, versions, publication, real tests, AI and advanced internal queries | 75% |
 | Dynamic Forms | Designer, JSON, responsive preview, actions, companion services and initial real tests | 60% |
 | Flows | Data model, runner, designer and tests in progress | 55% |
+| App Studio / Screens | Initial app/screen designer and architecture; portfolio workspace still required | 25% |
+| Text packages | Backend/frontend runtime, Admin page, Spanish/English baseline and search-first UX | 45% |
 | Chicle AI | Floating assistant, Ollama integration, guided drafts and RAG architecture | 45% |
-| Docs / Architecture | Architecture page, operational manual, component catalog and Markdown viewer | 75% |
+| Docs / Architecture | Architecture page, operational docs, component catalog, Markdown viewer and app factory docs | 85% |
 | Audit / performance / quality | Conceptualized; Chicle-owned Admin tools still missing | 20% |
 
 ## Strong Points
@@ -57,6 +61,10 @@ apps that execute what Admin publishes through the API.
 - Dynamic Forms still need stronger CRUD completion, catalog-driven selects, service relationships, validation and
   table-specific persistence.
 - Flow Engine needs another UX and testing pass so the designer becomes as understandable as Services.
+- App Studio must evolve from the initial screen builder into a tenant app portfolio and selected-app workspace.
+- Generated app runtime still needs stronger contract resolution for `tenant + appKey + target + route`.
+- App package export/import is architected but not complete enough to be the product transfer mechanism yet.
+- Text packages are available but Admin still has hardcoded fallback text that must be migrated gradually.
 - Chicle-owned security audit, code quality audit and API performance tooling are still missing inside Admin.
 
 ## Recommended Order
@@ -70,7 +78,14 @@ apps that execute what Admin publishes through the API.
    - every Admin module should use PageShell, DocumentationLayout, ModuleHeader, DesignerWorkspace, StatusNotice,
      ProcessSteps, WorkflowGuide and shared form components when applicable.
 
-3. Continue Dynamic Forms:
+3. Build App Studio V2:
+   - tenant app portfolio;
+   - app workspace;
+   - pages, navigation, login/security, component templates and dependencies;
+   - app-level texts, themes and artifact preferences;
+   - preview, publish, trash/restore and export/install.
+
+4. Continue Dynamic Forms:
    - real CRUD against custom tables through companion services;
    - options/selects from catalogs;
    - validation by type and service;
@@ -78,22 +93,22 @@ apps that execute what Admin publishes through the API.
    - standard JSON-only save/publication;
    - real tests and regression.
 
-4. Continue Flows:
+5. Continue Flows:
    - guided UX aligned with Services;
    - multi-service chaining;
    - test studio;
    - role permissions;
    - clean integration with forms and services.
 
-5. Harden Chicle AI:
+6. Harden Chicle AI:
    - split reasoning into small steps;
    - keep memory per screen and per edited object;
    - ask one question at a time;
    - recover from timeouts;
    - use docs/RAG before generating drafts;
-   - generate and modify Services, Forms and Flows without starting over.
+   - generate and modify Services, Forms, Flows, Apps and Screens without starting over.
 
-6. Build Chicle operational support:
+7. Build Chicle operational support:
    - security audit;
    - code quality audit;
    - API performance monitoring;

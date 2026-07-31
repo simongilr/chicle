@@ -102,6 +102,8 @@ Still required for the designer:
 | Flows | PageShell | full designer lifecycle plus reusable Flow graph, timeline and mapper components | Adopted |
 | Security | PageShell | module header, panels, metrics, filters, fields, actions, notices and loading | Adopted |
 | Environment Deploy Center | PageShell | panels, stacks, form grids, resource cards, code blocks, fields, metrics and actions | Adopted |
+| Text Packages | PageShell | module header, filter bar, panels, fields, actions and search-first lists | Adopted |
+| App Studio | PageShell | designer workspace, app catalog, module header, preview viewport, fields, actions and cards | In progress |
 | Dynamic form runtime | PageShell | field renderer, preview, mobile actions, loading and notices | Forms foundation |
 | Login | PublicPageShell | dynamic fields, segmented control, notices, loading and multikit actions | Adopted |
 | Setup | PublicPageShell | dynamic fields, notices, loading and multikit actions | Adopted |
@@ -140,3 +142,20 @@ library-neutral while reusing the same multikit field facade. The complete bound
 through `DynamicFieldControlComponent`, so the same contract can be compared across PrimeNG, Ionic, Material,
 Bootstrap and native presentation. Designer search, dragging and field insertion extend this contract instead of
 creating another palette.
+
+## App Studio Component Rule
+
+App Studio must use the same reusable primitives as Services, Forms and Flows:
+
+- `DesignerWorkspaceComponent` for app catalog plus selected workspace.
+- `CatalogHeaderComponent` and `CatalogItemComponent` for app, screen, component template and package lists.
+- `ModuleHeaderComponent` for page titles.
+- `ProcessStepsComponent` and `WorkflowGuideComponent` for create, preview and publish sequences.
+- `PreviewViewportComponent` for desktop, tablet, mobile and public/embedded previews.
+- `DynamicFieldControlComponent` for app identity, navigation, routing, security and preference fields.
+- `UiKitButtonComponent` and `UiKitCardComponent` for portable buttons and cards.
+- `JsonAuthoringPanelComponent` for JSON-only app and screen authoring.
+
+The app runtime itself must consume the component registry. A generated Ionic app should render `auth_login`,
+`bottom_nav`, `form_runtime`, `media_gallery` and other supported components through their Ionic adapters when the
+active kit is Ionic. Admin must never fake Ionic mode by restyling native HTML controls.

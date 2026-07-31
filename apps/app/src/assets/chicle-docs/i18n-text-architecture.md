@@ -89,6 +89,15 @@ The package is copied into the artifact so web, mobile and desktop apps can boot
 unavailable. After boot, the app asks the API for the active text bundle manifest and refreshes the cache only when the
 version or hash changes.
 
+App Studio must create or reserve the app namespace when a new app is created. For example, an app with `appKey:
+"tuerca"` uses `app.tuerca` unless the owner chooses a different namespace. Screens, navigation items, component
+templates, forms and action messages inside that app should add keys under that namespace or under a referenced form,
+service or flow namespace.
+
+When an app package is exported, the package includes every namespace required by the app graph. When the package is
+installed into another tenant, text keys are installed as drafts or published bundles according to the import decision,
+with conflict handling for tenant overrides.
+
 ## Backend Controlled Defaults
 
 Language defaults are controlled by backend configuration, not by frontend constants:

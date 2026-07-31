@@ -14,7 +14,7 @@ Dynamic screens must be usable in:
 - generated web apps;
 - generated mobile apps;
 - generated desktop apps;
-- future templates and installable modules.
+- app packages and installable modules.
 
 The same stored screen definition must render through the active UI kit and theme without embedding Angular selectors,
 PrimeNG classes, Ionic markup, Material classes, Bootstrap classes or raw CSS.
@@ -53,6 +53,8 @@ Rules:
 - Every item must reference a registered `componentKey`.
 - Every item must declare access rules when it is sensitive.
 - Every item must use bindings and actions instead of page-specific service calls.
+- Every screen item belongs to an app context and must resolve by `tenantId`, `appKey`, `screenKey`, `target` and
+  publication state.
 - A published screen must pass validation for desktop, tablet and mobile.
 
 ## Stored Contract
@@ -61,7 +63,9 @@ Rules:
 {
   "schemaVersion": 1,
   "kind": "dynamic_screen",
+  "appKey": "operations_app",
   "key": "operations_dashboard",
+  "route": "/dashboard",
   "title": "Operations Dashboard",
   "presentation": {
     "profileKey": "adaptive",
@@ -121,6 +125,9 @@ Rules:
 | `DynamicRegionComponent` | Reusable named areas such as header, toolbar, content, sidebar and footer. | Admin, apps |
 | `ResponsiveLayoutPreviewComponent` | Validates desktop, tablet and mobile layout using the runtime renderer. | Screen Designer |
 
+The App Studio workspace owns the screen designer. Users should select an app first, then create or edit screens inside
+that app. This keeps navigation, routes, permissions, text namespaces and package dependencies understandable.
+
 ## Kit Rules
 
 Grid items are not kit-specific. The component inside each item decides how to render:
@@ -172,3 +179,16 @@ Before a screen version can be published:
 | GridStack dependency | Not installed yet. |
 | Runtime screen renderer | Not implemented yet. |
 
+## App Studio Dependency
+
+The grid designer should not be built as an isolated canvas. It depends on App Studio V2 because layout has no business
+meaning without app navigation, route ownership, component bindings, permissions, target rules and package export.
+
+Minimum App Studio readiness before a full grid canvas:
+
+1. Tenant app portfolio.
+2. Selected-app workspace.
+3. Screen/page list scoped to the selected app.
+4. Navigation groups and route contracts.
+5. Component registry with kit support.
+6. Runtime preview that can render the same screen contract without GridStack.

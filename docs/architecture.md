@@ -93,9 +93,14 @@ apps/api/src/
 
 ## App
 
-The app is one Angular application with Ionic and PrimeNG adapters. Declarative screens select a presentation profile,
-not library-specific selectors. The initial adaptive renderer uses PrimeNG for desktop, Ionic for mobile/native and
-native controls as a fallback. Business screens are rendered from configuration.
+The app layer has two responsibilities:
+
+1. Admin: the control plane used by owners and admins to configure the platform.
+2. Business runtimes: web, mobile and desktop apps that execute published tenant app contracts.
+
+The Angular/Ionic codebase provides reusable runtime modules and visual kit adapters. Declarative screens select a
+presentation profile, not library-specific selectors. The adaptive renderer uses PrimeNG, Ionic, Material, Bootstrap or
+native fallback according to the selected kit and target. Business screens are rendered from configuration.
 
 ```txt
 apps/app/src/app/
@@ -127,6 +132,9 @@ new authoring behavior directly to page containers.
 The engine renders:
 
 - Menus
+- Apps
+- Screens
+- Component templates
 - Forms
 - Fields
 - Views
@@ -134,7 +142,53 @@ The engine renders:
 - Actions
 - Workflows
 
-The app does not contain pages named after business operations. It contains generic pages such as dynamic form, record list and record detail.
+The runtime does not require a new hardcoded Angular page per customer request. It contains generic renderers for apps,
+screens, forms, lists, cards, actions, modals, media and navigation. Admin publishes contracts; business runtimes load
+and execute those contracts.
+
+## App Studio Runtime
+
+App Studio is the tenant app control plane. It manages:
+
+- app portfolio entries;
+- app versions;
+- screens/pages;
+- navigation groups and routes;
+- login and security mode;
+- component bindings;
+- app text namespaces;
+- app presentation preferences;
+- publication, trash, restore, export and install.
+
+The canonical runtime lookup is:
+
+```txt
+tenantSlug + appKey + target + route
+  -> published dynamic_app version
+  -> published dynamic_screen version
+  -> component registry
+  -> text bundle
+  -> presentation profile
+  -> bindings/actions runtime
+```
+
+Generated apps are deployable artifacts with a runtime shell. They can include bundled default contracts and text
+packages for offline boot, but the source of truth remains the published tenant contract returned by the API when the
+deployment profile allows refresh.
+
+When Admin creates an app such as `tuerca`, Chicle stores an app graph, not disconnected screens:
+
+```txt
+App tuerca
+  -> login screen
+  -> home screen
+  -> navigation/menu
+  -> form screens
+  -> services and flows used by components
+  -> text namespace
+  -> permissions
+  -> tests
+```
 
 Dynamic forms use a Chicle-owned JSON contract documented in `docs/dynamic-forms-contract.md`. The contract keeps
 `steps` as the top-level user journey, uses JSON-Schema-style validation, stores UI behavior as declarative metadata

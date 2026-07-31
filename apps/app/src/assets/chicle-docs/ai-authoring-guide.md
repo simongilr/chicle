@@ -28,8 +28,11 @@ Read these files in order:
 18. `docs/examples/ui-presentation.examples.json`
 19. `docs/formly-architecture.md`
 20. `docs/examples/dynamic-form-formly.examples.json`
-21. `docs/angular-20-migration-roadmap.md`
-22. `docs/angular-20-migration-report.md`
+21. `docs/screen-app-designer-architecture.md`
+22. `docs/app-template-factory-architecture.md`
+23. `docs/dynamic-grid-layout-contract.md`
+24. `docs/angular-20-migration-roadmap.md`
+25. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -40,6 +43,7 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Visual component registry: `apps/app/src/app/shared/ui-component-catalog.ts`
 - UI presentation contract: `apps/app/src/app/core/ui/ui-presentation.types.ts`
 - Form schema adapter: `apps/app/src/app/engine/forms/formly/formly-schema-adapter.service.ts`
+- App and screen authoring contracts: `apps/api/src/modules/dynamic-apps`
 
 ## Generation rules
 
@@ -268,6 +272,71 @@ Rules:
 - Use `flow_button` for a process or approval action.
 - Keep target, kit and theme as presentation metadata. They should not render as clickable app buttons.
 - If a referenced form, service, flow or table is missing, ask for that key or propose creating it in the right designer.
+
+### Full app prompts
+
+When the user asks for a full app, the assistant must create an app graph, not only one screen.
+
+Protocol:
+
+1. Normalize the requested product into an app intent: name, key, category, targets, security, default language and
+   expected entry route.
+2. Discover current tenant artifacts before inventing dependencies: published forms, services, flows, component
+   templates, text packages, themes, permissions and custom tables.
+3. Build a dependency plan that separates existing artifacts, draft artifacts to create and missing decisions.
+4. Create or apply draft contracts in this order: `dynamic_app`, login/security screen, navigation/home screen,
+   feature screens, component bindings, text keys, policy placeholders and tests.
+5. Keep all generated keys scoped to the current `tenantId` and `appKey`.
+6. Apply drafts visually in App Studio. Do not save, publish, expose public routes or install packages automatically.
+7. Ask for approval only when an unsafe or ambiguous decision is required, such as public access, missing forms,
+   destructive changes, new custom tables or external integrations.
+
+Example request:
+
+```txt
+Create an app called Tuerca. It should have login, a home page and a menu of buttons that opens several prefabricated
+dynamic forms.
+```
+
+Expected assistant plan:
+
+1. Create or update `dynamic_app` with `key: "tuerca"` and authenticated security.
+2. Create a login screen using `auth_login`.
+3. Create a home screen with navigation/menu components.
+4. Create one screen per referenced form or ask which prefabricated forms to attach.
+5. Add navigation groups and route actions.
+6. Add text namespace keys under `app.tuerca`.
+7. Add resource-policy placeholders for app access.
+8. Apply drafts visually and let the user save/publish from App Studio.
+
+If the prompt does not name the forms, do not invent them. List the published forms available to the tenant and ask the
+user which ones should appear in the Tuerca menu, or offer to create missing forms as separate drafts.
+
+Example request:
+
+```txt
+Create an image gallery app.
+```
+
+Expected assistant plan:
+
+1. Create or update `dynamic_app` with `key: "image_gallery"`.
+2. Ask whether the gallery is public if the prompt does not say it.
+3. Create a gallery home screen with `media_gallery`.
+4. Propose or create companion services for listing and uploading files.
+5. Attach file storage bindings and permissions.
+6. Apply the draft visually and leave publication to the user.
+
+The assistant must keep each app isolated by `tenantId`, `appKey`, route and text namespace. A prompt for a second app
+must not reuse the first app's screens unless the user explicitly asks to duplicate or share components.
+
+The assistant should summarize full app drafts as an app graph:
+
+```txt
+App -> Screens -> Components -> Bindings -> Actions -> Text -> Policies -> Tests
+```
+
+This summary helps the user understand what will exist inside Admin after accepting the draft.
 
 ## Text authoring protocol
 

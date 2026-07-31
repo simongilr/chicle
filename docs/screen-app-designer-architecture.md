@@ -4,6 +4,10 @@
 
 The Screen And App Designer turns Chicle into an application factory. It defines installable app packages and the screens that those apps expose across web, mobile, desktop and admin targets.
 
+The designer is part of the Admin control plane. It does not create isolated pages. It creates tenant-scoped runtime
+contracts that remain connected to the organization for administration, permissions, publication, export, audit and
+template installation.
+
 The designer follows the same platform rules already used by Dynamic Services, Dynamic Forms and Flows:
 
 - The visual guide and the JSON editor write the same contract.
@@ -11,6 +15,45 @@ The designer follows the same platform rules already used by Dynamic Services, D
 - Published versions become the runtime contract.
 - Deleted artifacts move to trash so their keys can be reused safely.
 - Runtime execution uses published contracts only.
+
+## App Studio Governance
+
+An organization can own many generated apps and many pages per app. Chicle must therefore provide an App Studio, not
+only a screen editor.
+
+The App Studio has these administrative responsibilities:
+
+- list all apps owned by the current tenant with search, status, category, target and publication filters;
+- create an app shell with identity, targets, theme, default locale, security mode and first route;
+- manage app navigation, route groups and default start route;
+- manage screens/pages inside the selected app;
+- manage landing pages that belong to the same tenant but can be public;
+- connect screens with reusable component templates, forms, services, flows, tables, text bundles and permissions;
+- preview the complete app across desktop, tablet, mobile and public/embedded targets;
+- version, publish, unpublish, duplicate, trash and restore apps and screens;
+- export an app as a template package and install template packages into the tenant;
+- audit who changed, tested, published or installed each app artifact.
+
+The core hierarchy is:
+
+```txt
+Tenant
+  -> App
+     -> App version
+     -> Screens / Pages
+        -> Screen versions
+        -> Regions
+        -> Components
+        -> Bindings
+        -> Actions
+     -> Navigation
+     -> App preferences
+     -> Text namespaces
+     -> Template package dependencies
+```
+
+Pages are not displayed as one unfiltered tenant-wide list. They must be searchable, paginated and grouped by app,
+target, category, status and navigation group.
 
 ## Runtime Objects
 
@@ -42,7 +85,25 @@ Minimum manifest:
   },
   "navigation": {
     "mode": "screen_routes",
-    "startRoute": "/home"
+    "startRoute": "/home",
+    "groups": [
+      { "key": "main", "label": "Main", "placement": "top" },
+      { "key": "mobile", "label": "Mobile", "placement": "bottom" }
+    ]
+  },
+  "routing": {
+    "basePath": "/apps/events_app",
+    "publicBasePath": "/public/events_app",
+    "strategy": "tenant_app_routes"
+  },
+  "security": {
+    "mode": "authenticated",
+    "loginScreenKey": "login",
+    "publicScreens": []
+  },
+  "lifecycle": {
+    "status": "draft",
+    "publishedVersion": null
   },
   "permissions": [],
   "screens": [],
@@ -52,6 +113,22 @@ Minimum manifest:
   }
 }
 ```
+
+Required governance fields:
+
+| Field | Purpose |
+| --- | --- |
+| `tenantId` | Tenant owner of the app. |
+| `key` | Stable technical app key within the tenant. |
+| `category` | Portfolio grouping such as operations, sales, events, internal or landing. |
+| `targets` | Supported runtime targets. |
+| `navigation` | Menu mode, groups and start route. |
+| `routing` | Tenant-aware route strategy and base paths. |
+| `security` | Auth mode, login screen and public screens. |
+| `presentation` | Default kit, theme, density and visual tokens. |
+| `text` | Default namespace and supported locales. |
+| `lifecycle` | Draft/published/archive status and current published version. |
+| `settings` | App-level configurable values that are not secrets. |
 
 ### dynamic_app_versions
 
@@ -137,6 +214,209 @@ Minimum definition:
 `dynamic_screen_versions` freezes a screen definition. Publishing a screen version makes it available to runtime consumers.
 
 The version stores a dependency snapshot with component keys and referenced `formKey`, `serviceKey` and `flowKey` values.
+
+## App, Page And Landing Taxonomy
+
+Chicle uses precise names so the Admin experience stays clear:
+
+| Concept | Meaning | Typical visibility |
+| --- | --- | --- |
+| App | Product container owned by a tenant. It groups pages, navigation, theme, language, security and package metadata. | Admin-managed, runtime-consumed |
+| Screen / Page | One route or view inside an app. It is composed from regions and registered components. | Private, public or embedded |
+| Landing page | Public page optimized for marketing, SEO, CMS sharing and lead capture. It still belongs to a tenant and app portfolio. | Public |
+| Component template | Reusable composed block such as a login panel, form card, modal, search + table or landing hero. | Reused by screens and landings |
+| Template package | Portable export/import bundle containing app contracts and dependencies. | Admin install/export |
+
+Landing pages should use the same component registry, themes, text packages, actions and service bindings, but they are
+managed through a public-page workflow with SEO, slug, publish URL, external embed and CMS-sharing options.
+
+## Tenant Runtime Resolution
+
+Runtime resolution always starts from tenant context:
+
+```txt
+tenantSlug + appKey + route + target
+  -> published app version
+  -> published screen version
+  -> navigation and permissions
+  -> text bundle and presentation profile
+  -> component registry
+  -> bindings/actions runtime
+```
+
+The frontend must not decide which unpublished page to run. The API returns only contracts that are valid for the
+current tenant, user role, target and publication state.
+
+## Multi-App Authoring Scenarios
+
+The architecture must support repeated prompts that create different apps inside the same tenant without mixing their
+routes, forms, services, texts or permissions.
+
+### Scenario: Tuerca business app
+
+User request:
+
+```txt
+Create an app called Tuerca. It should use a login form, have a home page with a menu of buttons and open several
+prefabricated dynamic forms.
+```
+
+Expected tenant graph:
+
+```txt
+Tenant
+  -> App: tuerca
+     -> Security: authenticated
+     -> Login screen: login
+        -> Component: auth_login
+        -> Action: execute_service auth.login
+     -> Home screen: home
+        -> Component: nav_menu or button_menu
+        -> Components: service_button / form_launcher / route_card
+        -> Actions: navigate to form screens
+     -> Form screens
+        -> form_runtime bound to published Dynamic Forms
+     -> Navigation groups
+        -> main
+        -> forms
+     -> Text namespace
+        -> app.tuerca
+     -> Resource policies
+        -> apps.tuerca.read
+        -> apps.tuerca.manage
+        -> forms referenced by the app
+```
+
+The assistant may create missing screens and draft bindings, but it must clearly mark any form/service/flow that still
+needs creation or publication before runtime.
+
+### Scenario: Gallery app
+
+User request:
+
+```txt
+Create an image gallery app.
+```
+
+Expected tenant graph:
+
+```txt
+Tenant
+  -> App: image_gallery
+     -> Security: authenticated or public, depending on the prompt
+     -> Home screen
+        -> Component: media_gallery
+        -> Optional component: search_panel
+        -> Optional component: upload_button or form_runtime for metadata
+     -> Dynamic services
+        -> list images
+        -> upload image
+        -> update image metadata
+     -> File storage bindings
+        -> files module
+     -> Text namespace
+        -> app.image_gallery
+     -> Resource policies
+        -> gallery.read
+        -> gallery.upload
+        -> gallery.manage
+```
+
+If the user does not specify public access, Chicle defaults to authenticated access and asks before exposing a public
+gallery route.
+
+## App Studio V2 Experience
+
+The current `/apps` route evolves into App Studio V2 with two levels:
+
+```txt
+App Studio
+  -> Tenant app portfolio
+     -> Search, filters, status, target, category, publication
+     -> Create app with AI or guided wizard
+  -> Selected app workspace
+     -> Overview
+     -> Pages
+     -> Navigation
+     -> Login and security
+     -> Component templates
+     -> Forms/services/flows used by the app
+     -> Theme and text package
+     -> Preview
+     -> Publish
+     -> Export/install package
+```
+
+The selected app workspace is the place where users understand and manage the app after it has been created. Screen
+editing remains inside that app context, so a user is never editing a detached page without knowing which app owns it.
+
+## App Creation Pipeline
+
+App Studio creates an app graph inside the current tenant. A prompt or guided wizard does not create a detached screen;
+it creates the minimum set of tenant-scoped artifacts required for the app to exist, be previewed and be governed.
+
+The creation pipeline is:
+
+```txt
+1. Intent
+   -> app name, app key, category, targets, security mode and default language
+2. Discovery
+   -> available forms, services, flows, tables, components, themes, text namespaces and permissions
+3. App graph draft
+   -> dynamic_app, screens, navigation, components, bindings, actions, texts, policies and tests
+4. Dependency plan
+   -> what already exists, what must be created, what must be published and what is blocked
+5. Preview
+   -> desktop, tablet, mobile, public or embedded target simulation
+6. Save and version
+   -> drafts become versioned contracts
+7. Publish
+   -> runtime can resolve the app through tenant + appKey + route + target
+8. Export or install
+   -> app package can move between environments or tenants
+```
+
+App Studio must show this graph in plain language. For example, a request for an app named `tuerca` with login, home
+menu and several prefabricated forms becomes:
+
+```txt
+App: tuerca
+  Security: authenticated
+  Login: screen login -> auth_login -> auth.login
+  Home: screen home -> nav_menu/button_menu
+  Form pages: one screen per selected published Dynamic Form
+  Navigation: main group with routes to every form page
+  Text: app.tuerca namespace
+  Policies: app access plus referenced form/service/flow permissions
+```
+
+If the user asks for an image gallery app, the graph changes but the governance stays the same:
+
+```txt
+App: image_gallery
+  Security: authenticated by default, public only if approved
+  Home: screen home -> media_gallery
+  Data: list_images service and optional upload_image service
+  Files: storage binding and evidence permissions
+  Text: app.image_gallery namespace
+  Policies: gallery.read, gallery.upload and gallery.manage
+```
+
+Every app remains editable from Admin after creation. Owners and admins can open the app workspace, see its pages,
+navigation, dependencies, text package, theme, permissions, published version, package exports and audit history.
+
+## Multi-Tenant App Rules
+
+- A tenant may own many apps, pages, landing pages and template installs.
+- `appKey` is unique inside one tenant, not globally.
+- A screen route is unique inside one app.
+- Navigation is scoped to the app, so menus from one app do not leak into another app.
+- Text namespaces are scoped by app, for example `app.tuerca` or `app.image_gallery`.
+- App preferences are scoped by app and may override tenant defaults for kit, theme, locale, density and target support.
+- Permissions are evaluated by tenant, app, screen, component action and referenced runtime object.
+- Public routes can expose only published public contracts and never expose secrets or admin-only actions.
+- Deleted apps, screens and component templates move to trash so active keys can be reused safely.
+- Restoring an app checks key and route conflicts before reactivation.
 
 ## Component Contract
 

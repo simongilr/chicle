@@ -60,7 +60,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     usedBy: ['Confisys', 'Database', 'Services', 'Flows', 'Security', 'Dynamic forms'],
     status: 'stable',
     example:
-      '<app-module-header eyebrow="Construcción" title="Formularios" description="Diseña formularios." badge="V1"></app-module-header>'
+      '<app-module-header eyebrow="Fábrica" title="Formularios" description="Diseña formularios." badge="V1"></app-module-header>'
   },
   {
     name: 'ArchitectureDiagramComponent',

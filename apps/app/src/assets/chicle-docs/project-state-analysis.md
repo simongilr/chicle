@@ -31,11 +31,11 @@ versions, publication, export and install history.
 | Security foundation | Auth, RBAC, roles, permissions, tenant scope and initial admin screens | 65% |
 | Confisys | Table, seed, startup cache and admin screen | 70% |
 | Admin navigation | Responsive menu, groups, permissions and main routes | 75% |
-| Reusable components | Catalog, shell, docs layout, designer workspace and multikit facades | 90% |
+| Reusable components | Catalog, shell, docs layout, designer workspace, cards, filters, fields, buttons and multikit facades | 100% under the current Admin visual criterion |
 | Dynamic Services | CRUD, versions, publication, real tests, AI and advanced internal queries | 75% |
 | Dynamic Forms | Designer, JSON, responsive preview, actions, companion services and initial real tests | 60% |
 | Flows | Data model, runner, designer and tests in progress | 55% |
-| App Studio / Screens | Initial app/screen designer and architecture; portfolio workspace still required | 25% |
+| App Studio / Screens | V2 foundation with tenant app portfolio, selected-app workspace, pages, navigation, security, preview, publish and trash | 45% |
 | Text packages | Backend/frontend runtime, Admin page, Spanish/English baseline and search-first UX | 45% |
 | Chicle AI | Floating assistant, Ollama integration, guided drafts and RAG architecture | 45% |
 | Docs / Architecture | Architecture page, operational docs, component catalog, Markdown viewer and app factory docs | 85% |
@@ -44,7 +44,7 @@ versions, publication, export and install history.
 ## Strong Points
 
 - The architecture has a clear direction: event-driven, metadata-driven and microkernel.
-- Admin already behaves as a platform construction console, not only as a CRUD panel.
+- Admin already behaves as a platform factory console, not only as a CRUD panel.
 - Dynamic Services show the correct pattern: create, version, publish, test and consume by key.
 - Dynamic Forms already separate definition, persistence and execution.
 - Chicle AI is integrated into the visual experience and can apply reviewable drafts.
@@ -61,7 +61,8 @@ versions, publication, export and install history.
 - Dynamic Forms still need stronger CRUD completion, catalog-driven selects, service relationships, validation and
   table-specific persistence.
 - Flow Engine needs another UX and testing pass so the designer becomes as understandable as Services.
-- App Studio must evolve from the initial screen builder into a tenant app portfolio and selected-app workspace.
+- App Studio now has the V2 foundation, but runtime rendering, full AI app graph creation, component templates and
+  package import/export hardening are still required.
 - Generated app runtime still needs stronger contract resolution for `tenant + appKey + target + route`.
 - App package export/import is architected but not complete enough to be the product transfer mechanism yet.
 - Text packages are available but Admin still has hardcoded fallback text that must be migrated gradually.
@@ -78,12 +79,12 @@ versions, publication, export and install history.
    - every Admin module should use PageShell, DocumentationLayout, ModuleHeader, DesignerWorkspace, StatusNotice,
      ProcessSteps, WorkflowGuide and shared form components when applicable.
 
-3. Build App Studio V2:
-   - tenant app portfolio;
-   - app workspace;
-   - pages, navigation, login/security, component templates and dependencies;
+3. Continue App Studio:
+   - runtime contract resolution for `tenant + appKey + target + route`;
+   - full generated app renderer for web, Ionic/mobile and desktop targets;
+   - login/security execution, component templates and dependencies;
    - app-level texts, themes and artifact preferences;
-   - preview, publish, trash/restore and export/install.
+   - export/install hardening with dependency dry-run and conflict handling.
 
 4. Continue Dynamic Forms:
    - real CRUD against custom tables through companion services;

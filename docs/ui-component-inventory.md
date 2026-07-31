@@ -11,10 +11,10 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | Group | Purpose | Current and planned modules |
 | --- | --- | --- |
 | Primary | Daily entry points | Home, Manual |
-| Construction | Create executable product behavior | Services, Flows, Forms, Screens, Templates, Automations |
+| Factory | Create executable product behavior | Services, Flows, Forms, Screens, Templates, Automations |
 | Administration | Operate and protect the platform | Configuration, Database, Security |
 
-`more` remains a compatibility value in menu configuration, but the UI presents it as `Construction`.
+`more` remains a compatibility value in menu configuration, but the UI presents it as `Factory`.
 
 ## Shared components
 
@@ -30,9 +30,9 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | ArchitectureDiagramComponent | `app-architecture-diagram` | Visual architecture map with reusable nodes, repository paths and module relationships | Architecture and Components | Stable |
 | ArchitectureBlueprintComponent | `app-architecture-blueprint` | Drawn architecture blueprint with positioned nodes, arrows, connection labels and responsive stacked fallback | Architecture and Components | Stable |
 | ArchitectureTopologyDiagramComponent | `app-architecture-topology-diagram` | Draw.io-style communication diagram with zones, icon nodes and short connection labels | Architecture and Components | Stable |
-| DesignerWorkspaceComponent | `app-designer-workspace` | Responsive catalog plus editing workspace | Services and Flows | Stable; adopt in Forms and Screens |
-| CatalogHeaderComponent | `app-catalog-header` | Catalog title, count and projected commands | Database, Services and Flows | Stable |
-| CatalogItemComponent | `app-catalog-item` | Selectable catalog row with title, metadata and detail | Database, Services and Flows | Stable |
+| DesignerWorkspaceComponent | `app-designer-workspace` | Responsive catalog plus editing workspace | Services, Flows and App Studio | Stable |
+| CatalogHeaderComponent | `app-catalog-header` | Catalog title, count and projected commands | Database, Services, Flows and App Studio | Stable |
+| CatalogItemComponent | `app-catalog-item` | Selectable catalog row with title, metadata and detail | Database, Services, Flows and App Studio | Stable |
 | SectionHeaderComponent | `app-section-header` | Heading, description, step label and projected actions | Operational designers | Stable |
 | AdminFilterBarComponent | `app-admin-filter-bar` | Responsive filter/search bar with consistent multikit spacing and projected controls | Components, Confisys and Markdown repository | Stable |
 | AdminFormGridComponent | `app-admin-form-grid` | Responsive administrative form grid for property panels and settings without page-local layout CSS | Preferences and future builders | Stable |
@@ -46,7 +46,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | AiAssistantLauncherComponent | `app-ai-assistant-launcher` | Floating global chat entry point for natural-language requests; delegates the requested action to the current screen context | AppComponent, all routes | Initial local prototype; connected to screen handlers, backend AI and RAG |
 | StatusNoticeComponent | `app-status-notice` | Empty, info, success, warning and error states | Login, Setup, Database, Services, Flows, Security and dynamic forms | Stable |
 | LoadingSkeletonComponent | `app-loading-skeleton` | Page, list, table and form loading placeholders with accessible status | Route transitions and data-driven modules | Stable |
-| SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database and Flows | Stable |
+| SegmentedControlComponent | `app-segmented-control` | Compact mutually exclusive view selector | Database, Flows and App Studio workspace tabs | Stable |
 | FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Dynamic field controls, component catalog and legacy public forms | Stable |
 | DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic, Material, Bootstrap or native adapters without changing the schema | Dynamic form runtime and Admin pages | Stable multikit renderer |
 | DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field through the multikit facade and compare installed presentation kits | Component library and form designer | Initial field palette |
@@ -86,6 +86,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | ServicesPageComponent | Dynamic service lifecycle | Functional, reference shared designer workflow |
 | FlowsPageComponent | Declarative process lifecycle | Functional, shared designer workflow plus reusable Flow domain visuals |
 | FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, always-editable JSON, preview, test, version and publish |
+| AppsPageComponent | App Studio V2 foundation | Tenant app portfolio, selected app workspace, pages, navigation, security, preview, publish, package JSON and trash |
 | SecurityPageComponent | Users, roles, permissions and audit | Functional, shared panels, metrics, filters, fields and actions; business matrices stay domain-owned |
 | DynamicFormPageComponent | Dynamic form runtime | Loads published runtime schema, renders fields, previews responsive modes and submits through API |
 

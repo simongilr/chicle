@@ -23,6 +23,7 @@ Admin / Apps -> Tenant + Auth/RBAC -> API Kernel -> Runtime -> DB/Events/Registe
 Configuration objects are part of the public architecture and stay documented beside the implementation:
 
 - `docs/platform-architecture.md` defines the platform-level architecture, naming and execution model.
+- `docs/chicle-architecture-draft.md` defines the Chicle Architecture draft as an Event-Driven Microkernel synthesis.
 - `docs/backup-worker-architecture.md` defines background worker and backup architecture.
 - `docs/ai-authoring-guide.md` is the entry point for people and AI.
 - `docs/ai-ready-authoring.md` defines JSON-only endpoints and assistant authoring sequences.
@@ -43,6 +44,7 @@ Configuration objects are part of the public architecture and stay documented be
 - `docs/angular-20-migration-roadmap.md` defines the audited dependency matrix, safety gates and phased Angular 20 migration.
 - `docs/angular-20-migration-report.md` records the installed Angular 20 matrix and final verification results.
 - `docs/project-state-analysis.md` records the current project state, risks and recommended next order.
+- `docs/platform-validator-backlog.md` records the pending checks for the future platform validator.
 
 When a backend contract or visual component changes, its documentation and canonical example change in the same work.
 
@@ -120,7 +122,7 @@ Shared UI must live in reusable components instead of being copied into pages. T
 
 Menus are tenant data. Default menu rows are seeded during first setup, then `/api/menus/current` returns only the options visible for the current user's permissions.
 
-Navigation uses three product groups: Primary for daily entry points, Construction for Services, Flows, Forms,
+Navigation uses three product groups: Primary for daily entry points, Factory for Services, Flows, Forms,
 Screens, Templates and Automations, and Administration for configuration, database and security.
 
 The maintained component catalog, maturity map and extraction backlog live in

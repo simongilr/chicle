@@ -57,6 +57,14 @@ screens, components, adapters, permissions, data, translations, artifact prefere
 | Adapter / Strategy               | AI, storage, auth, UI kits, integrations, devices and messaging can change by adapter.                |
 | Contract First                   | Every dynamic object has a contract, backend validation, examples, versions, tests and publication.   |
 
+## Chicle Architecture Draft
+
+The working long-term architecture name is documented separately in `docs/chicle-architecture-draft.md`.
+
+That draft defines Chicle Architecture as an Event-Driven Microkernel synthesis powered by versioned metadata,
+reusable components, validated contracts and administrable product factories. It is a naming and evolution guide for
+future architectural decisions; this document remains the current platform definition.
+
 ## Execution Shape
 
 Chicle runs through separable contract-based pieces:
@@ -198,10 +206,10 @@ Chicle is governed by ten precepts. Every technical decision must align with the
 
 1. Flexible: solves specific customer and vertical needs without closing the core.
 2. Adaptable: coexists with different deployments, providers, targets, integrations and architecture styles.
-3. Reusable: modules, components, services, contracts, adapters and capabilities are designed to be reused.
-4. Quality: the system is readable, tested, maintainable and verifiable.
-5. Secure: every dynamic runtime path operates with permissions, tenant scope, validation, limits and audit.
-6. Administrable: every important object can be viewed, configured, tested, audited, restored and published.
+3. Dynamic and Administrable: configurable behavior lives in versioned metadata and is managed from Admin with validation, audit, lifecycle, cache control and rollback.
+4. Reusable: modules, components, services, contracts, adapters and capabilities are designed to be reused.
+5. High Quality: the system is readable, tested, maintainable, consistent and verifiable.
+6. Secure: every dynamic runtime path operates with permissions, tenant scope, validation, limits and audit.
 7. Scalable: supports vertical and horizontal scaling while protecting concurrency, connections, jobs, events and idempotency.
 8. Reliable and resilient: records failures, preserves traceability, applies defaults and supports recovery.
 9. Extensible: grows through plugins, templates, adapters, capabilities, actions, flows and controlled migrations.

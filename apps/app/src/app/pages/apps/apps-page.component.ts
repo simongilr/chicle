@@ -1,8 +1,10 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
+import { AdminCardGridComponent } from '../../shared/admin-card-grid/admin-card-grid.component';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminFormGridComponent } from '../../shared/admin-form-grid/admin-form-grid.component';
+import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
 import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
@@ -14,6 +16,7 @@ import { ModuleHeaderComponent } from '../../shared/module-header/module-header.
 import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
 import { PreviewViewportComponent, PreviewViewportMode } from '../../shared/preview-viewport/preview-viewport.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
+import { SegmentedControlComponent, SegmentedControlItem } from '../../shared/segmented-control/segmented-control.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
@@ -24,6 +27,7 @@ import {
 } from '../../shared/ai-assistant-launcher/ai-assistant.service';
 
 type AppDesignerPhase = 'app' | 'screen' | 'components' | 'preview' | 'json';
+type AppWorkspaceTab = 'summary' | 'screens' | 'navigation' | 'security' | 'preview' | 'publish' | 'trash';
 type AppTargetsMode = 'web_mobile' | 'web_mobile_desktop' | 'admin' | 'all';
 type ScreenTarget = 'admin' | 'web' | 'mobile' | 'desktop' | 'multi';
 type JsonTarget = 'app' | 'screen' | 'package';
@@ -52,7 +56,9 @@ interface DynamicAppRecord {
   manifest: Record<string, unknown>;
   version: number;
   published: boolean;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'trashed';
+  metadata?: Record<string, unknown> | null;
+  trashedAt?: string | null;
 }
 
 interface DynamicAppVersionRecord {
@@ -85,7 +91,9 @@ interface DynamicScreenRecord {
   definition: Record<string, unknown>;
   version: number;
   published: boolean;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'trashed';
+  metadata?: Record<string, unknown> | null;
+  trashedAt?: string | null;
 }
 
 interface DynamicScreenVersionRecord {
@@ -213,7 +221,9 @@ interface ScreenDraft {
   selector: 'app-apps-page',
   standalone: true,
   imports: [
+    AdminCardGridComponent,
     AdminFormGridComponent,
+    AdminMetricCardComponent,
     AdminPanelComponent,
     CatalogItemComponent,
     DesignerCatalogPanelComponent,
@@ -225,6 +235,7 @@ interface ScreenDraft {
     PageShellComponent,
     PreviewViewportComponent,
     ProcessStepsComponent,
+    SegmentedControlComponent,
     StatusNoticeComponent,
     UiKitButtonComponent,
     WorkflowGuideComponent
@@ -256,9 +267,62 @@ interface ScreenDraft {
         min-width: 0;
       }
 
+      .workspace-tabs {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .portfolio-summary {
+        display: grid;
+        gap: 12px;
+      }
+
       .nested-grid {
         display: grid;
         gap: 12px;
+      }
+
+      .restore-grid,
+      .navigation-preview,
+      .security-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .restore-row,
+      .navigation-row,
+      .security-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-width: 0;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 12px;
+      }
+
+      .restore-row strong,
+      .restore-row span,
+      .navigation-row strong,
+      .navigation-row span,
+      .security-row strong,
+      .security-row span {
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .restore-row span,
+      .navigation-row span,
+      .security-row span {
+        color: var(--ch-color-muted);
+        font-size: 0.84rem;
+        line-height: 1.38;
       }
 
       .component-list {
@@ -608,6 +672,18 @@ interface ScreenDraft {
         .preview-app-menu {
           justify-content: flex-start;
         }
+
+        .restore-row,
+        .navigation-row,
+        .security-row {
+          grid-template-columns: 1fr;
+          justify-content: stretch;
+        }
+
+        .workspace-tabs {
+          align-items: stretch;
+          flex-direction: column;
+        }
       }
     `
   ],
@@ -682,7 +758,7 @@ interface ScreenDraft {
             @for (app of apps(); track app.id) {
               <app-catalog-item
                 [title]="app.name"
-                [meta]="app.key + ' · ' + (app.published ? 'publicada' : 'draft')"
+                [meta]="app.key + ' · ' + artifactStatusLabel(app)"
                 [detail]="app.targets.join(', ') + ' · v' + app.version"
                 [active]="app.id === selectedAppId()"
                 (selected)="selectApp(app)"
@@ -694,6 +770,27 @@ interface ScreenDraft {
             @if (loading()) {
               <app-loading-skeleton variant="form" label="Preparando diseñador" [rows]="5"></app-loading-skeleton>
             } @else {
+              <div class="workspace-tabs">
+                <app-segmented-control
+                  [items]="workspaceTabs()"
+                  [value]="workspaceTab()"
+                  ariaLabel="Secciones de App Studio"
+                  (valueChange)="setWorkspaceTab($event)"
+                ></app-segmented-control>
+              </div>
+
+              <app-admin-card-grid minColumnWidth="180px" gap="10px" [compact]="true" ariaLabel="Resumen de App Studio">
+                @for (metric of appMetrics(); track metric.label) {
+                  <app-admin-metric-card
+                    [label]="metric.label"
+                    [value]="metric.value"
+                    [detail]="metric.detail"
+                    [tone]="metric.tone"
+                  ></app-admin-metric-card>
+                }
+              </app-admin-card-grid>
+
+              @if (workspaceTab() === 'summary') {
               <app-admin-panel
                 title="1. App"
                 description="Define el contenedor instalable. La app agrupa rutas, pantallas, textos, targets y permisos."
@@ -744,7 +841,9 @@ interface ScreenDraft {
                   }
                 </app-admin-form-grid>
               </app-admin-panel>
+              }
 
+              @if (workspaceTab() === 'screens' || workspaceTab() === 'navigation') {
               <app-admin-panel
                 title="2. Pantalla"
                 description="Cada pantalla compone regiones, componentes, datos y acciones. Puede apuntar a web, móvil, desktop o admin."
@@ -831,7 +930,7 @@ interface ScreenDraft {
                     @for (screen of screens(); track screen.id) {
                       <app-catalog-item
                         [title]="screen.title"
-                        [meta]="screen.key + ' · ' + (screen.published ? 'publicada' : 'draft')"
+                        [meta]="screen.key + ' · ' + artifactStatusLabel(screen)"
                         [detail]="screen.route || '/'"
                         [active]="screen.id === selectedScreenId()"
                         (selected)="selectScreen(screen)"
@@ -840,7 +939,9 @@ interface ScreenDraft {
                   </app-designer-catalog-panel>
                 </div>
               </app-admin-panel>
+              }
 
+              @if (workspaceTab() === 'screens') {
               <app-admin-panel
                 title="3. Componentes"
                 description="Agrega piezas reutilizables y define dónde viven, cuánto ocupan, qué datos consumen y qué acción disparan."
@@ -967,7 +1068,9 @@ interface ScreenDraft {
                   }
                 </div>
               </app-admin-panel>
+              }
 
+              @if (workspaceTab() === 'preview') {
               <app-admin-panel
                 title="4. Preview"
                 description="Valida la estructura en escritorio, tablet y móvil antes de publicar."
@@ -1048,7 +1151,9 @@ interface ScreenDraft {
                   </section>
                 </app-preview-viewport>
               </app-admin-panel>
+              }
 
+              @if (workspaceTab() === 'publish') {
               <app-json-authoring-panel
                 artifactLabel="App / Screen"
                 [title]="jsonPanelTitle()"
@@ -1113,6 +1218,92 @@ interface ScreenDraft {
                   }
                 </div>
               </app-json-authoring-panel>
+              }
+
+              @if (workspaceTab() === 'security') {
+                <app-admin-panel
+                  title="Seguridad de la app"
+                  description="Controla el acceso declarativo de la app y sus pantallas. Los permisos reales siguen pasando por Auth/RBAC del tenant."
+                  eyebrow="Tenant scope"
+                >
+                  <div class="security-grid">
+                    <div class="security-row">
+                      <div>
+                        <strong>Scope del tenant</strong>
+                        <span>La app se publica dentro del tenant actual. Runtime y servicios no deben cruzar datos entre organizaciones.</span>
+                      </div>
+                      <span class="chip">tenant</span>
+                    </div>
+                    <div class="security-row">
+                      <div>
+                        <strong>Permiso de pantalla</strong>
+                        <span>
+                          Usa el campo “Permiso requerido” en Navegación para proteger la ruta.
+                          Ejemplo: apps.read, clientes.read, inspecciones.create.
+                        </span>
+                      </div>
+                      <span class="chip">{{ screenDraft().navigationPermission || 'sin permiso extra' }}</span>
+                    </div>
+                    <div class="security-row">
+                      <div>
+                        <strong>Publicación explícita</strong>
+                        <span>Guardar crea draft. Publicar congela una versión estable para runtime web, móvil o desktop.</span>
+                      </div>
+                      <span class="chip">{{ selectedApp()?.published ? 'publicada' : 'draft' }}</span>
+                    </div>
+                  </div>
+                </app-admin-panel>
+              }
+
+              @if (workspaceTab() === 'trash') {
+                <app-admin-panel
+                  title="Papelera"
+                  description="Restaura apps o pantallas sin bloquear keys activas. Si existe conflicto, el backend pedirá confirmación de overwrite."
+                  eyebrow="Ciclo de vida"
+                >
+                  <div class="restore-grid">
+                    @if (!trashedApps().length && !trashedScreens().length) {
+                      <app-status-notice tone="info" title="Papelera vacía">
+                        <span>No hay apps ni pantallas eliminadas para restaurar.</span>
+                      </app-status-notice>
+                    }
+
+                    @for (app of trashedApps(); track app.id) {
+                      <div class="restore-row">
+                        <div>
+                          <strong>{{ app.name }}</strong>
+                          <span>App · {{ originalArtifactKey(app) }} · {{ artifactStatusLabel(app) }}</span>
+                        </div>
+                        <app-ui-kit-button
+                          label="Restaurar app"
+                          icon="pi pi-undo"
+                          tone="secondary"
+                          variant="outline"
+                          [disabled]="saving()"
+                          (pressed)="restoreApp(app)"
+                        ></app-ui-kit-button>
+                      </div>
+                    }
+
+                    @for (screen of trashedScreens(); track screen.id) {
+                      <div class="restore-row">
+                        <div>
+                          <strong>{{ screen.title }}</strong>
+                          <span>Pantalla · {{ originalArtifactKey(screen) }} · {{ screen.route || '/' }}</span>
+                        </div>
+                        <app-ui-kit-button
+                          label="Restaurar pantalla"
+                          icon="pi pi-undo"
+                          tone="secondary"
+                          variant="outline"
+                          [disabled]="saving() || !selectedApp()"
+                          (pressed)="restoreScreen(screen)"
+                        ></app-ui-kit-button>
+                      </div>
+                    }
+                  </div>
+                </app-admin-panel>
+              }
             }
           </div>
         </app-designer-workspace>
@@ -1154,11 +1345,14 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   });
 
   readonly apps = signal<DynamicAppRecord[]>([]);
+  readonly trashedApps = signal<DynamicAppRecord[]>([]);
   readonly screens = signal<DynamicScreenRecord[]>([]);
+  readonly trashedScreens = signal<DynamicScreenRecord[]>([]);
   readonly catalog = signal<ScreenComponentCatalogItem[]>([]);
   readonly selectedAppId = signal<string | null>(null);
   readonly selectedScreenId = signal<string | null>(null);
   readonly phase = signal<AppDesignerPhase>('app');
+  readonly workspaceTab = signal<AppWorkspaceTab>('summary');
   readonly viewport = signal<PreviewViewportMode>('desktop');
   readonly jsonTarget = signal<JsonTarget>('app');
   readonly loading = signal(false);
@@ -1174,6 +1368,42 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   readonly selectedApp = computed(() => this.apps().find((item) => item.id === this.selectedAppId()) ?? null);
   readonly selectedScreen = computed(() => this.screens().find((item) => item.id === this.selectedScreenId()) ?? null);
+  readonly trashCount = computed(() => this.trashedApps().length + this.trashedScreens().length);
+
+  readonly workspaceTabs = computed<SegmentedControlItem[]>(() => [
+    { key: 'summary', label: 'Resumen', icon: 'pi pi-th-large' },
+    { key: 'screens', label: 'Páginas', icon: 'pi pi-window-maximize', disabled: !this.selectedApp() },
+    { key: 'navigation', label: 'Navegación', icon: 'pi pi-compass', disabled: !this.selectedApp() },
+    { key: 'security', label: 'Seguridad', icon: 'pi pi-shield', disabled: !this.selectedApp() },
+    { key: 'preview', label: 'Preview', icon: 'pi pi-eye', disabled: !this.selectedApp() },
+    { key: 'publish', label: 'Publicar', icon: 'pi pi-upload', disabled: !this.selectedApp() },
+    {
+      key: 'trash',
+      label: `Papelera${this.trashCount() ? ` (${this.trashCount()})` : ''}`,
+      icon: 'pi pi-trash'
+    }
+  ]);
+
+  readonly appMetrics = computed(() => [
+    {
+      label: 'Apps activas',
+      value: String(this.apps().length),
+      detail: 'Portafolio del tenant',
+      tone: 'primary' as const
+    },
+    {
+      label: 'Pantallas de la app',
+      value: String(this.screens().length),
+      detail: this.selectedApp()?.key ?? 'Selecciona una app',
+      tone: 'neutral' as const
+    },
+    {
+      label: 'Publicación',
+      value: this.selectedApp()?.published ? `v${this.selectedApp()?.version}` : 'Draft',
+      detail: this.selectedApp()?.published ? 'Runtime disponible' : 'Pendiente de publicar',
+      tone: this.selectedApp()?.published ? ('success' as const) : ('warning' as const)
+    }
+  ]);
 
   readonly processSteps = computed<ProcessStepItem[]>(() => [
     {
@@ -1403,11 +1633,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set('');
     try {
-      const [apps, catalog] = await Promise.all([
+      const [apps, trashedApps, catalog] = await Promise.all([
         firstValueFrom(this.api.get<DynamicAppRecord[]>('apps')),
+        firstValueFrom(this.api.get<DynamicAppRecord[]>('apps/trash')),
         firstValueFrom(this.api.get<ScreenComponentCatalogItem[]>('apps/components/catalog'))
       ]);
       this.apps.set(apps);
+      this.trashedApps.set(trashedApps);
       this.catalog.set(catalog);
       const selected = apps.find((item) => item.id === this.selectedAppId()) ?? apps[0] ?? null;
       if (selected) {
@@ -1428,8 +1660,12 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncAppJson();
     this.syncPackageJson();
     try {
-      const screens = await firstValueFrom(this.api.get<DynamicScreenRecord[]>(`apps/${app.id}/screens`));
+      const [screens, trashedScreens] = await Promise.all([
+        firstValueFrom(this.api.get<DynamicScreenRecord[]>(`apps/${app.id}/screens`)),
+        firstValueFrom(this.api.get<DynamicScreenRecord[]>(`apps/${app.id}/screens/trash`))
+      ]);
       this.screens.set(screens);
+      this.trashedScreens.set(trashedScreens);
       const selectedScreen = screens.find((item) => item.id === this.selectedScreenId()) ?? screens[0] ?? null;
       if (selectedScreen) {
         this.selectScreen(selectedScreen);
@@ -1452,6 +1688,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.selectedAppId.set(null);
     this.selectedScreenId.set(null);
     this.screens.set([]);
+    this.trashedScreens.set([]);
     this.appDraft.set(this.defaultAppDraft());
     this.screenDraft.set(this.defaultScreenDraft());
     this.jsonTarget.set('app');
@@ -1459,6 +1696,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncScreenJson();
     this.syncPackageJson();
     this.phase.set('app');
+    this.workspaceTab.set('summary');
   }
 
   newScreen(clearSelection = true) {
@@ -1476,6 +1714,28 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     if (phase === 'app' || phase === 'screen' || phase === 'components' || phase === 'preview' || phase === 'json') {
       this.phase.set(phase);
       if (phase === 'json' && this.jsonTarget() !== 'package') {
+        this.jsonTarget.set(this.selectedScreen() || this.screenDraftReady() ? 'screen' : 'app');
+      }
+      this.workspaceTab.set(this.workspaceTabFromPhase(phase));
+    }
+  }
+
+  setWorkspaceTab(tab: string) {
+    if (
+      tab === 'summary' ||
+      tab === 'screens' ||
+      tab === 'navigation' ||
+      tab === 'security' ||
+      tab === 'preview' ||
+      tab === 'publish' ||
+      tab === 'trash'
+    ) {
+      if (tab !== 'summary' && tab !== 'trash' && !this.selectedApp()) {
+        return;
+      }
+      this.workspaceTab.set(tab);
+      this.phase.set(this.phaseFromWorkspaceTab(tab));
+      if (tab === 'publish' && this.jsonTarget() !== 'package') {
         this.jsonTarget.set(this.selectedScreen() || this.screenDraftReady() ? 'screen' : 'app');
       }
     }
@@ -1983,6 +2243,42 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  async restoreApp(app: DynamicAppRecord, overwrite = false) {
+    this.saving.set(true);
+    this.error.set('');
+    try {
+      await firstValueFrom(this.api.post(`apps/${app.id}/restore`, { overwrite }));
+      this.message.set(`App ${this.originalArtifactKey(app)} restaurada.`);
+      await this.load();
+      const restored = this.apps().find((item) => item.key === this.originalArtifactKey(app));
+      if (restored) {
+        await this.selectApp(restored);
+        this.workspaceTab.set('summary');
+      }
+    } catch (error) {
+      this.error.set(this.errorMessage(error, 'No se pudo restaurar la app.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async restoreScreen(screen: DynamicScreenRecord, overwrite = false) {
+    const app = this.selectedApp();
+    if (!app) return;
+    this.saving.set(true);
+    this.error.set('');
+    try {
+      await firstValueFrom(this.api.post(`apps/${app.id}/screens/${screen.id}/restore`, { overwrite }));
+      this.message.set(`Pantalla ${this.originalArtifactKey(screen)} restaurada.`);
+      await this.selectApp(app);
+      this.workspaceTab.set('screens');
+    } catch (error) {
+      this.error.set(this.errorMessage(error, 'No se pudo restaurar la pantalla.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   componentSummary(component: ScreenComponentDraft) {
     const summaries: Record<string, string> = {
       hero_header: 'Encabezado o bloque principal de una pantalla.',
@@ -2120,6 +2416,21 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       submit_form: 'envía form',
       emit_event: 'emite evento'
     }[value];
+  }
+
+  originalArtifactKey(item: { key: string; metadata?: Record<string, unknown> | null }) {
+    const trash = this.objectValue(item.metadata?.['trash']);
+    return this.stringValue(trash?.['originalKey']) || item.key.replace(/__trashed_[a-z0-9]{8}$/i, '');
+  }
+
+  artifactStatusLabel(item: { status: string; published: boolean; version: number; trashedAt?: string | null }) {
+    if (item.trashedAt || item.status === 'trashed') {
+      return 'papelera';
+    }
+    if (item.published) {
+      return `publicada: v${item.version}`;
+    }
+    return item.status === 'draft' ? 'draft' : item.status;
   }
 
   jsonPanelTitle() {
@@ -2869,6 +3180,30 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   private componentLabel(key: string) {
     return this.catalog().find((item) => item.key === key)?.name ?? key.replace(/_/g, ' ');
+  }
+
+  private workspaceTabFromPhase(phase: AppDesignerPhase): AppWorkspaceTab {
+    const tabByPhase: Record<AppDesignerPhase, AppWorkspaceTab> = {
+      app: 'summary',
+      screen: 'screens',
+      components: 'screens',
+      preview: 'preview',
+      json: 'publish'
+    };
+    return tabByPhase[phase];
+  }
+
+  private phaseFromWorkspaceTab(tab: AppWorkspaceTab): AppDesignerPhase {
+    const phaseByTab: Record<AppWorkspaceTab, AppDesignerPhase> = {
+      summary: 'app',
+      screens: 'components',
+      navigation: 'screen',
+      security: 'screen',
+      preview: 'preview',
+      publish: 'json',
+      trash: 'app'
+    };
+    return phaseByTab[tab];
   }
 
   private errorMessage(error: unknown, fallback: string) {

@@ -6,6 +6,7 @@ import { I18N_TRANSLATIONS, SupportedLanguage, TranslationDictionary } from './i
 
 const LANGUAGE_STORAGE_KEY = 'chicle.admin.language';
 const BUNDLE_STORAGE_PREFIX = 'chicle.i18n.bundle';
+const BUNDLE_CACHE_VERSION = '20260731-factory-label';
 const DEFAULT_NAMESPACE = 'admin';
 
 interface PublicConfisysEntry {
@@ -24,6 +25,7 @@ interface TextBundleResponse {
 }
 
 interface CachedTextBundle {
+  cacheVersion?: string;
   hash?: string;
   version?: string;
   entries: TranslationDictionary;
@@ -193,6 +195,7 @@ export class I18nService {
 
     if (typeof localStorage !== 'undefined') {
       const cached: CachedTextBundle = {
+        cacheVersion: BUNDLE_CACHE_VERSION,
         hash: bundle.hash,
         version: bundle.version,
         entries,
@@ -215,6 +218,10 @@ export class I18nService {
 
     try {
       const cached = JSON.parse(raw) as CachedTextBundle;
+      if (cached.cacheVersion !== BUNDLE_CACHE_VERSION) {
+        localStorage.removeItem(key);
+        return;
+      }
       this.remoteDictionaries.update((current) => ({ ...current, [key]: this.filterEntries(cached.entries) }));
     } catch {
       localStorage.removeItem(key);

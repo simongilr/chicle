@@ -318,7 +318,7 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         }
         @case ('ModuleHeaderComponent') {
           <app-module-header
-            eyebrow="Construcción"
+            eyebrow="Fábrica"
             title="Formularios dinámicos"
             description="Diseña campos, validaciones y acciones."
             badge="V1"

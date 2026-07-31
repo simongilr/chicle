@@ -1005,7 +1005,7 @@ export class ArchitecturePageComponent {
     {
       id: 'designers',
       title: 'Admin',
-      eyebrow: 'Administración + construcción',
+      eyebrow: 'Administración + fábrica',
       description: 'Consola owner/admin para seguridad, tenants, preferencias, componentes, servicios, formularios, flows, DB designer y configuración del back.',
       icon: 'pi pi-pencil',
       status: 'Diseño guiado + JSON',
@@ -1135,7 +1135,18 @@ export class ArchitecturePageComponent {
       ]
     },
     {
-      title: '3. Reutilizable',
+      title: '3. Dinámico y Administrable',
+      statement:
+        'Todo comportamiento configurable vive en metadata versionada y se administra desde el Admin, sin depender de tocar código para operar el producto.',
+      how: [
+        'Administrar servicios, formularios, flows, pantallas, textos, temas, permisos, apps, plantillas, ambientes y runtime desde interfaces guiadas.',
+        'Mantener lifecycle completo: draft, versión, publicación, pruebas, auditoría, papelera, restauración y rollback.',
+        'Permitir JSON editable para usuarios avanzados e IA, pero siempre con validación backend, permisos y trazabilidad.',
+        'Propagar cambios dinámicos con control de cache, revisiones, hashes o versiones para que Admin y frontend no queden desalineados.'
+      ]
+    },
+    {
+      title: '4. Reutilizable',
       statement:
         'Nada importante queda como lógica aislada cuando puede convertirse en módulo, componente, servicio, contrato, adapter o capacidad reutilizable.',
       how: [
@@ -1146,7 +1157,7 @@ export class ArchitecturePageComponent {
       ]
     },
     {
-      title: '4. Calidad',
+      title: '5. De Calidad',
       statement: 'El proyecto es fácil de leer, probar, extender y depurar incluso cuando el runtime dinámico crece.',
       how: [
         'Mantener módulos pequeños, nombres claros y responsabilidades explícitas.',
@@ -1155,21 +1166,12 @@ export class ArchitecturePageComponent {
       ]
     },
     {
-      title: '5. Seguro',
+      title: '6. Seguro',
       statement: 'La flexibilidad nunca abre huecos: todo runtime dinámico opera con permisos, tenant scope, validación y auditoría.',
       how: [
         'No ejecutar SQL libre ni JavaScript arbitrario desde la base de datos.',
         'Validar tablas, campos, servicios, flows, permisos y límites en backend.',
         'Proteger Swagger, reset, DB designer, schema changes, AI tools y acciones sensibles.'
-      ]
-    },
-    {
-      title: '6. Administrable',
-      statement: 'Lo que existe se puede ver, entender, configurar, auditar, restaurar y operar desde el admin.',
-      how: [
-        'Preferir pantallas guiadas con JSON editable, historial, papelera y pruebas en vivo.',
-        'Exponer estados claros: creado, draft, versionado, publicado, fallido, retenido o restaurable.',
-        'Centralizar preferencias, confisys, usuarios, roles, permisos, servicios, forms, flows y datos.'
       ]
     },
     {
@@ -1184,7 +1186,7 @@ export class ArchitecturePageComponent {
       ]
     },
     {
-      title: '8. Fiable y resiliente',
+      title: '8. Fiable y Resiliente',
       statement:
         'El sistema se comporta de forma predecible, observable y recuperable, incluso ante fallos de red, IA, integraciones, workers o configuración incompleta.',
       how: [
@@ -1356,7 +1358,7 @@ export class ArchitecturePageComponent {
     },
     {
       title: 'Designers',
-      status: 'En construcción',
+      status: 'Fábrica visual',
       description: 'Servicios, formularios, flows y DB designer con JSON editable y asistencia IA.',
       paths: ['apps/app/src/app/pages/services', 'apps/app/src/app/pages/forms', 'apps/app/src/app/pages/flows', 'apps/app/src/app/pages/database']
     },
@@ -1377,7 +1379,7 @@ export class ArchitecturePageComponent {
     },
     {
       title: 'Dynamic Forms',
-      status: 'En construcción avanzada',
+      status: 'Runtime versionado',
       description: 'Formularios versionados, preview web/tablet/móvil, submit real, bindings y write policies.',
       paths: ['apps/api/src/modules/dynamic-forms', 'apps/app/src/app/pages/forms', 'docs/dynamic-forms-contract.md']
     },

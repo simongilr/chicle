@@ -420,14 +420,21 @@ Chicle AI must not install or overwrite templates without explicit user approval
 
 Create the registry that maps safe `componentKey` values to reusable Admin/runtime components.
 
+Status: implemented as the current screen component catalog foundation.
+
 ### Step 2: Dynamic Screens
 
 Create `dynamic_screens` and `dynamic_screen_versions`, plus a basic runtime renderer using existing components.
+
+Status: implemented as tenant-scoped screens owned by apps, with keys unique by `tenantId + appId + key`.
 
 ### Step 3: Screen Designer V1
 
 Create a guided screen designer without requiring drag/drop first. Use sections, rows, columns and registered
 components. GridStack can be added later as a better canvas.
+
+Status: implemented as the App Studio V2 foundation in `/apps`: app portfolio, selected app workspace, pages,
+navigation, security, preview, publish/package JSON and trash.
 
 ### Step 4: Template Package Export
 

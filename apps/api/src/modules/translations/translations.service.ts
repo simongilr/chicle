@@ -429,13 +429,15 @@ export class TranslationsService implements OnApplicationBootstrap {
       );
     } else if (activeVersion) {
       const activeEntries = this.normalizeEntries(activeVersion.entries);
-      const mergedEntries = { ...seed.entries, ...activeEntries };
-      if (Object.keys(mergedEntries).length !== Object.keys(activeEntries).length) {
+      const seedOwnedBundle = activeVersion.version === seed.version;
+      const mergedEntries = seedOwnedBundle ? { ...activeEntries, ...seed.entries } : { ...seed.entries, ...activeEntries };
+      const mergedHash = this.hashEntries(mergedEntries);
+      if (mergedHash !== activeVersion.hash) {
         await this.versions.save(
           this.versions.create({
             ...activeVersion,
             entries: mergedEntries,
-            hash: this.hashEntries(mergedEntries)
+            hash: mergedHash
           })
         );
       }
@@ -455,6 +457,14 @@ export class TranslationsService implements OnApplicationBootstrap {
             key,
             value,
             source: 'seed',
+            active: true
+          })
+        );
+      } else if (existing.source === 'seed' && existing.value !== value) {
+        await this.entries.save(
+          this.entries.create({
+            ...existing,
+            value,
             active: true
           })
         );

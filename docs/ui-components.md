@@ -103,7 +103,7 @@ Still required for the designer:
 | Security | PageShell | module header, panels, metrics, filters, fields, actions, notices and loading | Adopted |
 | Environment Deploy Center | PageShell | panels, stacks, form grids, resource cards, code blocks, fields, metrics and actions | Adopted |
 | Text Packages | PageShell | module header, filter bar, panels, fields, actions and search-first lists | Adopted |
-| App Studio | PageShell | designer workspace, app catalog, module header, preview viewport, fields, actions and cards | In progress |
+| App Studio | PageShell | designer workspace, app catalog, workspace tabs, module header, preview viewport, fields, actions, cards and trash workspace | V2 foundation adopted |
 | Dynamic form runtime | PageShell | field renderer, preview, mobile actions, loading and notices | Forms foundation |
 | Login | PublicPageShell | dynamic fields, segmented control, notices, loading and multikit actions | Adopted |
 | Setup | PublicPageShell | dynamic fields, notices, loading and multikit actions | Adopted |

@@ -86,9 +86,10 @@ The assistant applies reviewable drafts only. Admin users save, version and publ
 
 ## Development Next Step
 
-Continue App Studio V2. The immediate goal is to make `/apps` a real tenant app portfolio and selected-app workspace:
-overview, pages, navigation, login/security, components, forms/services/flows, texts, theme, preview, publish and
-export/install.
+Continue App Studio after the V2 foundation. `/apps` now has a tenant app portfolio and selected-app workspace with
+summary, pages, navigation, security, preview, publish/package JSON and trash. The next goal is the generated-app
+runtime: resolve `tenant + appKey + target + route`, render published screens from the component registry, execute
+bindings/actions, and harden export/import with dependency dry-run and conflict handling.
 
 Before implementing auth, roles, permissions or transport security, read `docs/security-auth-review.md`. Before
 changing app, screen, component or package behavior, read `docs/platform-architecture.md`,

@@ -157,4 +157,48 @@ describe('DynamicAppsService package contract', () => {
   it('rejects documents that are not Chicle app packages', () => {
     expect(() => service.normalizePackage({ kind: 'dynamic_app' })).toThrow(BadRequestException);
   });
+
+  it('scopes screen keys by app inside the same tenant', async () => {
+    const scopedService = Object.create(DynamicAppsService.prototype) as any;
+    scopedService.screens = {
+      findOne: jest.fn().mockResolvedValue(null)
+    };
+
+    await scopedService.assertActiveScreenKeyAvailable({ tenant: { id: 'tenant-1' } }, 'app-1', 'inicio');
+
+    expect(scopedService.screens.findOne).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        tenantId: 'tenant-1',
+        appId: 'app-1',
+        key: 'inicio'
+      })
+    });
+  });
+
+  it('keeps the original status when moving an artifact through trash metadata', () => {
+    const metadata = service.withTrashMetadata(null, 'tuerca', 'published');
+
+    expect(metadata).toEqual({
+      trash: {
+        originalKey: 'tuerca',
+        originalStatus: 'published'
+      }
+    });
+    expect(service.originalStatusFromMetadata(metadata)).toBe('published');
+  });
+
+  it('does not overwrite preserved trash status when freeing a trashed key again', () => {
+    const metadata = service.withTrashMetadata(
+      {
+        trash: {
+          originalKey: 'tuerca',
+          originalStatus: 'published'
+        }
+      },
+      'tuerca',
+      'trashed'
+    );
+
+    expect(metadata.trash.originalStatus).toBe('published');
+  });
 });

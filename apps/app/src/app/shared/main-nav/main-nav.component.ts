@@ -588,7 +588,7 @@ export class MainNavComponent implements OnInit {
       return this.i18n.translate('nav.group.admin');
     }
 
-    if (group === 'Construcción') {
+    if (group === 'Construcción' || group === 'Fábrica') {
       return this.i18n.translate('nav.group.build');
     }
 

@@ -21,6 +21,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Official Event-Driven, Metadata-Driven and Microkernel definition for Chicle.",
   },
   {
+    title: "Chicle architecture draft",
+    path: "chicle-architecture-draft.md",
+    category: "Architecture",
+    summary:
+      "Draft architecture identity for the Event-Driven Microkernel synthesis behind Chicle.",
+  },
+  {
     title: "Project state",
     path: "project-state-analysis.md",
     category: "Architecture",
@@ -59,6 +66,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
     path: "mvp-scope.md",
     category: "Governance",
     summary: "MVP scope and initial boundaries.",
+  },
+  {
+    title: "Platform validator backlog",
+    path: "platform-validator-backlog.md",
+    category: "Governance",
+    summary:
+      "Pending checks for seeds, dynamic texts, translations, component reuse, tests, duplication, security and obsolete code.",
   },
   {
     title: "Security auth review",

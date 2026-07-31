@@ -2136,7 +2136,7 @@ export class FormsPageComponent implements OnDestroy, OnInit {
         tone: 'info'
       },
       fields: {
-        stepLabel: 'Construcción',
+        stepLabel: 'Fábrica',
         title: 'Agrupa los campos en pasos claros',
         description: 'Cada paso será una sección cómoda en web y una pantalla guiada en móvil.',
         tone: 'info'

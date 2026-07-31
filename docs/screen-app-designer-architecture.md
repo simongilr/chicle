@@ -55,6 +55,19 @@ Tenant
 Pages are not displayed as one unfiltered tenant-wide list. They must be searchable, paginated and grouped by app,
 target, category, status and navigation group.
 
+## Current Implementation Cut
+
+App Studio is being delivered in usable cuts. The current implementation covers cuts 0, 1 and 2:
+
+| Cut | Scope | Current state |
+| --- | --- | --- |
+| 0 | Reusable Admin baseline: shared shell, panels, catalogs, fields, buttons, cards, JSON authoring, previews, loading states, docs and multikit adapters | Completed under the current Admin UI criterion. New App Studio screens must consume these primitives instead of creating page-local controls. |
+| 1 | Base App Studio model: tenant-scoped apps, app versions, screens, screen versions, navigation metadata, status, trash/restore and permissions | Implemented. Screens are unique by `tenantId + appId + key`, so multiple apps in the same tenant can each own routes such as `home` or `login`. |
+| 2 | App Studio V2 Admin workspace: app portfolio, selected app workspace, summary, pages, navigation, security, preview, publish and trash sections | Implemented as the `/apps` V2 foundation. It manages apps and screens as one tenant app graph, not detached pages. |
+
+This cut is not the full generated-app runtime. The remaining layers are runtime rendering, AI graph creation for full
+apps, export/import hardening and reusable component templates.
+
 ## Runtime Objects
 
 ### dynamic_apps
@@ -869,10 +882,10 @@ The designer can generate a package from the current app, edit it as JSON, insta
 
 - Flexible: apps can model different business domains without custom code.
 - Adaptable: one contract can target web, mobile, desktop or admin contexts.
+- Dynamic And Administrable: apps, screens, navigation, texts, bindings, preferences and runtime behavior are versioned metadata managed from Admin.
 - Reusable: screens consume shared components, services, forms and flows.
-- Quality: JSON contracts are validated before versioning.
+- High Quality: JSON contracts are validated before versioning and remain consistent across preview, publish and runtime.
 - Secure: RBAC protects authoring and publishing.
-- Administrable: owners and admins manage apps from the Admin.
 - Scalable: published contracts can be served by the API runtime or separated services.
 - Reliable And Resilient: versioning allows stable runtime contracts and rollback paths.
 - Extensible: new component keys, targets and package installers can be added without rewriting existing apps.

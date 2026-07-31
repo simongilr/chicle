@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type DynamicAppStatus = 'draft' | 'published' | 'archived';
+export type DynamicAppStatus = 'draft' | 'published' | 'archived' | 'trashed';
 
 @Entity('dynamic_apps')
 @Index(['tenantId', 'key'], { unique: true })

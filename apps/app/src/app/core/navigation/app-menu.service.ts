@@ -168,7 +168,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/services',
     icon: 'pi pi-bolt',
     permissions: ['services.read'],
-    group: 'Construcción',
+    group: 'Fábrica',
     placement: 'build',
     sortOrder: 38
   },
@@ -179,7 +179,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/flows',
     icon: 'pi pi-sitemap',
     permissions: ['flows.read'],
-    group: 'Construcción',
+    group: 'Fábrica',
     placement: 'build',
     sortOrder: 39
   },
@@ -190,7 +190,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/forms',
     icon: 'pi pi-file-edit',
     permissions: ['forms.read'],
-    group: 'Construcción',
+    group: 'Fábrica',
     placement: 'build',
     sortOrder: 40
   },
@@ -201,7 +201,7 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     route: '/apps',
     icon: 'pi pi-window-maximize',
     permissions: ['apps.read'],
-    group: 'Construcción',
+    group: 'Fábrica',
     placement: 'build',
     sortOrder: 41
   },

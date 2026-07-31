@@ -1,10 +1,10 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type DynamicScreenStatus = 'draft' | 'published' | 'archived';
+export type DynamicScreenStatus = 'draft' | 'published' | 'archived' | 'trashed';
 export type DynamicScreenTarget = 'admin' | 'web' | 'mobile' | 'desktop' | 'multi';
 
 @Entity('dynamic_screens')
-@Index(['tenantId', 'key'], { unique: true })
+@Index(['tenantId', 'appId', 'key'], { unique: true })
 @Index(['tenantId', 'appId'])
 @Index(['tenantId', 'status'])
 @Index(['tenantId', 'trashedAt'])

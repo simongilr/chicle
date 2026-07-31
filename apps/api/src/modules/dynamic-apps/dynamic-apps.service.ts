@@ -347,7 +347,8 @@ export class DynamicAppsService {
     const saved = await this.apps.save(
       this.apps.merge(app, {
         key: this.trashKey(app.key, app.id),
-        metadata: this.withTrashOriginalKey(app.metadata, originalKey),
+        status: 'trashed',
+        metadata: this.withTrashMetadata(app.metadata, originalKey, app.status),
         trashedAt: new Date(),
         trashedByUserId: auth.user.id
       })
@@ -373,6 +374,7 @@ export class DynamicAppsService {
       this.apps.merge(app, {
         key: restoreKey,
         manifest: manifest as unknown as Record<string, unknown>,
+        status: this.originalStatusFromMetadata(app.metadata) ?? 'draft',
         metadata: this.withoutTrashOriginalKey(app.metadata),
         trashedAt: null,
         trashedByUserId: null
@@ -459,8 +461,8 @@ export class DynamicAppsService {
     if (!key || !title) {
       throw new BadRequestException('key and title are required');
     }
-    await this.releaseTrashedScreenKey(auth, key);
-    await this.assertActiveScreenKeyAvailable(auth, key);
+    await this.releaseTrashedScreenKey(auth, app.id, key);
+    await this.assertActiveScreenKeyAvailable(auth, app.id, key);
     const definition = this.normalizeScreenDefinition(body.definition ?? {}, key, title, app.key);
     this.validateScreenDefinition(definition);
     const screen = await this.screens.save(
@@ -568,7 +570,8 @@ export class DynamicAppsService {
     const saved = await this.screens.save(
       this.screens.merge(screen, {
         key: this.trashKey(screen.key, screen.id),
-        metadata: this.withTrashOriginalKey(screen.metadata, originalKey),
+        status: 'trashed',
+        metadata: this.withTrashMetadata(screen.metadata, originalKey, screen.status),
         trashedAt: new Date(),
         trashedByUserId: auth.user.id
       })
@@ -581,7 +584,7 @@ export class DynamicAppsService {
     const screen = await this.requireTrashedScreen(auth, appId, screenId);
     const restoreKey = this.originalKeyFromMetadata(screen.metadata) ?? this.originalKeyFromTrashKey(screen.key);
     const conflict = await this.screens.findOne({
-      where: { tenantId: auth.tenant.id, key: restoreKey, trashedAt: IsNull() }
+      where: { tenantId: auth.tenant.id, appId: screen.appId, key: restoreKey, trashedAt: IsNull() }
     });
     if (conflict && conflict.id !== screen.id) {
       if (!request.overwrite) {
@@ -594,6 +597,7 @@ export class DynamicAppsService {
       this.screens.merge(screen, {
         key: restoreKey,
         definition: definition as unknown as Record<string, unknown>,
+        status: this.originalStatusFromMetadata(screen.metadata) ?? 'draft',
         metadata: this.withoutTrashOriginalKey(screen.metadata),
         trashedAt: null,
         trashedByUserId: null
@@ -1031,8 +1035,8 @@ export class DynamicAppsService {
     }
   }
 
-  private async assertActiveScreenKeyAvailable(auth: AuthContext, key: string) {
-    const existing = await this.screens.findOne({ where: { tenantId: auth.tenant.id, key, trashedAt: IsNull() } });
+  private async assertActiveScreenKeyAvailable(auth: AuthContext, appId: string, key: string) {
+    const existing = await this.screens.findOne({ where: { tenantId: auth.tenant.id, appId, key, trashedAt: IsNull() } });
     if (existing) {
       throw new ConflictException('A screen with this key already exists');
     }
@@ -1047,13 +1051,13 @@ export class DynamicAppsService {
     await this.apps.save(
       this.apps.merge(trashed, {
         key: this.trashKey(key, trashed.id),
-        metadata: this.withTrashOriginalKey(trashed.metadata, originalKey)
+        metadata: this.withTrashMetadata(trashed.metadata, originalKey, trashed.status)
       })
     );
   }
 
-  private async releaseTrashedScreenKey(auth: AuthContext, key: string) {
-    const trashed = await this.screens.findOne({ where: { tenantId: auth.tenant.id, key, trashedAt: Not(IsNull()) } });
+  private async releaseTrashedScreenKey(auth: AuthContext, appId: string, key: string) {
+    const trashed = await this.screens.findOne({ where: { tenantId: auth.tenant.id, appId, key, trashedAt: Not(IsNull()) } });
     if (!trashed) {
       return;
     }
@@ -1061,7 +1065,7 @@ export class DynamicAppsService {
     await this.screens.save(
       this.screens.merge(trashed, {
         key: this.trashKey(key, trashed.id),
-        metadata: this.withTrashOriginalKey(trashed.metadata, originalKey)
+        metadata: this.withTrashMetadata(trashed.metadata, originalKey, trashed.status)
       })
     );
   }
@@ -1220,15 +1224,39 @@ export class DynamicAppsService {
     return null;
   }
 
-  private withTrashOriginalKey(metadata: Record<string, unknown> | null | undefined, originalKey: string) {
+  private originalStatusFromMetadata(metadata?: Record<string, unknown> | null): 'draft' | 'published' | 'archived' | null {
+    const trash = metadata?.['trash'];
+    if (trash && typeof trash === 'object' && !Array.isArray(trash)) {
+      const originalStatus = (trash as Record<string, unknown>)['originalStatus'];
+      return originalStatus === 'draft' || originalStatus === 'published' || originalStatus === 'archived'
+        ? originalStatus
+        : null;
+    }
+    return null;
+  }
+
+  private withTrashMetadata(
+    metadata: Record<string, unknown> | null | undefined,
+    originalKey: string,
+    originalStatus?: string
+  ) {
     const base = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
+    const existingTrash =
+      base['trash'] && typeof base['trash'] === 'object' && !Array.isArray(base['trash'])
+        ? (base['trash'] as Record<string, unknown>)
+        : {};
+    const preservedStatus =
+      existingTrash['originalStatus'] === 'draft' ||
+      existingTrash['originalStatus'] === 'published' ||
+      existingTrash['originalStatus'] === 'archived'
+        ? existingTrash['originalStatus']
+        : null;
     return {
       ...base,
       trash: {
-        ...((base['trash'] && typeof base['trash'] === 'object' && !Array.isArray(base['trash'])
-          ? base['trash']
-          : {}) as Record<string, unknown>),
-        originalKey
+        ...existingTrash,
+        originalKey,
+        originalStatus: preservedStatus ?? (originalStatus && originalStatus !== 'trashed' ? originalStatus : 'draft')
       }
     };
   }

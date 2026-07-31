@@ -74,7 +74,7 @@ export class CreateDynamicApps20260724170000 implements MigrationInterface {
         trashedByUserId varchar(180) NULL,
         createdAt datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
         updatedAt datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-        UNIQUE INDEX IDX_dynamic_screens_tenant_key (tenantId, \`key\`),
+        UNIQUE INDEX IDX_dynamic_screens_tenant_app_key (tenantId, appId, \`key\`),
         INDEX IDX_dynamic_screens_tenant_app (tenantId, appId),
         INDEX IDX_dynamic_screens_tenant_status (tenantId, status),
         INDEX IDX_dynamic_screens_tenant_trashed (tenantId, trashedAt),

@@ -57,16 +57,30 @@ target, category, status and navigation group.
 
 ## Current Implementation Cut
 
-App Studio is being delivered in usable cuts. The current implementation covers cuts 0, 1 and 2:
+App Studio is being delivered in usable cuts. The current implementation covers cuts 0 through 14 as an integrated
+MVP pass for generated apps:
 
 | Cut | Scope | Current state |
 | --- | --- | --- |
 | 0 | Reusable Admin baseline: shared shell, panels, catalogs, fields, buttons, cards, JSON authoring, previews, loading states, docs and multikit adapters | Completed under the current Admin UI criterion. New App Studio screens must consume these primitives instead of creating page-local controls. |
 | 1 | Base App Studio model: tenant-scoped apps, app versions, screens, screen versions, navigation metadata, status, trash/restore and permissions | Implemented. Screens are unique by `tenantId + appId + key`, so multiple apps in the same tenant can each own routes such as `home` or `login`. |
 | 2 | App Studio V2 Admin workspace: app portfolio, selected app workspace, summary, pages, navigation, security, preview, publish and trash sections | Implemented as the `/apps` V2 foundation. It manages apps and screens as one tenant app graph, not detached pages. |
+| 3 | Page designer inside an app: routes, screen targets, regions, components, bindings, actions and preview | Implemented as guided screen composition. Drag/resizable canvas and advanced component templates remain outside this cut. |
+| 4 | Published runtime contract: `tenant + appKey + route + target` returns only published app/screen contracts | Implemented through `GET /api/apps/by-key/:key/runtime-route`. `/apps` can test the published runtime route from Preview and open the first generated-app shell at `/apps/run/:appKey`. Runtime access is authenticated and then filtered by published screen/component permissions. |
+| 5 | AI app graph authoring | Implemented as draft actions for app and screen JSON. Full multi-artifact graph creation remains a controlled next step. |
+| 6 | Export/import app packages | Implemented as metadata package export/install with dependency snapshots and install dry-run. Bundled dependency installers remain pending. |
+| 7 | Generated runtime execution | Implemented with route runtime rendering, safe navigation, service execution, flow execution, search/data table loading, metric strips, media gallery and modal preview adapters. Advanced mobile/desktop parity remains a hardening step. |
+| 8 | Visual app designer usability | Implemented with a region map, component selection/editing, duplication, guided component presets, binding/action summary and component-level permission authoring. Drag/resizable canvas remains a later enhancement, not a contract dependency. |
+| 9 | Canvas and inspector | Implemented as a guided region map plus selected-component inspector. The inspector exposes location, width, binding, action and permission without requiring the JSON editor. |
+| 10 | Real app navigation | Implemented through screen navigation metadata and runtime adapters for top menu, side menu, bottom mobile menu and tabs. Published runtime navigation is permission-filtered. |
+| 11 | App component library | Implemented as first-class presets for login, forms, tables, CRUD entry points, dashboards, service buttons, flow buttons, gallery, modal, profile/detail, map and timeline. |
+| 12 | Runtime renderer expansion | Implemented with adapters for navigation variants, auth login, forms, data tables, search, services, flows, metrics, charts, entity/detail cards, timeline, media gallery, map and modal shell. |
+| 13 | AI app authoring context | Implemented by exposing App Studio capabilities, supported bindings/actions, component presets and definition-of-done rules to Chicle AI. The backend draft generator also recognizes gallery, dashboard, map, timeline, modal and mobile navigation requests. |
+| 14 | Template/package closure | Implemented as package export/install foundation with dependency snapshots and dry-run validation. Conflict UX and bundled dependency installers remain the next hardening layer. |
 
-This cut is not the full generated-app runtime. The remaining layers are runtime rendering, AI graph creation for full
-apps, export/import hardening and reusable component templates.
+This cut includes the first executable generated-app runtime shell, a clearer screen composition workflow, a broader
+component set and a package transfer foundation. The remaining layers are stronger drag/resizable editing, deeper
+AI graph orchestration, conflict-resolution UX for installed packages and full parity QA across every target and UI kit.
 
 ## Runtime Objects
 
@@ -122,7 +136,7 @@ Minimum manifest:
   "screens": [],
   "settings": {},
   "metadata": {
-    "designer": "screen_app_designer_v1"
+    "designer": "app_studio_tanda_9_14"
   }
 }
 ```
@@ -217,7 +231,7 @@ Minimum definition:
     }
   ],
   "metadata": {
-    "designer": "screen_app_designer_v1"
+    "designer": "app_studio_tanda_9_14"
   }
 }
 ```
@@ -258,7 +272,67 @@ tenantSlug + appKey + route + target
 ```
 
 The frontend must not decide which unpublished page to run. The API returns only contracts that are valid for the
-current tenant, user role, target and publication state.
+published runtime. A generated web, Ionic or desktop artifact uses this lookup:
+
+```http
+GET /api/apps/by-key/{appKey}/runtime-route?route=/home&target=web
+```
+
+The response includes:
+
+- the published app manifest;
+- the selected published screen;
+- target-filtered published screens;
+- calculated navigation from screen contracts;
+- component catalog available to the renderer;
+- cache metadata with app version and screen version.
+
+The older full-app runtime endpoint remains useful when a shell wants to preload every published screen:
+
+```http
+GET /api/apps/by-key/{appKey}/runtime
+```
+
+Both endpoints require tenant auth. They never return drafts, trashed screens or unpublished contracts.
+
+Runtime security is contract-driven:
+
+- Runtime route lookup is not Admin-gated by `apps.read`; generated apps should not need Admin read permission.
+- Screen access is evaluated from the published screen `permissions` contract.
+- Component access is evaluated from `permissions` or `visibility.permissions` inside the published component.
+- Inaccessible screens are rejected with a forbidden response.
+- Inaccessible components are filtered out before the runtime contract reaches the client.
+- Owner/Admin roles keep the same bypass semantics used by the RBAC guard.
+
+The Admin frontend also provides a first route runtime shell:
+
+```text
+/apps/run/{appKey}?route=/home&target=web
+```
+
+That shell consumes `runtime-route`, renders published navigation and renders reusable component adapters. It is
+intentionally contract-driven: the shell does not know about draft pages and does not hardcode app-specific screens.
+
+## Generated Runtime Component Adapters
+
+The generated runtime renderer supports a safe adapter surface. Components that need backend execution call the
+existing runtime clients instead of inventing page-specific HTTP logic.
+
+| Component key | Runtime behavior |
+| --- | --- |
+| `hero_header` | Renders the published title, subtitle and source metadata. |
+| `nav_menu` | Renders navigation items from the published app/screen contracts. |
+| `auth_login` | Renders a route link toward the configured login screen or login route. |
+| `form_runtime` | Opens the published Dynamic Form route by `formKey`. |
+| `data_table` | Loads rows from a bound Dynamic Service or table-style source. |
+| `search_panel` | Executes a bound Dynamic Service with a search query payload. |
+| `service_button` | Executes a published Dynamic Service with editable JSON input. |
+| `flow_button` | Executes a published Flow with editable JSON input. |
+| `metric_strip` | Renders metric cards from component inputs. |
+| `media_gallery` | Renders gallery items from component inputs. |
+| `modal_shell` | Opens an inline modal preview from component inputs. |
+
+Runtime adapters stay intentionally small. Complex business logic remains in Dynamic Services, Dynamic Forms or Flows.
 
 ## Multi-App Authoring Scenarios
 
@@ -465,9 +539,15 @@ Each component must declare:
 - `bindings`
 - `actions`
 - `visibility`
+- `permissions`
 - `layout`
 
 The component contract is intentionally close to Dynamic Forms and Dynamic Services so an assistant can build screens by combining known artifacts instead of generating custom code.
+
+The Admin designer edits components through a region map. Selecting a component loads its editable contract fields:
+component key, title, region, desktop width, alignment, chrome, binding type/key, action type/target and optional
+permission. The generated JSON writes the permission both as `permissions[]` and `visibility.permissions[]` so runtime
+filtering can remain compatible with direct and visibility-based policies.
 
 ### Guided Presets
 
@@ -770,6 +850,40 @@ Package rules:
 - Dependencies are extracted from known component inputs, screen data sources and app text namespaces.
 - The installer does not invent missing Forms, Services, Flows, text bundles or custom tables. It reports the dependency snapshot so Admin can validate what must exist.
 
+## Package Dry-Run
+
+Before installing a package, Admin or Chicle AI can ask the backend for a non-mutating install plan:
+
+```http
+POST /api/apps/packages/dry-run
+```
+
+Request:
+
+```json
+{
+  "package": {
+    "schemaVersion": 1,
+    "kind": "chicle_app_package",
+    "packageKey": "events_app",
+    "app": {
+      "key": "events_app",
+      "manifest": {
+        "schemaVersion": 1,
+        "kind": "dynamic_app",
+        "key": "events_app",
+        "name": "Events App"
+      }
+    },
+    "screens": []
+  }
+}
+```
+
+The response reports whether the app would be created, blocked by an active key, affected by a trashed key, or would
+create/update screens. It also lists dependencies and unknown component keys. Dry-run never creates rows, versions,
+screens, dependencies or publications.
+
 ## Authoring Flow
 
 1. Create or select an app.
@@ -816,8 +930,11 @@ GET  /api/apps
 GET  /api/apps/trash
 POST /api/apps/authoring/json
 POST /api/apps/packages/install
+POST /api/apps/packages/dry-run
 GET  /api/apps/by-key/:key
 GET  /api/apps/by-key/:key/runtime
+GET  /api/apps/by-key/:key/runtime-route?route=/home&target=web
+WEB  /apps/run/:appKey?route=/home&target=web
 GET  /api/apps/:appId/package
 POST /api/apps/:appId/trash
 POST /api/apps/:appId/restore
@@ -844,7 +961,8 @@ The designer is protected by RBAC:
 - `apps.export`: export app packages.
 - `apps.install`: install app packages.
 
-Runtime endpoints only expose published contracts to authenticated users with read access.
+Runtime endpoints only expose published contracts to authenticated users. Business access is enforced through the
+published screen and component permissions, while Admin authoring continues to use the permissions above.
 
 ## Template Strategy
 

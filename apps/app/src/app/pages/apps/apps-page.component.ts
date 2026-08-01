@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../core/api/api-client.service';
 import { AdminCardGridComponent } from '../../shared/admin-card-grid/admin-card-grid.component';
@@ -35,7 +36,23 @@ type ScreenComponentBindingType = 'none' | 'form' | 'service' | 'flow' | 'table'
 type ScreenComponentWidth = 'full' | 'two_thirds' | 'half' | 'third' | 'quarter' | 'auto';
 type ScreenComponentAlign = 'stretch' | 'start' | 'center' | 'end';
 type ScreenComponentChrome = 'plain' | 'card' | 'modal' | 'drawer' | 'toolbar';
-type ScreenComponentPreset = 'menu' | 'login' | 'form' | 'table' | 'service';
+type ScreenComponentPreset =
+  | 'menu'
+  | 'login'
+  | 'form'
+  | 'table'
+  | 'service'
+  | 'flow'
+  | 'dashboard'
+  | 'crud'
+  | 'gallery'
+  | 'modal'
+  | 'profile'
+  | 'map'
+  | 'timeline'
+  | 'side_menu'
+  | 'bottom_menu'
+  | 'tabs_nav';
 type ScreenComponentActionType =
   | 'none'
   | 'navigate'
@@ -158,6 +175,65 @@ interface DynamicAppPackageInstallResponse {
   published: boolean;
 }
 
+interface DynamicAppPackageDryRunResponse {
+  kind: 'chicle_app_package_dry_run';
+  app: Record<string, unknown>;
+  screens: Array<Record<string, unknown>>;
+  dependencies: Record<string, unknown>;
+  installPlan: Record<string, unknown>;
+}
+
+interface DynamicAppRuntimeRouteResponse {
+  schemaVersion: number;
+  kind: 'dynamic_app_runtime_route';
+  tenant: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  app: {
+    key: string;
+    name: string;
+    version: number;
+    manifest: Record<string, unknown>;
+  };
+  target: ScreenTarget;
+  route: string;
+  requestedRoute: string;
+  navigation: Array<{
+    key: string;
+    label: string;
+    route: string;
+    target: ScreenTarget;
+    group: string;
+    icon: string;
+    permissions: string[];
+    active: boolean;
+  }>;
+  screen: {
+    key: string;
+    title: string;
+    route: string;
+    target: ScreenTarget;
+    version: number;
+    definition: Record<string, unknown>;
+    permissions: string[];
+  };
+  screens: Array<{
+    key: string;
+    title: string;
+    route: string;
+    target: ScreenTarget;
+    version: number;
+  }>;
+  cache: {
+    key: string;
+    appVersion: number;
+    screenVersion: number;
+    generatedAt: string;
+  };
+}
+
 interface ScreenComponentCatalogItem {
   key: string;
   name: string;
@@ -189,6 +265,7 @@ interface ScreenComponentDraft {
   chrome: ScreenComponentChrome;
   actionType: ScreenComponentActionType;
   actionTarget: string;
+  permission: string;
 }
 
 interface ScreenDraft {
@@ -214,6 +291,7 @@ interface ScreenDraft {
   componentChrome: ScreenComponentChrome;
   componentActionType: ScreenComponentActionType;
   componentActionTarget: string;
+  componentPermission: string;
   components: ScreenComponentDraft[];
 }
 
@@ -330,6 +408,87 @@ interface ScreenDraft {
         gap: 8px;
       }
 
+      .region-map {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr) minmax(0, 0.9fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .region-column {
+        display: grid;
+        align-content: start;
+        gap: 9px;
+        min-width: 0;
+        border: 1px dashed var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 10px;
+      }
+
+      .region-column.content {
+        min-height: 190px;
+      }
+
+      .region-column.actions {
+        grid-column: 1 / -1;
+      }
+
+      .region-column-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--ch-color-muted);
+        font-size: 0.74rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .region-node {
+        display: grid;
+        gap: 5px;
+        width: 100%;
+        min-height: 62px;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-text);
+        padding: 10px;
+        text-align: left;
+        font: inherit;
+      }
+
+      .region-node.active {
+        border-color: var(--ch-color-primary);
+        box-shadow: 0 0 0 2px var(--ch-color-primary-soft);
+      }
+
+      .region-node strong,
+      .region-node span {
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .region-node strong {
+        font-size: 0.84rem;
+      }
+
+      .region-node span {
+        color: var(--ch-color-muted);
+        font-size: 0.72rem;
+        line-height: 1.3;
+      }
+
+      .region-empty {
+        border: 1px dashed var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        color: var(--ch-color-muted);
+        padding: 10px;
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
+
       .section-divider {
         display: grid;
         gap: 5px;
@@ -354,13 +513,18 @@ interface ScreenDraft {
 
       .component-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+        grid-template-columns: minmax(0, 1fr) repeat(4, auto);
         gap: 10px;
         align-items: center;
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface-alt);
         padding: 11px;
+      }
+
+      .component-row.active {
+        border-color: var(--ch-color-primary);
+        background: var(--ch-color-primary-soft);
       }
 
       .component-meta {
@@ -644,6 +808,77 @@ interface ScreenDraft {
         gap: 8px;
       }
 
+      .component-editor-status {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 10px 12px;
+      }
+
+      .component-editor-status strong,
+      .component-editor-status span {
+        display: block;
+      }
+
+      .component-editor-status span {
+        color: var(--ch-color-muted);
+        font-size: 0.82rem;
+      }
+
+      .component-inspector {
+        display: grid;
+        gap: 10px;
+        border: 1px solid var(--ch-color-border);
+        border-left: 3px solid var(--ch-color-primary);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 12px;
+      }
+
+      .component-inspector strong,
+      .component-inspector span {
+        display: block;
+      }
+
+      .component-inspector span {
+        color: var(--ch-color-muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+
+      .component-inspector-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 8px;
+      }
+
+      .component-inspector-item {
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 8px 10px;
+      }
+
+      .component-inspector-item small {
+        display: block;
+        color: var(--ch-color-muted);
+        font-size: 0.7rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .component-inspector-item b {
+        display: block;
+        overflow-wrap: anywhere;
+        color: var(--ch-color-text);
+        font-size: 0.88rem;
+      }
+
       .package-hint {
         display: grid;
         gap: 8px;
@@ -651,6 +886,25 @@ interface ScreenDraft {
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface-alt);
         padding: 12px;
+      }
+
+      .runtime-json {
+        max-height: 360px;
+        overflow: auto;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-code-bg, #102033);
+        color: var(--ch-color-code-text, #e8f2ff);
+        padding: 14px;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .package-dry-run {
+        display: grid;
+        gap: 8px;
       }
 
       @media (max-width: 760px) {
@@ -667,6 +921,14 @@ interface ScreenDraft {
 
         .preview-app-bar {
           align-items: stretch;
+        }
+
+        .region-map {
+          grid-template-columns: 1fr;
+        }
+
+        .region-column.actions {
+          grid-column: auto;
         }
 
         .preview-app-menu {
@@ -949,7 +1211,7 @@ interface ScreenDraft {
               >
                 <div panel-actions class="inline-actions">
                   <app-ui-kit-button
-                    label="Agregar componente"
+                    [label]="selectedComponent() ? 'Duplicar seleccionado' : 'Agregar componente'"
                     icon="pi pi-plus"
                     [disabled]="saving()"
                     (pressed)="addComponent()"
@@ -963,6 +1225,32 @@ interface ScreenDraft {
                   </span>
                 </app-status-notice>
 
+                <div class="region-map" aria-label="Mapa visual de regiones de la pantalla">
+                  @for (region of previewRegions(); track region.key) {
+                    <section class="region-column" [class.content]="region.key === 'content'" [class.actions]="region.key === 'actions'">
+                      <div class="region-column-title">
+                        <span>{{ region.label }}</span>
+                        <span>{{ componentsForRegion(region.key).length }}</span>
+                      </div>
+                      @if (componentsForRegion(region.key).length) {
+                        @for (component of componentsForRegion(region.key); track component.id) {
+                          <button
+                            class="region-node"
+                            type="button"
+                            [class.active]="component.id === selectedComponentId()"
+                            (click)="selectComponentForEdit(component.id)"
+                          >
+                            <strong>{{ component.title }}</strong>
+                            <span>{{ component.componentKey }} · {{ widthLabel(component.width) }} · {{ bindingLabel(component.bindingType) }}</span>
+                          </button>
+                        }
+                      } @else {
+                        <div class="region-empty">{{ region.empty }}</div>
+                      }
+                    </section>
+                  }
+                </div>
+
                 <div class="component-preset-actions">
                   <app-ui-kit-button
                     label="Menú"
@@ -972,6 +1260,33 @@ interface ScreenDraft {
                     size="small"
                     [disabled]="saving()"
                     (pressed)="addPresetComponent('menu')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Menú lateral"
+                    icon="pi pi-list"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('side_menu')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Menú móvil"
+                    icon="pi pi-mobile"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('bottom_menu')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Tabs"
+                    icon="pi pi-th-large"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('tabs_nav')"
                   ></app-ui-kit-button>
                   <app-ui-kit-button
                     label="Login estándar"
@@ -1009,6 +1324,102 @@ interface ScreenDraft {
                     [disabled]="saving()"
                     (pressed)="addPresetComponent('service')"
                   ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Flow"
+                    icon="pi pi-play"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('flow')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Dashboard"
+                    icon="pi pi-chart-bar"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('dashboard')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="CRUD"
+                    icon="pi pi-database"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('crud')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Galería"
+                    icon="pi pi-images"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('gallery')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Modal"
+                    icon="pi pi-window-maximize"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('modal')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Mapa"
+                    icon="pi pi-map"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('map')"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Timeline"
+                    icon="pi pi-history"
+                    tone="secondary"
+                    variant="outline"
+                    size="small"
+                    [disabled]="saving()"
+                    (pressed)="addPresetComponent('timeline')"
+                  ></app-ui-kit-button>
+                </div>
+
+                <div class="component-editor-status">
+                  <div>
+                    <strong>{{ selectedComponent() ? 'Editando componente' : 'Nuevo componente' }}</strong>
+                    <span>
+                      {{
+                        selectedComponent()
+                          ? 'Los cambios se aplican al componente seleccionado y actualizan el JSON.'
+                          : 'Configura una pieza y agrégala al mapa de regiones.'
+                      }}
+                    </span>
+                  </div>
+                  @if (selectedComponent()) {
+                    <div class="inline-actions">
+                      <app-ui-kit-button
+                        label="Duplicar"
+                        icon="pi pi-copy"
+                        tone="secondary"
+                        variant="outline"
+                        size="small"
+                        (pressed)="duplicateSelectedComponent()"
+                      ></app-ui-kit-button>
+                      <app-ui-kit-button
+                        label="Cerrar edición"
+                        icon="pi pi-times"
+                        tone="secondary"
+                        variant="outline"
+                        size="small"
+                        (pressed)="clearComponentSelection()"
+                      ></app-ui-kit-button>
+                    </div>
+                  }
                 </div>
 
                 <app-admin-form-grid minColumnWidth="210px">
@@ -1021,6 +1432,33 @@ interface ScreenDraft {
                   }
                 </app-admin-form-grid>
 
+                @if (selectedComponent(); as component) {
+                  <div class="component-inspector">
+                    <div>
+                      <strong>Inspector de componente</strong>
+                      <span>{{ componentSummary(component) }}</span>
+                    </div>
+                    <div class="component-inspector-grid">
+                      <div class="component-inspector-item">
+                        <small>Ubicación</small>
+                        <b>{{ component.region }} · {{ widthLabel(component.width) }}</b>
+                      </div>
+                      <div class="component-inspector-item">
+                        <small>Datos</small>
+                        <b>{{ bindingLabel(component.bindingType) }} {{ component.bindingKey || 'sin key' }}</b>
+                      </div>
+                      <div class="component-inspector-item">
+                        <small>Acción</small>
+                        <b>{{ actionLabel(component.actionType) }} {{ component.actionTarget || '' }}</b>
+                      </div>
+                      <div class="component-inspector-item">
+                        <small>Permiso</small>
+                        <b>{{ component.permission || 'sin permiso propio' }}</b>
+                      </div>
+                    </div>
+                  </div>
+                }
+
                 <div class="component-list">
                   @if (screenDraft().components.length === 0) {
                     <app-status-notice tone="info" title="Pantalla lista para componer">
@@ -1029,7 +1467,7 @@ interface ScreenDraft {
                   }
 
                   @for (component of screenDraft().components; track component.id) {
-                    <div class="component-row">
+                    <div class="component-row" [class.active]="component.id === selectedComponentId()">
                       <div>
                         <strong>{{ component.title }}</strong>
                         <span>{{ component.componentKey }} · {{ component.region }} · {{ component.bindingKey || 'sin binding' }}</span>
@@ -1038,8 +1476,19 @@ interface ScreenDraft {
                           <span class="chip">{{ chromeLabel(component.chrome) }}</span>
                           <span class="chip">{{ bindingLabel(component.bindingType) }}</span>
                           <span class="chip">{{ actionLabel(component.actionType) }}</span>
+                          @if (component.permission) {
+                            <span class="chip">{{ component.permission }}</span>
+                          }
                         </div>
                       </div>
+                      <app-ui-kit-button
+                        label="Editar"
+                        icon="pi pi-pencil"
+                        tone="secondary"
+                        variant="ghost"
+                        size="small"
+                        (pressed)="selectComponentForEdit(component.id)"
+                      ></app-ui-kit-button>
                       <app-ui-kit-button
                         label="Subir"
                         icon="pi pi-arrow-up"
@@ -1076,6 +1525,25 @@ interface ScreenDraft {
                 description="Valida la estructura en escritorio, tablet y móvil antes de publicar."
                 eyebrow="Runtime visual"
               >
+                <div panel-actions class="inline-actions">
+                  <app-ui-kit-button
+                    label="Probar runtime publicado"
+                    icon="pi pi-play"
+                    tone="secondary"
+                    variant="outline"
+                    [disabled]="runtimeTesting() || !selectedApp()?.published"
+                    (pressed)="testRuntimeRoute()"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Abrir runtime"
+                    icon="pi pi-external-link"
+                    tone="secondary"
+                    variant="outline"
+                    [disabled]="!selectedApp()?.published"
+                    (pressed)="openPublishedRuntime()"
+                  ></app-ui-kit-button>
+                </div>
+
                 <app-preview-viewport [mode]="viewport()" (modeChange)="viewport.set($event)">
                   <section class="preview-screen" [class.mobile]="viewport() === 'mobile'">
                     <div class="preview-runtime-note">
@@ -1134,6 +1602,9 @@ interface ScreenDraft {
                                     <span>{{ widthLabel(component.width) }}</span>
                                     <span>{{ bindingLabel(component.bindingType) }}: {{ component.bindingKey || 'sin key' }}</span>
                                     <span>{{ actionLabel(component.actionType) }}{{ component.actionTarget ? ': ' + component.actionTarget : '' }}</span>
+                                    @if (component.permission) {
+                                      <span>permiso: {{ component.permission }}</span>
+                                    }
                                   </div>
                                 </article>
                               }
@@ -1150,6 +1621,13 @@ interface ScreenDraft {
                     </div>
                   </section>
                 </app-preview-viewport>
+
+                @if (runtimeRouteJson()) {
+                  <app-status-notice tone="success" title="Runtime publicado disponible">
+                    <span>Este es el contrato que consumiría una app generada para la ruta y target actuales.</span>
+                  </app-status-notice>
+                  <pre class="runtime-json">{{ runtimeRouteJson() }}</pre>
+                }
               </app-admin-panel>
               }
 
@@ -1208,6 +1686,15 @@ interface ScreenDraft {
                         (pressed)="syncPackageJson()"
                       ></app-ui-kit-button>
                       <app-ui-kit-button
+                        label="Previsualizar instalación"
+                        icon="pi pi-search"
+                        tone="secondary"
+                        variant="outline"
+                        size="small"
+                        [disabled]="saving() || jsonError().length > 0"
+                        (pressed)="dryRunInstallPackage()"
+                      ></app-ui-kit-button>
+                      <app-ui-kit-button
                         label="Instalar paquete"
                         icon="pi pi-box"
                         size="small"
@@ -1215,6 +1702,12 @@ interface ScreenDraft {
                         (pressed)="installPackage(false)"
                       ></app-ui-kit-button>
                     </div>
+                    @if (packageDryRunJson()) {
+                      <div class="package-dry-run">
+                        <strong>Plan de instalación</strong>
+                        <pre class="runtime-json">{{ packageDryRunJson() }}</pre>
+                      </div>
+                    }
                   }
                 </div>
               </app-json-authoring-panel>
@@ -1313,6 +1806,7 @@ interface ScreenDraft {
 })
 export class AppsPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiClientService);
+  private readonly router = inject(Router);
   private readonly assistant = inject(AiAssistantService);
   private appliedAssistantProposalId = 0;
   private readonly unregisterAssistantState = this.assistant.registerScreenStateProvider('apps', () =>
@@ -1357,17 +1851,24 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   readonly jsonTarget = signal<JsonTarget>('app');
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly runtimeTesting = signal(false);
   readonly message = signal('');
   readonly error = signal('');
 
   readonly appDraft = signal<AppDraft>(this.defaultAppDraft());
   readonly screenDraft = signal<ScreenDraft>(this.defaultScreenDraft());
+  readonly selectedComponentId = signal<string | null>(null);
   readonly appJsonText = signal('');
   readonly screenJsonText = signal('');
   readonly packageJsonText = signal('');
+  readonly packageDryRunJson = signal('');
+  readonly runtimeRouteJson = signal('');
 
   readonly selectedApp = computed(() => this.apps().find((item) => item.id === this.selectedAppId()) ?? null);
   readonly selectedScreen = computed(() => this.screens().find((item) => item.id === this.selectedScreenId()) ?? null);
+  readonly selectedComponent = computed(
+    () => this.screenDraft().components.find((component) => component.id === this.selectedComponentId()) ?? null
+  );
   readonly trashCount = computed(() => this.trashedApps().length + this.trashedScreens().length);
 
   readonly workspaceTabs = computed<SegmentedControlItem[]>(() => [
@@ -1655,6 +2156,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   async selectApp(app: DynamicAppRecord) {
+    this.runtimeRouteJson.set('');
+    this.selectedComponentId.set(null);
     this.selectedAppId.set(app.id);
     this.appDraft.set(this.appDraftFromRecord(app));
     this.syncAppJson();
@@ -1678,6 +2181,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   selectScreen(screen: DynamicScreenRecord) {
+    this.runtimeRouteJson.set('');
+    this.selectedComponentId.set(null);
     this.selectedScreenId.set(screen.id);
     this.screenDraft.set(this.screenDraftFromRecord(screen));
     this.syncScreenJson();
@@ -1685,6 +2190,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   newApp() {
+    this.runtimeRouteJson.set('');
+    this.selectedComponentId.set(null);
     this.selectedAppId.set(null);
     this.selectedScreenId.set(null);
     this.screens.set([]);
@@ -1700,6 +2207,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   newScreen(clearSelection = true) {
+    this.runtimeRouteJson.set('');
+    this.selectedComponentId.set(null);
     if (clearSelection) {
       this.selectedScreenId.set(null);
     }
@@ -1879,16 +2388,41 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         label: 'Destino de la acción',
         type: 'text',
         placeholder: '/clientes, crear_cliente, aprobar_solicitud, modal_detalle'
+      },
+      {
+        name: 'componentPermission',
+        label: 'Permiso requerido',
+        type: 'text',
+        placeholder: 'clientes.read, tickets.manage'
       }
     ] satisfies RuntimeField[];
   }
 
   componentFieldValue(name: string) {
+    const selected = this.selectedComponent();
+    const selectedKey = this.componentDraftKeyFromField(name);
+    if (selected && selectedKey) {
+      return selected[selectedKey] ?? '';
+    }
     return this.screenDraft()[name as keyof ScreenDraft] ?? '';
   }
 
   setComponentField(name: string, value: unknown) {
     const text = this.stringValue(value);
+    const selected = this.selectedComponent();
+    const selectedKey = this.componentDraftKeyFromField(name);
+    if (selected && selectedKey) {
+      this.screenDraft.update((draft) => ({
+        ...draft,
+        components: draft.components.map((component) =>
+          component.id === selected.id ? this.updateComponentField(component, selectedKey, text) : component
+        )
+      }));
+      this.syncScreenJson();
+      this.syncPackageJson();
+      return;
+    }
+
     this.screenDraft.update((draft) => {
       const next = { ...draft, [name]: text };
       if (name === 'componentKey' && !draft.componentTitle) {
@@ -1908,7 +2442,107 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncPackageJson();
   }
 
+  selectComponentForEdit(id: string) {
+    this.selectedComponentId.set(id);
+  }
+
+  clearComponentSelection() {
+    this.selectedComponentId.set(null);
+    const defaults = this.componentDefaults(this.screenDraft().componentKey || 'entity_card');
+    this.screenDraft.update((draft) => ({
+      ...draft,
+      componentTitle: '',
+      componentBindingKey: '',
+      componentActionTarget: '',
+      componentPermission: '',
+      componentRegion: defaults.region,
+      componentBindingType: defaults.bindingType,
+      componentActionType: defaults.actionType,
+      componentChrome: defaults.chrome,
+      componentWidth: defaults.width,
+      componentAlign: 'stretch'
+    }));
+  }
+
+  duplicateSelectedComponent() {
+    const selected = this.selectedComponent();
+    if (!selected) return;
+    const copy: ScreenComponentDraft = {
+      ...selected,
+      id: `${selected.componentKey}_${Date.now().toString(36)}`,
+      title: `${selected.title} copia`
+    };
+    this.screenDraft.update((draft) => ({
+      ...draft,
+      components: [...draft.components, copy]
+    }));
+    this.selectedComponentId.set(copy.id);
+    this.syncScreenJson();
+    this.syncPackageJson();
+    this.message.set('Componente duplicado. Ajusta región, ancho, binding o acción si aplica.');
+  }
+
+  private componentDraftKeyFromField(name: string): keyof ScreenComponentDraft | null {
+    const map: Record<string, keyof ScreenComponentDraft> = {
+      componentKey: 'componentKey',
+      componentTitle: 'title',
+      componentRegion: 'region',
+      componentBindingType: 'bindingType',
+      componentBindingKey: 'bindingKey',
+      componentWidth: 'width',
+      componentAlign: 'align',
+      componentChrome: 'chrome',
+      componentActionType: 'actionType',
+      componentActionTarget: 'actionTarget',
+      componentPermission: 'permission'
+    };
+    return map[name] ?? null;
+  }
+
+  private updateComponentField(component: ScreenComponentDraft, key: keyof ScreenComponentDraft, value: string): ScreenComponentDraft {
+    if (key === 'componentKey') {
+      const defaults = this.componentDefaults(value);
+      const previousLabel = this.componentLabel(component.componentKey);
+      return {
+        ...component,
+        componentKey: value,
+        title: component.title && component.title !== previousLabel ? component.title : this.componentLabel(value),
+        region: defaults.region,
+        bindingType: defaults.bindingType,
+        width: defaults.width,
+        chrome: defaults.chrome,
+        actionType: defaults.actionType
+      };
+    }
+
+    if (key === 'bindingType') {
+      return { ...component, bindingType: this.componentBindingTypeValue(value) };
+    }
+    if (key === 'width') {
+      return { ...component, width: this.componentWidthValue(value) };
+    }
+    if (key === 'align') {
+      return { ...component, align: this.componentAlignValue(value) };
+    }
+    if (key === 'chrome') {
+      return { ...component, chrome: this.componentChromeValue(value) };
+    }
+    if (key === 'actionType') {
+      return { ...component, actionType: this.componentActionTypeValue(value) };
+    }
+    if (key === 'title' || key === 'region' || key === 'bindingKey' || key === 'actionTarget' || key === 'permission') {
+      return { ...component, [key]: value };
+    }
+    return component;
+  }
+
   addComponent() {
+    const selected = this.selectedComponent();
+    if (selected) {
+      this.duplicateSelectedComponent();
+      return;
+    }
+
     const draft = this.screenDraft();
     const componentKey = draft.componentKey || this.catalog()[0]?.key || 'entity_card';
     const component: ScreenComponentDraft = {
@@ -1922,7 +2556,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       align: this.componentAlignValue(draft.componentAlign),
       chrome: this.componentChromeValue(draft.componentChrome),
       actionType: this.componentActionTypeValue(draft.componentActionType),
-      actionTarget: draft.componentActionTarget.trim()
+      actionTarget: draft.componentActionTarget.trim(),
+      permission: draft.componentPermission.trim()
     };
     this.screenDraft.update((current) => ({
       ...current,
@@ -1931,6 +2566,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       componentActionTarget: '',
       components: [...current.components, component]
     }));
+    this.selectedComponentId.set(component.id);
     this.syncScreenJson();
     this.syncPackageJson();
     this.message.set('Componente agregado al contrato de pantalla.');
@@ -1941,6 +2577,42 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       menu: {
         componentKey: 'nav_menu',
         title: 'Menú principal',
+        region: 'header',
+        bindingType: 'source',
+        bindingKey: this.appDraft().key || 'mi_app',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'toolbar',
+        actionType: 'navigate',
+        actionTarget: this.screenDraft().route || '/inicio'
+      },
+      side_menu: {
+        componentKey: 'side_nav',
+        title: 'Menú lateral',
+        region: 'aside',
+        bindingType: 'source',
+        bindingKey: this.appDraft().key || 'mi_app',
+        width: 'third',
+        align: 'stretch',
+        chrome: 'drawer',
+        actionType: 'navigate',
+        actionTarget: this.screenDraft().route || '/inicio'
+      },
+      bottom_menu: {
+        componentKey: 'bottom_nav',
+        title: 'Menú móvil',
+        region: 'actions',
+        bindingType: 'source',
+        bindingKey: this.appDraft().key || 'mi_app',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'toolbar',
+        actionType: 'navigate',
+        actionTarget: this.screenDraft().route || '/inicio'
+      },
+      tabs_nav: {
+        componentKey: 'tabs',
+        title: 'Tabs de navegación',
         region: 'header',
         bindingType: 'source',
         bindingKey: this.appDraft().key || 'mi_app',
@@ -1997,6 +2669,102 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         chrome: 'plain',
         actionType: 'execute_service',
         actionTarget: 'servicio_publicado'
+      },
+      flow: {
+        componentKey: 'flow_button',
+        title: 'Ejecutar flow',
+        region: 'actions',
+        bindingType: 'flow',
+        bindingKey: 'flow_publicado',
+        width: 'quarter',
+        align: 'start',
+        chrome: 'plain',
+        actionType: 'execute_flow',
+        actionTarget: 'flow_publicado'
+      },
+      dashboard: {
+        componentKey: 'metric_strip',
+        title: 'Resumen ejecutivo',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'metricas_app',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      },
+      crud: {
+        componentKey: 'data_table',
+        title: 'CRUD principal',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_recurso',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'navigate',
+        actionTarget: '/detalle'
+      },
+      gallery: {
+        componentKey: 'media_gallery',
+        title: 'Galería',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_imagenes',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      },
+      modal: {
+        componentKey: 'modal_shell',
+        title: 'Modal de detalle',
+        region: 'content',
+        bindingType: 'source',
+        bindingKey: 'modal_detalle',
+        width: 'half',
+        align: 'center',
+        chrome: 'modal',
+        actionType: 'open_modal',
+        actionTarget: 'modal_detalle'
+      },
+      profile: {
+        componentKey: 'entity_card',
+        title: 'Perfil',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'obtener_perfil',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      },
+      map: {
+        componentKey: 'map_view',
+        title: 'Mapa',
+        region: 'content',
+        bindingType: 'source',
+        bindingKey: 'ubicaciones',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      },
+      timeline: {
+        componentKey: 'timeline',
+        title: 'Historial',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_eventos',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
       }
     };
     const config = presets[preset];
@@ -2012,7 +2780,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       align: config.align ?? 'stretch',
       chrome: config.chrome ?? 'card',
       actionType: config.actionType ?? 'none',
-      actionTarget: config.actionTarget ?? ''
+      actionTarget: config.actionTarget ?? '',
+      permission: config.permission ?? ''
     };
 
     this.screenDraft.update((current) => ({
@@ -2027,8 +2796,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       componentChrome: component.chrome,
       componentActionType: component.actionType,
       componentActionTarget: '',
+      componentPermission: '',
       components: [...current.components, component]
     }));
+    this.selectedComponentId.set(component.id);
     this.syncScreenJson();
     this.syncPackageJson();
     this.message.set(`${component.title} agregado al preview de la pantalla.`);
@@ -2039,6 +2810,9 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       ...draft,
       components: draft.components.filter((component) => component.id !== id)
     }));
+    if (this.selectedComponentId() === id) {
+      this.selectedComponentId.set(null);
+    }
     this.syncScreenJson();
     this.syncPackageJson();
   }
@@ -2105,6 +2879,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
     const definition = this.parseJson<Record<string, unknown>>(this.screenJsonText());
     if (!definition) return;
+    this.selectedComponentId.set(null);
     this.screenDraft.set(this.screenDraftFromDefinition(definition));
     this.syncScreenJson();
     this.message.set('JSON de pantalla aplicado a la guía visual.');
@@ -2132,6 +2907,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   private applyAssistantScreenProposal(action: ApplyDynamicScreenJsonAction) {
+    this.selectedComponentId.set(null);
     this.screenDraft.set(this.screenDraftFromDefinition(action.document));
     this.syncScreenJson();
     this.syncPackageJson();
@@ -2144,6 +2920,9 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   setJsonTarget(target: JsonTarget) {
     this.jsonTarget.set(target);
+    if (target !== 'package') {
+      this.packageDryRunJson.set('');
+    }
   }
 
   setJsonText(value: string) {
@@ -2153,6 +2932,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       this.screenJsonText.set(value);
     } else {
       this.packageJsonText.set(value);
+      this.packageDryRunJson.set('');
     }
   }
 
@@ -2171,6 +2951,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     try {
       const appPackage = await firstValueFrom(this.api.get<DynamicAppPackage>(`apps/${app.id}/package`));
       this.packageJsonText.set(JSON.stringify(appPackage, null, 2));
+      this.packageDryRunJson.set('');
       this.jsonTarget.set('package');
       this.phase.set('json');
       this.message.set(`Paquete ${appPackage.packageKey} exportado al editor JSON.`);
@@ -2208,6 +2989,78 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  async dryRunInstallPackage() {
+    const appPackage = this.parseJson<DynamicAppPackage>(this.packageJsonText());
+    if (!appPackage) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.packageDryRunJson.set('');
+    try {
+      const response = await firstValueFrom(
+        this.api.post<DynamicAppPackageDryRunResponse>('apps/packages/dry-run', {
+          package: appPackage
+        })
+      );
+      this.packageDryRunJson.set(JSON.stringify(response, null, 2));
+      const safeToInstall = response.installPlan?.['safeToInstall'] === true;
+      this.message.set(safeToInstall ? 'El paquete puede instalarse según el dry-run.' : 'El dry-run encontró conflictos o dependencias por revisar.');
+    } catch (error) {
+      this.error.set(this.errorMessage(error, 'No se pudo previsualizar la instalación del paquete.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async testRuntimeRoute() {
+    const app = this.selectedApp();
+    if (!app) {
+      this.error.set('Primero selecciona una app.');
+      return;
+    }
+    if (!app.published) {
+      this.error.set('Publica una versión de la app antes de probar el runtime.');
+      return;
+    }
+
+    const route = this.screenDraft().route || '/';
+    const target = this.runtimeTargetFromViewport();
+    this.runtimeTesting.set(true);
+    this.error.set('');
+    this.runtimeRouteJson.set('');
+
+    try {
+      const response = await firstValueFrom(
+        this.api.get<DynamicAppRuntimeRouteResponse>(
+          `apps/by-key/${encodeURIComponent(app.key)}/runtime-route?route=${encodeURIComponent(route)}&target=${encodeURIComponent(target)}`
+        )
+      );
+      this.runtimeRouteJson.set(JSON.stringify(response, null, 2));
+      this.message.set(`Runtime resolvió ${response.screen.title} en ${response.target} para ${response.route}.`);
+    } catch (error) {
+      this.error.set(this.errorMessage(error, 'No se pudo resolver el runtime publicado.'));
+    } finally {
+      this.runtimeTesting.set(false);
+    }
+  }
+
+  openPublishedRuntime() {
+    const app = this.selectedApp();
+    if (!app) {
+      this.error.set('Primero selecciona una app.');
+      return;
+    }
+    if (!app.published) {
+      this.error.set('Publica una versión de la app antes de abrir el runtime.');
+      return;
+    }
+    void this.router.navigate(['/apps/run', app.key], {
+      queryParams: {
+        route: this.screenDraft().route || '/',
+        target: this.runtimeTargetFromViewport()
+      }
+    });
   }
 
   async trashApp() {
@@ -2306,10 +3159,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   previewRegions() {
     return [
-      { key: 'header', label: 'Header' },
-      { key: 'content', label: 'Contenido' },
-      { key: 'actions', label: 'Acciones' },
-      { key: 'aside', label: 'Lateral' }
+      { key: 'header', label: 'Header', empty: 'Menú, hero, tabs o barra superior.' },
+      { key: 'content', label: 'Contenido', empty: 'Formularios, tablas, cards, detalle o galería.' },
+      { key: 'aside', label: 'Lateral', empty: 'Filtros, navegación secundaria o contexto.' },
+      { key: 'actions', label: 'Acciones', empty: 'Botones de servicio, flow o acciones finales.' }
     ];
   }
 
@@ -2550,6 +3403,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       componentChrome: 'card',
       componentActionType: 'none',
       componentActionTarget: '',
+      componentPermission: '',
       components: [
         {
           id: 'hero_header_1',
@@ -2562,7 +3416,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
           align: 'stretch',
           chrome: 'card',
           actionType: 'none',
-          actionTarget: ''
+          actionTarget: '',
+          permission: ''
         }
       ]
     };
@@ -2613,8 +3468,14 @@ export class AppsPageComponent implements OnInit, OnDestroy {
           const inputs = this.objectValue(component['inputs']);
           const bindings = this.objectValue(component['bindings']);
           const layout = this.objectValue(component['layout']);
+          const visibility = this.objectValue(component['visibility']);
           const actions = Array.isArray(component['actions']) ? (component['actions'] as Array<Record<string, unknown>>) : [];
           const firstAction = actions[0] ?? {};
+          const componentPermissions = Array.isArray(component['permissions'])
+            ? (component['permissions'] as unknown[])
+            : Array.isArray(visibility?.['permissions'])
+              ? (visibility?.['permissions'] as unknown[])
+              : [];
           const inferredBindingType = this.componentBindingTypeValue(
             bindings?.['type'] ||
               (inputs?.['formKey'] ? 'form' : inputs?.['serviceKey'] ? 'service' : inputs?.['flowKey'] ? 'flow' : inputs?.['table'] ? 'table' : inputs?.['sourceKey'] ? 'source' : 'none')
@@ -2642,7 +3503,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
               this.stringValue(firstAction['flowKey']) ||
               this.stringValue(firstAction['modalKey']) ||
               this.stringValue(firstAction['event']) ||
-              this.stringValue(firstAction['target'])
+              this.stringValue(firstAction['target']),
+            permission: this.stringValue(componentPermissions[0])
           };
         })
       : [];
@@ -2672,6 +3534,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       componentChrome: 'card',
       componentActionType: 'none',
       componentActionTarget: '',
+      componentPermission: '',
       components
     };
   }
@@ -2711,7 +3574,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       })),
       settings: {},
       metadata: {
-        designer: 'screen_app_designer_v1'
+        designer: 'app_studio_tanda_9_14'
       }
     };
   }
@@ -2760,7 +3623,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         inputs: this.componentInputs(component),
         bindings: this.componentBindings(component),
         actions: this.componentActions(component),
-        visibility: {},
+        permissions: component.permission.trim() ? [component.permission.trim()] : [],
+        visibility: {
+          permissions: component.permission.trim() ? [component.permission.trim()] : []
+        },
         layout: {
           desktop: component.region === 'header' ? 'full' : component.width,
           tablet: 'full',
@@ -2785,32 +3651,127 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         }
       ],
       metadata: {
-        designer: 'screen_app_designer_v1'
+        designer: 'app_studio_tanda_9_14'
       }
     };
   }
 
   private componentInputs(component: ScreenComponentDraft) {
     const binding = component.bindingKey.trim();
+    const defaults = this.componentSpecificInputs(component);
     if (!binding) {
-      return {};
+      return defaults;
     }
     if (component.bindingType === 'form') {
-      return { formKey: binding };
+      return { ...defaults, formKey: binding };
     }
     if (component.bindingType === 'service') {
-      return { serviceKey: binding };
+      return { ...defaults, serviceKey: binding };
     }
     if (component.bindingType === 'flow') {
-      return { flowKey: binding };
+      return { ...defaults, flowKey: binding };
     }
     if (component.bindingType === 'table') {
-      return { table: binding };
+      return { ...defaults, table: binding };
     }
     if (component.bindingType === 'none') {
-      return {};
+      return defaults;
     }
-    return { sourceKey: binding };
+    return { ...defaults, sourceKey: binding };
+  }
+
+  private componentSpecificInputs(component: ScreenComponentDraft): Record<string, unknown> {
+    const label = component.title || this.componentLabel(component.componentKey);
+    const examples: Record<string, Record<string, unknown>> = {
+      hero_header: {
+        subtitle: this.screenDraft().description || 'Pantalla generada desde App Studio.'
+      },
+      nav_menu: {
+        placement: 'top',
+        source: 'app_navigation'
+      },
+      side_nav: {
+        placement: 'side',
+        source: 'app_navigation'
+      },
+      bottom_nav: {
+        placement: 'bottom',
+        source: 'app_navigation'
+      },
+      tabs: {
+        source: 'app_navigation'
+      },
+      metric_strip: {
+        metrics: [
+          { label: 'Activos', value: '24' },
+          { label: 'Pendientes', value: '7' },
+          { label: 'Errores', value: '0' }
+        ]
+      },
+      chart_panel: {
+        bars: [
+          { label: 'Lun', value: 35 },
+          { label: 'Mar', value: 54 },
+          { label: 'Mie', value: 42 }
+        ]
+      },
+      data_table: {
+        columns: ['id', 'name', 'status', 'createdAt']
+      },
+      search_panel: {
+        inputKey: 'query',
+        placeholder: 'Buscar por nombre, estado o referencia'
+      },
+      auth_login: {
+        usernameLabel: 'Usuario o email',
+        passwordLabel: 'Contraseña',
+        buttonLabel: 'Iniciar sesión'
+      },
+      service_button: {
+        buttonLabel: label,
+        defaultInput: {}
+      },
+      flow_button: {
+        buttonLabel: label,
+        defaultInput: {}
+      },
+      modal_shell: {
+        buttonLabel: 'Abrir modal',
+        modalTitle: label,
+        modalBody: 'Contenido reusable definido por JSON.'
+      },
+      entity_card: {
+        fields: [
+          { label: 'Nombre', value: '{{record.name}}' },
+          { label: 'Estado', value: '{{record.status}}' }
+        ]
+      },
+      detail_panel: {
+        fields: [
+          { label: 'ID', value: '{{record.id}}' },
+          { label: 'Fecha', value: '{{record.createdAt}}' }
+        ]
+      },
+      timeline: {
+        events: [
+          { title: 'Creado', description: 'Registro inicial', time: 'Ahora' },
+          { title: 'Actualizado', description: 'Cambio reciente', time: 'Pendiente' }
+        ]
+      },
+      media_gallery: {
+        items: [
+          {
+            title: 'Imagen de ejemplo',
+            url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'
+          }
+        ]
+      },
+      map_view: {
+        center: { lat: 4.711, lng: -74.0721 },
+        markers: [{ label: 'Ubicación principal', lat: 4.711, lng: -74.0721 }]
+      }
+    };
+    return examples[component.componentKey] ?? {};
   }
 
   private componentBindings(component: ScreenComponentDraft) {
@@ -2859,6 +3820,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   syncPackageJson() {
     this.packageJsonText.set(JSON.stringify(this.packageFromDraft(), null, 2));
+    this.packageDryRunJson.set('');
   }
 
   private packageFromDraft(): DynamicAppPackage {
@@ -2915,6 +3877,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.appDraft.set(this.appDraftFromManifest(manifest));
     const firstScreen = appPackage.screens?.[0]?.definition;
     if (firstScreen) {
+      this.selectedComponentId.set(null);
       this.screenDraft.set(this.screenDraftFromDefinition(firstScreen));
     }
     this.syncAppJson();
@@ -2949,6 +3912,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         this.addDependency(flowKeys, inputs['flowKey']);
         this.addDependency(customTables, inputs['table']);
         this.addDependency(customTables, inputs['tableName']);
+        const actions = Array.isArray(component['actions']) ? (component['actions'] as Record<string, unknown>[]) : [];
+        for (const action of actions) {
+          this.addActionDependencies(action, formKeys, serviceKeys, flowKeys, customTables);
+        }
       }
       const dataSources = Array.isArray(screen['dataSources']) ? (screen['dataSources'] as Record<string, unknown>[]) : [];
       for (const dataSource of dataSources) {
@@ -2956,6 +3923,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         this.addDependency(serviceKeys, dataSource['serviceKey']);
         this.addDependency(flowKeys, dataSource['flowKey']);
         this.addDependency(customTables, dataSource['table']);
+      }
+      const actions = Array.isArray(screen['actions']) ? (screen['actions'] as Record<string, unknown>[]) : [];
+      for (const action of actions) {
+        this.addActionDependencies(action, formKeys, serviceKeys, flowKeys, customTables);
       }
     }
 
@@ -2976,6 +3947,20 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  private addActionDependencies(
+    action: Record<string, unknown>,
+    formKeys: Set<string>,
+    serviceKeys: Set<string>,
+    flowKeys: Set<string>,
+    customTables: Set<string>
+  ) {
+    this.addDependency(formKeys, action['formKey']);
+    this.addDependency(serviceKeys, action['serviceKey']);
+    this.addDependency(flowKeys, action['flowKey']);
+    this.addDependency(customTables, action['table']);
+    this.addDependency(customTables, action['tableName']);
+  }
+
   private catalogOptions() {
     const items = this.catalog();
     const source = items.length
@@ -2983,12 +3968,23 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       : [
           { key: 'hero_header', name: 'Header' },
           { key: 'nav_menu', name: 'Menú de navegación' },
+          { key: 'side_nav', name: 'Menú lateral' },
+          { key: 'bottom_nav', name: 'Menú inferior' },
+          { key: 'tabs', name: 'Tabs' },
           { key: 'auth_login', name: 'Login estándar' },
           { key: 'data_table', name: 'Data table' },
+          { key: 'search_panel', name: 'Panel de búsqueda' },
           { key: 'form_runtime', name: 'Dynamic form' },
           { key: 'service_button', name: 'Service button' },
           { key: 'flow_button', name: 'Flow button' },
-          { key: 'entity_card', name: 'Entity card' }
+          { key: 'metric_strip', name: 'Metric strip' },
+          { key: 'chart_panel', name: 'Chart panel' },
+          { key: 'entity_card', name: 'Entity card' },
+          { key: 'detail_panel', name: 'Detail panel' },
+          { key: 'timeline', name: 'Timeline' },
+          { key: 'media_gallery', name: 'Media gallery' },
+          { key: 'map_view', name: 'Map view' },
+          { key: 'modal_shell', name: 'Modal shell' }
         ];
     return source.map((item) => ({ label: item.name, value: item.key }));
   }
@@ -3150,6 +4146,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       : 'none';
   }
 
+  private runtimeTargetFromViewport(): ScreenTarget {
+    return this.viewport() === 'mobile' ? 'mobile' : 'web';
+  }
+
   private assistantScreenState() {
     return {
       mode: this.selectedApp() ? (this.selectedScreen() ? 'editing_screen' : 'editing_app') : 'new_app',
@@ -3174,7 +4174,51 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         category: component.category,
         targets: component.targets
       })),
-      quickPresets: ['menu', 'login', 'form', 'table', 'service']
+      quickPresets: [
+        'menu',
+        'side_menu',
+        'bottom_menu',
+        'tabs_nav',
+        'login',
+        'form',
+        'table',
+        'service',
+        'flow',
+        'dashboard',
+        'crud',
+        'gallery',
+        'modal',
+        'profile',
+        'map',
+        'timeline'
+      ],
+      appStudioCapabilities: {
+        hierarchy: 'tenant -> app -> version -> screen -> component -> binding/action',
+        canCreateApps: true,
+        canCreateScreens: true,
+        canComposeComponents: true,
+        canPublishRuntime: true,
+        canExportPackages: true,
+        runtimeUrlPattern: '/apps/run/:appKey?route=/home&target=web',
+        supportedTargets: ['admin', 'web', 'mobile', 'desktop', 'multi'],
+        supportedBindings: ['form', 'service', 'flow', 'table', 'source', 'none'],
+        supportedActions: ['navigate', 'execute_service', 'execute_flow', 'open_modal', 'submit_form', 'emit_event']
+      },
+      componentAuthoringRules: [
+        'No inventar recursos publicados: si un formulario, servicio o flow no existe, proponer crearlo como dependencia.',
+        'Cada pantalla visible debe tener route, navigation label y group.',
+        'Login usa auth_login con auth.login como servicio por defecto.',
+        'CRUD empieza con data_table + servicio listar y puede agregar form_runtime para crear/editar.',
+        'Apps moviles deben incluir bottom_nav o rutas simples con target mobile/multi.',
+        'Toda pieza restringida debe llevar permissions y visibility.permissions.'
+      ],
+      definitionOfDone: [
+        'App tiene manifest valido y al menos una screen.',
+        'Screen tiene componentes con region, width, binding y action claros.',
+        'Preview desktop/tablet/mobile se puede revisar.',
+        'Publicacion produce contrato runtime consumible.',
+        'Paquete exportable incluye dependencias y dry-run instalable.'
+      ]
     };
   }
 

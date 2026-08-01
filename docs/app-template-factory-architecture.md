@@ -254,6 +254,10 @@ When Admin activates, disables, adds or removes a component, it changes the app/
 version. Runtime artifacts pick up the new contract according to their refresh policy. A truly new component requires a
 registered capability with supported kit renderers and tests before any app can use it.
 
+Runtime contract delivery is permission-aware. Generated artifacts call the published runtime endpoints, receive only
+the screens/components allowed for the current user and then execute Dynamic Services or Flows through their own
+runtime APIs. This keeps generated apps thin and prevents Admin-only permissions from leaking into business apps.
+
 ## Components
 
 The component registry is the bridge between template JSON and actual UI rendering.
@@ -440,9 +444,14 @@ navigation, security, preview, publish/package JSON and trash.
 
 Export selected app objects and dependencies into a portable JSON package.
 
+Status: implemented as metadata package export with dependency snapshots.
+
 ### Step 5: Template Package Import
 
 Validate and preview a package before install.
+
+Status: implemented as package install plus non-mutating dry-run planning. Conflict UX and bundled dependency
+installers still need hardening before broad template marketplace use.
 
 ### Step 6: Template Installer
 

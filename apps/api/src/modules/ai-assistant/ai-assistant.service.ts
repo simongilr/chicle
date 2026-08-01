@@ -1338,6 +1338,11 @@ export class AiAssistantService {
     const wantsTable = /tabla|listado|lista|grid|grilla/i.test(prompt);
     const wantsForm = /formulario|registro|captura|crear|guardar/i.test(prompt) && !wantsLogin;
     const wantsFlow = /flow|proceso|aprobaci[oó]n|workflow/i.test(prompt);
+    const wantsDashboard = /dashboard|m[eé]trica|indicador|resumen|panel/i.test(prompt);
+    const wantsGallery = /galer[ií]a|imagen|foto|evidencia|media|archivo/i.test(prompt);
+    const wantsModal = /modal|popup|detalle emergente|confirmaci[oó]n/i.test(prompt);
+    const wantsMap = /mapa|gps|ubicaci[oó]n|geolocalizaci[oó]n/i.test(prompt);
+    const wantsTimeline = /timeline|historial|eventos|actividad|bit[aá]cora/i.test(prompt);
 
     const screenKey = wantsLogin ? 'login' : this.inferScreenKeyFromPrompt(prompt);
     const screenTitle = wantsLogin ? 'Iniciar sesión' : this.titleFromKey(screenKey);
@@ -1358,6 +1363,22 @@ export class AiAssistantService {
         actionType: 'navigate',
         actionTarget: screenRoute
       }));
+
+      if (appTargets.includes('mobile')) {
+        components.push(this.appScreenComponent({
+          id: 'bottom_nav_1',
+          componentKey: 'bottom_nav',
+          title: 'Menú móvil',
+          region: 'actions',
+          bindingType: 'source',
+          bindingKey: appKey,
+          width: 'full',
+          align: 'stretch',
+          chrome: 'toolbar',
+          actionType: 'navigate',
+          actionTarget: screenRoute
+        }));
+      }
     }
 
     if (wantsLogin) {
@@ -1406,6 +1427,35 @@ export class AiAssistantService {
       }));
     }
 
+    if (wantsDashboard) {
+      components.push(this.appScreenComponent({
+        id: 'metric_strip_1',
+        componentKey: 'metric_strip',
+        title: 'Resumen ejecutivo',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'metricas_app',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+      components.push(this.appScreenComponent({
+        id: 'chart_panel_1',
+        componentKey: 'chart_panel',
+        title: 'Tendencia',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'metricas_app',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
     if (wantsTable) {
       components.push(this.appScreenComponent({
         id: 'data_table_1',
@@ -1435,6 +1485,70 @@ export class AiAssistantService {
         chrome: 'plain',
         actionType: 'execute_flow',
         actionTarget: 'flow_publicado'
+      }));
+    }
+
+    if (wantsGallery) {
+      components.push(this.appScreenComponent({
+        id: 'media_gallery_1',
+        componentKey: 'media_gallery',
+        title: 'Galería',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_imagenes',
+        width: 'full',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
+    if (wantsMap) {
+      components.push(this.appScreenComponent({
+        id: 'map_view_1',
+        componentKey: 'map_view',
+        title: 'Mapa',
+        region: 'content',
+        bindingType: 'source',
+        bindingKey: 'ubicaciones',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
+    if (wantsTimeline) {
+      components.push(this.appScreenComponent({
+        id: 'timeline_1',
+        componentKey: 'timeline',
+        title: 'Historial',
+        region: 'content',
+        bindingType: 'service',
+        bindingKey: 'listar_eventos',
+        width: 'half',
+        align: 'stretch',
+        chrome: 'card',
+        actionType: 'none',
+        actionTarget: ''
+      }));
+    }
+
+    if (wantsModal) {
+      components.push(this.appScreenComponent({
+        id: 'modal_shell_1',
+        componentKey: 'modal_shell',
+        title: 'Detalle',
+        region: 'content',
+        bindingType: 'source',
+        bindingKey: 'modal_detalle',
+        width: 'half',
+        align: 'center',
+        chrome: 'modal',
+        actionType: 'open_modal',
+        actionTarget: 'modal_detalle'
       }));
     }
 
@@ -1473,7 +1587,7 @@ export class AiAssistantService {
       ],
       settings: {},
       metadata: {
-        designer: 'screen_app_designer_v1',
+        designer: 'app_studio_tanda_9_14',
         assistant: {
           intent: wantsLogin ? 'auth_login_screen' : 'app_screen_composition',
           notes: ['Draft preparado desde Chicle AI. Revisar bindings reales antes de publicar.']
@@ -1524,7 +1638,7 @@ export class AiAssistantService {
       },
       tests: [{ name: 'Preview básico', viewport: 'desktop', input: {} }],
       metadata: {
-        designer: 'screen_app_designer_v1',
+        designer: 'app_studio_tanda_9_14',
         assistant: {
           intent: wantsLogin ? 'auth_login_screen' : 'app_screen_composition',
           requiresBindingReview: components.some((component) =>
@@ -1672,7 +1786,7 @@ export class AiAssistantService {
       title: config.title,
       region: config.region,
       order: Number(config.id.match(/_(\d+)$/)?.[1] ?? 1),
-      inputs: this.appComponentInputs(config.bindingType, config.bindingKey),
+      inputs: this.appComponentInputs(config.componentKey, config.bindingType, config.bindingKey),
       bindings: config.bindingType === 'none' || !config.bindingKey
         ? {}
         : {
@@ -1692,15 +1806,81 @@ export class AiAssistantService {
     };
   }
 
-  private appComponentInputs(bindingType: string, bindingKey: string) {
+  private appComponentInputs(componentKey: string, bindingType: string, bindingKey: string) {
+    const defaults: Record<string, Record<string, unknown>> = {
+      hero_header: { subtitle: 'Pantalla generada desde Chicle App Studio.' },
+      nav_menu: { placement: 'top', source: 'app_navigation' },
+      bottom_nav: { placement: 'bottom', source: 'app_navigation' },
+      side_nav: { placement: 'side', source: 'app_navigation' },
+      tabs: { source: 'app_navigation' },
+      auth_login: {
+        usernameLabel: 'Usuario o email',
+        passwordLabel: 'Contraseña',
+        buttonLabel: 'Iniciar sesión'
+      },
+      metric_strip: {
+        metrics: [
+          { label: 'Activos', value: '24' },
+          { label: 'Pendientes', value: '7' },
+          { label: 'Errores', value: '0' }
+        ]
+      },
+      chart_panel: {
+        bars: [
+          { label: 'Lun', value: 35 },
+          { label: 'Mar', value: 54 },
+          { label: 'Mie', value: 42 }
+        ]
+      },
+      data_table: { columns: ['id', 'name', 'status', 'createdAt'] },
+      search_panel: { inputKey: 'query', placeholder: 'Buscar por nombre, estado o referencia' },
+      service_button: { buttonLabel: 'Ejecutar servicio', defaultInput: {} },
+      flow_button: { buttonLabel: 'Ejecutar flow', defaultInput: {} },
+      modal_shell: {
+        buttonLabel: 'Abrir detalle',
+        modalTitle: 'Detalle',
+        modalBody: 'Contenido reusable definido por JSON.'
+      },
+      entity_card: {
+        fields: [
+          { label: 'Nombre', value: '{{record.name}}' },
+          { label: 'Estado', value: '{{record.status}}' }
+        ]
+      },
+      detail_panel: {
+        fields: [
+          { label: 'ID', value: '{{record.id}}' },
+          { label: 'Fecha', value: '{{record.createdAt}}' }
+        ]
+      },
+      timeline: {
+        events: [
+          { title: 'Creado', description: 'Registro inicial', time: 'Ahora' },
+          { title: 'Actualizado', description: 'Cambio reciente', time: 'Pendiente' }
+        ]
+      },
+      media_gallery: {
+        items: [
+          {
+            title: 'Imagen de ejemplo',
+            url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'
+          }
+        ]
+      },
+      map_view: {
+        center: { lat: 4.711, lng: -74.0721 },
+        markers: [{ label: 'Ubicación principal', lat: 4.711, lng: -74.0721 }]
+      }
+    };
+    const inputDefaults = defaults[componentKey] ?? {};
     if (!bindingKey || bindingType === 'none') {
-      return {};
+      return inputDefaults;
     }
-    if (bindingType === 'form') return { formKey: bindingKey };
-    if (bindingType === 'service') return { serviceKey: bindingKey };
-    if (bindingType === 'flow') return { flowKey: bindingKey };
-    if (bindingType === 'table') return { table: bindingKey };
-    return { sourceKey: bindingKey };
+    if (bindingType === 'form') return { ...inputDefaults, formKey: bindingKey };
+    if (bindingType === 'service') return { ...inputDefaults, serviceKey: bindingKey };
+    if (bindingType === 'flow') return { ...inputDefaults, flowKey: bindingKey };
+    if (bindingType === 'table') return { ...inputDefaults, table: bindingKey };
+    return { ...inputDefaults, sourceKey: bindingKey };
   }
 
   private appComponentActions(actionType: string, actionTarget: string, bindingKey: string) {

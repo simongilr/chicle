@@ -38,11 +38,15 @@ The caller needs normal tenant auth plus the module permission:
 
 | Artifact | Create/update | Execute/test |
 | --- | --- | --- |
-| Dynamic Apps | `apps.manage` | `apps.read` |
-| Dynamic Screens | `apps.manage` | `apps.read` |
+| Dynamic Apps | `apps.manage` | Runtime contract: authenticated user plus published app/screen/component permissions |
+| Dynamic Screens | `apps.manage` | Runtime contract: authenticated user plus published screen/component permissions |
 | Dynamic Forms | `forms.manage` | `forms.submit` |
 | Dynamic Services | `services.manage` | `services.execute` |
 | Flows | `flows.create` or `flows.update` | `flows.execute` |
+
+Admin authoring endpoints still use Admin permissions such as `apps.read`, `apps.manage`, `apps.publish`,
+`apps.export` and `apps.install`. Generated apps do not require Admin read access to run; they only receive published
+runtime contracts filtered by business permissions.
 
 ## Apps JSON-only endpoint
 
@@ -108,6 +112,34 @@ Runtime use after publish:
 ```http
 GET /api/apps/by-key/tuerca/runtime
 ```
+
+Preferred route-level runtime lookup for generated web, Ionic or desktop shells:
+
+```http
+GET /api/apps/by-key/tuerca/runtime-route?route=/home&target=web
+```
+
+The route-level response returns the published app manifest, selected published screen, target-filtered navigation,
+component catalog and cache metadata. Assistants should use this endpoint when validating that a generated app can boot
+one route without loading every screen.
+
+Admin shell validation after publish:
+
+```text
+/apps/run/tuerca?route=/home&target=web
+```
+
+Use this route to confirm that the published app contract can render through the generated-app shell before exporting
+or packaging the app.
+
+Package install dry-run:
+
+```http
+POST /api/apps/packages/dry-run
+```
+
+Use this endpoint before installing a generated package. It validates the app key, screen keys, component keys and
+dependency snapshot without creating database rows. Assistants should call or propose this step before package install.
 
 ## Screens JSON-only endpoint
 

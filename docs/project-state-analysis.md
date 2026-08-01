@@ -35,7 +35,7 @@ versions, publication, export and install history.
 | Dynamic Services | CRUD, versions, publication, real tests, AI and advanced internal queries | 75% |
 | Dynamic Forms | Designer, JSON, responsive preview, actions, companion services and initial real tests | 60% |
 | Flows | Data model, runner, designer and tests in progress | 55% |
-| App Studio / Screens | V2 foundation with tenant app portfolio, selected-app workspace, pages, navigation, security, preview, publish and trash | 45% |
+| App Studio / Screens | V2 foundation with tenant app portfolio, visual region map, component inspector, navigation variants, expanded component presets, page designer, published runtime route lookup, executable generated runtime shell, screen/component permissions, preview testing and package export/install/dry-run foundation | 84% |
 | Text packages | Backend/frontend runtime, Admin page, Spanish/English baseline and search-first UX | 45% |
 | Chicle AI | Floating assistant, Ollama integration, guided drafts and RAG architecture | 45% |
 | Docs / Architecture | Architecture page, operational docs, component catalog, Markdown viewer and app factory docs | 85% |
@@ -61,10 +61,15 @@ versions, publication, export and install history.
 - Dynamic Forms still need stronger CRUD completion, catalog-driven selects, service relationships, validation and
   table-specific persistence.
 - Flow Engine needs another UX and testing pass so the designer becomes as understandable as Services.
-- App Studio now has the V2 foundation, but runtime rendering, full AI app graph creation, component templates and
-  package import/export hardening are still required.
-- Generated app runtime still needs stronger contract resolution for `tenant + appKey + target + route`.
-- App package export/import is architected but not complete enough to be the product transfer mechanism yet.
+- App Studio now has the V2 foundation, published runtime route resolution, screen/component permission filtering,
+  component inspector, navigation variants, broader executable runtime adapters and package install dry-run, but
+  full drag/resizable authoring, full AI app graph orchestration, component-template authoring and package dependency
+  installation are still required.
+- Generated app runtime can resolve and open `tenant + appKey + target + route`, execute services/flows and render
+  common app components; it still needs stronger web, Ionic/mobile and desktop renderer parity for full production
+  business apps outside Admin.
+- App package export/import works as metadata transfer foundation with dry-run planning; conflict UX and bundled
+  installers are still needed before it becomes the full product transfer mechanism.
 - Text packages are available but Admin still has hardcoded fallback text that must be migrated gradually.
 - Chicle-owned security audit, code quality audit and API performance tooling are still missing inside Admin.
 
@@ -80,8 +85,7 @@ versions, publication, export and install history.
      ProcessSteps, WorkflowGuide and shared form components when applicable.
 
 3. Continue App Studio:
-   - runtime contract resolution for `tenant + appKey + target + route`;
-   - full generated app renderer for web, Ionic/mobile and desktop targets;
+   - complete generated app renderer adapters for web, Ionic/mobile and desktop targets;
    - login/security execution, component templates and dependencies;
    - app-level texts, themes and artifact preferences;
    - export/install hardening with dependency dry-run and conflict handling.

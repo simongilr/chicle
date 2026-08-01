@@ -166,6 +166,31 @@ function databaseRequest(prompt: string): AiAssistantRequest {
   };
 }
 
+function appRequest(prompt: string, conversation: AiAssistantRequest['conversation'] = []): AiAssistantRequest {
+  return {
+    prompt,
+    scope: 'apps',
+    route: '/apps',
+    conversation,
+    screenState: {
+      app: {
+        draft: {
+          key: 'mi_app',
+          name: 'Mi app',
+          targets: ['web', 'mobile'],
+          presentation: {
+            kit: 'auto',
+            theme: 'chicle'
+          },
+          text: {
+            defaultLocale: 'es'
+          }
+        }
+      }
+    }
+  };
+}
+
 function validateGeneratedForm(document: Record<string, unknown>) {
   const normalized = formValidator.normalizeSchema(document, document['key'], document['title']);
   formValidator.validateSchema(normalized);
@@ -908,6 +933,93 @@ describe('AiAssistantService database authoring', () => {
 
     expect(response.message).toContain('solo está disponible para usuarios owner');
     expect(response.actions).toBeUndefined();
+  });
+});
+
+describe('AiAssistantService app authoring', () => {
+  it('creates a richer app draft with mobile navigation and runtime-ready component presets', async () => {
+    const chatService = new AiAssistantService(
+      { get: jest.fn((_key, fallback) => fallback) } as any,
+      { chat: jest.fn() } as any
+    );
+
+    const response = await chatService.chat(
+      { ...auth, permissions: ['apps.read', 'apps.manage'] } as any,
+      appRequest('crea una app móvil llamada evidencias con menú dashboard galería de fotos mapa gps historial timeline y modal de detalle')
+    );
+    const appAction = response.actions?.find((action: any) => action.type === 'apply_dynamic_app_json') as any;
+    const screenAction = response.actions?.find((action: any) => action.type === 'apply_dynamic_screen_json') as any;
+    const componentKeys = screenAction.document.components.map((component: any) => component.componentKey);
+    const bottomNav = screenAction.document.components.find((component: any) => component.componentKey === 'bottom_nav');
+    const gallery = screenAction.document.components.find((component: any) => component.componentKey === 'media_gallery');
+    const map = screenAction.document.components.find((component: any) => component.componentKey === 'map_view');
+    const timeline = screenAction.document.components.find((component: any) => component.componentKey === 'timeline');
+
+    expect(response.message).toContain('draft visual');
+    expect(appAction).toMatchObject({
+      key: 'mi_app',
+      publish: false,
+      document: {
+        kind: 'dynamic_app',
+        targets: ['web', 'mobile'],
+        metadata: { designer: 'app_studio_tanda_9_14' }
+      }
+    });
+    expect(screenAction).toMatchObject({
+      publish: false,
+      document: {
+        kind: 'dynamic_screen',
+        metadata: { designer: 'app_studio_tanda_9_14' }
+      }
+    });
+    expect(componentKeys).toEqual(
+      expect.arrayContaining([
+        'nav_menu',
+        'bottom_nav',
+        'hero_header',
+        'metric_strip',
+        'chart_panel',
+        'media_gallery',
+        'map_view',
+        'timeline',
+        'modal_shell'
+      ])
+    );
+    expect(bottomNav.inputs).toMatchObject({ placement: 'bottom', source: 'app_navigation' });
+    expect(gallery.inputs.items).toHaveLength(1);
+    expect(map.inputs.markers).toHaveLength(1);
+    expect(timeline.inputs.events).toHaveLength(2);
+  });
+
+  it('creates login apps with auth component instead of generic hero/form capture', async () => {
+    const chatService = new AiAssistantService(
+      { get: jest.fn((_key, fallback) => fallback) } as any,
+      { chat: jest.fn() } as any
+    );
+
+    const response = await chatService.chat(
+      { ...auth, permissions: ['apps.read', 'apps.manage'] } as any,
+      appRequest('crea una app llamada tuerca con login y menú móvil')
+    );
+    const screenAction = response.actions?.find((action: any) => action.type === 'apply_dynamic_screen_json') as any;
+    const componentKeys = screenAction.document.components.map((component: any) => component.componentKey);
+    const login = screenAction.document.components.find((component: any) => component.componentKey === 'auth_login');
+
+    expect(screenAction.document.key).toBe('login');
+    expect(screenAction.document.route).toBe('/login');
+    expect(screenAction.document.navigation.showInMenu).toBe(false);
+    expect(componentKeys).toEqual(expect.arrayContaining(['nav_menu', 'bottom_nav', 'auth_login']));
+    expect(componentKeys).not.toContain('hero_header');
+    expect(login).toMatchObject({
+      bindings: { type: 'service', key: 'auth.login' },
+      actions: [expect.objectContaining({ type: 'execute_service', serviceKey: 'auth.login' })],
+      inputs: {
+        usernameLabel: 'Usuario o email',
+        passwordLabel: 'Contraseña',
+        buttonLabel: 'Iniciar sesión',
+        serviceKey: 'auth.login'
+      }
+    });
   });
 });
 

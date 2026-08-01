@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
@@ -35,6 +35,7 @@ export interface DynamicScreenComponentDefinition {
   inputs?: Record<string, unknown>;
   bindings?: Record<string, unknown>;
   actions?: Array<Record<string, unknown>>;
+  permissions?: string[];
   visibility?: Record<string, unknown>;
   layout?: Record<string, unknown>;
 }
@@ -172,6 +173,28 @@ export interface InstallDynamicAppPackageRequest {
   publish?: boolean;
 }
 
+export interface DryRunDynamicAppPackageRequest {
+  document?: Record<string, unknown>;
+  package?: Record<string, unknown>;
+}
+
+export interface DynamicAppRuntimeScreen {
+  key: string;
+  title: string;
+  route: string;
+  target: DynamicScreenTarget;
+  version: number;
+  definition: DynamicScreenDefinition;
+  navigation: {
+    showInMenu: boolean;
+    label: string;
+    group: string;
+    icon: string;
+    permissions: string[];
+  };
+  permissions: string[];
+}
+
 @Injectable()
 export class DynamicAppsService {
   constructor(
@@ -211,34 +234,94 @@ export class DynamicAppsService {
   async runtimeByKey(auth: AuthContext, key: string) {
     const app = await this.requireAppByKey(auth, key);
     const version = await this.resolveAppRuntimeVersion(auth, app);
-    const screens = await this.screens.find({
-      where: { tenantId: auth.tenant.id, appId: app.id, trashedAt: IsNull() },
-      order: { sortOrder: 'ASC', key: 'ASC' }
-    });
-    const runtimeScreens = await Promise.all(
-      screens
-        .filter((screen) => screen.published)
-        .map(async (screen) => {
-          const screenVersion = await this.resolveScreenRuntimeVersion(auth, screen);
-          return {
-            key: screen.key,
-            title: screen.title,
-            route: screen.route,
-            target: screen.target,
-            version: screenVersion?.version ?? screen.version,
-            definition: screenVersion?.definition ?? screen.definition
-          };
-        })
-    );
+    if (!app.published || !version) {
+      throw new NotFoundException('Published app runtime not found');
+    }
+    const manifest = this.normalizeManifest(version.manifest, app.key, app.name, app.description, app.targets);
+    const runtimeScreens = await this.publishedRuntimeScreens(auth, app);
+    const accessibleScreens = runtimeScreens
+      .filter((screen) => this.canAccessRuntimeScreen(auth, screen))
+      .map((screen) => this.withAccessibleRuntimeComponents(auth, screen));
     return {
+      schemaVersion: 1,
+      kind: 'dynamic_app_runtime',
+      tenant: this.runtimeTenant(auth),
       key: app.key,
       name: app.name,
       description: app.description,
       category: app.category,
       targets: app.targets,
-      version: version?.version ?? app.version,
-      manifest: version?.manifest ?? app.manifest,
-      screens: runtimeScreens
+      version: version.version,
+      manifest,
+      navigation: this.runtimeNavigation(accessibleScreens, this.startRouteFromManifest(manifest)),
+      screens: accessibleScreens,
+      componentCatalog: this.componentCatalog(),
+      cache: {
+        key: `${auth.tenant.id}:${app.key}:${version.version}:all`,
+        appVersion: version.version,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  async runtimeRouteByKey(auth: AuthContext, key: string, route = '/', target: DynamicScreenTarget = 'web') {
+    const app = await this.requireAppByKey(auth, key);
+    const appVersion = await this.resolveAppRuntimeVersion(auth, app);
+    if (!app.published || !appVersion) {
+      throw new NotFoundException('Published app runtime not found');
+    }
+
+    const manifest = this.normalizeManifest(appVersion.manifest, app.key, app.name, app.description, app.targets);
+    const runtimeScreens = await this.publishedRuntimeScreens(auth, app);
+    const requestedTarget = this.normalizeTarget(target);
+    const requestedRoute = this.normalizeRoute(route);
+    const targetScreens = runtimeScreens.filter((screen) => this.screenSupportsTarget(screen.target, requestedTarget));
+    const requestedScreen = targetScreens.find((screen) => this.normalizeRoute(screen.route) === requestedRoute);
+    if (requestedScreen && !this.canAccessRuntimeScreen(auth, requestedScreen)) {
+      throw new ForbiddenException('Screen access denied');
+    }
+    const accessibleTargetScreens = targetScreens
+      .filter((screen) => this.canAccessRuntimeScreen(auth, screen))
+      .map((screen) => this.withAccessibleRuntimeComponents(auth, screen));
+    const startRoute = this.startRouteFromManifest(manifest);
+    const selected =
+      accessibleTargetScreens.find((screen) => this.normalizeRoute(screen.route) === requestedRoute) ??
+      accessibleTargetScreens.find((screen) => this.normalizeRoute(screen.route) === startRoute) ??
+      accessibleTargetScreens[0];
+
+    if (!selected) {
+      if (targetScreens.length > 0) {
+        throw new ForbiddenException('No accessible published screen runtime found for this target');
+      }
+      throw new NotFoundException('Published screen runtime not found for this target');
+    }
+
+    return {
+      schemaVersion: 1,
+      kind: 'dynamic_app_runtime_route',
+      tenant: this.runtimeTenant(auth),
+      app: {
+        key: app.key,
+        name: app.name,
+        description: app.description,
+        category: app.category,
+        targets: app.targets,
+        version: appVersion.version,
+        manifest
+      },
+      target: requestedTarget,
+      route: this.normalizeRoute(selected.route),
+      requestedRoute,
+      navigation: this.runtimeNavigation(accessibleTargetScreens, selected.route),
+      screen: selected,
+      screens: accessibleTargetScreens,
+      componentCatalog: this.componentCatalog(),
+      cache: {
+        key: `${auth.tenant.id}:${app.key}:${appVersion.version}:${selected.key}:${selected.version}:${requestedTarget}:${this.normalizeRoute(selected.route)}`,
+        appVersion: appVersion.version,
+        screenVersion: selected.version,
+        generatedAt: new Date().toISOString()
+      }
     };
   }
 
@@ -757,6 +840,78 @@ export class DynamicAppsService {
     };
   }
 
+  async dryRunInstallPackage(auth: AuthContext, body: DryRunDynamicAppPackageRequest) {
+    const packageDocument = body.document ?? body.package;
+    const appPackage = this.normalizePackage(packageDocument);
+    const activeApp = await this.apps.findOne({
+      where: { tenantId: auth.tenant.id, key: appPackage.app.key, trashedAt: IsNull() }
+    });
+    const trashedApp = await this.apps.findOne({
+      where: { tenantId: auth.tenant.id, key: appPackage.app.key, trashedAt: Not(IsNull()) }
+    });
+    const existingScreens = activeApp
+      ? await this.screens.find({
+          where: { tenantId: auth.tenant.id, appId: activeApp.id },
+          order: { key: 'ASC' }
+        })
+      : [];
+    const activeScreenKeys = new Set(existingScreens.filter((screen) => !screen.trashedAt).map((screen) => screen.key));
+    const trashedScreenKeys = new Set(existingScreens.filter((screen) => screen.trashedAt).map((screen) => this.originalKeyFromMetadata(screen.metadata) ?? this.originalKeyFromTrashKey(screen.key)));
+    const unknownComponents = appPackage.dependencies.componentKeys.filter(
+      (key) => !this.componentCatalog().some((component) => component.key === key)
+    );
+
+    return {
+      schemaVersion: 1,
+      kind: 'chicle_app_package_dry_run',
+      packageKey: appPackage.packageKey,
+      app: {
+        key: appPackage.app.key,
+        name: appPackage.name,
+        exists: Boolean(activeApp),
+        trashedExists: Boolean(trashedApp),
+        action: activeApp ? 'update_existing_app' : 'create_new_app'
+      },
+      screens: appPackage.screens.map((screen) => ({
+        key: screen.key,
+        title: screen.definition.title,
+        route: this.normalizeRoute(screen.definition.route || `/${screen.key}`),
+        target: screen.definition.target,
+        exists: activeScreenKeys.has(screen.key),
+        trashedExists: trashedScreenKeys.has(screen.key),
+        action: activeScreenKeys.has(screen.key) ? 'update_existing_screen' : 'create_new_screen'
+      })),
+      dependencies: {
+        ...appPackage.dependencies,
+        unknownComponents
+      },
+      checks: [
+        {
+          key: 'package_contract',
+          ok: true,
+          message: 'Package contract is valid.'
+        },
+        {
+          key: 'active_app_conflict',
+          ok: true,
+          message: activeApp ? 'An active app exists; install will update it.' : 'No active app conflict.'
+        },
+        {
+          key: 'component_catalog',
+          ok: unknownComponents.length === 0,
+          message: unknownComponents.length
+            ? `Unknown component keys: ${unknownComponents.join(', ')}`
+            : 'All component keys exist in the runtime catalog.'
+        }
+      ],
+      installPlan: {
+        safeToInstall: unknownComponents.length === 0,
+        mode: 'upsert',
+        publishOnInstall: false
+      }
+    };
+  }
+
   componentCatalog() {
     return [
       { key: 'hero_header', name: 'Header / bienvenida', category: 'structure', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
@@ -875,12 +1030,18 @@ export class DynamicAppsService {
         this.addStringSet(flowKeys, inputs['flowKey']);
         this.addStringSet(customTables, inputs['table']);
         this.addStringSet(customTables, inputs['tableName']);
+        for (const action of component.actions ?? []) {
+          this.addActionDependencies(action, formKeys, serviceKeys, flowKeys, customTables);
+        }
       }
       for (const dataSource of screen.dataSources ?? []) {
         this.addStringSet(serviceKeys, dataSource['serviceKey']);
         this.addStringSet(formKeys, dataSource['formKey']);
         this.addStringSet(flowKeys, dataSource['flowKey']);
         this.addStringSet(customTables, dataSource['table']);
+      }
+      for (const action of screen.actions ?? []) {
+        this.addActionDependencies(action, formKeys, serviceKeys, flowKeys, customTables);
       }
     }
 
@@ -899,6 +1060,158 @@ export class DynamicAppsService {
     if (item) {
       target.add(item);
     }
+  }
+
+  private addActionDependencies(
+    action: Record<string, unknown>,
+    formKeys: Set<string>,
+    serviceKeys: Set<string>,
+    flowKeys: Set<string>,
+    customTables: Set<string>
+  ) {
+    this.addStringSet(formKeys, action['formKey']);
+    this.addStringSet(serviceKeys, action['serviceKey']);
+    this.addStringSet(flowKeys, action['flowKey']);
+    this.addStringSet(customTables, action['table']);
+    this.addStringSet(customTables, action['tableName']);
+  }
+
+  private async publishedRuntimeScreens(auth: AuthContext, app: DynamicApp): Promise<DynamicAppRuntimeScreen[]> {
+    const screens = await this.screens.find({
+      where: { tenantId: auth.tenant.id, appId: app.id, trashedAt: IsNull() },
+      order: { sortOrder: 'ASC', key: 'ASC' }
+    });
+
+    const runtimeScreens = await Promise.all(
+      screens
+        .filter((screen) => screen.published)
+        .map(async (screen) => {
+          const screenVersion = await this.resolveScreenRuntimeVersion(auth, screen);
+          const definition = this.normalizeScreenDefinition(
+            screenVersion?.definition ?? screen.definition,
+            screen.key,
+            screen.title,
+            app.key
+          );
+          const navigation = this.screenNavigation(screen, definition);
+          return {
+            key: screen.key,
+            title: screen.title,
+            route: this.normalizeRoute(screen.route || definition.route || `/${screen.key}`),
+            target: screen.target,
+            version: screenVersion?.version ?? screen.version,
+            definition,
+            navigation,
+            permissions: this.runtimePermissions(definition, navigation.permissions)
+          };
+        })
+    );
+
+    return runtimeScreens;
+  }
+
+  private runtimeNavigation(screens: DynamicAppRuntimeScreen[], activeRoute: string) {
+    const normalizedActiveRoute = this.normalizeRoute(activeRoute);
+    return screens
+      .filter((screen) => screen.navigation.showInMenu)
+      .map((screen) => ({
+        key: screen.key,
+        label: screen.navigation.label,
+        route: this.normalizeRoute(screen.route),
+        target: screen.target,
+        group: screen.navigation.group,
+        icon: screen.navigation.icon,
+        permissions: screen.navigation.permissions,
+        active: this.normalizeRoute(screen.route) === normalizedActiveRoute
+      }));
+  }
+
+  private screenNavigation(screen: DynamicScreen, definition: DynamicScreenDefinition) {
+    const navigation = this.asObject(definition['navigation']);
+    const permissions = Array.isArray(navigation?.['permissions'])
+      ? navigation['permissions'].filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+      : [];
+    return {
+      showInMenu: navigation?.['showInMenu'] !== false,
+      label: this.asString(navigation?.['label']) || screen.title,
+      group: this.asString(navigation?.['group']) || 'principal',
+      icon: this.asString(navigation?.['icon']) || 'home',
+      permissions
+    };
+  }
+
+  private runtimePermissions(definition: DynamicScreenDefinition, navigationPermissions: string[]) {
+    const directPermissions = Array.isArray(definition.permissions)
+      ? definition.permissions.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+      : [];
+    return Array.from(new Set([...navigationPermissions, ...directPermissions])).sort();
+  }
+
+  private canAccessRuntimeScreen(auth: AuthContext, screen: DynamicAppRuntimeScreen) {
+    return this.canAccessPermissions(auth, screen.permissions);
+  }
+
+  private withAccessibleRuntimeComponents(auth: AuthContext, screen: DynamicAppRuntimeScreen): DynamicAppRuntimeScreen {
+    const components = (screen.definition.components ?? []).filter((component) =>
+      this.canAccessPermissions(auth, this.runtimeComponentPermissions(component))
+    );
+    return {
+      ...screen,
+      definition: {
+        ...screen.definition,
+        components
+      }
+    };
+  }
+
+  private runtimeComponentPermissions(component: DynamicScreenComponentDefinition) {
+    const direct = Array.isArray(component.permissions)
+      ? component.permissions.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+      : [];
+    const visibility = this.asObject(component.visibility);
+    const visibilityPermissions = Array.isArray(visibility?.['permissions'])
+      ? visibility['permissions'].filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+      : [];
+    return Array.from(new Set([...direct, ...visibilityPermissions])).sort();
+  }
+
+  private canAccessPermissions(auth: AuthContext, required: string[]) {
+    if (!required.length) {
+      return true;
+    }
+    const isOwnerOrAdmin =
+      auth.user.systemRole === 'owner' ||
+      auth.user.systemRole === 'admin' ||
+      (auth.roles ?? []).some((role) => role.key === 'owner' || role.key === 'admin');
+    if (isOwnerOrAdmin) {
+      return true;
+    }
+    const permissions = new Set(auth.permissions ?? []);
+    return required.every((permission) => permissions.has(permission));
+  }
+
+  private screenSupportsTarget(screenTarget: DynamicScreenTarget, requestedTarget: DynamicScreenTarget) {
+    return screenTarget === 'multi' || requestedTarget === 'multi' || screenTarget === requestedTarget;
+  }
+
+  private startRouteFromManifest(manifest: DynamicAppManifest) {
+    const navigation = this.asObject(manifest.navigation);
+    return this.normalizeRoute(navigation?.['startRoute'] ?? '/');
+  }
+
+  private normalizeRoute(value: unknown) {
+    const route = this.asString(value) || '/';
+    const withSlash = route.startsWith('/') ? route : `/${route}`;
+    const normalized = withSlash.replace(/\/+/g, '/').replace(/\/$/g, '');
+    return normalized || '/';
+  }
+
+  private runtimeTenant(auth: AuthContext) {
+    return {
+      id: auth.tenant.id,
+      slug: auth.tenant.slug,
+      name: auth.tenant.name
+    };
   }
 
   private async resolveAuthoringApp(auth: AuthContext, body: DynamicScreenJsonAuthoringRequest, definition: Record<string, unknown>) {
@@ -1128,6 +1441,9 @@ export class DynamicAppsService {
       inputs: this.asObject(value['inputs']) ?? {},
       bindings: this.asObject(value['bindings']) ?? {},
       actions: Array.isArray(value['actions']) ? (value['actions'] as Array<Record<string, unknown>>) : [],
+      permissions: Array.isArray(value['permissions'])
+        ? value['permissions'].filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+        : [],
       visibility: this.asObject(value['visibility']) ?? {},
       layout: this.asObject(value['layout']) ?? {}
     };

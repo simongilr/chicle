@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthContext } from '../auth/auth.types';
 import { CurrentAuth } from '../auth/decorators/current-auth.decorator';
@@ -11,11 +11,13 @@ import {
   DynamicAppJsonAuthoringRequest,
   DynamicAppsService,
   DynamicScreenJsonAuthoringRequest,
+  DryRunDynamicAppPackageRequest,
   InstallDynamicAppPackageRequest,
   RestoreArtifactRequest,
   UpdateDynamicAppRequest,
   UpdateDynamicScreenRequest
 } from './dynamic-apps.service';
+import { DynamicScreenTarget } from './dynamic-screen.entity';
 
 @Controller('apps')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -52,6 +54,13 @@ export class DynamicAppsController {
     return this.dynamicApps.installPackage(auth, body);
   }
 
+  @Post('packages/dry-run')
+  @RequirePermissions('apps.install')
+  @ApiOperation({ summary: 'Validate and preview a portable Chicle app package installation' })
+  dryRunInstallPackage(@CurrentAuth() auth: AuthContext, @Body() body: DryRunDynamicAppPackageRequest) {
+    return this.dynamicApps.dryRunInstallPackage(auth, body);
+  }
+
   @Post('authoring/json')
   @RequirePermissions('apps.manage')
   @ApiOperation({ summary: 'Create or update an app from a portable JSON manifest' })
@@ -74,10 +83,20 @@ export class DynamicAppsController {
   }
 
   @Get('by-key/:key/runtime')
-  @RequirePermissions('apps.read')
   @ApiOperation({ summary: 'Get published app runtime by key' })
   runtimeByKey(@CurrentAuth() auth: AuthContext, @Param('key') key: string) {
     return this.dynamicApps.runtimeByKey(auth, key);
+  }
+
+  @Get('by-key/:key/runtime-route')
+  @ApiOperation({ summary: 'Get a published app runtime screen by app key, route and target' })
+  runtimeRouteByKey(
+    @CurrentAuth() auth: AuthContext,
+    @Param('key') key: string,
+    @Query('route') route = '/',
+    @Query('target') target: DynamicScreenTarget = 'web'
+  ) {
+    return this.dynamicApps.runtimeRouteByKey(auth, key, route, target);
   }
 
   @Post()

@@ -86,6 +86,12 @@ export const routes: Routes = [
     data: { permissions: ['forms.read'] }
   },
   {
+    path: 'apps/run/:appKey',
+    loadComponent: () =>
+      import('./pages/app-runtime/app-runtime-page.component').then((module) => module.AppRuntimePageComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'apps',
     loadComponent: () => import('./pages/apps/apps-page.component').then((module) => module.AppsPageComponent),
     canActivate: [authGuard, permissionGuard],

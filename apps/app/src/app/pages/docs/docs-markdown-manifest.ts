@@ -161,6 +161,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Dynamic app and screen contracts, runtime objects, authoring flow, permissions and template package strategy.",
   },
   {
+    title: "App Studio completion roadmap",
+    path: "app-studio-completion-roadmap.md",
+    category: "Architecture",
+    summary:
+      "Practical roadmap for finishing the App Studio visualizer, runtime, AI authoring and template packages.",
+  },
+  {
     title: "UI components",
     path: "ui-components.md",
     category: "Frontend",

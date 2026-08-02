@@ -104,10 +104,56 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     category: 'Diseñadores',
     purpose: 'Distribución responsive de catálogo lateral y área de edición.',
     importPath: 'shared/designer-workspace/designer-workspace.component',
-    usedBy: ['Services', 'Flows'],
+    usedBy: ['Services', 'Flows', 'Apps'],
     status: 'stable',
     example:
       '<app-designer-workspace><ng-container designer-navigation>...</ng-container><ng-container designer-workspace>...</ng-container></app-designer-workspace>'
+  },
+  {
+    name: 'AppStructurePanelComponent',
+    selector: 'app-app-structure-panel',
+    category: 'Diseñadores',
+    purpose: 'Panel reutilizable para mostrar la app activa, sus páginas, rutas, versiones y estado de publicación.',
+    importPath: 'shared/app-structure-panel/app-structure-panel.component',
+    usedBy: ['Apps', 'Future template builder'],
+    status: 'initial',
+    example:
+      '<app-app-structure-panel [appName]="app.name" [screens]="screens" (screenSelected)="select($event)"></app-app-structure-panel>'
+  },
+  {
+    name: 'ComponentPaletteComponent',
+    selector: 'app-component-palette',
+    category: 'Diseñadores',
+    purpose: 'Paleta reusable para agregar bloques, controles, navegación, acciones y componentes visuales a diseñadores.',
+    importPath: 'shared/component-palette/component-palette.component',
+    usedBy: ['Apps', 'Future screen designer', 'Future component designer'],
+    status: 'initial',
+    example:
+      '<app-component-palette [items]="items" (selected)="addBlock($event)"></app-component-palette>'
+  },
+  {
+    name: 'ScreenVisualCanvasComponent',
+    selector: 'app-screen-visual-canvas',
+    category: 'Diseñadores',
+    purpose:
+      'Canvas visual de pantalla con navegación, regiones, bloques seleccionables, bindings, acciones y preview desktop/tablet/móvil.',
+    importPath: 'shared/screen-visual-canvas/screen-visual-canvas.component',
+    usedBy: ['Apps', 'Future screen designer'],
+    status: 'initial',
+    example:
+      '<app-screen-visual-canvas [components]="components" [selectedId]="selectedId" (selected)="select($event)"></app-screen-visual-canvas>'
+  },
+  {
+    name: 'ScreenComponentInspectorComponent',
+    selector: 'app-screen-component-inspector',
+    category: 'Diseñadores',
+    purpose:
+      'Inspector reusable para explicar y editar el bloque seleccionado de una pantalla dinámica.',
+    importPath: 'shared/screen-component-inspector/screen-component-inspector.component',
+    usedBy: ['Apps', 'Future screen designer'],
+    status: 'initial',
+    example:
+      '<app-screen-component-inspector [component]="selectedComponent" [summary]="summary"></app-screen-component-inspector>'
   },
   {
     name: 'CatalogHeaderComponent',

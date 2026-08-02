@@ -7,7 +7,9 @@ import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminFormGridComponent } from '../../shared/admin-form-grid/admin-form-grid.component';
 import { AdminMetricCardComponent } from '../../shared/admin-metric-card/admin-metric-card.component';
 import { AdminPanelComponent } from '../../shared/admin-panel/admin-panel.component';
+import { AppStructurePanelComponent } from '../../shared/app-structure-panel/app-structure-panel.component';
 import { CatalogItemComponent } from '../../shared/catalog-item/catalog-item.component';
+import { ComponentPaletteComponent, ComponentPaletteItem } from '../../shared/component-palette/component-palette.component';
 import { DesignerCatalogPanelComponent } from '../../shared/designer-catalog-panel/designer-catalog-panel.component';
 import { DesignerWorkspaceComponent } from '../../shared/designer-workspace/designer-workspace.component';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
@@ -18,6 +20,8 @@ import { PageShellComponent } from '../../shared/page-shell/page-shell.component
 import { PreviewViewportComponent, PreviewViewportMode } from '../../shared/preview-viewport/preview-viewport.component';
 import { ProcessStepItem, ProcessStepsComponent } from '../../shared/process-steps/process-steps.component';
 import { SegmentedControlComponent, SegmentedControlItem } from '../../shared/segmented-control/segmented-control.component';
+import { ScreenComponentInspectorComponent } from '../../shared/screen-component-inspector/screen-component-inspector.component';
+import { ScreenVisualCanvasComponent } from '../../shared/screen-visual-canvas/screen-visual-canvas.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
@@ -303,7 +307,9 @@ interface ScreenDraft {
     AdminFormGridComponent,
     AdminMetricCardComponent,
     AdminPanelComponent,
+    AppStructurePanelComponent,
     CatalogItemComponent,
+    ComponentPaletteComponent,
     DesignerCatalogPanelComponent,
     DesignerWorkspaceComponent,
     DynamicFieldControlComponent,
@@ -314,6 +320,8 @@ interface ScreenDraft {
     PreviewViewportComponent,
     ProcessStepsComponent,
     SegmentedControlComponent,
+    ScreenComponentInspectorComponent,
+    ScreenVisualCanvasComponent,
     StatusNoticeComponent,
     UiKitButtonComponent,
     WorkflowGuideComponent
@@ -408,87 +416,6 @@ interface ScreenDraft {
         gap: 8px;
       }
 
-      .region-map {
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr) minmax(0, 0.9fr);
-        gap: 12px;
-        align-items: stretch;
-      }
-
-      .region-column {
-        display: grid;
-        align-content: start;
-        gap: 9px;
-        min-width: 0;
-        border: 1px dashed var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface-alt);
-        padding: 10px;
-      }
-
-      .region-column.content {
-        min-height: 190px;
-      }
-
-      .region-column.actions {
-        grid-column: 1 / -1;
-      }
-
-      .region-column-title {
-        display: flex;
-        justify-content: space-between;
-        gap: 8px;
-        color: var(--ch-color-muted);
-        font-size: 0.74rem;
-        font-weight: 900;
-        text-transform: uppercase;
-      }
-
-      .region-node {
-        display: grid;
-        gap: 5px;
-        width: 100%;
-        min-height: 62px;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
-        color: var(--ch-color-text);
-        padding: 10px;
-        text-align: left;
-        font: inherit;
-      }
-
-      .region-node.active {
-        border-color: var(--ch-color-primary);
-        box-shadow: 0 0 0 2px var(--ch-color-primary-soft);
-      }
-
-      .region-node strong,
-      .region-node span {
-        display: block;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .region-node strong {
-        font-size: 0.84rem;
-      }
-
-      .region-node span {
-        color: var(--ch-color-muted);
-        font-size: 0.72rem;
-        line-height: 1.3;
-      }
-
-      .region-empty {
-        border: 1px dashed var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        color: var(--ch-color-muted);
-        padding: 10px;
-        font-size: 0.78rem;
-        line-height: 1.35;
-      }
-
       .section-divider {
         display: grid;
         gap: 5px;
@@ -509,41 +436,6 @@ interface ScreenDraft {
         color: var(--ch-color-muted);
         font-size: 0.86rem;
         line-height: 1.42;
-      }
-
-      .component-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) repeat(4, auto);
-        gap: 10px;
-        align-items: center;
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface-alt);
-        padding: 11px;
-      }
-
-      .component-row.active {
-        border-color: var(--ch-color-primary);
-        background: var(--ch-color-primary-soft);
-      }
-
-      .component-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 7px;
-      }
-
-      .component-row strong,
-      .component-row span {
-        display: block;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .component-row span {
-        color: var(--ch-color-muted);
-        font-size: 0.82rem;
       }
 
       .preview-screen {
@@ -802,81 +694,43 @@ interface ScreenDraft {
         line-height: 1.42;
       }
 
-      .component-preset-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+      .screen-builder {
+        display: grid;
+        grid-template-columns: minmax(210px, 0.72fr) minmax(360px, 1.8fr) minmax(260px, 0.88fr);
+        gap: 14px;
+        align-items: start;
+        min-width: 0;
       }
 
-      .component-editor-status {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 8px;
-        align-items: center;
+      .builder-left,
+      .builder-center,
+      .builder-right {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .builder-left,
+      .builder-right {
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface-alt);
-        padding: 10px 12px;
-      }
-
-      .component-editor-status strong,
-      .component-editor-status span {
-        display: block;
-      }
-
-      .component-editor-status span {
-        color: var(--ch-color-muted);
-        font-size: 0.82rem;
-      }
-
-      .component-inspector {
-        display: grid;
-        gap: 10px;
-        border: 1px solid var(--ch-color-border);
-        border-left: 3px solid var(--ch-color-primary);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface);
         padding: 12px;
       }
 
-      .component-inspector strong,
-      .component-inspector span {
-        display: block;
+      .builder-center {
+        align-content: start;
       }
 
-      .component-inspector span {
-        color: var(--ch-color-muted);
-        font-size: 0.82rem;
-        line-height: 1.4;
+      .builder-center app-segmented-control {
+        justify-self: end;
       }
 
-      .component-inspector-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      .inspector-actions {
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
-      }
-
-      .component-inspector-item {
-        border: 1px solid var(--ch-color-border);
-        border-radius: var(--ch-radius);
-        background: var(--ch-color-surface-alt);
-        padding: 8px 10px;
-      }
-
-      .component-inspector-item small {
-        display: block;
-        color: var(--ch-color-muted);
-        font-size: 0.7rem;
-        font-weight: 850;
-        text-transform: uppercase;
-      }
-
-      .component-inspector-item b {
-        display: block;
-        overflow-wrap: anywhere;
-        color: var(--ch-color-text);
-        font-size: 0.88rem;
+        align-items: center;
       }
 
       .package-hint {
@@ -914,21 +768,12 @@ interface ScreenDraft {
 
         .inline-actions app-ui-kit-button,
         .catalog-actions app-ui-kit-button,
-        .package-actions app-ui-kit-button,
-        .component-preset-actions app-ui-kit-button {
+        .package-actions app-ui-kit-button {
           flex: 1 1 auto;
         }
 
         .preview-app-bar {
           align-items: stretch;
-        }
-
-        .region-map {
-          grid-template-columns: 1fr;
-        }
-
-        .region-column.actions {
-          grid-column: auto;
         }
 
         .preview-app-menu {
@@ -945,6 +790,14 @@ interface ScreenDraft {
         .workspace-tabs {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .screen-builder {
+          grid-template-columns: 1fr;
+        }
+
+        .builder-center app-segmented-control {
+          justify-self: stretch;
         }
       }
     `
@@ -1206,315 +1059,123 @@ interface ScreenDraft {
               @if (workspaceTab() === 'screens') {
               <app-admin-panel
                 title="3. Componentes"
-                description="Agrega piezas reutilizables y define dónde viven, cuánto ocupan, qué datos consumen y qué acción disparan."
-                eyebrow="Composición"
+                description="Diseña la pantalla con una paleta de bloques, preview editable y propiedades del componente seleccionado."
+                eyebrow="Canvas visual"
               >
                 <div panel-actions class="inline-actions">
                   <app-ui-kit-button
-                    [label]="selectedComponent() ? 'Duplicar seleccionado' : 'Agregar componente'"
-                    icon="pi pi-plus"
+                    label="Guardar pantalla"
+                    icon="pi pi-save"
+                    tone="secondary"
+                    variant="outline"
+                    [disabled]="saving() || !screenDraftReady()"
+                    (pressed)="saveScreen(false)"
+                  ></app-ui-kit-button>
+                  <app-ui-kit-button
+                    label="Publicar pantalla"
+                    icon="pi pi-upload"
                     [disabled]="saving()"
-                    (pressed)="addComponent()"
+                    (pressed)="saveScreen(true)"
                   ></app-ui-kit-button>
                 </div>
 
-                <app-status-notice tone="info" title="Cómo se compone una pantalla">
+                <app-status-notice tone="info" title="Diseño guiado">
                   <span>
-                    Una pantalla se arma con piezas: menú, login, formularios, tablas, cards, botones de servicio o flows.
-                    Elige ubicación, ancho, binding de datos y acción. Tablet y móvil se reorganizan automáticamente.
+                    Selecciona una página, agrega bloques desde la paleta y haz clic sobre cualquier bloque del preview para ajustar
+                    ubicación, ancho, datos, acción y permisos.
                   </span>
                 </app-status-notice>
 
-                <div class="region-map" aria-label="Mapa visual de regiones de la pantalla">
-                  @for (region of previewRegions(); track region.key) {
-                    <section class="region-column" [class.content]="region.key === 'content'" [class.actions]="region.key === 'actions'">
-                      <div class="region-column-title">
-                        <span>{{ region.label }}</span>
-                        <span>{{ componentsForRegion(region.key).length }}</span>
-                      </div>
-                      @if (componentsForRegion(region.key).length) {
-                        @for (component of componentsForRegion(region.key); track component.id) {
-                          <button
-                            class="region-node"
-                            type="button"
-                            [class.active]="component.id === selectedComponentId()"
-                            (click)="selectComponentForEdit(component.id)"
-                          >
-                            <strong>{{ component.title }}</strong>
-                            <span>{{ component.componentKey }} · {{ widthLabel(component.width) }} · {{ bindingLabel(component.bindingType) }}</span>
-                          </button>
-                        }
-                      } @else {
-                        <div class="region-empty">{{ region.empty }}</div>
-                      }
-                    </section>
-                  }
-                </div>
+                <div class="screen-builder">
+                  <aside class="builder-left" aria-label="Estructura y bloques">
+                    <app-app-structure-panel
+                      [appName]="appDraft().name"
+                      [summary]="screens().length + ' páginas · ' + appDraft().targetsMode"
+                      [screens]="screens()"
+                      [selectedScreenId]="selectedScreenId()"
+                      (screenSelected)="selectScreenById($event)"
+                      (newScreen)="newScreen()"
+                    ></app-app-structure-panel>
 
-                <div class="component-preset-actions">
-                  <app-ui-kit-button
-                    label="Menú"
-                    icon="pi pi-bars"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('menu')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Menú lateral"
-                    icon="pi pi-list"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('side_menu')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Menú móvil"
-                    icon="pi pi-mobile"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('bottom_menu')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Tabs"
-                    icon="pi pi-th-large"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('tabs_nav')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Login estándar"
-                    icon="pi pi-shield"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('login')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Formulario"
-                    icon="pi pi-pencil"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('form')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Tabla"
-                    icon="pi pi-table"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('table')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Acción"
-                    icon="pi pi-bolt"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('service')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Flow"
-                    icon="pi pi-play"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('flow')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Dashboard"
-                    icon="pi pi-chart-bar"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('dashboard')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="CRUD"
-                    icon="pi pi-database"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('crud')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Galería"
-                    icon="pi pi-images"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('gallery')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Modal"
-                    icon="pi pi-window-maximize"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('modal')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Mapa"
-                    icon="pi pi-map"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('map')"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Timeline"
-                    icon="pi pi-history"
-                    tone="secondary"
-                    variant="outline"
-                    size="small"
-                    [disabled]="saving()"
-                    (pressed)="addPresetComponent('timeline')"
-                  ></app-ui-kit-button>
-                </div>
+                    <app-component-palette
+                      title="Bloques disponibles"
+                      description="Agrega navegación, login, formularios, tablas, acciones y vistas de negocio."
+                      [items]="componentPaletteItems"
+                      (selected)="addPresetFromPalette($event)"
+                    ></app-component-palette>
+                  </aside>
 
-                <div class="component-editor-status">
-                  <div>
-                    <strong>{{ selectedComponent() ? 'Editando componente' : 'Nuevo componente' }}</strong>
-                    <span>
-                      {{
-                        selectedComponent()
-                          ? 'Los cambios se aplican al componente seleccionado y actualizan el JSON.'
-                          : 'Configura una pieza y agrégala al mapa de regiones.'
-                      }}
-                    </span>
-                  </div>
-                  @if (selectedComponent()) {
-                    <div class="inline-actions">
+                  <main class="builder-center" aria-label="Preview editable">
+                    <app-segmented-control
+                      [items]="previewModeItems"
+                      [value]="viewport()"
+                      ariaLabel="Modo de preview"
+                      (valueChange)="setViewport($event)"
+                    ></app-segmented-control>
+
+                    <app-screen-visual-canvas
+                      [appName]="appDraft().name"
+                      [targetLabel]="previewRuntimeSummary()"
+                      [route]="screenDraft().route"
+                      [screenTitle]="screenDraft().title"
+                      [screenDescription]="screenDraft().description"
+                      [viewport]="viewport()"
+                      [components]="screenDraft().components"
+                      [selectedId]="selectedComponentId()"
+                      [navigationItems]="previewNavigationItems()"
+                      (selected)="selectComponentForEdit($event)"
+                      (moved)="moveComponent($event.id, $event.direction)"
+                    ></app-screen-visual-canvas>
+                  </main>
+
+                  <aside class="builder-right" aria-label="Propiedades del componente">
+                    <app-screen-component-inspector
+                      [component]="selectedComponent()"
+                      [summary]="selectedComponentSummary()"
+                    ></app-screen-component-inspector>
+
+                    <div class="inspector-actions">
                       <app-ui-kit-button
-                        label="Duplicar"
+                        [label]="selectedComponent() ? 'Duplicar' : 'Agregar configurado'"
                         icon="pi pi-copy"
                         tone="secondary"
                         variant="outline"
                         size="small"
-                        (pressed)="duplicateSelectedComponent()"
+                        [disabled]="saving()"
+                        (pressed)="selectedComponent() ? duplicateSelectedComponent() : addComponent()"
                       ></app-ui-kit-button>
-                      <app-ui-kit-button
-                        label="Cerrar edición"
-                        icon="pi pi-times"
-                        tone="secondary"
-                        variant="outline"
-                        size="small"
-                        (pressed)="clearComponentSelection()"
-                      ></app-ui-kit-button>
+                      @if (selectedComponent()) {
+                        <app-ui-kit-button
+                          label="Quitar"
+                          icon="pi pi-times"
+                          tone="danger"
+                          variant="outline"
+                          size="small"
+                          [disabled]="saving()"
+                          (pressed)="removeSelectedComponent()"
+                        ></app-ui-kit-button>
+                        <app-ui-kit-button
+                          label="Cerrar"
+                          icon="pi pi-check"
+                          tone="secondary"
+                          variant="ghost"
+                          size="small"
+                          [disabled]="saving()"
+                          (pressed)="clearComponentSelection()"
+                        ></app-ui-kit-button>
+                      }
                     </div>
-                  }
-                </div>
 
-                <app-admin-form-grid minColumnWidth="210px">
-                  @for (field of componentFields(); track field.name) {
-                    <app-dynamic-field-control
-                      [field]="field"
-                      [value]="componentFieldValue(field.name)"
-                      (valueChange)="setComponentField(field.name, $event)"
-                    ></app-dynamic-field-control>
-                  }
-                </app-admin-form-grid>
-
-                @if (selectedComponent(); as component) {
-                  <div class="component-inspector">
-                    <div>
-                      <strong>Inspector de componente</strong>
-                      <span>{{ componentSummary(component) }}</span>
-                    </div>
-                    <div class="component-inspector-grid">
-                      <div class="component-inspector-item">
-                        <small>Ubicación</small>
-                        <b>{{ component.region }} · {{ widthLabel(component.width) }}</b>
-                      </div>
-                      <div class="component-inspector-item">
-                        <small>Datos</small>
-                        <b>{{ bindingLabel(component.bindingType) }} {{ component.bindingKey || 'sin key' }}</b>
-                      </div>
-                      <div class="component-inspector-item">
-                        <small>Acción</small>
-                        <b>{{ actionLabel(component.actionType) }} {{ component.actionTarget || '' }}</b>
-                      </div>
-                      <div class="component-inspector-item">
-                        <small>Permiso</small>
-                        <b>{{ component.permission || 'sin permiso propio' }}</b>
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                <div class="component-list">
-                  @if (screenDraft().components.length === 0) {
-                    <app-status-notice tone="info" title="Pantalla lista para componer">
-                      <span>Agrega un header, una tabla, un formulario, un botón de servicio o un botón de flow.</span>
-                    </app-status-notice>
-                  }
-
-                  @for (component of screenDraft().components; track component.id) {
-                    <div class="component-row" [class.active]="component.id === selectedComponentId()">
-                      <div>
-                        <strong>{{ component.title }}</strong>
-                        <span>{{ component.componentKey }} · {{ component.region }} · {{ component.bindingKey || 'sin binding' }}</span>
-                        <div class="component-meta">
-                          <span class="chip">{{ widthLabel(component.width) }}</span>
-                          <span class="chip">{{ chromeLabel(component.chrome) }}</span>
-                          <span class="chip">{{ bindingLabel(component.bindingType) }}</span>
-                          <span class="chip">{{ actionLabel(component.actionType) }}</span>
-                          @if (component.permission) {
-                            <span class="chip">{{ component.permission }}</span>
-                          }
-                        </div>
-                      </div>
-                      <app-ui-kit-button
-                        label="Editar"
-                        icon="pi pi-pencil"
-                        tone="secondary"
-                        variant="ghost"
-                        size="small"
-                        (pressed)="selectComponentForEdit(component.id)"
-                      ></app-ui-kit-button>
-                      <app-ui-kit-button
-                        label="Subir"
-                        icon="pi pi-arrow-up"
-                        tone="secondary"
-                        variant="ghost"
-                        size="small"
-                        (pressed)="moveComponent(component.id, -1)"
-                      ></app-ui-kit-button>
-                      <app-ui-kit-button
-                        label="Bajar"
-                        icon="pi pi-arrow-down"
-                        tone="secondary"
-                        variant="ghost"
-                        size="small"
-                        (pressed)="moveComponent(component.id, 1)"
-                      ></app-ui-kit-button>
-                      <app-ui-kit-button
-                        label="Quitar"
-                        icon="pi pi-times"
-                        tone="danger"
-                        variant="ghost"
-                        size="small"
-                        (pressed)="removeComponent(component.id)"
-                      ></app-ui-kit-button>
-                    </div>
-                  }
+                    <app-admin-form-grid minColumnWidth="180px">
+                      @for (field of componentFields(); track field.name) {
+                        <app-dynamic-field-control
+                          [field]="field"
+                          [value]="componentFieldValue(field.name)"
+                          (valueChange)="setComponentField(field.name, $event)"
+                        ></app-dynamic-field-control>
+                      }
+                    </app-admin-form-grid>
+                  </aside>
                 </div>
               </app-admin-panel>
               }
@@ -1939,6 +1600,146 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     }
   ]);
 
+  private readonly screenComponentPresetKeys: readonly ScreenComponentPreset[] = [
+    'menu',
+    'side_menu',
+    'bottom_menu',
+    'tabs_nav',
+    'login',
+    'form',
+    'table',
+    'service',
+    'flow',
+    'dashboard',
+    'crud',
+    'gallery',
+    'modal',
+    'profile',
+    'map',
+    'timeline'
+  ];
+
+  readonly previewModeItems: SegmentedControlItem[] = [
+    { key: 'desktop', label: 'Escritorio', icon: 'pi pi-desktop' },
+    { key: 'tablet', label: 'Tablet', icon: 'pi pi-tablet' },
+    { key: 'mobile', label: 'Móvil', icon: 'pi pi-mobile' }
+  ];
+
+  readonly componentPaletteItems: ComponentPaletteItem[] = [
+    {
+      key: 'menu',
+      label: 'Menú principal',
+      description: 'Navegación superior conectada a las rutas visibles de la app.',
+      icon: 'pi pi-bars',
+      group: 'Navegación'
+    },
+    {
+      key: 'side_menu',
+      label: 'Menú lateral',
+      description: 'Panel lateral para apps web o desktop con muchas secciones.',
+      icon: 'pi pi-list',
+      group: 'Navegación'
+    },
+    {
+      key: 'bottom_menu',
+      label: 'Menú móvil',
+      description: 'Navegación inferior pensada para experiencia Ionic móvil.',
+      icon: 'pi pi-mobile',
+      group: 'Navegación'
+    },
+    {
+      key: 'tabs_nav',
+      label: 'Tabs',
+      description: 'Agrupa vistas relacionadas dentro de una misma pantalla.',
+      icon: 'pi pi-clone',
+      group: 'Navegación'
+    },
+    {
+      key: 'login',
+      label: 'Login estándar',
+      description: 'Formulario de ingreso conectado a Auth y preparado para permisos.',
+      icon: 'pi pi-lock',
+      group: 'Seguridad'
+    },
+    {
+      key: 'form',
+      label: 'Formulario dinámico',
+      description: 'Renderiza un Dynamic Form publicado y permite enviar datos.',
+      icon: 'pi pi-file-edit',
+      group: 'Datos'
+    },
+    {
+      key: 'table',
+      label: 'Tabla/listado',
+      description: 'Lista registros desde un servicio dinámico o tabla controlada.',
+      icon: 'pi pi-table',
+      group: 'Datos'
+    },
+    {
+      key: 'crud',
+      label: 'CRUD',
+      description: 'Listado principal con acción de detalle o edición.',
+      icon: 'pi pi-pencil',
+      group: 'Datos'
+    },
+    {
+      key: 'service',
+      label: 'Botón servicio',
+      description: 'Dispara un Dynamic Service publicado desde la pantalla.',
+      icon: 'pi pi-bolt',
+      group: 'Acción'
+    },
+    {
+      key: 'flow',
+      label: 'Botón flow',
+      description: 'Ejecuta un proceso declarativo y espera su respuesta.',
+      icon: 'pi pi-sitemap',
+      group: 'Acción'
+    },
+    {
+      key: 'dashboard',
+      label: 'Resumen',
+      description: 'Métricas o indicadores conectados a una fuente de datos.',
+      icon: 'pi pi-chart-bar',
+      group: 'Visual'
+    },
+    {
+      key: 'gallery',
+      label: 'Galería',
+      description: 'Imágenes, evidencias o archivos asociados a registros.',
+      icon: 'pi pi-images',
+      group: 'Visual'
+    },
+    {
+      key: 'map',
+      label: 'Mapa',
+      description: 'Ubicación, GPS o puntos de operación.',
+      icon: 'pi pi-map-marker',
+      group: 'Visual'
+    },
+    {
+      key: 'timeline',
+      label: 'Timeline',
+      description: 'Historial de eventos, auditoría o actividad.',
+      icon: 'pi pi-clock',
+      group: 'Visual'
+    },
+    {
+      key: 'modal',
+      label: 'Modal',
+      description: 'Contenedor reutilizable para detalle, formulario o confirmación.',
+      icon: 'pi pi-window-maximize',
+      group: 'Composición'
+    },
+    {
+      key: 'profile',
+      label: 'Perfil/card',
+      description: 'Card de entidad, usuario, cliente o registro principal.',
+      icon: 'pi pi-id-card',
+      group: 'Composición'
+    }
+  ];
+
   readonly guide = computed(() => {
     const appReady = this.appDraftReady();
     const screenReady = this.screenDraftReady();
@@ -2189,6 +1990,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncPackageJson();
   }
 
+  selectScreenById(id: string) {
+    const screen = this.screens().find((item) => item.id === id);
+    if (screen) {
+      this.selectScreen(screen);
+    }
+  }
+
   newApp() {
     this.runtimeRouteJson.set('');
     this.selectedComponentId.set(null);
@@ -2247,6 +2055,12 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       if (tab === 'publish' && this.jsonTarget() !== 'package') {
         this.jsonTarget.set(this.selectedScreen() || this.screenDraftReady() ? 'screen' : 'app');
       }
+    }
+  }
+
+  setViewport(value: string) {
+    if (value === 'desktop' || value === 'tablet' || value === 'mobile') {
+      this.viewport.set(value);
     }
   }
 
@@ -2446,6 +2260,11 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.selectedComponentId.set(id);
   }
 
+  selectedComponentSummary() {
+    const selected = this.selectedComponent();
+    return selected ? this.componentSummary(selected) : '';
+  }
+
   clearComponentSelection() {
     this.selectedComponentId.set(null);
     const defaults = this.componentDefaults(this.screenDraft().componentKey || 'entity_card');
@@ -2480,6 +2299,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncScreenJson();
     this.syncPackageJson();
     this.message.set('Componente duplicado. Ajusta región, ancho, binding o acción si aplica.');
+  }
+
+  removeSelectedComponent() {
+    const selected = this.selectedComponent();
+    if (selected) {
+      this.removeComponent(selected.id);
+    }
   }
 
   private componentDraftKeyFromField(name: string): keyof ScreenComponentDraft | null {
@@ -2570,6 +2396,18 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncScreenJson();
     this.syncPackageJson();
     this.message.set('Componente agregado al contrato de pantalla.');
+  }
+
+  addPresetFromPalette(preset: string) {
+    if (!this.isScreenComponentPreset(preset)) {
+      this.error.set(`El bloque ${preset} no está registrado como preset de pantalla.`);
+      return;
+    }
+    this.addPresetComponent(preset);
+  }
+
+  private isScreenComponentPreset(preset: string): preset is ScreenComponentPreset {
+    return this.screenComponentPresetKeys.includes(preset as ScreenComponentPreset);
   }
 
   addPresetComponent(preset: ScreenComponentPreset) {

@@ -30,7 +30,7 @@ export interface ScreenInspectorComponent {
 
       .inspector {
         display: grid;
-        gap: 11px;
+        gap: 12px;
         min-width: 0;
         border: 1px solid var(--ch-color-border);
         border-left: 3px solid var(--ch-color-primary);
@@ -54,6 +54,25 @@ export interface ScreenInspectorComponent {
       .copy {
         display: grid;
         gap: 4px;
+      }
+
+      .inspector-title {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        min-width: 0;
+      }
+
+      .inspector-icon {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
       }
 
       .copy strong,
@@ -108,14 +127,48 @@ export interface ScreenInspectorComponent {
         color: var(--ch-color-text);
         font-size: 0.82rem;
       }
+
+      .guide {
+        display: grid;
+        gap: 7px;
+        border: 1px dashed var(--ch-color-border);
+        border-radius: var(--ch-radius-sm);
+        background: var(--ch-color-surface-alt);
+        padding: 10px;
+      }
+
+      .guide-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        color: var(--ch-color-muted);
+        font-size: 0.78rem;
+        line-height: 1.34;
+      }
+
+      .guide-step b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
+        font-size: 0.7rem;
+      }
     `
   ],
   template: `
     <section class="inspector" aria-label="Inspector de componente">
       @if (component) {
-        <div class="copy">
-          <strong>{{ component.title }}</strong>
-          <span>{{ summary || 'Edita el bloque seleccionado desde sus propiedades.' }}</span>
+        <div class="inspector-title">
+          <span class="inspector-icon"><i class="pi pi-sliders-h" aria-hidden="true"></i></span>
+          <div class="copy">
+            <strong>{{ component.title }}</strong>
+            <span>{{ summary || 'Edita el bloque seleccionado desde sus propiedades.' }}</span>
+          </div>
         </div>
         <div class="grid">
           <div class="item">
@@ -140,9 +193,17 @@ export interface ScreenInspectorComponent {
           </div>
         </div>
       } @else {
-        <div class="copy">
-          <strong>Selecciona un bloque</strong>
-          <span>Haz clic sobre un componente del preview para editar sus propiedades, datos, acción y permisos.</span>
+        <div class="inspector-title">
+          <span class="inspector-icon"><i class="pi pi-mouse" aria-hidden="true"></i></span>
+          <div class="copy">
+            <strong>Selecciona un bloque</strong>
+            <span>El inspector aparece aquí cuando eliges un componente del canvas.</span>
+          </div>
+        </div>
+        <div class="guide">
+          <span class="guide-step"><b>1</b><span>Arrastra un bloque desde la paleta.</span></span>
+          <span class="guide-step"><b>2</b><span>Haz clic sobre el bloque en el canvas.</span></span>
+          <span class="guide-step"><b>3</b><span>Configura recurso, acción, ancho, permiso y estilo.</span></span>
         </div>
       }
     </section>

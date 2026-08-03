@@ -24,6 +24,7 @@ import { ScreenComponentInspectorComponent } from '../../shared/screen-component
 import { ScreenVisualCanvasComponent } from '../../shared/screen-visual-canvas/screen-visual-canvas.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
+import { VisualWorkbenchPanelComponent } from '../../shared/visual-workbench-panel/visual-workbench-panel.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
 import {
   AiAssistantService,
@@ -324,13 +325,14 @@ interface ScreenDraft {
     ScreenVisualCanvasComponent,
     StatusNoticeComponent,
     UiKitButtonComponent,
+    VisualWorkbenchPanelComponent,
     WorkflowGuideComponent
   ],
   styles: [
     `
       .shell {
         display: grid;
-        gap: 18px;
+        gap: 14px;
       }
 
       .catalog-actions,
@@ -349,7 +351,7 @@ interface ScreenDraft {
 
       .workspace-grid {
         display: grid;
-        gap: 16px;
+        gap: 12px;
         min-width: 0;
       }
 
@@ -694,9 +696,108 @@ interface ScreenDraft {
         line-height: 1.42;
       }
 
+      app-designer-workspace.app-studio-workspace {
+        grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
+      }
+
+      .workbench-launch {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        min-width: 0;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 14px;
+      }
+
+      .workbench-launch-copy {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .workbench-launch-copy strong,
+      .workbench-launch-copy span {
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .workbench-launch-copy strong {
+        color: var(--ch-color-text);
+        font-size: 1rem;
+      }
+
+      .workbench-launch-copy span {
+        color: var(--ch-color-muted);
+        font-size: 0.86rem;
+        line-height: 1.42;
+      }
+
+      .workbench-launch-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .workbench-launch-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .workbench-designer-body {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .studio-help-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--ch-color-border);
+        border-left: 3px solid var(--ch-color-primary);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
+        padding: 10px 12px;
+      }
+
+      .studio-help-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 28px;
+        border: 1px solid color-mix(in srgb, var(--ch-color-primary-border) 70%, transparent);
+        border-radius: 999px;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-muted);
+        padding: 4px 10px;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .studio-help-step b {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 19px;
+        height: 19px;
+        border-radius: 999px;
+        background: var(--ch-color-primary);
+        color: var(--ch-color-on-primary);
+        font-size: 0.68rem;
+      }
+
       .screen-builder {
         display: grid;
-        grid-template-columns: minmax(210px, 0.72fr) minmax(360px, 1.8fr) minmax(260px, 0.88fr);
+        grid-template-columns: minmax(250px, 310px) minmax(520px, 1fr) minmax(280px, 360px);
         gap: 14px;
         align-items: start;
         min-width: 0;
@@ -706,7 +807,7 @@ interface ScreenDraft {
       .builder-center,
       .builder-right {
         display: grid;
-        gap: 12px;
+        gap: 10px;
         min-width: 0;
       }
 
@@ -715,15 +816,62 @@ interface ScreenDraft {
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface-alt);
-        padding: 12px;
+        padding: 10px;
+      }
+
+      .builder-left {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        max-height: calc(100dvh - 182px);
+        overflow: auto;
       }
 
       .builder-center {
         align-content: start;
       }
 
-      .builder-center app-segmented-control {
-        justify-self: end;
+      .builder-right {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        max-height: calc(100dvh - 182px);
+        overflow: auto;
+      }
+
+      .canvas-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 0;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 10px 12px;
+      }
+
+      .canvas-toolbar-copy {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .canvas-toolbar-copy strong,
+      .canvas-toolbar-copy span {
+        display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .canvas-toolbar-copy strong {
+        color: var(--ch-color-text);
+        font-size: 0.94rem;
+      }
+
+      .canvas-toolbar-copy span {
+        color: var(--ch-color-muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
       }
 
       .inspector-actions {
@@ -762,6 +910,10 @@ interface ScreenDraft {
       }
 
       @media (max-width: 760px) {
+        app-designer-workspace.app-studio-workspace {
+          grid-template-columns: 1fr;
+        }
+
         .inline-actions {
           justify-content: stretch;
         }
@@ -792,12 +944,33 @@ interface ScreenDraft {
           flex-direction: column;
         }
 
-        .screen-builder {
+        .builder-left,
+        .builder-right,
+        .screen-builder,
+        .workbench-launch {
           grid-template-columns: 1fr;
         }
 
-        .builder-center app-segmented-control {
-          justify-self: stretch;
+        .builder-left,
+        .builder-right {
+          max-height: none;
+        }
+
+        .canvas-toolbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+
+      @media (min-width: 761px) and (max-width: 1180px) {
+        app-designer-workspace.app-studio-workspace {
+          grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+        }
+
+        .builder-left,
+        .builder-right,
+        .screen-builder {
+          grid-template-columns: 1fr;
         }
       }
     `
@@ -849,7 +1022,7 @@ interface ScreenDraft {
           </app-status-notice>
         }
 
-        <app-designer-workspace>
+        <app-designer-workspace class="app-studio-workspace">
           <app-designer-catalog-panel
             designer-navigation
             title="Apps"
@@ -1064,119 +1237,180 @@ interface ScreenDraft {
               >
                 <div panel-actions class="inline-actions">
                   <app-ui-kit-button
-                    label="Guardar pantalla"
-                    icon="pi pi-save"
-                    tone="secondary"
-                    variant="outline"
-                    [disabled]="saving() || !screenDraftReady()"
-                    (pressed)="saveScreen(false)"
-                  ></app-ui-kit-button>
-                  <app-ui-kit-button
-                    label="Publicar pantalla"
-                    icon="pi pi-upload"
-                    [disabled]="saving()"
-                    (pressed)="saveScreen(true)"
+                    [label]="selectedApp() ? 'Abrir canvas' : 'Abrir borrador visual'"
+                    icon="pi pi-window-maximize"
+                    (pressed)="visualWorkbenchOpen.set(true)"
                   ></app-ui-kit-button>
                 </div>
 
-                <app-status-notice tone="info" title="Diseño guiado">
-                  <span>
-                    Selecciona una página, agrega bloques desde la paleta y haz clic sobre cualquier bloque del preview para ajustar
-                    ubicación, ancho, datos, acción y permisos.
-                  </span>
-                </app-status-notice>
-
-                <div class="screen-builder">
-                  <aside class="builder-left" aria-label="Estructura y bloques">
-                    <app-app-structure-panel
-                      [appName]="appDraft().name"
-                      [summary]="screens().length + ' páginas · ' + appDraft().targetsMode"
-                      [screens]="screens()"
-                      [selectedScreenId]="selectedScreenId()"
-                      (screenSelected)="selectScreenById($event)"
-                      (newScreen)="newScreen()"
-                    ></app-app-structure-panel>
-
-                    <app-component-palette
-                      title="Bloques disponibles"
-                      description="Agrega navegación, login, formularios, tablas, acciones y vistas de negocio."
-                      [items]="componentPaletteItems"
-                      (selected)="addPresetFromPalette($event)"
-                    ></app-component-palette>
-                  </aside>
-
-                  <main class="builder-center" aria-label="Preview editable">
-                    <app-segmented-control
-                      [items]="previewModeItems"
-                      [value]="viewport()"
-                      ariaLabel="Modo de preview"
-                      (valueChange)="setViewport($event)"
-                    ></app-segmented-control>
-
-                    <app-screen-visual-canvas
-                      [appName]="appDraft().name"
-                      [targetLabel]="previewRuntimeSummary()"
-                      [route]="screenDraft().route"
-                      [screenTitle]="screenDraft().title"
-                      [screenDescription]="screenDraft().description"
-                      [viewport]="viewport()"
-                      [components]="screenDraft().components"
-                      [selectedId]="selectedComponentId()"
-                      [navigationItems]="previewNavigationItems()"
-                      (selected)="selectComponentForEdit($event)"
-                      (moved)="moveComponent($event.id, $event.direction)"
-                    ></app-screen-visual-canvas>
-                  </main>
-
-                  <aside class="builder-right" aria-label="Propiedades del componente">
-                    <app-screen-component-inspector
-                      [component]="selectedComponent()"
-                      [summary]="selectedComponentSummary()"
-                    ></app-screen-component-inspector>
-
-                    <div class="inspector-actions">
-                      <app-ui-kit-button
-                        [label]="selectedComponent() ? 'Duplicar' : 'Agregar configurado'"
-                        icon="pi pi-copy"
-                        tone="secondary"
-                        variant="outline"
-                        size="small"
-                        [disabled]="saving()"
-                        (pressed)="selectedComponent() ? duplicateSelectedComponent() : addComponent()"
-                      ></app-ui-kit-button>
-                      @if (selectedComponent()) {
-                        <app-ui-kit-button
-                          label="Quitar"
-                          icon="pi pi-times"
-                          tone="danger"
-                          variant="outline"
-                          size="small"
-                          [disabled]="saving()"
-                          (pressed)="removeSelectedComponent()"
-                        ></app-ui-kit-button>
-                        <app-ui-kit-button
-                          label="Cerrar"
-                          icon="pi pi-check"
-                          tone="secondary"
-                          variant="ghost"
-                          size="small"
-                          [disabled]="saving()"
-                          (pressed)="clearComponentSelection()"
-                        ></app-ui-kit-button>
+                <div class="workbench-launch">
+                  <div class="workbench-launch-copy">
+                    <strong>Canvas visual administrable</strong>
+                    <span>
+                      Abre una mesa de trabajo superpuesta para organizar regiones, bloques, bindings,
+                      acciones, permisos y preview sin romper la navegación estándar del Admin.
+                    </span>
+                    <div class="workbench-launch-meta">
+                      <span class="chip">{{ screenDraft().components.length }} bloques</span>
+                      <span class="chip">{{ viewport() }}</span>
+                      <span class="chip">{{ screenDraft().route || '/inicio' }}</span>
+                      @if (!selectedApp()) {
+                        <span class="chip">borrador local</span>
                       }
                     </div>
-
-                    <app-admin-form-grid minColumnWidth="180px">
-                      @for (field of componentFields(); track field.name) {
-                        <app-dynamic-field-control
-                          [field]="field"
-                          [value]="componentFieldValue(field.name)"
-                          (valueChange)="setComponentField(field.name, $event)"
-                        ></app-dynamic-field-control>
-                      }
-                    </app-admin-form-grid>
-                  </aside>
+                  </div>
+                  <div class="workbench-launch-actions">
+                    <app-ui-kit-button
+                      [label]="selectedApp() ? 'Abrir mesa de trabajo' : 'Abrir borrador visual'"
+                      icon="pi pi-window-maximize"
+                      (pressed)="visualWorkbenchOpen.set(true)"
+                    ></app-ui-kit-button>
+                  </div>
                 </div>
+
+                <app-visual-workbench-panel
+                  [open]="visualWorkbenchOpen()"
+                  eyebrow="App Studio"
+                  title="Canvas visual de pantalla"
+                  [description]="(screenDraft().title || 'Pantalla sin título') + ' · ' + (screenDraft().route || '/inicio')"
+                  (closed)="visualWorkbenchOpen.set(false)"
+                >
+                  <div workbench-actions class="inline-actions">
+                    <app-ui-kit-button
+                      label="Guardar pantalla"
+                      icon="pi pi-save"
+                      tone="secondary"
+                      variant="outline"
+                      size="small"
+                      [disabled]="saving() || !selectedApp() || !screenDraftReady()"
+                      (pressed)="saveScreen(false)"
+                    ></app-ui-kit-button>
+                    <app-ui-kit-button
+                      label="Publicar pantalla"
+                      icon="pi pi-upload"
+                      size="small"
+                      [disabled]="saving() || !selectedApp()"
+                      (pressed)="saveScreen(true)"
+                    ></app-ui-kit-button>
+                  </div>
+
+                  <div class="workbench-designer-body">
+                    @if (!selectedApp()) {
+                      <app-status-notice tone="warning" title="Borrador visual local">
+                        <span>
+                          Puedes abrir el canvas y diseñar la pantalla. Para guardar o publicar,
+                          primero guarda la app en el paso App.
+                        </span>
+                      </app-status-notice>
+                    }
+
+                    <div class="studio-help-strip" aria-label="Flujo recomendado del diseñador">
+                      <span class="studio-help-step"><b>1</b>Elige página</span>
+                      <span class="studio-help-step"><b>2</b>Arrastra bloque</span>
+                      <span class="studio-help-step"><b>3</b>Configura datos y acción</span>
+                      <span class="studio-help-step"><b>4</b>Prueba y publica</span>
+                    </div>
+
+                    <div class="screen-builder">
+                      <aside class="builder-left" aria-label="Estructura y bloques">
+                        <app-app-structure-panel
+                          [appName]="appDraft().name"
+                          [summary]="screens().length + ' páginas · ' + appDraft().targetsMode"
+                          [screens]="screens()"
+                          [selectedScreenId]="selectedScreenId()"
+                          (screenSelected)="selectScreenById($event)"
+                          (newScreen)="newScreen()"
+                        ></app-app-structure-panel>
+
+                        <app-component-palette
+                          title="Bloques disponibles"
+                          description="Agrega navegación, login, formularios, tablas, acciones y vistas de negocio."
+                          [items]="componentPaletteItems"
+                          (selected)="addPresetFromPalette($event)"
+                        ></app-component-palette>
+                      </aside>
+
+                      <main class="builder-center" aria-label="Preview editable">
+                        <div class="canvas-toolbar">
+                          <div class="canvas-toolbar-copy">
+                            <strong>Preview editable</strong>
+                            <span>Arrastra bloques, selecciona uno y ajusta su comportamiento en el inspector.</span>
+                          </div>
+                          <app-segmented-control
+                            [items]="previewModeItems"
+                            [value]="viewport()"
+                            ariaLabel="Modo de preview"
+                            (valueChange)="setViewport($event)"
+                          ></app-segmented-control>
+                        </div>
+
+                        <app-screen-visual-canvas
+                          [appName]="appDraft().name"
+                          [targetLabel]="previewRuntimeSummary()"
+                          [route]="screenDraft().route"
+                          [screenTitle]="screenDraft().title"
+                          [screenDescription]="screenDraft().description"
+                          [viewport]="viewport()"
+                          [components]="screenDraft().components"
+                          [selectedId]="selectedComponentId()"
+                          [navigationItems]="previewNavigationItems()"
+                          (selected)="selectComponentForEdit($event)"
+                          (moved)="moveComponent($event.id, $event.direction)"
+                          (regionDropped)="addPresetToRegion($event.key, $event.region)"
+                        ></app-screen-visual-canvas>
+                      </main>
+
+                      <aside class="builder-right" aria-label="Propiedades del componente">
+                        <app-screen-component-inspector
+                          [component]="selectedComponent()"
+                          [summary]="selectedComponentSummary()"
+                        ></app-screen-component-inspector>
+
+                        <div class="inspector-actions">
+                          <app-ui-kit-button
+                            [label]="selectedComponent() ? 'Duplicar' : 'Agregar configurado'"
+                            icon="pi pi-copy"
+                            tone="secondary"
+                            variant="outline"
+                            size="small"
+                            [disabled]="saving()"
+                            (pressed)="selectedComponent() ? duplicateSelectedComponent() : addComponent()"
+                          ></app-ui-kit-button>
+                          @if (selectedComponent()) {
+                            <app-ui-kit-button
+                              label="Quitar"
+                              icon="pi pi-times"
+                              tone="danger"
+                              variant="outline"
+                              size="small"
+                              [disabled]="saving()"
+                              (pressed)="removeSelectedComponent()"
+                            ></app-ui-kit-button>
+                            <app-ui-kit-button
+                              label="Cerrar"
+                              icon="pi pi-check"
+                              tone="secondary"
+                              variant="ghost"
+                              size="small"
+                              [disabled]="saving()"
+                              (pressed)="clearComponentSelection()"
+                            ></app-ui-kit-button>
+                          }
+                        </div>
+
+                        <app-admin-form-grid minColumnWidth="180px">
+                          @for (field of componentFields(); track field.name) {
+                            <app-dynamic-field-control
+                              [field]="field"
+                              [value]="componentFieldValue(field.name)"
+                              (valueChange)="setComponentField(field.name, $event)"
+                            ></app-dynamic-field-control>
+                          }
+                        </app-admin-form-grid>
+                      </aside>
+                    </div>
+                  </div>
+                </app-visual-workbench-panel>
               </app-admin-panel>
               }
 
@@ -1515,6 +1749,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   readonly runtimeTesting = signal(false);
   readonly message = signal('');
   readonly error = signal('');
+  readonly visualWorkbenchOpen = signal(false);
 
   readonly appDraft = signal<AppDraft>(this.defaultAppDraft());
   readonly screenDraft = signal<ScreenDraft>(this.defaultScreenDraft());
@@ -2406,11 +2641,19 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.addPresetComponent(preset);
   }
 
+  addPresetToRegion(preset: string, region: string) {
+    if (!this.isScreenComponentPreset(preset)) {
+      this.error.set(`El bloque ${preset} no está registrado como preset de pantalla.`);
+      return;
+    }
+    this.addPresetComponent(preset, region);
+  }
+
   private isScreenComponentPreset(preset: string): preset is ScreenComponentPreset {
     return this.screenComponentPresetKeys.includes(preset as ScreenComponentPreset);
   }
 
-  addPresetComponent(preset: ScreenComponentPreset) {
+  addPresetComponent(preset: ScreenComponentPreset, regionOverride?: string) {
     const presets: Record<ScreenComponentPreset, Partial<ScreenComponentDraft>> = {
       menu: {
         componentKey: 'nav_menu',
@@ -2607,11 +2850,12 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     };
     const config = presets[preset];
     const componentKey = config.componentKey ?? 'entity_card';
+    const region = this.canvasRegionValue(regionOverride ?? config.region ?? 'content');
     const component: ScreenComponentDraft = {
       id: `${componentKey}_${Date.now().toString(36)}`,
       componentKey,
       title: config.title ?? this.componentLabel(componentKey),
-      region: config.region ?? 'content',
+      region,
       bindingType: config.bindingType ?? 'none',
       bindingKey: config.bindingKey ?? '',
       width: config.width ?? 'auto',
@@ -2626,7 +2870,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       ...current,
       componentKey: component.componentKey,
       componentTitle: '',
-      componentRegion: component.region,
+      componentRegion: region,
       componentBindingType: component.bindingType,
       componentBindingKey: '',
       componentWidth: component.width,
@@ -2641,6 +2885,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     this.syncScreenJson();
     this.syncPackageJson();
     this.message.set(`${component.title} agregado al preview de la pantalla.`);
+  }
+
+  private canvasRegionValue(region: string) {
+    if (['header', 'content', 'actions', 'aside'].includes(region)) {
+      return region;
+    }
+    return 'content';
   }
 
   removeComponent(id: string) {

@@ -144,6 +144,18 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
       '<app-screen-visual-canvas [components]="components" [selectedId]="selectedId" (selected)="select($event)"></app-screen-visual-canvas>'
   },
   {
+    name: 'VisualWorkbenchPanelComponent',
+    selector: 'app-visual-workbench-panel',
+    category: 'Diseñadores',
+    purpose:
+      'Panel superpuesto de trabajo visual para abrir canvases, previews administrables e inspectores sin romper el layout estándar de la página.',
+    importPath: 'shared/visual-workbench-panel/visual-workbench-panel.component',
+    usedBy: ['Apps', 'Future screen designer', 'Future component designer'],
+    status: 'initial',
+    example:
+      '<app-visual-workbench-panel [open]="open" title="Canvas visual" (closed)="open = false">...</app-visual-workbench-panel>'
+  },
+  {
     name: 'ScreenComponentInspectorComponent',
     selector: 'app-screen-component-inspector',
     category: 'Diseñadores',

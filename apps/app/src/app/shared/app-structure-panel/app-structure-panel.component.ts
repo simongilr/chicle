@@ -28,13 +28,22 @@ export interface AppStructureScreen {
 
       .structure {
         display: grid;
-        gap: 12px;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .structure-top {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
         min-width: 0;
       }
 
       .structure-head {
         display: grid;
         gap: 3px;
+        min-width: 0;
       }
 
       .structure-head strong,
@@ -56,14 +65,21 @@ export interface AppStructureScreen {
       }
 
       .structure-list {
-        display: grid;
+        display: flex;
         gap: 8px;
+        min-width: 0;
+        overflow-x: auto;
+        padding: 1px 1px 8px;
+        scroll-snap-type: x proximity;
       }
 
       .screen-item {
         display: grid;
-        gap: 5px;
-        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        flex: 0 0 min(190px, 72vw);
+        width: auto;
         min-width: 0;
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
@@ -73,6 +89,18 @@ export interface AppStructureScreen {
         text-align: left;
         font: inherit;
         cursor: pointer;
+        scroll-snap-align: start;
+        transition:
+          background 140ms ease,
+          border-color 140ms ease,
+          transform 140ms ease;
+      }
+
+      .screen-item:hover,
+      .screen-item:focus-visible {
+        border-color: var(--ch-color-primary-border);
+        outline: none;
+        transform: translateY(-1px);
       }
 
       .screen-item.active {
@@ -114,6 +142,7 @@ export interface AppStructureScreen {
         display: flex;
         flex-wrap: wrap;
         gap: 5px;
+        justify-content: flex-start;
       }
 
       .chip {
@@ -128,30 +157,41 @@ export interface AppStructureScreen {
       }
 
       .empty {
+        flex: 1 1 auto;
         border: 1px dashed var(--ch-color-border);
         border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         color: var(--ch-color-muted);
         padding: 11px;
         font-size: 0.8rem;
         line-height: 1.35;
       }
+
+      @media (max-width: 760px) {
+        .structure-top,
+        .screen-item {
+          flex-direction: column;
+        }
+      }
     `
   ],
   template: `
     <section class="structure" aria-label="Estructura de la app">
-      <div class="structure-head">
-        <strong>{{ appName || 'App sin nombre' }}</strong>
-        <span>{{ summary }}</span>
-      </div>
+      <div class="structure-top">
+        <div class="structure-head">
+          <strong>{{ appName || 'App sin nombre' }}</strong>
+          <span>{{ summary }}</span>
+        </div>
 
-      <app-ui-kit-button
-        label="Nueva página"
-        icon="pi pi-plus"
-        tone="secondary"
-        variant="outline"
-        size="small"
-        (pressed)="newScreen.emit()"
-      ></app-ui-kit-button>
+        <app-ui-kit-button
+          label="Página"
+          icon="pi pi-plus"
+          tone="secondary"
+          variant="outline"
+          size="small"
+          (pressed)="newScreen.emit()"
+        ></app-ui-kit-button>
+      </div>
 
       <div class="structure-list">
         @if (!screens.length) {
@@ -160,8 +200,10 @@ export interface AppStructureScreen {
 
         @for (screen of screens; track screen.id) {
           <button type="button" class="screen-item" [class.active]="screen.id === selectedScreenId" (click)="screenSelected.emit(screen.id)">
-            <span class="screen-title">{{ screen.title }}</span>
-            <span class="screen-meta">{{ screen.route || '/' }} · {{ screen.target }}</span>
+            <span>
+              <span class="screen-title">{{ screen.title }}</span>
+              <span class="screen-meta">{{ screen.route || '/' }} · {{ screen.target }}</span>
+            </span>
             <span class="screen-state">
               <span class="chip">v{{ screen.version }}</span>
               <span class="chip">{{ screen.published ? 'publicada' : 'draft' }}</span>

@@ -16,6 +16,11 @@ import { Component } from '@angular/core';
         box-shadow: var(--ch-shadow-card);
       }
 
+      :host(.app-studio-workspace) {
+        min-height: calc(100dvh - 220px);
+        border-radius: calc(var(--ch-radius) + 2px);
+      }
+
       .navigation {
         display: grid;
         align-content: start;
@@ -27,6 +32,10 @@ import { Component } from '@angular/core';
         padding: 14px;
       }
 
+      :host(.app-studio-workspace) .navigation {
+        padding: 12px;
+      }
+
       .workspace {
         display: grid;
         gap: 18px;
@@ -34,6 +43,11 @@ import { Component } from '@angular/core';
         min-width: 0;
         overflow: auto;
         padding: 18px;
+      }
+
+      :host(.app-studio-workspace) .workspace {
+        gap: 12px;
+        padding: 14px;
       }
 
       @media (max-width: 940px) {

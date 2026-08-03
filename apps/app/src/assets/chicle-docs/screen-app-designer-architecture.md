@@ -70,8 +70,8 @@ MVP pass for generated apps:
 | 5 | AI app graph authoring | Implemented as draft actions for app and screen JSON. Full multi-artifact graph creation remains a controlled next step. |
 | 6 | Export/import app packages | Implemented as metadata package export/install with dependency snapshots and install dry-run. Bundled dependency installers remain pending. |
 | 7 | Generated runtime execution | Implemented with route runtime rendering, safe navigation, service execution, flow execution, search/data table loading, metric strips, media gallery and modal preview adapters. Advanced mobile/desktop parity remains a hardening step. |
-| 8 | Visual app designer usability | Implemented with a region map, component selection/editing, duplication, guided component presets, binding/action summary and component-level permission authoring. Drag/resizable canvas remains a later enhancement, not a contract dependency. |
-| 9 | Canvas and inspector | Implemented as a guided region map plus selected-component inspector. The inspector exposes location, width, binding, action and permission without requiring the JSON editor. |
+| 8 | Visual app designer usability | Implemented with a region canvas, click/drag component insertion, component selection/editing, duplication, guided presets, binding/action summary and component-level permission authoring. Freeform resize remains an advanced enhancement, not a contract dependency. |
+| 9 | Canvas and inspector | Implemented as a professional region canvas plus selected-component inspector. The inspector exposes location, width, binding, action and permission without requiring the JSON editor. |
 | 10 | Real app navigation | Implemented through screen navigation metadata and runtime adapters for top menu, side menu, bottom mobile menu and tabs. Published runtime navigation is permission-filtered. |
 | 11 | App component library | Implemented as first-class presets for login, forms, tables, CRUD entry points, dashboards, service buttons, flow buttons, gallery, modal, profile/detail, map and timeline. |
 | 12 | Runtime renderer expansion | Implemented with adapters for navigation variants, auth login, forms, data tables, search, services, flows, metrics, charts, entity/detail cards, timeline, media gallery, map and modal shell. |
@@ -79,8 +79,105 @@ MVP pass for generated apps:
 | 14 | Template/package closure | Implemented as package export/install foundation with dependency snapshots and dry-run validation. Conflict UX and bundled dependency installers remain the next hardening layer. |
 
 This cut includes the first executable generated-app runtime shell, a clearer screen composition workflow, a broader
-component set and a package transfer foundation. The remaining layers are stronger drag/resizable editing, deeper
+component set and a package transfer foundation. The remaining layers are stronger resize editing, deeper
 AI graph orchestration, conflict-resolution UX for installed packages and full parity QA across every target and UI kit.
+
+## Professional Visual Designer Architecture
+
+The App Studio visual designer is a region-based canvas, not a free absolute-position editor. This is intentional. Chicle
+must generate apps that remain responsive, portable, themeable and executable by web, Ionic mobile and desktop runtimes.
+Freeform coordinates can be added later as an advanced layout mode, but the stable authoring model is:
+
+```txt
+App
+  -> Screens
+     -> Regions
+        -> Components
+           -> Bindings
+           -> Actions
+           -> Permissions
+           -> Responsive layout
+```
+
+The professional designer experience is built from five layers:
+
+| Layer | Responsibility |
+| --- | --- |
+| App structure | Shows the selected app, its pages/routes and the current screen context. |
+| Component palette | Offers reusable blocks such as navigation, login, forms, tables, services, flows, gallery, map and modal. Components can be clicked or dragged. |
+| Visual canvas | Shows realistic component previews inside semantic regions: header, content, aside and actions. Drag/drop chooses placement; inspector controls exact behavior. |
+| Inspector | Edits title, region, width, alignment, chrome, binding, action and permission for the selected component. |
+| Contract authoring | Keeps the visual guide and JSON editor synchronized so the same screen can be created by a user, by Chicle AI or by importing a package. |
+
+### Region-Based Canvas
+
+The canvas uses semantic drop zones:
+
+| Region | Use |
+| --- | --- |
+| `header` | App navigation, tabs, hero headers and screen-level context. |
+| `content` | Main business components such as forms, tables, cards, dashboards, galleries and maps. |
+| `aside` | Filters, secondary navigation, record context or helper panels. |
+| `actions` | Buttons, service actions, flow triggers and bottom/mobile action areas. |
+
+Each component stores its region and responsive layout. Desktop can use multi-column widths, while tablet and mobile
+collapse to full width by default. This keeps one contract usable across generated web, mobile and desktop artifacts.
+
+### Why This Is Not a Free Canvas First
+
+A free canvas is visually attractive but dangerous for a runtime application factory:
+
+- absolute positions do not translate cleanly to mobile;
+- generated apps become harder to theme across PrimeNG, Ionic, Material and Bootstrap;
+- components become harder to validate for accessibility and permissions;
+- imported templates are more fragile across tenants and screen sizes;
+- AI-generated layouts become harder to reason about and repair.
+
+Chicle therefore starts with a professional responsive canvas. Advanced freeform editing may later be exposed as a
+special layout strategy for landing pages, dashboards or kiosk screens, but the default remains region-based and
+contract-driven.
+
+### Drag, Drop And Inspect Workflow
+
+The expected workflow is:
+
+```txt
+1. Select an app and screen.
+2. Drag a component from the palette into a region.
+3. Click the component in the canvas.
+4. Use the inspector to select binding, action, width, chrome and permissions.
+5. Preview desktop, tablet and mobile.
+6. Save or publish the screen contract.
+```
+
+Clicking a palette item still adds the component using its recommended region. Dragging allows the user to override the
+region directly.
+
+The Admin implementation must make this workflow visible without requiring training:
+
+- the palette is grouped by business purpose, not only by technical component key;
+- each palette item is draggable and still works with click/tap;
+- the canvas shows a short instruction banner and a live count by region;
+- empty regions are explicit drop targets;
+- selected components show a mini preview and quiet editing actions;
+- the inspector explains what to edit next when no component is selected.
+
+### Canvas Preview Contract
+
+The canvas preview must show what type of component the user is adding. It should not display generic cards only.
+Expected visual hints:
+
+- navigation blocks show menu pills;
+- login and forms show field stacks and primary action;
+- tables show header/row structure;
+- service and flow buttons show action controls;
+- metrics show KPI boxes;
+- galleries show media tiles;
+- maps show a map surface;
+- timelines show event rows;
+- modals show an overlay-like mini preview.
+
+These previews are visual only. Runtime execution remains the responsibility of the published component adapter.
 
 ## Runtime Objects
 

@@ -1,6 +1,6 @@
 # App Studio Completion Roadmap
 
-Status date: 2026-07-31.
+Status date: 2026-08-03.
 
 This document preserves the working roadmap for completing Chicle App Studio after cuts 9 through 14. It is intentionally practical: it defines what is already available, what blocks product-grade usability and what should be finished next.
 
@@ -24,7 +24,7 @@ The main gap is the visual authoring experience. App Studio still feels more lik
 
 ## Next Session Objective
 
-Finish the visualizer/canvas pass.
+Finish the visualizer/canvas pass and make it usable as the primary app-building surface.
 
 The visualizer must become the main way to understand and edit an app screen:
 
@@ -36,6 +36,31 @@ The visualizer must become the main way to understand and edit an app screen:
 - keep the inspector synchronized with the selected component;
 - avoid exposing technical chips that do not help the user understand the app;
 - make bindings and actions visible in business language.
+- keep the component catalog as a vertical list, not a horizontal-scrolling strip;
+- make viewport changes visibly resize and reshape the work area;
+- render real preview controls, not static guide placeholders;
+- allow safe interaction inside the preview while the app is being built;
+- document enough structure so Chicle AI can generate, modify and explain app drafts reliably.
+
+## Next Session Notes
+
+These points were explicitly preserved for the next working session:
+
+1. The available component list must read downward as a clear palette. It should not force horizontal scrolling to
+   discover components.
+2. The visual canvas must keep desktop, tablet and mobile switching obvious. Changing the target should resize the
+   frame, alter the composition rules and make the responsive behavior visible.
+3. Component previews must show real working controls whenever possible: inputs, selects, buttons, menus, tables,
+   galleries, maps, modals, metrics and forms. They must not remain only abstract guide cards.
+4. Preview interaction must be safe. Users should be able to click buttons, open selects, type in sample inputs and
+   move through the app preview without accidentally corrupting the screen contract.
+5. Ionic must receive full component coverage. The App Studio palette must be able to use Ionic-native equivalents for
+   mobile app components, especially navigation, form controls, buttons, lists, modals, tabs, sheets, menus, cards,
+   upload/camera/GPS controls and mobile action bars.
+6. The designer must support a "build while previewing" workflow: add a component, see it rendered, configure binding
+   and action, test the behavior, then continue building.
+7. Chicle AI must understand this workflow. It should read the current app, screen, components, bindings, available
+   forms/services/flows/texts and then produce reviewable app or screen drafts instead of isolated visual fragments.
 
 ## Product Completion Blocks
 
@@ -49,7 +74,10 @@ Required:
 - move up/down and region changes from the canvas;
 - width controls: full, half, third, quarter, compact;
 - desktop/tablet/mobile preview toggle;
-- visual warnings when a component is missing binding, action target or permission.
+- visual warnings when a component is missing binding, action target or permission;
+- viewport frames that clearly change width and composition for desktop, tablet and mobile;
+- real component previews for the supported block types;
+- safe sample interaction inside the preview surface.
 
 Later:
 
@@ -122,6 +150,24 @@ Each component must declare:
 - default empty state;
 - preview sample.
 
+The component palette must be vertical and searchable. Categories can collapse, filter or group by business purpose,
+but the user must be able to scan available blocks from top to bottom. Palette cards should show the component name,
+purpose, target support, kit support and whether it needs a binding, action or permission.
+
+Preview samples are no longer passive sketches. A component preview must use the same adapter family that will render
+the generated app whenever that is practical. For example, a form component should display sample fields, a table
+component should display rows and row actions, a navigation component should display menu items, and a modal component
+should show an openable modal preview.
+
+Ionic coverage is mandatory for mobile-first apps. The library must expose Ionic-native adapters or faithful Ionic
+wrappers for:
+
+- `ion-input`, `ion-textarea`, `ion-select`, `ion-toggle`, `ion-checkbox`, `ion-radio-group`, `ion-datetime`;
+- `ion-button`, `ion-fab`, `ion-segment`, `ion-tabs`, `ion-menu`, `ion-list`, `ion-item`;
+- `ion-card`, `ion-modal`, `ion-alert`, `ion-action-sheet`, `ion-toast`, `ion-loading`;
+- camera, file upload, GPS/location and mobile evidence controls;
+- mobile bottom navigation and sticky action bars.
+
 ### 5. Runtime Completeness
 
 Required:
@@ -139,6 +185,10 @@ Required:
 - show loading, empty, success and error states;
 - use text bundles and local fallback;
 - respect visual kit, palette, density and dark mode.
+
+The design-time preview and runtime renderer must converge. The preview may run with sample data or sandboxed
+execution, but it should use the same component registry, bindings, actions and responsive layout rules as the runtime.
+This is what lets users test the app while building it.
 
 ### 6. AI App Authoring
 
@@ -164,6 +214,18 @@ The assistant must produce reviewable drafts:
 - template dependencies.
 
 It must not publish automatically unless the user explicitly uses an approved publish action.
+
+The assistant must also understand the visual workspace:
+
+- current app and selected screen;
+- available components from the palette;
+- current viewport and target;
+- selected component and inspector state;
+- current bindings, actions and permission gaps;
+- published forms, services, flows, tables and text bundles available to the tenant.
+
+When the user asks for an app, the assistant should be able to propose the app graph, place components into regions,
+connect bindings/actions and explain what changed in the preview.
 
 ### 7. Templates And Packages
 
@@ -205,7 +267,12 @@ The next implementation pass is done when:
 - web/tablet/mobile preview is readable and aligned;
 - the inspector edits the selected component without losing context;
 - the JSON remains the source of truth;
-- the assistant can describe what exists on the current screen and suggest the next concrete change.
+- the assistant can describe what exists on the current screen and suggest the next concrete change;
+- the component palette is a vertical, searchable list;
+- desktop/tablet/mobile switching visibly changes the preview frame and layout;
+- component previews render real controls instead of placeholder guides;
+- Ionic mobile components are represented in the palette and preview strategy;
+- preview interaction is sandboxed enough to test the app while building it.
 
 ## Known Remaining Risks
 
@@ -218,10 +285,12 @@ The next implementation pass is done when:
 
 ## Recommended Immediate Sequence
 
-1. Redesign the App Studio visualizer around screen regions and selected-component inspector.
-2. Add a navigation builder visible inside the app workspace.
-3. Add component preview samples to the app component catalog.
-4. Connect visualizer selection with component JSON and inspector fields.
-5. Teach Chicle AI to read the current app graph and modify the selected screen without starting over.
-6. Run build, AI tests and runtime route smoke tests.
-
+1. Convert the component palette into a vertical searchable catalog with categories and target/kit badges.
+2. Finish the viewport switch behavior so the canvas frame and layout change clearly for desktop, tablet and mobile.
+3. Replace every placeholder preview with a real interactive preview adapter.
+4. Add the missing Ionic-native component families to the component catalog and preview adapters.
+5. Connect preview interaction to sandboxed sample state and safe runtime tests.
+6. Add a navigation builder visible inside the app workspace.
+7. Connect visualizer selection with component JSON and inspector fields.
+8. Teach Chicle AI to read the current app graph and modify the selected screen without starting over.
+9. Run build, AI tests, runtime route smoke tests and viewport interaction checks.

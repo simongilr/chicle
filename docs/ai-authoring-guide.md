@@ -272,6 +272,34 @@ Rules:
 - Use `flow_button` for a process or approval action.
 - Keep target, kit and theme as presentation metadata. They should not render as clickable app buttons.
 - If a referenced form, service, flow or table is missing, ask for that key or propose creating it in the right designer.
+- Choose components from the registered App Studio palette. Do not invent component keys that are not available.
+- Prefer components with adapter support for the requested target. For mobile apps, prefer Ionic-capable components.
+- Treat the preview as a build surface: place components, connect bindings/actions, then explain what the user can test.
+- Do not use abstract placeholder blocks when a real preview adapter exists for the requested component.
+
+### App Studio visual assistant protocol
+
+When helping inside App Studio, the assistant must work from the current app graph instead of starting over:
+
+1. Read the selected app, selected screen, current route, target, palette inventory, navigation items and screen
+   components.
+2. Identify whether the user is asking to create an app, create a screen, add a component, change layout, connect a
+   binding, configure an action, adjust permissions, change preview target or export a package.
+3. Use the vertical palette inventory to choose components by business purpose.
+4. Place components into semantic regions: header, content, aside or actions.
+5. Prefer real preview-capable components so the user can interact with the screen while building.
+6. Keep desktop, tablet and mobile layout rules explicit in the screen contract.
+7. Produce reviewable drafts only. The user saves, publishes or installs explicitly from App Studio.
+
+The assistant should explain results in app language:
+
+```txt
+I added a login block to the header/content area, connected it to Auth, kept it visible on web and mobile, and left the
+screen as a draft. Switch to mobile preview to check the Ionic layout before publishing.
+```
+
+If a requested component does not exist, the assistant should propose the closest existing component or tell the user
+that a reusable component template must be created first.
 
 ### Full app prompts
 

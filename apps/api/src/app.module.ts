@@ -7,6 +7,7 @@ import { AiAssistantModule } from './modules/ai-assistant/ai-assistant.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfisysModule } from './modules/confisys/confisys.module';
+import { DeclarativeComponentsModule } from './modules/declarative-components/declarative-components.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { DynamicAppsModule } from './modules/dynamic-apps/dynamic-apps.module';
 import { DynamicFormsModule } from './modules/dynamic-forms/dynamic-forms.module';
@@ -38,6 +39,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     SettingsModule,
     MenusModule,
+    DeclarativeComponentsModule,
     DynamicAppsModule,
     DynamicFormsModule,
     DynamicServicesModule,

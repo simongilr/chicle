@@ -9,14 +9,21 @@ export type UiComponentCategory =
   | 'Apps verticales'
   | 'Ionic base';
 
+export type UiKitAdapterName = 'native' | 'primeng' | 'ionic' | 'material' | 'bootstrap';
+export type UiKitAdapterStatus = 'available' | 'planned' | 'fallback' | 'not_applicable';
+
 export interface UiComponentCatalogEntry {
   name: string;
+  componentKey?: string;
+  previewKey?: string;
   selector: string;
   category: UiComponentCategory;
   purpose: string;
   importPath: string;
   usedBy: string[];
-  supportedKits?: Array<'native' | 'primeng' | 'ionic' | 'material' | 'bootstrap'>;
+  supportedKits?: UiKitAdapterName[];
+  adapterStatus?: Partial<Record<UiKitAdapterName, UiKitAdapterStatus>>;
+  migrationStatus?: 'declarative' | 'single_kit' | 'legacy_wrapper';
   status: 'stable' | 'initial' | 'domain';
   example: string;
 }
@@ -110,20 +117,252 @@ const IONIC_COMPONENT_DEFINITIONS: Array<[name: string, selector: string]> = [
   ['IonToolbar', 'ion-toolbar']
 ];
 
-export const IONIC_COMPONENT_CATALOG: UiComponentCatalogEntry[] = IONIC_COMPONENT_DEFINITIONS.map(([name, selector]) => ({
-  name,
+const IONIC_SELECTORS_ALREADY_STANDARDIZED = new Set([
+  'ion-button',
+  'ion-card',
+  'ion-card-content',
+  'ion-card-header',
+  'ion-card-subtitle',
+  'ion-card-title',
+  'ion-checkbox',
+  'ion-datetime',
+  'ion-input',
+  'ion-radio',
+  'ion-radio-group',
+  'ion-range',
+  'ion-searchbar',
+  'ion-select',
+  'ion-select-option',
+  'ion-textarea',
+  'ion-toggle'
+]);
+
+const IONIC_STANDARD_COMPONENT_KEYS: Record<string, string> = {
+  'ion-accordion': 'ui.accordion',
+  'ion-accordion-group': 'ui.accordion_group',
+  'ion-action-sheet': 'overlay.action_sheet',
+  'ion-alert': 'feedback.alert',
+  'ion-app': 'shell.app_root',
+  'ion-avatar': 'ui.avatar',
+  'ion-backdrop': 'overlay.backdrop',
+  'ion-badge': 'ui.badge',
+  'ion-breadcrumb': 'nav.breadcrumb_item',
+  'ion-breadcrumbs': 'nav.breadcrumbs',
+  'ion-buttons': 'ui.button_group',
+  'ion-chip': 'ui.chip',
+  'ion-col': 'layout.column',
+  'ion-content': 'layout.content',
+  'ion-datetime-button': 'form.datetime_button',
+  'ion-fab': 'ui.fab',
+  'ion-fab-button': 'ui.fab_button',
+  'ion-fab-list': 'ui.fab_list',
+  'ion-footer': 'layout.footer',
+  'ion-grid': 'layout.grid',
+  'ion-header': 'layout.header',
+  'ion-icon': 'ui.icon',
+  'ion-img': 'media.image',
+  'ion-infinite-scroll': 'data.infinite_scroll',
+  'ion-infinite-scroll-content': 'data.infinite_scroll_content',
+  'ion-input-otp': 'form.otp_input',
+  'ion-input-password-toggle': 'form.password_toggle',
+  'ion-item': 'data.list_item',
+  'ion-item-divider': 'data.list_divider',
+  'ion-item-group': 'data.list_group',
+  'ion-item-option': 'data.list_item_option',
+  'ion-item-options': 'data.list_item_options',
+  'ion-item-sliding': 'data.sliding_item',
+  'ion-label': 'ui.label',
+  'ion-list': 'data.list',
+  'ion-list-header': 'data.list_header',
+  'ion-loading': 'feedback.loading',
+  'ion-menu': 'nav.menu',
+  'ion-menu-button': 'nav.menu_button',
+  'ion-menu-toggle': 'nav.menu_toggle',
+  'ion-nav-link': 'nav.link',
+  'ion-note': 'ui.note',
+  'ion-picker': 'form.picker',
+  'ion-picker-column': 'form.picker_column',
+  'ion-picker-column-option': 'form.picker_option',
+  'ion-picker-legacy': 'form.legacy_picker',
+  'ion-progress-bar': 'feedback.progress',
+  'ion-refresher': 'feedback.refresher',
+  'ion-refresher-content': 'feedback.refresher_content',
+  'ion-reorder': 'data.reorder',
+  'ion-reorder-group': 'data.reorder_group',
+  'ion-ripple-effect': 'ui.ripple',
+  'ion-row': 'layout.row',
+  'ion-segment': 'ui.segment',
+  'ion-segment-button': 'ui.segment_button',
+  'ion-segment-content': 'ui.segment_content',
+  'ion-segment-view': 'ui.segment_view',
+  'ion-select-modal': 'overlay.select_modal',
+  'ion-skeleton-text': 'feedback.skeleton',
+  'ion-spinner': 'feedback.spinner',
+  'ion-split-pane': 'layout.split_pane',
+  'ion-tab': 'nav.tab',
+  'ion-tab-bar': 'nav.tab_bar',
+  'ion-tab-button': 'nav.tab_button',
+  'ion-text': 'ui.text',
+  'ion-thumbnail': 'media.thumbnail',
+  'ion-title': 'ui.title',
+  'ion-toast': 'feedback.toast',
+  'ion-toolbar': 'nav.toolbar'
+};
+
+const IONIC_SINGLE_KIT_ADAPTER_STATUS = {
+  ionic: 'available',
+  primeng: 'planned',
+  material: 'planned',
+  bootstrap: 'planned',
+  native: 'planned'
+} satisfies Partial<Record<UiKitAdapterName, UiKitAdapterStatus>>;
+
+function ionicDisplayName(name: string) {
+  return name
+    .replace(/^Ion/, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .trim();
+}
+
+export const IONIC_COMPONENT_CATALOG: UiComponentCatalogEntry[] = IONIC_COMPONENT_DEFINITIONS.filter(
+  ([, selector]) => !IONIC_SELECTORS_ALREADY_STANDARDIZED.has(selector)
+).map(([name, selector]) => ({
+  name: ionicDisplayName(name),
+  componentKey: IONIC_STANDARD_COMPONENT_KEYS[selector] ?? `ui.${selector.replace(/^ion-/, '').replace(/-/g, '_')}`,
+  previewKey: name,
   selector,
   category: 'Ionic base',
-  purpose: `Componente Ionic standalone reutilizable basado en ${selector}.`,
+  purpose: `Standard Chicle component prepared with an Ionic adapter first; ${selector} remains the technical implementation selector.`,
   importPath: '@ionic/angular/standalone',
   usedBy: ['App Studio', 'Component library', 'Mobile runtime'],
   supportedKits: ['ionic'],
+  adapterStatus: IONIC_SINGLE_KIT_ADAPTER_STATUS,
+  migrationStatus: 'single_kit',
   status: 'initial',
   example: `<${selector}></${selector}>`
 }));
 
+const DECLARATIVE_KEY_BY_SELECTOR: Record<string, string> = {
+  'app-main-nav': 'nav.admin_main',
+  'app-page-shell': 'shell.admin_page',
+  'app-public-page-shell': 'shell.public_page',
+  'app-module-header': 'ui.module_header',
+  'app-architecture-diagram': 'docs.architecture_diagram',
+  'app-architecture-blueprint': 'docs.architecture_blueprint',
+  'app-architecture-topology-diagram': 'docs.architecture_topology',
+  'app-designer-workspace': 'studio.designer_workspace',
+  'app-app-structure-panel': 'studio.app_structure',
+  'app-component-palette': 'studio.component_palette',
+  'app-screen-visual-canvas': 'studio.screen_canvas',
+  'app-visual-workbench-panel': 'studio.visual_workbench',
+  'app-screen-component-inspector': 'studio.component_inspector',
+  'app-catalog-header': 'studio.catalog_header',
+  'app-designer-catalog-panel': 'studio.catalog_panel',
+  'app-assignment-checklist': 'security.assignment_checklist',
+  'app-catalog-item': 'studio.catalog_item',
+  'app-section-header': 'ui.section_header',
+  'app-admin-filter-bar': 'admin.filter_bar',
+  'app-admin-form-grid': 'admin.form_grid',
+  'app-admin-data-table': 'data.admin_table',
+  'app-admin-card-grid': 'layout.card_grid',
+  'app-admin-stack': 'layout.stack',
+  'app-admin-panel': 'ui.panel',
+  'app-admin-metric-card': 'data.metric_card',
+  'app-admin-resource-card': 'data.resource_card',
+  'app-admin-code-block': 'data.code_block',
+  'app-admin-action-toolbar': 'ui.action_toolbar',
+  'app-component-doc-card': 'docs.component_card',
+  'app-process-steps': 'flow.process_steps',
+  'app-workflow-guide': 'flow.workflow_guide',
+  'app-context-assistant': 'feedback.context_assistant',
+  'app-ai-assistant-launcher': 'assistant.launcher',
+  'app-status-notice': 'feedback.status_notice',
+  'app-json-authoring-panel': 'studio.json_authoring',
+  'app-code-textarea': 'form.code_textarea',
+  'app-loading-skeleton': 'feedback.loading_skeleton',
+  'app-segmented-control': 'ui.segmented_control',
+  'app-ui-kit-button': 'ui.button',
+  'app-ui-kit-card': 'ui.card',
+  'app-field-shell': 'form.field_shell',
+  'app-dynamic-field-control': 'form.field',
+  'app-dynamic-field-library': 'form.field_library',
+  'app-schema-field-editor': 'data.schema_field_editor',
+  'app-mobile-form-shell': 'form.mobile_shell',
+  'app-mobile-step-progress': 'form.mobile_step_progress',
+  'app-mobile-action-bar': 'form.mobile_action_bar',
+  'app-mobile-evidence-control': 'media.evidence_control',
+  'app-formly-runtime': 'form.runtime',
+  'app-chicle-formly-field-type': 'form.formly_field_adapter',
+  'app-chicle-formly-display-type': 'form.formly_display_adapter',
+  'app-primeng-field-renderer': 'form.primeng_adapter',
+  'app-ionic-field-renderer': 'form.ionic_adapter',
+  'app-native-field-renderer': 'form.native_adapter',
+  'app-material-field-renderer': 'form.material_adapter',
+  'app-bootstrap-field-renderer': 'form.bootstrap_adapter',
+  'app-ui-presentation-switcher': 'ui.presentation_switcher',
+  'app-ui-theme-selector': 'ui.theme_selector',
+  'app-preview-viewport': 'ui.preview_viewport',
+  'app-flow-data-mapper': 'flow.data_mapper',
+  'app-flow-graph': 'flow.graph',
+  'app-flow-timeline': 'flow.timeline',
+  'app-metric-strip': 'data.metric_strip',
+  'app-entity-card': 'data.entity_card',
+  'app-app-timeline': 'data.timeline',
+  'app-vertical-app-showcase': 'app.vertical_showcase'
+};
+
+function defaultDeclarativeNamespace(category: UiComponentCategory) {
+  return {
+    'Shell y navegación': 'shell',
+    'Documentación y arquitectura': 'docs',
+    Diseñadores: 'studio',
+    'Guía y estados': 'feedback',
+    Formularios: 'form',
+    'Temas y presentación': 'ui',
+    'Flow especializado': 'flow',
+    'Apps verticales': 'app',
+    'Ionic base': 'ui'
+  }[category];
+}
+
+function selectorToKeyPart(selector: string) {
+  return selector
+    .replace(/^app-/, '')
+    .replace(/^ion-/, '')
+    .replace(/-/g, '_');
+}
+
+export function getDeclarativeComponentKey(component: UiComponentCatalogEntry) {
+  return (
+    component.componentKey ??
+    DECLARATIVE_KEY_BY_SELECTOR[component.selector] ??
+    `${defaultDeclarativeNamespace(component.category)}.${selectorToKeyPart(component.selector)}`
+  );
+}
+
 export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
   ...IONIC_COMPONENT_CATALOG,
+  {
+    name: 'DeclarativeComponentRendererComponent',
+    componentKey: 'engine.declarative_renderer',
+    selector: 'app-declarative-component-renderer',
+    category: 'Diseñadores',
+    purpose: 'Central runtime renderer for declarative component objects: resolves props, bindings, actions, permissions, children and kit adapters.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['App Studio', 'Dynamic app runtime', 'Component library'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: {
+      primeng: 'available',
+      ionic: 'available',
+      material: 'available',
+      bootstrap: 'available',
+      native: 'available'
+    },
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example:
+      '<app-declarative-component-renderer [contract]="componentContract" (action)="handleAction($event)"></app-declarative-component-renderer>'
+  },
   {
     name: 'MainNavComponent',
     selector: 'app-main-nav',

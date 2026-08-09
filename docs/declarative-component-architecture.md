@@ -18,6 +18,112 @@ runtime graph.
 
 Store component behavior as declarative objects, not as page-local code.
 
+## Reusable Invocation Rule
+
+Chicle does not duplicate visual components per screen, per app or per UI kit. Chicle builds reusable Angular
+components and makes them invocable through declarative objects.
+
+A declarative object does not replace the Angular component. It governs it:
+
+- reusable: one component implementation can serve Admin, App Studio, generated apps and previews;
+- dynamic: screens, apps, forms and templates invoke the component through JSON stored and versioned by tenant;
+- multikit: the same contract can select PrimeNG, Ionic, Material, Bootstrap or native fallback adapters;
+- administrable: the Admin can edit, version, publish, trash and restore component instances;
+- portable: exported app packages carry component keys, props, layout, bindings, actions, permissions and text keys;
+- safe: the runtime only renders registered components and only executes approved declarative actions.
+
+Minimal example:
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "dynamic_component",
+  "componentKey": "ui.button",
+  "props": {
+    "labelKey": "customers.actions.save",
+    "tone": "primary",
+    "size": "field"
+  },
+  "events": {
+    "onClick": [
+      {
+        "type": "execute_service",
+        "serviceKey": "create_customer"
+      }
+    ]
+  }
+}
+```
+
+## Naming And Selector Policy
+
+The user-facing selector is the declarative `componentKey`. Angular selectors such as `app-*`, Ionic selectors such as
+`ion-*`, PrimeNG selectors, Material selectors and Bootstrap classes are implementation details.
+
+Canonical component keys use this format:
+
+```txt
+namespace.name
+namespace.name_variant
+```
+
+Standard namespaces:
+
+| Namespace | Purpose | Examples |
+| --- | --- | --- |
+| `ui.*` | Generic visual primitives and surfaces | `ui.button`, `ui.card`, `ui.badge`, `ui.avatar` |
+| `form.*` | Form controls, form shells, validation and submit surfaces | `form.field`, `form.runtime`, `form.mobile_shell` |
+| `nav.*` | Menus, tabs, breadcrumbs and route navigation | `nav.menu`, `nav.tabs`, `nav.breadcrumbs` |
+| `layout.*` | Grids, stacks, regions, split panes and responsive containers | `layout.grid`, `layout.stack` |
+| `data.*` | Tables, lists, detail views and record-bound displays | `data.table`, `data.list`, `data.detail` |
+| `feedback.*` | Alerts, toasts, loading, skeletons and empty/error states | `feedback.toast`, `feedback.loading` |
+| `overlay.*` | Modals, sheets, popovers and drawers | `overlay.modal`, `overlay.action_sheet` |
+| `media.*` | Images, galleries, evidence, camera, files and thumbnails | `media.image`, `media.gallery` |
+| `studio.*` | Admin/App Studio authoring surfaces | `studio.component_palette`, `studio.screen_canvas` |
+Rules:
+
+1. Designers, generated apps, template packages and Chicle AI must use `componentKey`.
+2. Technical selectors remain available only as `technicalSelector`, implementation notes or import metadata.
+3. Tenant JSON must never store raw `app-*`, `ion-*`, `p-*`, `mat-*` selectors or Bootstrap classes as behavior.
+4. A component can be offered as multikit only when every declared kit has a real adapter or an accepted native fallback.
+5. Ionic components imported directly from `@ionic/angular/standalone` still receive a canonical Chicle key such as
+   `feedback.alert`, `nav.tabs` or `layout.grid`, even when their first adapter is Ionic-only.
+6. Components already standardized through Chicle facades, such as `ui.button`, `ui.card` or `form.field`, must not be
+   reintroduced as separate Ionic catalog components.
+7. Promotion from a single-kit component to a multikit component requires a props schema, events schema, preview fixture,
+   runtime adapter and adapter status for every supported kit.
+8. Standardization does not rename technical selectors. An Ionic adapter can still render `ion-alert`; the public
+   component remains `feedback.alert`.
+9. Each registered component stores adapter status per kit: `available`, `planned`, `fallback` or `not_applicable`.
+
+Example promotion path:
+
+```txt
+feedback.alert
+  -> Ionic adapter available first
+  -> PrimeNG adapter later
+  -> Material adapter later
+  -> Bootstrap adapter later
+  -> native fallback later
+```
+
+Example adapter registry entry:
+
+```json
+{
+  "componentKey": "feedback.alert",
+  "technicalSelector": "ion-alert",
+  "supportedKits": ["ionic"],
+  "adapterStatus": {
+    "ionic": "available",
+    "primeng": "planned",
+    "material": "planned",
+    "bootstrap": "planned",
+    "native": "planned"
+  }
+}
+```
+
 Allowed:
 
 - typed component contracts;
@@ -78,7 +184,7 @@ component families can add typed fields, but they must not replace the common st
   "schemaVersion": 1,
   "kind": "dynamic_component",
   "id": "cmp_home_save_customer",
-  "componentKey": "button",
+  "componentKey": "ui.button",
   "name": "Save Customer",
   "description": "Runs the customer save service and navigates back to the list.",
   "version": 1,

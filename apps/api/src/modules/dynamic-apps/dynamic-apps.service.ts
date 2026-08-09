@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/auth.types';
+import { DECLARATIVE_COMPONENT_SEEDS } from '../declarative-components/declarative-components.seed';
 import { DynamicAppVersion } from './dynamic-app-version.entity';
 import { DynamicApp } from './dynamic-app.entity';
 import { DynamicScreenVersion } from './dynamic-screen-version.entity';
@@ -1022,6 +1023,15 @@ export class DynamicAppsService {
       { key: 'timeline', name: 'Timeline', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'media_gallery', name: 'Media gallery', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'map_view', name: 'Map view', category: 'device', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      ...DECLARATIVE_COMPONENT_SEEDS.map((component) => ({
+        key: component.componentKey,
+        name: component.name,
+        category: component.category,
+        targets: ['admin', 'web', 'mobile', 'desktop'],
+        kits: component.adapters
+          .filter((adapter) => adapter.adapterStatus === 'available' || adapter.adapterStatus === 'fallback')
+          .map((adapter) => adapter.kit)
+      })),
       ...this.ionicComponentCatalog()
     ];
   }

@@ -87,6 +87,17 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
         overflow-wrap: anywhere;
       }
 
+      .technical-selector {
+        color: var(--ch-color-muted);
+        font-size: 0.76rem;
+        line-height: 1.4;
+      }
+
+      .technical-selector code {
+        color: inherit;
+        overflow-wrap: anywhere;
+      }
+
       .badge {
         flex: 0 0 auto;
         background: var(--ch-color-surface-muted);
@@ -148,7 +159,10 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
       <header>
         <div class="identity">
           <h2>{{ name }}</h2>
-          <code class="selector">&lt;{{ selector }}&gt;</code>
+          <code class="selector">{{ componentKey || selector }}</code>
+          @if (selector) {
+            <span class="technical-selector">technical: <code>&lt;{{ selector }}&gt;</code></span>
+          }
         </div>
         <span class="badge">{{ status }}</span>
       </header>
@@ -196,6 +210,7 @@ import { UiKitButtonComponent } from '../ui-kit-button/ui-kit-button.component';
 })
 export class ComponentDocCardComponent {
   @Input({ required: true }) name = '';
+  @Input() componentKey = '';
   @Input({ required: true }) selector = '';
   @Input({ required: true }) purpose = '';
   @Input({ required: true }) status = '';

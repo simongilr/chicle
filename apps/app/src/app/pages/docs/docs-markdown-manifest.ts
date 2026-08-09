@@ -188,6 +188,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Canonical object contract for reusable visual and functional components, bindings, actions, permissions and kits.",
   },
   {
+    title: "Declarative component migration roadmap",
+    path: "declarative-component-migration-roadmap.md",
+    category: "Frontend",
+    summary:
+      "Execution plan, percentages, phases, persistence, renderer, offline and Admin migration gates.",
+  },
+  {
     title: "UI component inventory",
     path: "ui-component-inventory.md",
     category: "Frontend",

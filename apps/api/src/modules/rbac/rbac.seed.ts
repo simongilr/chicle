@@ -34,6 +34,8 @@ export const BASE_PERMISSIONS: BasePermissionSeed[] = [
   { key: 'permissions.read', category: 'roles', description: 'Ver permisos disponibles.' },
   { key: 'security.sync', category: 'security', description: 'Sincronizar permisos, roles y menús base del tenant.' },
   { key: 'menus.read', category: 'menus', description: 'Ver menús.' },
+  { key: 'components.read', category: 'components', description: 'Ver registro de componentes declarativos.' },
+  { key: 'components.manage', category: 'components', description: 'Administrar plantillas y adaptadores de componentes.' },
   { key: 'translations.read', category: 'translations', description: 'Ver paquetes de textos e idiomas.' },
   { key: 'translations.manage', category: 'translations', description: 'Administrar paquetes de textos e idiomas.' },
   { key: 'forms.read', category: 'forms', description: 'Ver formularios.' },
@@ -97,6 +99,8 @@ export const BASE_ROLES: BaseRoleSeed[] = [
       'permissions.read',
       'security.sync',
       'menus.read',
+      'components.read',
+      'components.manage',
       'translations.read',
       'translations.manage',
       'forms.read',
@@ -134,6 +138,7 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     description: 'Operación diaria con captura y consulta básica.',
     permissions: [
       'menus.read',
+      'components.read',
       'forms.read',
       'forms.submit',
       'apps.read',
@@ -151,12 +156,12 @@ export const BASE_ROLES: BaseRoleSeed[] = [
     key: 'viewer',
     name: 'Viewer',
     description: 'Consulta de información sin modificación.',
-    permissions: ['menus.read', 'forms.read', 'apps.read', 'ai.assistant.use', 'records.read', 'files.read']
+    permissions: ['menus.read', 'components.read', 'forms.read', 'apps.read', 'ai.assistant.use', 'records.read', 'files.read']
   },
   {
     key: 'client',
     name: 'Cliente app',
     description: 'Cliente o usuario externo que usa la app del tenant con acceso limitado.',
-    permissions: ['menus.read', 'forms.read', 'forms.submit', 'apps.read', 'records.read', 'records.create', 'files.upload', 'files.read']
+    permissions: ['menus.read', 'components.read', 'forms.read', 'forms.submit', 'apps.read', 'records.read', 'records.create', 'files.upload', 'files.read']
   }
 ];

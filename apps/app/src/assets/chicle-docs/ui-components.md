@@ -171,5 +171,15 @@ label. It stores `componentKey`, `props`, `layout`, `presentation`, `data`, `eve
 button know whether it navigates, executes a service, opens a modal or runs a flow without hardcoding behavior in the
 screen page.
 
+The component catalog must present `componentKey` as the primary identity. Angular selectors such as `app-*` and Ionic
+selectors such as `ion-*` are technical implementation selectors. Standardization does not rename those selectors:
+`ion-alert` can remain the Ionic adapter implementation, while the public component is `feedback.alert`. The catalog may
+show the technical selector as metadata, but AI, templates and tenant JSON must use `componentKey`.
+
+Ionic-backed standard components use canonical Chicle keys such as `feedback.alert`, `nav.tabs`, `layout.grid` or
+`overlay.action_sheet`; their adapter matrix says that the Ionic adapter is available and the other kits are planned.
+Components already standardized through Chicle facades, such as `ui.button`, `ui.card` or `form.field`, must not be
+duplicated as separate Ionic components.
+
 Those component objects are delivered to generated web, Ionic mobile and desktop shells through the published runtime
 manifest defined in `docs/dynamic-app-runtime-architecture.md`.

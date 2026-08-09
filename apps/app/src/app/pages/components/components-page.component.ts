@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DeclarativeComponentRendererComponent } from '../../engine/components/declarative-component-renderer.component';
+import { DeclarativeComponentContract } from '../../engine/components/declarative-component.types';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { AdminCardGridComponent } from '../../shared/admin-card-grid/admin-card-grid.component';
 import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
@@ -14,7 +16,8 @@ import { UiThemeSelectorComponent } from '../../shared/ui-theme-selector/ui-them
 import {
   UI_COMPONENT_CATALOG,
   UiComponentCatalogEntry,
-  UiComponentCategory
+  UiComponentCategory,
+  getDeclarativeComponentKey
 } from '../../shared/ui-component-catalog';
 import { ComponentVisualPreviewComponent } from './component-visual-preview.component';
 import { UiKitPreference } from '../../core/ui/ui-presentation.types';
@@ -27,6 +30,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
     AdminCardGridComponent,
     AdminFilterBarComponent,
     ComponentDocCardComponent,
+    DeclarativeComponentRendererComponent,
     DynamicFieldControlComponent,
     DynamicFieldLibraryComponent,
     FormsModule,
@@ -55,6 +59,15 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
       .field-library {
         display: grid;
         gap: 16px;
+        padding: 18px;
+      }
+
+      .declarative-sample {
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
         padding: 18px;
       }
 
@@ -199,6 +212,21 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         </div>
       </section>
 
+      <section class="declarative-sample" aria-label="Muestra declarativa">
+        <div>
+          <h2>Renderer declarativo</h2>
+          <p>
+            Esta muestra usa el objeto estándar que también consumirá App Studio, el runtime móvil/web
+            y el asistente IA.
+          </p>
+        </div>
+        <app-declarative-component-renderer
+          [contract]="declarativePreview"
+          [context]="{ kit: previewKit }"
+          [kit]="previewKit"
+        ></app-declarative-component-renderer>
+      </section>
+
       <section class="field-library" aria-label="Biblioteca de campos dinámicos">
         <header class="field-library-header">
           <div>
@@ -239,6 +267,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           @for (component of filteredCatalog; track component.name) {
             <app-component-doc-card
               [name]="component.name"
+              [componentKey]="declarativeKey(component)"
               [selector]="component.selector"
               [purpose]="component.purpose"
               [status]="statusLabel(component.status)"
@@ -253,7 +282,7 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
               @if (isPreviewExpanded(component.name)) {
                 <app-component-visual-preview
                   component-preview
-                  [componentName]="component.name"
+                  [componentName]="component.previewKey ?? component.name"
                   [kit]="previewKit"
                 ></app-component-visual-preview>
               }
@@ -281,12 +310,51 @@ export class ComponentsPageComponent {
   previewKit: UiKitPreference = 'primeng';
   fieldLibraryOpen = false;
   readonly expandedPreviews = new Set<string>();
+  readonly declarativePreview: DeclarativeComponentContract = {
+    schemaVersion: 1,
+    kind: 'dynamic_component',
+    componentKey: 'ui.card',
+    props: {
+      title: 'Objeto declarativo',
+      subtitle: 'Card + field + button renderizados por componentKey.',
+      variant: 'subtle',
+      padding: '14px'
+    },
+    children: [
+      {
+        componentKey: 'form.field',
+        props: {
+          field: {
+            name: 'sampleName',
+            label: 'Nombre',
+            type: 'text',
+            placeholder: 'Escribe un valor'
+          },
+          value: 'Chicle'
+        }
+      },
+      {
+        componentKey: 'ui.button',
+        props: {
+          label: 'Acción declarativa',
+          tone: 'primary',
+          variant: 'solid'
+        },
+        actions: {
+          onClick: {
+            type: 'show_message',
+            message: 'Action emitted by declarative renderer.'
+          }
+        }
+      }
+    ]
+  };
 
   readonly searchField: RuntimeField = {
     name: 'component-search',
     type: 'search',
     label: 'Buscar',
-    placeholder: 'Nombre, selector o pantalla'
+    placeholder: 'Nombre, componentKey o pantalla'
   };
 
   get categoryField(): RuntimeField {
@@ -326,6 +394,8 @@ export class ComponentsPageComponent {
         !term ||
         [
           component.name,
+          component.previewKey ?? '',
+          this.declarativeKey(component),
           component.selector,
           component.purpose,
           component.importPath,
@@ -342,6 +412,10 @@ export class ComponentsPageComponent {
       initial: 'Inicial',
       domain: 'Especializado'
     }[status];
+  }
+
+  declarativeKey(component: UiComponentCatalogEntry) {
+    return getDeclarativeComponentKey(component);
   }
 
   isPreviewExpanded(componentName: string) {

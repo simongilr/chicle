@@ -10,12 +10,22 @@ export type DeclarativeComponentActionType =
   | 'show_message'
   | 'set_state'
   | 'refresh_data'
-  | 'queue_offline';
+  | 'queue_offline'
+  | 'emit_event';
 
 export interface DeclarativeComponentAction {
   type: DeclarativeComponentActionType;
   [key: string]: unknown;
 }
+
+export type DeclarativeComponentBindings =
+  | Record<string, unknown>
+  | {
+      props?: Record<string, unknown>;
+      data?: Record<string, unknown>;
+      state?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
 
 export interface DeclarativeComponentContract {
   schemaVersion?: number;
@@ -23,7 +33,7 @@ export interface DeclarativeComponentContract {
   id?: string;
   componentKey: string;
   props?: Record<string, unknown>;
-  bindings?: Record<string, unknown>;
+  bindings?: DeclarativeComponentBindings;
   actions?: Record<string, DeclarativeComponentAction | DeclarativeComponentAction[]> | DeclarativeComponentAction[];
   permissions?: string[];
   layout?: Record<string, unknown>;
@@ -34,6 +44,10 @@ export interface DeclarativeComponentContract {
 export interface DeclarativeComponentContext {
   state?: Record<string, unknown>;
   data?: Record<string, unknown>;
+  route?: Record<string, unknown>;
+  user?: Record<string, unknown>;
+  tenant?: Record<string, unknown>;
+  value?: unknown;
   permissions?: string[];
   presentation?: UiPresentationConfig;
   kit?: UiKitPreference;
@@ -46,6 +60,7 @@ export interface DeclarativeComponentActionEvent {
   eventName: string;
   action: DeclarativeComponentAction;
   value?: unknown;
+  result?: unknown;
 }
 
 export type DeclarativeFieldProps = {

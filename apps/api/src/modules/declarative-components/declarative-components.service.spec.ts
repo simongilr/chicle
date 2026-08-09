@@ -39,4 +39,64 @@ describe('DeclarativeComponentsService', () => {
       BadRequestException
     );
   });
+
+  it('accepts supported declarative actions with payload maps and permissions', async () => {
+    const definitions = repoMock();
+    definitions.findOne.mockResolvedValue({ componentKey: 'ui.button' });
+    const service = new DeclarativeComponentsService(definitions as any, repoMock() as any, repoMock() as any, repoMock() as any);
+
+    const result = await service.normalizeContract({
+      componentKey: 'ui.button',
+      actions: {
+        onClick: {
+          type: 'execute_service',
+          serviceKey: 'crear_cliente',
+          permissions: ['services.execute'],
+          payloadMap: { nombre: '{{state.nombre}}' }
+        }
+      }
+    });
+
+    expect(result.actions).toEqual({
+      onClick: {
+        type: 'execute_service',
+        serviceKey: 'crear_cliente',
+        permissions: ['services.execute'],
+        payloadMap: { nombre: '{{state.nombre}}' }
+      }
+    });
+  });
+
+  it('rejects unsupported or incomplete declarative actions', async () => {
+    const definitions = repoMock();
+    definitions.findOne.mockResolvedValue({ componentKey: 'ui.button' });
+    const service = new DeclarativeComponentsService(definitions as any, repoMock() as any, repoMock() as any, repoMock() as any);
+
+    await expect(
+      service.normalizeContract({
+        componentKey: 'ui.button',
+        actions: { onClick: { type: 'execute_service' } }
+      })
+    ).rejects.toThrow('serviceKey');
+
+    await expect(
+      service.normalizeContract({
+        componentKey: 'ui.button',
+        actions: { onClick: { type: 'raw_javascript', code: 'alert(1)' } }
+      })
+    ).rejects.toThrow('unsupported type');
+  });
+
+  it('rejects unsafe data bindings', async () => {
+    const definitions = repoMock();
+    definitions.findOne.mockResolvedValue({ componentKey: 'ui.card' });
+    const service = new DeclarativeComponentsService(definitions as any, repoMock() as any, repoMock() as any, repoMock() as any);
+
+    await expect(
+      service.normalizeContract({
+        componentKey: 'ui.card',
+        bindings: { data: 'https://example.com/raw-api' }
+      })
+    ).rejects.toThrow('raw external URLs');
+  });
 });

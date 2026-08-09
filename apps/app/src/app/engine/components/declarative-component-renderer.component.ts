@@ -1,12 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { UiKitPreference } from '../../core/ui/ui-presentation.types';
+import { ActionRunnerService } from '../actions/action-runner.service';
 import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
 import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
 import { UiKitButtonComponent, UiKitButtonSize, UiKitButtonTone, UiKitButtonVariant } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { UiKitCardComponent, UiKitCardTone, UiKitCardVariant } from '../../shared/ui-kit-card/ui-kit-card.component';
 import { RuntimeField } from '../forms/form-runtime.service';
+import { DeclarativeBindingResolverService } from './declarative-binding-resolver.service';
 import { DeclarativeComponentRegistryService } from './declarative-component-registry.service';
+import { DeclarativePermissionService } from './declarative-permission.service';
 import {
   DeclarativeComponentAction,
   DeclarativeComponentActionEvent,
@@ -73,7 +76,7 @@ import {
     `
   ],
   template: `
-    @if (contract) {
+    @if (contract && canRenderContract) {
       @switch (contract.componentKey) {
         @case ('ui.button') {
           <app-ui-kit-button
@@ -85,7 +88,7 @@ import {
             [size]="buttonSize"
             [full]="booleanProp('full', false)"
             [disabled]="booleanProp('disabled', false)"
-            (pressed)="emitConfiguredAction('onClick')"
+            (pressed)="runConfiguredAction('onClick')"
           ></app-ui-kit-button>
         }
 
@@ -177,19 +180,38 @@ import {
           </app-status-notice>
         }
       }
+      @if (localNotice) {
+        <app-status-notice [kit]="kitForRender" [title]="localNotice.title" [tone]="localNotice.tone">
+          {{ localNotice.message }}
+        </app-status-notice>
+      }
     }
   `
 })
 export class DeclarativeComponentRendererComponent {
   private readonly registry = inject(DeclarativeComponentRegistryService);
+  private readonly bindings = inject(DeclarativeBindingResolverService);
+  private readonly permissions = inject(DeclarativePermissionService);
+  private readonly actionRunner = inject(ActionRunnerService);
 
   @Input() contract: DeclarativeComponentContract | null = null;
   @Input() context?: DeclarativeComponentContext;
   @Input() kit: UiKitPreference = 'auto';
+  @Input() runActions = true;
   @Output() readonly action = new EventEmitter<DeclarativeComponentActionEvent>();
+
+  localNotice: { tone: 'neutral' | 'info' | 'success' | 'warning' | 'error'; title: string; message: string } | null = null;
 
   get kitForRender(): UiKitPreference {
     return this.kit === 'inherit' || this.kit === 'auto' ? this.context?.kit ?? this.kit : this.kit;
+  }
+
+  get canRenderContract() {
+    return this.contract ? this.permissions.canRender(this.contract, this.context) : false;
+  }
+
+  get resolvedProps() {
+    return this.contract ? this.bindings.resolveProps(this.contract, this.context) : {};
   }
 
   get buttonTone(): UiKitButtonTone {
@@ -227,7 +249,7 @@ export class DeclarativeComponentRendererComponent {
   }
 
   get fieldProp(): RuntimeField {
-    const props = this.contract?.props as DeclarativeFieldProps | undefined;
+    const props = this.resolvedProps as DeclarativeFieldProps | undefined;
     const field = props?.field;
     if (field && typeof field === 'object') {
       return {
@@ -241,46 +263,74 @@ export class DeclarativeComponentRendererComponent {
   }
 
   get fieldValue() {
-    const props = this.contract?.props as DeclarativeFieldProps | undefined;
+    const props = this.resolvedProps as DeclarativeFieldProps | undefined;
     return props?.value ?? this.context?.state?.[this.fieldProp.name] ?? '';
   }
 
   stringProp(key: string, fallback: string) {
-    const value = this.contract?.props?.[key];
+    const value = this.resolvedProps[key];
     return typeof value === 'string' ? value : fallback;
   }
 
   booleanProp(key: string, fallback: boolean) {
-    const value = this.contract?.props?.[key];
+    const value = this.resolvedProps[key];
     return typeof value === 'boolean' ? value : fallback;
   }
 
   fieldTextProp(key: keyof DeclarativeFieldProps) {
-    const value = (this.contract?.props as DeclarativeFieldProps | undefined)?.[key];
+    const value = (this.resolvedProps as DeclarativeFieldProps | undefined)?.[key];
     return typeof value === 'string' ? value : '';
   }
 
   fieldBooleanProp(key: keyof DeclarativeFieldProps) {
-    const value = (this.contract?.props as DeclarativeFieldProps | undefined)?.[key];
+    const value = (this.resolvedProps as DeclarativeFieldProps | undefined)?.[key];
     return typeof value === 'boolean' ? value : false;
   }
 
-  emitConfiguredAction(eventName: string) {
+  async runConfiguredAction(eventName: string, value?: unknown) {
     const action = this.resolveAction(eventName);
     if (!action || !this.contract) {
       return;
     }
-    this.action.emit({ source: this.contract, eventName, action });
+    const actionContext = this.actionContext(value);
+    const resolvedAction = this.bindings.resolveDeep(action, actionContext) as DeclarativeComponentAction;
+    if (!this.permissions.canExecute(resolvedAction, actionContext)) {
+      this.localNotice = {
+        title: 'Permission required',
+        tone: 'warning',
+        message: 'This action requires a permission that is not available in the current context.'
+      };
+      this.action.emit({ source: this.contract, eventName, action: resolvedAction, value });
+      return;
+    }
+
+    let result: unknown = null;
+    if (this.runActions) {
+      try {
+        result = await this.actionRunner.execute(resolvedAction, actionContext);
+        this.handleActionResult(result);
+      } catch (error) {
+        this.localNotice = {
+          title: 'Action failed',
+          tone: 'error',
+          message: this.errorMessage(error)
+        };
+        result = error;
+      }
+    }
+    this.action.emit({ source: this.contract, eventName, action: resolvedAction, value, result });
   }
 
   emitValueChange(value: unknown) {
     const configured = this.resolveAction('valueChange');
     if (configured && this.contract) {
-      this.action.emit({ source: this.contract, eventName: 'valueChange', action: configured, value });
+      void this.runConfiguredAction('valueChange', value);
       return;
     }
     if (this.contract) {
-      this.action.emit({ source: this.contract, eventName: 'valueChange', action: { type: 'set_state', key: this.fieldProp.name }, value });
+      const defaultAction: DeclarativeComponentAction = { type: 'set_state', key: this.fieldProp.name };
+      void this.actionRunner.execute(defaultAction, this.actionContext(value));
+      this.action.emit({ source: this.contract, eventName: 'valueChange', action: defaultAction, value });
     }
   }
 
@@ -298,6 +348,50 @@ export class DeclarativeComponentRendererComponent {
       return (action[0] as DeclarativeComponentAction | undefined) ?? null;
     }
     return (action as DeclarativeComponentAction | undefined) ?? null;
+  }
+
+  private actionContext(value?: unknown): DeclarativeComponentContext {
+    return {
+      ...(this.context ?? {}),
+      value,
+      data: {
+        ...(this.context?.data ?? {}),
+        props: this.resolvedProps,
+        component: this.contract ?? {}
+      }
+    };
+  }
+
+  private handleActionResult(result: unknown) {
+    const value = result && typeof result === 'object' ? (result as Record<string, unknown>) : null;
+    if (!value || value['handled'] === false) {
+      if (value?.['reason']) {
+        this.localNotice = { title: 'Action pending', tone: 'warning', message: String(value['reason']) };
+      }
+      return;
+    }
+    if (value['type'] === 'show_message') {
+      this.localNotice = {
+        title: '',
+        tone: this.noticeToneFrom(value['tone']),
+        message: typeof value['message'] === 'string' ? value['message'] : 'Action completed.'
+      };
+    }
+  }
+
+  private noticeToneFrom(value: unknown): 'neutral' | 'info' | 'success' | 'warning' | 'error' {
+    if (value === 'danger') {
+      return 'error';
+    }
+    return this.oneOf(typeof value === 'string' ? value : 'info', ['neutral', 'info', 'success', 'warning', 'error'], 'info');
+  }
+
+  private errorMessage(error: unknown) {
+    if (error && typeof error === 'object') {
+      const candidate = error as { error?: { message?: string }; message?: string };
+      return candidate.error?.message ?? candidate.message ?? 'The declarative action could not be executed.';
+    }
+    return 'The declarative action could not be executed.';
   }
 
   private oneOf<T extends string>(value: string, allowed: readonly T[], fallback: T): T {

@@ -30,9 +30,9 @@ round.
 | Structural Admin reuse | 92% | 100% | Shared shells, navigation, page layout and catalog structures are broadly adopted. |
 | Multi-kit visual transformation | 90% | 100% | Global kit bridge and core adapters work; remaining page-local controls must move to real adapters. |
 | Component catalog coverage | 88% | 100% | Shared components, Ionic-backed standard components and initial declarative primitives are cataloged. |
-| Declarative component contract | 80% | 100% | Common object, backend validation and frontend types exist; full action/binding enforcement is still pending. |
-| Central declarative renderer | 35% | 100% | Initial renderer supports button, field, card, stack, grid and alert with controlled fallback. |
-| Persistent component registry | 35% | 100% | DB tables, migration, seed sync and secured registry endpoint exist; admin CRUD is pending. |
+| Declarative component contract | 88% | 100% | Common object, backend validation, frontend types, action checks and binding checks exist. |
+| Central declarative renderer | 48% | 100% | Initial renderer supports button, field, card, stack, grid, alert, prop bindings, permissions and action execution. |
+| Persistent component registry | 45% | 100% | DB tables, migration, seed sync and secured registry endpoint exist; local DB migration is applied; admin CRUD is pending. |
 | Admin migration to declarative objects | 16% | 100% | Admin remains reusable-component based; component page now includes a declarative renderer sample. |
 | Generated app runtime integration | 25% | 100% | App Studio and manifests exist conceptually; runtime rendering and cache need hardening. |
 | Offline component manifest | 15% | 100% | Forms and runtime docs define direction; generic screen/component manifest cache is pending. |
@@ -179,7 +179,7 @@ Implemented:
 
 ### Phase 1 - Central Declarative Renderer
 
-Progress: 35%.
+Progress: 55%.
 
 Deliverables:
 
@@ -278,6 +278,26 @@ Acceptance gate:
 
 - a component can navigate, execute a dynamic service and show a message through declarative events;
 - server calls still validate tenant, role and permissions.
+
+Implemented:
+
+- frontend `DeclarativeBindingResolverService` resolves expressions from state, data, route, user, tenant and current
+  value;
+- frontend `DeclarativePermissionService` checks component and action permissions against context or current session;
+- `ActionRunnerService` handles `navigate`, `execute_service`, `execute_flow`, `submit_form`, `open_modal`,
+  `show_message`, `set_state`, `refresh_data`, `queue_offline` and `emit_event`;
+- `DeclarativeComponentRendererComponent` resolves bound props before rendering and can execute configured component
+  events;
+- backend contract validation rejects unknown action types, missing required action keys, invalid permission arrays and
+  unsafe binding strings;
+- the declarative component tables were applied to the local MariaDB database through TypeORM migrations.
+
+Pending:
+
+- visual inspector for actions and bindings in App Studio;
+- execution telemetry for declarative actions;
+- richer server-side resource policy checks per action target;
+- offline sync processor for queued declarative actions.
 
 ### Phase 4 - Admin Components
 

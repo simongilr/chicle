@@ -21,6 +21,31 @@ export interface DeclarativeComponentContract {
   metadata?: Record<string, unknown>;
 }
 
+const ALLOWED_ACTION_TYPES = new Set([
+  'navigate',
+  'execute_service',
+  'execute_flow',
+  'submit_form',
+  'open_modal',
+  'show_modal',
+  'show_message',
+  'set_state',
+  'refresh_data',
+  'queue_offline',
+  'emit_event'
+]);
+
+const ACTION_REQUIRED_KEYS: Record<string, string[]> = {
+  navigate: ['to|route'],
+  execute_service: ['serviceKey'],
+  execute_flow: ['flowKey'],
+  open_modal: ['modalKey|templateKey|componentKey'],
+  show_modal: ['modalKey|templateKey|componentKey'],
+  show_message: ['message|text'],
+  set_state: ['key|path'],
+  emit_event: ['eventKey|name']
+};
+
 @Injectable()
 export class DeclarativeComponentsService implements OnModuleInit {
   constructor(
@@ -146,14 +171,20 @@ export class DeclarativeComponentsService implements OnModuleInit {
       ? await Promise.all(value['children'].map((child) => this.normalizeContract(child)))
       : [];
 
+    const props = this.asObject(value['props']) ?? {};
+    const bindings = this.asObject(value['bindings']) ?? {};
+    const actions = this.normalizeActions(value['actions']);
+    this.validateBindings(bindings, componentKey);
+    this.validateActions(actions, componentKey);
+
     return {
       schemaVersion: typeof value['schemaVersion'] === 'number' ? value['schemaVersion'] : 1,
       kind: this.asString(value['kind']) || 'dynamic_component',
       id: this.asString(value['id']) || undefined,
       componentKey,
-      props: this.asObject(value['props']) ?? {},
-      bindings: this.asObject(value['bindings']) ?? {},
-      actions: this.normalizeActions(value['actions']),
+      props,
+      bindings,
+      actions,
       permissions: Array.isArray(value['permissions'])
         ? value['permissions'].filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
         : [],
@@ -168,6 +199,89 @@ export class DeclarativeComponentsService implements OnModuleInit {
       return value.filter((item): item is Record<string, unknown> => Boolean(this.asObject(item)));
     }
     return this.asObject(value) ?? {};
+  }
+
+  private validateActions(value: Record<string, unknown> | Array<Record<string, unknown>>, componentKey: string) {
+    const actions = Array.isArray(value)
+      ? value
+      : Object.values(value).flatMap((entry) => (Array.isArray(entry) ? entry : [entry]));
+
+    for (const action of actions) {
+      const item = this.asObject(action);
+      if (!item) {
+        throw new BadRequestException(`Invalid action in ${componentKey}: action must be an object`);
+      }
+      const type = this.asString(item['type']);
+      if (!type) {
+        throw new BadRequestException(`Invalid action in ${componentKey}: type is required`);
+      }
+      if (!ALLOWED_ACTION_TYPES.has(type)) {
+        throw new BadRequestException(`Invalid action in ${componentKey}: unsupported type ${type}`);
+      }
+      const required = ACTION_REQUIRED_KEYS[type] ?? [];
+      for (const requirement of required) {
+        const alternatives = requirement.split('|');
+        const hasOne = alternatives.some((key) => Boolean(this.asString(item[key])));
+        if (!hasOne) {
+          throw new BadRequestException(
+            `Invalid action in ${componentKey}: ${type} requires ${alternatives.join(' or ')}`
+          );
+        }
+      }
+      this.validateActionPermissions(item, componentKey);
+      this.validateActionPayload(item, componentKey);
+    }
+  }
+
+  private validateActionPermissions(action: Record<string, unknown>, componentKey: string) {
+    if (action['permission'] != null && !this.asString(action['permission'])) {
+      throw new BadRequestException(`Invalid action in ${componentKey}: permission must be a non-empty string`);
+    }
+    if (
+      action['permissions'] != null &&
+      (!Array.isArray(action['permissions']) || action['permissions'].some((item) => !this.asString(item)))
+    ) {
+      throw new BadRequestException(`Invalid action in ${componentKey}: permissions must be a string array`);
+    }
+  }
+
+  private validateActionPayload(action: Record<string, unknown>, componentKey: string) {
+    for (const key of ['payloadMap', 'input', 'context']) {
+      if (action[key] != null && !this.asObject(action[key])) {
+        throw new BadRequestException(`Invalid action in ${componentKey}: ${key} must be an object`);
+      }
+    }
+  }
+
+  private validateBindings(bindings: Record<string, unknown>, componentKey: string) {
+    for (const [key, value] of Object.entries(bindings)) {
+      if (key.toLowerCase().includes('sql')) {
+        throw new BadRequestException(`Invalid binding in ${componentKey}: raw SQL binding keys are not allowed`);
+      }
+      this.validateBindingValue(value, componentKey);
+    }
+  }
+
+  private validateBindingValue(value: unknown, componentKey: string) {
+    if (typeof value === 'string') {
+      const lowered = value.toLowerCase();
+      if (lowered.includes('select ') || lowered.includes('drop table') || lowered.includes('http://') || lowered.includes('https://')) {
+        throw new BadRequestException(
+          `Invalid binding in ${componentKey}: direct SQL or raw external URLs are not valid component bindings`
+        );
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        this.validateBindingValue(item, componentKey);
+      }
+      return;
+    }
+    const object = this.asObject(value);
+    if (object) {
+      this.validateBindings(object, componentKey);
+    }
   }
 
   private asObject(value: unknown): Record<string, unknown> | null {

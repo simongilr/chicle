@@ -318,8 +318,10 @@ export class ComponentsPageComponent {
 
   get filteredCatalog() {
     const term = this.search.trim().toLowerCase();
+    const activeKit = this.previewKit === 'auto' || this.previewKit === 'inherit' ? 'primeng' : this.previewKit;
     return this.catalog.filter((component) => {
       const matchesCategory = this.category === 'all' || component.category === this.category;
+      const matchesKit = !component.supportedKits?.length || component.supportedKits.includes(activeKit);
       const matchesSearch =
         !term ||
         [
@@ -330,7 +332,7 @@ export class ComponentsPageComponent {
           component.category,
           ...component.usedBy
         ].some((value) => value.toLowerCase().includes(term));
-      return matchesCategory && matchesSearch;
+      return matchesKit && matchesCategory && matchesSearch;
     });
   }
 

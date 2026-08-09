@@ -17,6 +17,11 @@ structural miniature; the remaining catalog renders real component instances wit
 - Every component must work at 390 px without horizontal overflow.
 - Use global tokens and the existing component before adding page-local copies.
 - The current adoption evidence and allowed domain exceptions live in `docs/ui-reuse-audit.md`.
+- Reusable components that are available to App Studio or generated apps must also follow
+  `docs/declarative-component-architecture.md`. The visual component is only one adapter of the persisted component
+  object.
+- Generated app rendering, runtime manifests, app cache and offline queues are governed by
+  `docs/dynamic-app-runtime-architecture.md`.
 
 ## Required registration
 
@@ -159,3 +164,12 @@ App Studio must use the same reusable primitives as Services, Forms and Flows:
 The app runtime itself must consume the component registry. A generated Ionic app should render `auth_login`,
 `bottom_nav`, `form_runtime`, `media_gallery` and other supported components through their Ionic adapters when the
 active kit is Ionic. Admin must never fake Ionic mode by restyling native HTML controls.
+
+App Studio components must also be functional declarative objects. The canvas does not store only placement and a
+label. It stores `componentKey`, `props`, `layout`, `presentation`, `data`, `events`, `actions`, `permissions`,
+`states`, `i18n` and `preview` according to `docs/declarative-component-architecture.md`. This is the rule that lets a
+button know whether it navigates, executes a service, opens a modal or runs a flow without hardcoding behavior in the
+screen page.
+
+Those component objects are delivered to generated web, Ionic mobile and desktop shells through the published runtime
+manifest defined in `docs/dynamic-app-runtime-architecture.md`.

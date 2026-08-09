@@ -100,6 +100,15 @@ Text and language are also part of the platform contract. Admin and generated ap
 text through versioned text bundles with local fallbacks, backend-controlled defaults and artifact-level preferences.
 This keeps products portable, multilingual, offline-capable and safe to export/import without embedding secrets.
 
+Visual behavior is also a platform contract. Admin, App Studio and generated apps use reusable components governed by
+`docs/declarative-component-architecture.md`: each component is a declarative object with props, bindings, events,
+actions, permissions, states, text keys, preview fixtures and visual kit adapters. This prevents hardcoded screen logic
+and lets the same component contract render through PrimeNG, Ionic, Material, Bootstrap or native fallback.
+
+Generated app execution is governed by `docs/dynamic-app-runtime-architecture.md`. That contract defines the app graph,
+published runtime manifest, runtime cache, offline queue, app shell boot sequence and the rules for updating component
+data, state or structure.
+
 ## Tenant App Governance
 
 Chicle treats each organization as an application portfolio, not as a single fixed app. A tenant can own as many apps,
@@ -145,6 +154,9 @@ private service URLs, unpublished objects and owner/admin capabilities remain se
 
 A generated app is a deployable runtime artifact plus a published tenant contract. The artifact can be web, Ionic
 mobile, desktop or embedded. It does not need custom source code for every screen.
+
+The detailed runtime manifest, storage responsibilities, binding sources, action runner and offline policy are defined
+in `docs/dynamic-app-runtime-architecture.md`.
 
 At boot, the artifact resolves:
 

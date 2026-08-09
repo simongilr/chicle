@@ -16,6 +16,10 @@ The designer follows the same platform rules already used by Dynamic Services, D
 - Deleted artifacts move to trash so their keys can be reused safely.
 - Runtime execution uses published contracts only.
 
+The canonical runtime graph, bootstrap manifest, component binding, action execution, offline cache and generated app
+artifact model are defined in `docs/dynamic-app-runtime-architecture.md`. This document focuses on the Admin authoring
+experience and screen designer behavior that produces those runtime contracts.
+
 ## App Studio Governance
 
 An organization can own many generated apps and many pages per app. Chicle must therefore provide an App Studio, not
@@ -99,6 +103,11 @@ App
            -> Responsive layout
 ```
 
+Screen components are governed by the declarative component contract in
+`docs/declarative-component-architecture.md`. A screen component is not only a preview block. It must carry visual props,
+data bindings, event/action mappings, permissions, states, i18n keys and preview fixtures so the same object can be
+edited in App Studio, rendered in a generated app and understood by Chicle AI.
+
 The professional designer experience is built from five layers:
 
 | Layer | Responsibility |
@@ -108,6 +117,34 @@ The professional designer experience is built from five layers:
 | Visual canvas | Shows realistic component previews inside semantic regions: header, content, aside and actions. Drag/drop chooses placement; inspector controls exact behavior. |
 | Inspector | Edits title, region, width, alignment, chrome, binding, action and permission for the selected component. |
 | Contract authoring | Keeps the visual guide and JSON editor synchronized so the same screen can be created by a user, by Chicle AI or by importing a package. |
+
+The designer must not hardcode component behavior in the page implementation. Page code can orchestrate editing state,
+but the component behavior that belongs to generated apps must live in the component object:
+
+```txt
+componentKey -> props -> bindings -> events -> actions -> permissions -> states -> preview
+```
+
+For example, a menu component reads `app_navigation`, filters by permissions and uses a `navigate` action per item. A
+button emits `onClick` and the Action Runner executes `execute_service`, `execute_flow`, `open_modal`, `logout` or
+`navigate` based on the stored contract.
+
+### Component Palette Rule
+
+The palette is a vertical working list. It must not become a horizontal-scrolling catalog that hides available blocks.
+Users should scan components from top to bottom, filter by category, search by purpose and see target/kit support before
+adding anything to the canvas.
+
+Each palette entry must show:
+
+- component name and business purpose;
+- supported targets: web, mobile, desktop, admin or public;
+- supported visual kits: PrimeNG, Ionic, Material, Bootstrap or native fallback;
+- whether it needs data binding, action configuration or permissions;
+- its recommended region and default width.
+
+This rule is important for Chicle AI as well. The assistant must be able to read the same palette inventory and choose
+components by intent, not by guessing UI fragments.
 
 ### Region-Based Canvas
 
@@ -122,6 +159,21 @@ The canvas uses semantic drop zones:
 
 Each component stores its region and responsive layout. Desktop can use multi-column widths, while tablet and mobile
 collapse to full width by default. This keeps one contract usable across generated web, mobile and desktop artifacts.
+
+### Viewport Switching
+
+Viewport switching is a design requirement, not a label change. When the user changes between desktop, tablet and
+mobile, the designer must:
+
+- resize the preview frame to the selected device family;
+- apply the same responsive layout rules that the runtime will apply;
+- collapse multi-column layouts on tablet/mobile when required;
+- show mobile navigation and sticky action patterns when the selected target needs them;
+- keep the selected component and inspector state stable while switching.
+
+The preview frame must make it obvious what will happen to the app in each target. This prevents the generated mobile
+app from feeling like a squeezed desktop page, and prevents the generated desktop app from looking like a stretched
+phone screen.
 
 ### Why This Is Not a Free Canvas First
 
@@ -162,22 +214,67 @@ The Admin implementation must make this workflow visible without requiring train
 - selected components show a mini preview and quiet editing actions;
 - the inspector explains what to edit next when no component is selected.
 
-### Canvas Preview Contract
+### Canvas Preview And Interaction Contract
 
-The canvas preview must show what type of component the user is adding. It should not display generic cards only.
-Expected visual hints:
+The canvas preview must show what type of component the user is adding. It must not display generic guide cards only.
+Expected previews:
 
-- navigation blocks show menu pills;
-- login and forms show field stacks and primary action;
-- tables show header/row structure;
-- service and flow buttons show action controls;
-- metrics show KPI boxes;
+- navigation blocks show real menu items, tabs or mobile navigation controls;
+- login and forms show real input/select/button controls with sample state;
+- tables show headers, rows and row actions;
+- service and flow buttons show clickable action controls;
+- metrics show KPI boxes with sample values;
 - galleries show media tiles;
 - maps show a map surface;
 - timelines show event rows;
-- modals show an overlay-like mini preview.
+- modals show an openable modal preview;
+- cards and details show representative data.
 
-These previews are visual only. Runtime execution remains the responsibility of the published component adapter.
+Preview interaction is sandboxed. Users should be able to type, open selects, click sample buttons, open modals and
+move through navigation without accidentally publishing or corrupting the screen contract. When a preview action needs
+real execution, it must go through a test mode that clearly reports sample data, service response, flow response,
+success and error state.
+
+Design-time preview and runtime rendering must use the same component registry whenever possible. The designer may use
+mock data, but it must not invent a different visual language from the generated app.
+
+### Ionic Component Coverage
+
+Generated mobile apps depend on strong Ionic support. Ionic is not only a color theme; it is a component kit. Chicle
+must provide Ionic-native adapters or faithful wrappers for the same declarative component contracts used by web/admin
+screens.
+
+Minimum Ionic families:
+
+- form controls: `ion-input`, `ion-textarea`, `ion-select`, `ion-toggle`, `ion-checkbox`, `ion-radio-group`,
+  `ion-datetime`;
+- actions: `ion-button`, `ion-fab`, sticky bottom actions and action sheets;
+- navigation: `ion-menu`, `ion-tabs`, bottom navigation, segments and toolbar/header patterns;
+- display: `ion-list`, `ion-item`, `ion-card`, badges, chips, empty states and skeleton states;
+- feedback: `ion-modal`, `ion-alert`, `ion-toast`, `ion-loading`;
+- mobile capabilities: camera, file upload, GPS/location and evidence capture.
+
+Every new app component should declare whether it has an Ionic adapter. Components without mobile support must be
+clearly marked so the assistant does not use them in a mobile app by mistake.
+
+### Build While Previewing
+
+The expected professional workflow is:
+
+```txt
+1. Select or create an app.
+2. Select or create a screen.
+3. Pick a component from the vertical palette.
+4. Drop or add it into a region.
+5. See a real preview immediately.
+6. Configure binding, action, permissions and responsive width in the inspector.
+7. Switch desktop/tablet/mobile and confirm the layout.
+8. Test the component or full screen in sandbox mode.
+9. Save draft or publish a reviewed version.
+```
+
+This workflow is the baseline for Chicle AI. The assistant should be able to "cook" an app by creating the app graph,
+adding screens, placing components, connecting dependencies and explaining the visible result.
 
 ## Runtime Objects
 

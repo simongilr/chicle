@@ -516,6 +516,82 @@ interface PrincipleCommandment {
       </app-documentation-section-card>
 
       <app-documentation-section-card
+        sectionId="apps-runtime"
+        title="Runtime de apps generadas"
+        lead="Una app generada no es una copia completa del Admin. Es un artefacto runtime que comparte librería de componentes, adaptadores visuales y clientes dinámicos, pero carga únicamente el manifiesto publicado de esa app, tenant y canal."
+        tone="security"
+      >
+        <div class="matrix">
+          <div class="matrix-row matrix-head">
+            <div>Decisión</div>
+            <div>Qué reutiliza</div>
+            <div>Qué queda aislado por app</div>
+          </div>
+          <div class="matrix-row">
+            <div class="matrix-key">Shell runtime</div>
+            <div>Angular/Ionic, registry de componentes, renderers, UI kits, i18n, action runner, cache y clientes HTTP.</div>
+            <div>Rutas, navegación, pantallas, permisos, textos, tema, bindings, acciones y estado publicado para <code>appKey</code>.</div>
+          </div>
+          <div class="matrix-row">
+            <div class="matrix-key">Admin</div>
+            <div>Componentes reutilizables y contratos JSON compartidos con las apps.</div>
+            <div>Permanece como plano de control: diseña, versiona, publica, instala templates y audita cambios.</div>
+          </div>
+          <div class="matrix-row">
+            <div class="matrix-key">App negocio</div>
+            <div>Solo importa el runtime necesario para pintar componentes declarativos y ejecutar acciones autorizadas.</div>
+            <div>No carga DB designer, seguridad admin, editores, catálogo técnico ni herramientas owner/admin.</div>
+          </div>
+          <div class="matrix-row">
+            <div class="matrix-key">Artefacto</div>
+            <div>Puede salir del mismo monorepo y la misma librería visual para web, móvil o desktop.</div>
+            <div>Se empaqueta con configuración de ambiente, manifest base, assets, textos default y política offline propia.</div>
+          </div>
+        </div>
+
+        <div class="flow-line">
+          <div class="diagram-node">
+            <strong>1. Bootstrap</strong>
+            <span>El artefacto lee ambiente, tenant, <code>appKey</code>, target y cache local.</span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="diagram-node">
+            <strong>2. Manifest publicado</strong>
+            <span>La API entrega navegación, pantallas, componentes, bindings, textos, permisos y hashes.</span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="diagram-node">
+            <strong>3. Render dinámico</strong>
+            <span>El renderer resuelve componentes reales, datos, acciones, estado, offline y eventos de actualización.</span>
+          </div>
+        </div>
+
+        <div class="arch-grid">
+          <article class="card">
+            <h3>Actualización de datos</h3>
+            <p>
+              Un servicio o flow puede refrescar un binding, actualizar estado local, invalidar cache o mostrar
+              respuesta sin cambiar la estructura de la pantalla.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Actualización estructural</h3>
+            <p>
+              Para agregar, quitar o mover componentes se publica una nueva versión de app/pantalla. El runtime
+              detecta hashes/versiones y descarga el nuevo contrato.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Offline primero donde aplique</h3>
+            <p>
+              El artefacto conserva manifest, pantallas, textos, respuestas cacheables y cola de acciones en
+              IndexedDB/local storage según la política declarada.
+            </p>
+          </article>
+        </div>
+      </app-documentation-section-card>
+
+      <app-documentation-section-card
         sectionId="contratos-json"
         title="Contratos JSON"
         lead="Servicios, formularios y flows se crean desde interfaz guiada o JSON puro. El mismo contrato alimenta Chicle AI, templates instalables, pruebas y publicación."
@@ -765,6 +841,7 @@ export class ArchitecturePageComponent {
     { id: 'backend', label: 'Backend API', summary: 'Módulos NestJS y responsabilidades.' },
     { id: 'frontend', label: 'Frontend', summary: 'Páginas, componentes y UI kits.' },
     { id: 'runtime', label: 'Runtime dinámico', summary: 'Servicios, forms, flows y actions.' },
+    { id: 'apps-runtime', label: 'Runtime de apps', summary: 'Shell, manifest, cache y render dinámico.' },
     { id: 'contratos-json', label: 'Contratos JSON', summary: 'Autoría guiada y JSON only.' },
     { id: 'datos', label: 'Modelo de datos', summary: 'Tablas core, dinámicas y custom.' },
     { id: 'seguridad', label: 'Seguridad', summary: 'Auth, RBAC, tenant y producción.' },
@@ -1367,6 +1444,13 @@ export class ArchitecturePageComponent {
       status: 'Base funcional',
       description: 'Clientes dinámicos para servicios/flows, action runner, form runtime y Formly adapter.',
       paths: ['apps/app/src/app/core/services', 'apps/app/src/app/engine/actions', 'apps/app/src/app/engine/forms']
+    },
+    {
+      title: 'App Studio y runtime de apps',
+      status: 'Fábrica declarativa',
+      description:
+        'El Admin crea apps, pantallas, navegación y componentes; los artefactos de negocio consumen solo el manifiesto publicado.',
+      paths: ['apps/app/src/app/pages/apps', 'apps/api/src/modules/dynamic-apps', 'docs/dynamic-app-runtime-architecture.md']
     }
   ];
 
@@ -1394,6 +1478,13 @@ export class ArchitecturePageComponent {
       status: 'Base cliente',
       description: 'Acciones declarativas para ejecutar servicios, flows, navegación y capacidades instalables.',
       paths: ['apps/app/src/app/engine/actions', 'apps/api/src/modules/actions']
+    },
+    {
+      title: 'Dynamic Apps',
+      status: 'Runtime de apps',
+      description:
+        'Apps, pantallas, navegación, componentes, bindings, manifest runtime, publicación por tenant y preview multi-target.',
+      paths: ['apps/api/src/modules/dynamic-apps', 'apps/app/src/app/pages/apps', 'docs/dynamic-app-runtime-architecture.md']
     },
     {
       title: 'Records',
@@ -1433,6 +1524,13 @@ export class ArchitecturePageComponent {
       status: 'En homologación',
       description: 'Contrato de kit visual, tema, tokens, densidad, responsive y equivalentes por componente.',
       paths: ['docs/ui-presentation-architecture.md', 'docs/examples/ui-presentation.examples.json']
+    },
+    {
+      title: 'Apps y pantallas dinámicas',
+      status: 'Manifest runtime',
+      description:
+        'Contrato para appKey, rutas, navegación, pantallas, componentes declarativos, bindings, actions, textos, permisos y cache.',
+      paths: ['docs/dynamic-app-runtime-architecture.md', 'docs/screen-app-designer-architecture.md']
     }
   ];
 
@@ -1499,6 +1597,12 @@ export class ArchitecturePageComponent {
       phase: '6. Multi-target',
       done: 'Angular/Ionic, kits visuales y previews web/tablet/móvil.',
       next: 'Equivalentes PrimeNG/Ionic/Material/Bootstrap por componente, pantallas móviles y offline sync.'
+    },
+    {
+      phase: '7. App runtime',
+      done: 'App Studio, pantallas, navegación, componentes declarativos y contratos de publicación forman la base de la fábrica.',
+      next:
+        'Cada artefacto generado carga un manifest publicado por tenant/app/target y renderiza solo componentes autorizados.'
     }
   ];
 
@@ -1526,6 +1630,17 @@ export class ArchitecturePageComponent {
       status: 'Documento fuente',
       description: 'Inventario visual, reutilización, presentación multi-kit y auditoría de componentes.',
       paths: ['docs/ui-components.md', 'docs/ui-component-inventory.md', 'docs/ui-reuse-audit.md', 'docs/ui-presentation-architecture.md']
+    },
+    {
+      title: 'Apps, pantallas y templates',
+      status: 'Documento fuente',
+      description: 'Arquitectura de App Studio, runtime manifest, componentes declarativos, plantillas exportables y artefactos generados.',
+      paths: [
+        'docs/dynamic-app-runtime-architecture.md',
+        'docs/screen-app-designer-architecture.md',
+        'docs/app-template-factory-architecture.md',
+        'docs/declarative-component-architecture.md'
+      ]
     },
     {
       title: 'Infra, backup y migración',

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, ViewChild } from '@angular/core';
 import { RuntimeField } from '../../engine/forms/form-runtime.service';
 import { CatalogItemComponent } from '../catalog-item/catalog-item.component';
 import { DynamicFieldControlComponent } from '../dynamic-field-control/dynamic-field-control.component';
@@ -60,13 +60,16 @@ export interface DocumentationSection {
 
       .docs-nav {
         position: sticky;
-        top: 16px;
+        top: 84px;
         display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
         gap: 8px;
+        max-height: calc(100dvh - 108px);
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface);
         padding: 10px;
+        overflow: hidden;
       }
 
       .docs-nav-title {
@@ -75,6 +78,30 @@ export interface DocumentationSection {
         font-size: 0.78rem;
         font-weight: 800;
         text-transform: uppercase;
+      }
+
+      .docs-nav-list {
+        display: grid;
+        gap: 8px;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 2px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ch-color-primary-border) transparent;
+      }
+
+      .docs-nav-list::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .docs-nav-list::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: var(--ch-color-primary-border);
+      }
+
+      .docs-nav-list::-webkit-scrollbar-track {
+        background: transparent;
       }
 
       .docs-content {
@@ -131,15 +158,18 @@ export interface DocumentationSection {
         <div class="docs-layout">
           <nav class="docs-nav" [attr.aria-label]="navAriaLabel">
             <div class="docs-nav-title">{{ navTitle }}</div>
-            @for (section of sections; track section.id) {
-              <app-catalog-item
-                [title]="section.label"
-                [detail]="section.summary"
-                [active]="activeSection === section.id"
-                [kit]="kit"
-                (selected)="selectSection(section.id)"
-              ></app-catalog-item>
-            }
+            <div #navList class="docs-nav-list">
+              @for (section of sections; track section.id) {
+                <app-catalog-item
+                  [attr.data-docs-nav-item]="section.id"
+                  [title]="section.label"
+                  [detail]="section.summary"
+                  [active]="activeSection === section.id"
+                  [kit]="kit"
+                  (selected)="selectSection(section.id)"
+                ></app-catalog-item>
+              }
+            </div>
           </nav>
 
           <div class="docs-content">
@@ -151,6 +181,8 @@ export interface DocumentationSection {
   `
 })
 export class DocumentationLayoutComponent extends UiKitAwareComponent implements OnChanges {
+  @ViewChild('navList') private readonly navList?: ElementRef<HTMLElement>;
+
   @Input({ required: true }) title = '';
   @Input({ required: true }) description = '';
   @Input({ required: true }) sections: DocumentationSection[] = [];
@@ -179,17 +211,20 @@ export class DocumentationLayoutComponent extends UiKitAwareComponent implements
   ngOnChanges() {
     if (!this.activeSection && this.sections.length) {
       this.activeSection = this.sections[0].id;
+      this.keepActiveNavigationVisible();
     }
 
     if (this.activeSection && this.sections.length && !this.sections.some((section) => section.id === this.activeSection)) {
       this.activeSection = this.sections[0].id;
       this.sectionSelected.emit(this.activeSection);
+      this.keepActiveNavigationVisible();
     }
   }
 
   selectSection(sectionId: string) {
     this.activeSection = sectionId;
     this.sectionSelected.emit(sectionId);
+    this.keepActiveNavigationVisible();
 
     if (this.scrollOnSelect) {
       document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -214,6 +249,29 @@ export class DocumentationLayoutComponent extends UiKitAwareComponent implements
 
     if (visibleSection && visibleSection.id !== this.activeSection) {
       this.activeSection = visibleSection.id;
+      this.keepActiveNavigationVisible();
     }
+  }
+
+  private keepActiveNavigationVisible() {
+    const sectionId = this.activeSection;
+
+    if (!sectionId) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      const list = this.navList?.nativeElement;
+
+      if (!list) {
+        return;
+      }
+
+      const activeItem = Array.from(list.querySelectorAll<HTMLElement>('[data-docs-nav-item]')).find(
+        (item) => item.dataset['docsNavItem'] === sectionId
+      );
+
+      activeItem?.scrollIntoView({ block: 'nearest' });
+    });
   }
 }

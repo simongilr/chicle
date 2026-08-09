@@ -16,6 +16,10 @@ The designer follows the same platform rules already used by Dynamic Services, D
 - Deleted artifacts move to trash so their keys can be reused safely.
 - Runtime execution uses published contracts only.
 
+The canonical runtime graph, bootstrap manifest, component binding, action execution, offline cache and generated app
+artifact model are defined in `docs/dynamic-app-runtime-architecture.md`. This document focuses on the Admin authoring
+experience and screen designer behavior that produces those runtime contracts.
+
 ## App Studio Governance
 
 An organization can own many generated apps and many pages per app. Chicle must therefore provide an App Studio, not
@@ -99,6 +103,11 @@ App
            -> Responsive layout
 ```
 
+Screen components are governed by the declarative component contract in
+`docs/declarative-component-architecture.md`. A screen component is not only a preview block. It must carry visual props,
+data bindings, event/action mappings, permissions, states, i18n keys and preview fixtures so the same object can be
+edited in App Studio, rendered in a generated app and understood by Chicle AI.
+
 The professional designer experience is built from five layers:
 
 | Layer | Responsibility |
@@ -108,6 +117,17 @@ The professional designer experience is built from five layers:
 | Visual canvas | Shows realistic component previews inside semantic regions: header, content, aside and actions. Drag/drop chooses placement; inspector controls exact behavior. |
 | Inspector | Edits title, region, width, alignment, chrome, binding, action and permission for the selected component. |
 | Contract authoring | Keeps the visual guide and JSON editor synchronized so the same screen can be created by a user, by Chicle AI or by importing a package. |
+
+The designer must not hardcode component behavior in the page implementation. Page code can orchestrate editing state,
+but the component behavior that belongs to generated apps must live in the component object:
+
+```txt
+componentKey -> props -> bindings -> events -> actions -> permissions -> states -> preview
+```
+
+For example, a menu component reads `app_navigation`, filters by permissions and uses a `navigate` action per item. A
+button emits `onClick` and the Action Runner executes `execute_service`, `execute_flow`, `open_modal`, `logout` or
+`navigate` based on the stored contract.
 
 ### Component Palette Rule
 

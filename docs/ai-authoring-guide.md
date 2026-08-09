@@ -21,18 +21,20 @@ Read these files in order:
 11. `docs/dynamic-forms-contract.md`
 12. `docs/examples/dynamic-forms.examples.json`
 13. `docs/ui-components.md`
-14. `docs/ui-component-inventory.md`
-15. `docs/ui-presentation-architecture.md`
-16. `docs/i18n-text-architecture.md`
-17. `docs/examples/text-bundles.examples.json`
-18. `docs/examples/ui-presentation.examples.json`
-19. `docs/formly-architecture.md`
-20. `docs/examples/dynamic-form-formly.examples.json`
-21. `docs/screen-app-designer-architecture.md`
-22. `docs/app-template-factory-architecture.md`
-23. `docs/dynamic-grid-layout-contract.md`
-24. `docs/angular-20-migration-roadmap.md`
-25. `docs/angular-20-migration-report.md`
+14. `docs/declarative-component-architecture.md`
+15. `docs/ui-component-inventory.md`
+16. `docs/ui-presentation-architecture.md`
+17. `docs/i18n-text-architecture.md`
+18. `docs/examples/text-bundles.examples.json`
+19. `docs/examples/ui-presentation.examples.json`
+20. `docs/formly-architecture.md`
+21. `docs/examples/dynamic-form-formly.examples.json`
+22. `docs/dynamic-app-runtime-architecture.md`
+23. `docs/screen-app-designer-architecture.md`
+24. `docs/app-template-factory-architecture.md`
+25. `docs/dynamic-grid-layout-contract.md`
+26. `docs/angular-20-migration-roadmap.md`
+27. `docs/angular-20-migration-report.md`
 
 The TypeScript contracts remain authoritative when documentation and code differ:
 
@@ -64,6 +66,11 @@ The TypeScript contracts remain authoritative when documentation and code differ
 - Create or update JSON first, test it when possible, publish it and only then execute it from another component.
 - Keep forms and screens library-neutral. Use the optional `presentation` contract; never emit Angular selectors,
   PrimeNG/Ionic component tags or library CSS classes in stored JSON.
+- Keep generated app components object-driven. Use `componentKey`, `props`, `layout`, `presentation`, `data`, `events`,
+  `actions`, `permissions`, `states`, `i18n` and `preview` from `docs/declarative-component-architecture.md`; never
+  hardcode business behavior in a visual component.
+- Generated apps must follow `docs/dynamic-app-runtime-architecture.md`: create an app graph, publish immutable runtime
+  manifests, use approved bindings/actions and define offline behavior explicitly.
 - Personalization must use installed themes, `themeMode`, `density`, `radius` and safe semantic `tokens`. Never emit
   CSS blocks, arbitrary classes or unregistered theme imports in stored JSON.
 - User-facing text must use stable text keys plus fallback text. Generate `titleKey`/`fallbackTitle`,

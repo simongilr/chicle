@@ -69,20 +69,16 @@ export interface ComponentPaletteItem {
       }
 
       .palette-grid {
-        display: flex;
+        display: grid;
         gap: 10px;
         min-width: 0;
-        overflow-x: auto;
-        padding: 2px 2px 8px;
-        scroll-snap-type: x proximity;
+        padding: 2px;
       }
 
       .palette-group-block {
         display: grid;
         gap: 7px;
-        flex: 0 0 min(270px, 78vw);
         min-width: 0;
-        scroll-snap-align: start;
       }
 
       .palette-group-title {

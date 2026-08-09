@@ -7,6 +7,10 @@ The foundation is a tenant app graph and a portable template package made of val
 LiquidJS are optional adapters. They support design-time canvases or generated files when useful, but they do not define
 the runtime contract.
 
+The runtime contract consumed by generated web, Ionic mobile and desktop artifacts is defined in
+`docs/dynamic-app-runtime-architecture.md`. Template packages export and install that app graph; they do not replace the
+runtime manifest model.
+
 ## Core Principle
 
 Store product intent as Chicle contracts, not as generated source code.

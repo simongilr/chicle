@@ -195,6 +195,95 @@ export interface DynamicAppRuntimeScreen {
   permissions: string[];
 }
 
+const IONIC_COMPONENT_SELECTORS = [
+  'ion-accordion',
+  'ion-accordion-group',
+  'ion-action-sheet',
+  'ion-alert',
+  'ion-app',
+  'ion-avatar',
+  'ion-backdrop',
+  'ion-badge',
+  'ion-breadcrumb',
+  'ion-breadcrumbs',
+  'ion-button',
+  'ion-buttons',
+  'ion-card',
+  'ion-card-content',
+  'ion-card-header',
+  'ion-card-subtitle',
+  'ion-card-title',
+  'ion-checkbox',
+  'ion-chip',
+  'ion-col',
+  'ion-content',
+  'ion-datetime',
+  'ion-datetime-button',
+  'ion-fab',
+  'ion-fab-button',
+  'ion-fab-list',
+  'ion-footer',
+  'ion-grid',
+  'ion-header',
+  'ion-icon',
+  'ion-img',
+  'ion-infinite-scroll',
+  'ion-infinite-scroll-content',
+  'ion-input',
+  'ion-input-otp',
+  'ion-input-password-toggle',
+  'ion-item',
+  'ion-item-divider',
+  'ion-item-group',
+  'ion-item-option',
+  'ion-item-options',
+  'ion-item-sliding',
+  'ion-label',
+  'ion-list',
+  'ion-list-header',
+  'ion-loading',
+  'ion-menu',
+  'ion-menu-button',
+  'ion-menu-toggle',
+  'ion-nav-link',
+  'ion-note',
+  'ion-picker',
+  'ion-picker-column',
+  'ion-picker-column-option',
+  'ion-picker-legacy',
+  'ion-progress-bar',
+  'ion-radio',
+  'ion-radio-group',
+  'ion-range',
+  'ion-refresher',
+  'ion-refresher-content',
+  'ion-reorder',
+  'ion-reorder-group',
+  'ion-ripple-effect',
+  'ion-row',
+  'ion-searchbar',
+  'ion-segment',
+  'ion-segment-button',
+  'ion-segment-content',
+  'ion-segment-view',
+  'ion-select',
+  'ion-select-modal',
+  'ion-select-option',
+  'ion-skeleton-text',
+  'ion-spinner',
+  'ion-split-pane',
+  'ion-tab',
+  'ion-tab-bar',
+  'ion-tab-button',
+  'ion-text',
+  'ion-textarea',
+  'ion-thumbnail',
+  'ion-title',
+  'ion-toast',
+  'ion-toggle',
+  'ion-toolbar'
+] as const;
+
 @Injectable()
 export class DynamicAppsService {
   constructor(
@@ -932,8 +1021,26 @@ export class DynamicAppsService {
       { key: 'detail_panel', name: 'Detail panel', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'timeline', name: 'Timeline', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
       { key: 'media_gallery', name: 'Media gallery', category: 'content', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
-      { key: 'map_view', name: 'Map view', category: 'device', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] }
+      { key: 'map_view', name: 'Map view', category: 'device', targets: ['web', 'mobile', 'desktop'], kits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'] },
+      ...this.ionicComponentCatalog()
     ];
+  }
+
+  private ionicComponentCatalog() {
+    return IONIC_COMPONENT_SELECTORS.map((selector) => ({
+      key: `ionic_${selector.replace(/^ion-/, '').replace(/-/g, '_')}`,
+      name: this.ionicComponentName(selector),
+      category: 'ionic',
+      targets: ['web', 'mobile', 'desktop'],
+      kits: ['ionic']
+    }));
+  }
+
+  private ionicComponentName(selector: string) {
+    return selector
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
   }
 
   private normalizePackage(value: unknown): DynamicAppPackage {

@@ -154,6 +154,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
       "Portable app packages, template import/export, screen contracts and artifact generation boundaries.",
   },
   {
+    title: "Dynamic app runtime architecture",
+    path: "dynamic-app-runtime-architecture.md",
+    category: "Architecture",
+    summary:
+      "Canonical app graph, runtime manifest, component bindings, actions, offline cache and generated app execution model.",
+  },
+  {
     title: "Screen and app designer architecture",
     path: "screen-app-designer-architecture.md",
     category: "Architecture",
@@ -172,6 +179,13 @@ export const DOCS_MARKDOWN_FILES: DocsMarkdownFile[] = [
     path: "ui-components.md",
     category: "Frontend",
     summary: "Reusable component rules, documentation and adoption.",
+  },
+  {
+    title: "Declarative component architecture",
+    path: "declarative-component-architecture.md",
+    category: "Frontend",
+    summary:
+      "Canonical object contract for reusable visual and functional components, bindings, actions, permissions and kits.",
   },
   {
     title: "UI component inventory",

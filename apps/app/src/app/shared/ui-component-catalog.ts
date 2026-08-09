@@ -6,7 +6,8 @@ export type UiComponentCategory =
   | 'Formularios'
   | 'Temas y presentación'
   | 'Flow especializado'
-  | 'Apps verticales';
+  | 'Apps verticales'
+  | 'Ionic base';
 
 export interface UiComponentCatalogEntry {
   name: string;
@@ -15,11 +16,114 @@ export interface UiComponentCatalogEntry {
   purpose: string;
   importPath: string;
   usedBy: string[];
+  supportedKits?: Array<'native' | 'primeng' | 'ionic' | 'material' | 'bootstrap'>;
   status: 'stable' | 'initial' | 'domain';
   example: string;
 }
 
+const IONIC_COMPONENT_DEFINITIONS: Array<[name: string, selector: string]> = [
+  ['IonAccordion', 'ion-accordion'],
+  ['IonAccordionGroup', 'ion-accordion-group'],
+  ['IonActionSheet', 'ion-action-sheet'],
+  ['IonAlert', 'ion-alert'],
+  ['IonApp', 'ion-app'],
+  ['IonAvatar', 'ion-avatar'],
+  ['IonBackdrop', 'ion-backdrop'],
+  ['IonBadge', 'ion-badge'],
+  ['IonBreadcrumb', 'ion-breadcrumb'],
+  ['IonBreadcrumbs', 'ion-breadcrumbs'],
+  ['IonButton', 'ion-button'],
+  ['IonButtons', 'ion-buttons'],
+  ['IonCard', 'ion-card'],
+  ['IonCardContent', 'ion-card-content'],
+  ['IonCardHeader', 'ion-card-header'],
+  ['IonCardSubtitle', 'ion-card-subtitle'],
+  ['IonCardTitle', 'ion-card-title'],
+  ['IonCheckbox', 'ion-checkbox'],
+  ['IonChip', 'ion-chip'],
+  ['IonCol', 'ion-col'],
+  ['IonContent', 'ion-content'],
+  ['IonDatetime', 'ion-datetime'],
+  ['IonDatetimeButton', 'ion-datetime-button'],
+  ['IonFab', 'ion-fab'],
+  ['IonFabButton', 'ion-fab-button'],
+  ['IonFabList', 'ion-fab-list'],
+  ['IonFooter', 'ion-footer'],
+  ['IonGrid', 'ion-grid'],
+  ['IonHeader', 'ion-header'],
+  ['IonIcon', 'ion-icon'],
+  ['IonImg', 'ion-img'],
+  ['IonInfiniteScroll', 'ion-infinite-scroll'],
+  ['IonInfiniteScrollContent', 'ion-infinite-scroll-content'],
+  ['IonInput', 'ion-input'],
+  ['IonInputOtp', 'ion-input-otp'],
+  ['IonInputPasswordToggle', 'ion-input-password-toggle'],
+  ['IonItem', 'ion-item'],
+  ['IonItemDivider', 'ion-item-divider'],
+  ['IonItemGroup', 'ion-item-group'],
+  ['IonItemOption', 'ion-item-option'],
+  ['IonItemOptions', 'ion-item-options'],
+  ['IonItemSliding', 'ion-item-sliding'],
+  ['IonLabel', 'ion-label'],
+  ['IonList', 'ion-list'],
+  ['IonListHeader', 'ion-list-header'],
+  ['IonLoading', 'ion-loading'],
+  ['IonMenu', 'ion-menu'],
+  ['IonMenuButton', 'ion-menu-button'],
+  ['IonMenuToggle', 'ion-menu-toggle'],
+  ['IonNavLink', 'ion-nav-link'],
+  ['IonNote', 'ion-note'],
+  ['IonPicker', 'ion-picker'],
+  ['IonPickerColumn', 'ion-picker-column'],
+  ['IonPickerColumnOption', 'ion-picker-column-option'],
+  ['IonPickerLegacy', 'ion-picker-legacy'],
+  ['IonProgressBar', 'ion-progress-bar'],
+  ['IonRadio', 'ion-radio'],
+  ['IonRadioGroup', 'ion-radio-group'],
+  ['IonRange', 'ion-range'],
+  ['IonRefresher', 'ion-refresher'],
+  ['IonRefresherContent', 'ion-refresher-content'],
+  ['IonReorder', 'ion-reorder'],
+  ['IonReorderGroup', 'ion-reorder-group'],
+  ['IonRippleEffect', 'ion-ripple-effect'],
+  ['IonRow', 'ion-row'],
+  ['IonSearchbar', 'ion-searchbar'],
+  ['IonSegment', 'ion-segment'],
+  ['IonSegmentButton', 'ion-segment-button'],
+  ['IonSegmentContent', 'ion-segment-content'],
+  ['IonSegmentView', 'ion-segment-view'],
+  ['IonSelect', 'ion-select'],
+  ['IonSelectModal', 'ion-select-modal'],
+  ['IonSelectOption', 'ion-select-option'],
+  ['IonSkeletonText', 'ion-skeleton-text'],
+  ['IonSpinner', 'ion-spinner'],
+  ['IonSplitPane', 'ion-split-pane'],
+  ['IonTab', 'ion-tab'],
+  ['IonTabBar', 'ion-tab-bar'],
+  ['IonTabButton', 'ion-tab-button'],
+  ['IonText', 'ion-text'],
+  ['IonTextarea', 'ion-textarea'],
+  ['IonThumbnail', 'ion-thumbnail'],
+  ['IonTitle', 'ion-title'],
+  ['IonToast', 'ion-toast'],
+  ['IonToggle', 'ion-toggle'],
+  ['IonToolbar', 'ion-toolbar']
+];
+
+export const IONIC_COMPONENT_CATALOG: UiComponentCatalogEntry[] = IONIC_COMPONENT_DEFINITIONS.map(([name, selector]) => ({
+  name,
+  selector,
+  category: 'Ionic base',
+  purpose: `Componente Ionic standalone reutilizable basado en ${selector}.`,
+  importPath: '@ionic/angular/standalone',
+  usedBy: ['App Studio', 'Component library', 'Mobile runtime'],
+  supportedKits: ['ionic'],
+  status: 'initial',
+  example: `<${selector}></${selector}>`
+}));
+
 export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
+  ...IONIC_COMPONENT_CATALOG,
   {
     name: 'MainNavComponent',
     selector: 'app-main-nav',

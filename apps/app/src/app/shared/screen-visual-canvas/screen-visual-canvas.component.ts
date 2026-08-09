@@ -380,15 +380,11 @@ export interface ScreenCanvasComponent {
 
       .block-grid {
         display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 9px;
       }
 
-      .screen-body.tablet .block-grid,
-      .screen-body.mobile .block-grid {
-        grid-template-columns: 1fr;
-      }
-
+      .screen-block,
       .screen-body.tablet .screen-block,
       .screen-body.mobile .screen-block {
         grid-column: 1 / -1 !important;
@@ -990,10 +986,10 @@ export interface ScreenCanvasComponent {
         [class.drawer]="component.chrome === 'drawer'"
         [style.grid-column]="componentColumn(component)"
         [style.justify-self]="component.align === 'stretch' ? 'stretch' : component.align"
-        role="button"
-        tabindex="0"
-        (click)="selected.emit(component.id)"
-        (keydown.enter)="selected.emit(component.id)"
+        [attr.role]="editable ? 'button' : null"
+        [attr.tabindex]="editable ? 0 : null"
+        (click)="selectBlock(component.id)"
+        (keydown.enter)="selectBlock(component.id)"
       >
         <div class="block-head">
           <div class="block-copy">
@@ -1118,6 +1114,20 @@ export interface ScreenCanvasComponent {
                 <button type="button">Abrir</button>
               </div>
             }
+            @case ('ionic') {
+              <div class="runtime-card">
+                <div class="runtime-card-row">
+                  <span class="runtime-avatar"></span>
+                  <span class="runtime-line"></span>
+                </div>
+                <strong>{{ ionicSelector(component) }}</strong>
+                <span>Standalone import desde @ionic/angular/standalone.</span>
+                <div class="runtime-actions">
+                  <button type="button" class="runtime-action-button primary">Usar</button>
+                  <button type="button" class="runtime-action-button">Configurar</button>
+                </div>
+              </div>
+            }
             @default {
               <div class="runtime-card">
                 <div class="runtime-card-row"><span class="runtime-avatar"></span><span class="runtime-line"></span></div>
@@ -1128,32 +1138,34 @@ export interface ScreenCanvasComponent {
           }
         </div>
 
-        <div class="block-actions" (click)="$event.stopPropagation()">
-          <app-ui-kit-button
-            label="Editar"
-            icon="pi pi-pencil"
-            tone="secondary"
-            variant="ghost"
-            size="small"
-            (pressed)="selected.emit(component.id)"
-          ></app-ui-kit-button>
-          <app-ui-kit-button
-            label="Subir"
-            icon="pi pi-arrow-up"
-            tone="secondary"
-            variant="ghost"
-            size="small"
-            (pressed)="moved.emit({ id: component.id, direction: -1 })"
-          ></app-ui-kit-button>
-          <app-ui-kit-button
-            label="Bajar"
-            icon="pi pi-arrow-down"
-            tone="secondary"
-            variant="ghost"
-            size="small"
-            (pressed)="moved.emit({ id: component.id, direction: 1 })"
-          ></app-ui-kit-button>
-        </div>
+        @if (editable) {
+          <div class="block-actions" (click)="$event.stopPropagation()">
+            <app-ui-kit-button
+              label="Editar"
+              icon="pi pi-pencil"
+              tone="secondary"
+              variant="ghost"
+              size="small"
+              (pressed)="selected.emit(component.id)"
+            ></app-ui-kit-button>
+            <app-ui-kit-button
+              label="Subir"
+              icon="pi pi-arrow-up"
+              tone="secondary"
+              variant="ghost"
+              size="small"
+              (pressed)="moved.emit({ id: component.id, direction: -1 })"
+            ></app-ui-kit-button>
+            <app-ui-kit-button
+              label="Bajar"
+              icon="pi pi-arrow-down"
+              tone="secondary"
+              variant="ghost"
+              size="small"
+              (pressed)="moved.emit({ id: component.id, direction: 1 })"
+            ></app-ui-kit-button>
+          </div>
+        }
       </article>
     </ng-template>
   `
@@ -1168,6 +1180,7 @@ export class ScreenVisualCanvasComponent extends UiKitAwareComponent {
   @Input() components: ScreenCanvasComponent[] = [];
   @Input() selectedId: string | null = null;
   @Input() navigationItems: Array<{ label: string; route: string; active: boolean }> = [];
+  @Input() editable = true;
 
   @Output() readonly selected = new EventEmitter<string>();
   @Output() readonly moved = new EventEmitter<{ id: string; direction: -1 | 1 }>();
@@ -1223,22 +1236,20 @@ export class ScreenVisualCanvasComponent extends UiKitAwareComponent {
     }
   }
 
-  componentColumn(component: ScreenCanvasComponent) {
-    if (this.viewport !== 'desktop') {
-      return '1 / -1';
+  componentColumn(_component: ScreenCanvasComponent) {
+    return '1 / -1';
+  }
+
+  selectBlock(id: string) {
+    if (this.editable) {
+      this.selected.emit(id);
     }
-    const columns: Record<string, string> = {
-      full: 'span 12',
-      two_thirds: 'span 8',
-      half: 'span 6',
-      third: 'span 4',
-      quarter: 'span 3',
-      auto: component.region === 'header' ? 'span 12' : 'span 6'
-    };
-    return columns[component.width] ?? 'span 6';
   }
 
   componentDescription(component: ScreenCanvasComponent) {
+    if (component.componentKey.startsWith('ionic_')) {
+      return `Componente Ionic reutilizable ${this.ionicSelector(component)}.`;
+    }
     const descriptions: Record<string, string> = {
       nav_menu: 'Menú superior conectado a las rutas publicadas.',
       side_nav: 'Navegación lateral para secciones amplias.',
@@ -1276,6 +1287,9 @@ export class ScreenVisualCanvasComponent extends UiKitAwareComponent {
   }
 
   previewKind(component: ScreenCanvasComponent) {
+    if (component.componentKey.startsWith('ionic_')) {
+      return 'ionic';
+    }
     if (['nav_menu', 'side_nav', 'bottom_nav', 'tabs'].includes(component.componentKey)) {
       return 'nav';
     }
@@ -1307,5 +1321,9 @@ export class ScreenVisualCanvasComponent extends UiKitAwareComponent {
       return 'modal';
     }
     return 'card';
+  }
+
+  ionicSelector(component: ScreenCanvasComponent) {
+    return `ion-${component.componentKey.replace(/^ionic_/, '').replace(/_/g, '-')}`;
   }
 }

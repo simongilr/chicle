@@ -1,6 +1,92 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import {
+  IonAccordion,
+  IonAccordionGroup,
+  IonActionSheet,
+  IonAlert,
+  IonAvatar,
+  IonBackdrop,
+  IonBadge,
+  IonBreadcrumb,
+  IonBreadcrumbs,
+  IonButton,
+  IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonCardTitle,
+  IonCheckbox,
+  IonChip,
+  IonCol,
+  IonContent,
+  IonDatetime,
+  IonDatetimeButton,
+  IonFab,
+  IonFabButton,
+  IonFabList,
+  IonFooter,
+  IonGrid,
+  IonHeader,
+  IonIcon,
+  IonImg,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonInput,
+  IonInputOtp,
+  IonInputPasswordToggle,
+  IonItem,
+  IonItemDivider,
+  IonItemGroup,
+  IonItemOption,
+  IonItemOptions,
+  IonItemSliding,
+  IonLabel,
+  IonList,
+  IonListHeader,
+  IonLoading,
+  IonMenu,
+  IonMenuButton,
+  IonMenuToggle,
+  IonModal,
+  IonNote,
+  IonPicker,
+  IonPickerColumn,
+  IonPickerColumnOption,
+  IonProgressBar,
+  IonRadio,
+  IonRadioGroup,
+  IonRange,
+  IonRefresher,
+  IonRefresherContent,
+  IonReorder,
+  IonReorderGroup,
+  IonRippleEffect,
+  IonRow,
+  IonSearchbar,
+  IonSegment,
+  IonSegmentButton,
+  IonSegmentContent,
+  IonSegmentView,
+  IonSelect,
+  IonSelectModal,
+  IonSelectOption,
+  IonSkeletonText,
+  IonSpinner,
+  IonSplitPane,
+  IonTab,
+  IonTabBar,
+  IonTabButton,
+  IonText,
+  IonTextarea,
+  IonThumbnail,
+  IonTitle,
+  IonToast,
+  IonToggle,
+  IonToolbar
+} from '@ionic/angular/standalone';
+import {
   UiKitId,
   UiKitPreference,
   UiPresentationConfig
@@ -126,7 +212,91 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     UiKitButtonComponent,
     UiKitCardComponent,
     VerticalAppShowcaseComponent,
-    WorkflowGuideComponent
+    WorkflowGuideComponent,
+    IonAccordion,
+    IonAccordionGroup,
+    IonActionSheet,
+    IonAlert,
+    IonAvatar,
+    IonBackdrop,
+    IonBadge,
+    IonBreadcrumb,
+    IonBreadcrumbs,
+    IonButton,
+    IonButtons,
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardSubtitle,
+    IonCardTitle,
+    IonCheckbox,
+    IonChip,
+    IonCol,
+    IonContent,
+    IonDatetime,
+    IonDatetimeButton,
+    IonFab,
+    IonFabButton,
+    IonFabList,
+    IonFooter,
+    IonGrid,
+    IonHeader,
+    IonIcon,
+    IonImg,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+    IonInput,
+    IonInputOtp,
+    IonInputPasswordToggle,
+    IonItem,
+    IonItemDivider,
+    IonItemGroup,
+    IonItemOption,
+    IonItemOptions,
+    IonItemSliding,
+    IonLabel,
+    IonList,
+    IonListHeader,
+    IonLoading,
+    IonMenu,
+    IonMenuButton,
+    IonMenuToggle,
+    IonModal,
+    IonNote,
+    IonPicker,
+    IonPickerColumn,
+    IonPickerColumnOption,
+    IonProgressBar,
+    IonRadio,
+    IonRadioGroup,
+    IonRange,
+    IonRefresher,
+    IonRefresherContent,
+    IonReorder,
+    IonReorderGroup,
+    IonRippleEffect,
+    IonRow,
+    IonSearchbar,
+    IonSegment,
+    IonSegmentButton,
+    IonSegmentContent,
+    IonSegmentView,
+    IonSelect,
+    IonSelectModal,
+    IonSelectOption,
+    IonSkeletonText,
+    IonSpinner,
+    IonSplitPane,
+    IonTab,
+    IonTabBar,
+    IonTabButton,
+    IonText,
+    IonTextarea,
+    IonThumbnail,
+    IonTitle,
+    IonToast,
+    IonToggle,
+    IonToolbar
   ],
   styles: [
     `
@@ -263,6 +433,117 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
         text-transform: uppercase;
       }
 
+      .ionic-preview {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .ionic-preview ion-button {
+        text-transform: none;
+      }
+
+      .ionic-preview ion-card {
+        margin: 0;
+      }
+
+      .ionic-preview ion-list,
+      .ionic-preview ion-accordion-group,
+      .ionic-shell-preview {
+        overflow: hidden;
+        border: 1px solid var(--ch-color-border);
+        border-radius: 14px;
+        background: var(--ch-color-surface);
+      }
+
+      .ionic-preview ion-searchbar {
+        padding: 0;
+      }
+
+      .ionic-fab-stage {
+        position: relative;
+        min-height: 76px;
+        overflow: hidden;
+        border: 1px dashed var(--ch-color-border);
+        border-radius: 14px;
+        background: var(--ch-color-surface);
+      }
+
+      .ionic-backdrop-stage,
+      .ionic-ripple-stage,
+      .ionic-scroll-stage,
+      .ionic-refresher-stage {
+        position: relative;
+        display: grid;
+        min-height: 90px;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid var(--ch-color-border);
+        border-radius: 14px;
+        background: var(--ch-color-surface);
+        color: var(--ch-color-muted);
+      }
+
+      .ionic-backdrop-stage ion-backdrop {
+        opacity: 0.36;
+      }
+
+      .ionic-ripple-stage {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .ionic-scroll-stage ion-infinite-scroll,
+      .ionic-refresher-stage ion-refresher {
+        position: static;
+        display: grid;
+        min-height: 48px;
+        place-items: center;
+      }
+
+      .ionic-media-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .ionic-avatar-mark,
+      .ionic-thumbnail-mark {
+        display: grid;
+        width: 100%;
+        height: 100%;
+        place-items: center;
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-primary);
+        font-weight: 900;
+      }
+
+      .ionic-thumbnail-mark {
+        border-radius: 8px;
+      }
+
+      .ionic-accordion-content {
+        padding: 12px 16px;
+        color: var(--ch-color-muted);
+      }
+
+      .ionic-shell-preview {
+        display: grid;
+        min-height: 250px;
+      }
+
+      .ionic-shell-content {
+        --background: var(--ch-color-surface-alt);
+        min-height: 140px;
+      }
+
+      .ionic-note-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
       .entity-preview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -306,7 +587,10 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
     <div class="preview">
       <span class="preview-label">{{ structuralPreview ? 'Miniatura estructural' : 'Componente real' }}</span>
 
-      @switch (componentName) {
+      @if (isIonicBaseComponent) {
+        <ng-container [ngTemplateOutlet]="ionicPreview"></ng-container>
+      } @else {
+        @switch (componentName) {
         @case ('MainNavComponent') {
           <ng-container [ngTemplateOutlet]="shellPreview"></ng-container>
         }
@@ -774,7 +1058,448 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             }
           </div>
         }
+        }
       }
+
+      <ng-template #ionicPreview>
+        <div class="ionic-preview">
+          @switch (ionicPreviewKind) {
+            @case ('action-sheet') {
+              <ion-button [id]="ionicTriggerId('action-sheet')" fill="outline">Abrir acciones</ion-button>
+              <ion-action-sheet
+                [trigger]="ionicTriggerId('action-sheet')"
+                header="Acciones"
+                [buttons]="ionicActionSheetButtons"
+              ></ion-action-sheet>
+            }
+            @case ('alert') {
+              <ion-button [id]="ionicTriggerId('alert')" fill="outline">Abrir alerta</ion-button>
+              <ion-alert
+                [trigger]="ionicTriggerId('alert')"
+                header="Validación"
+                message="Mensaje Ionic real."
+                [buttons]="ionicOverlayButtons"
+              ></ion-alert>
+            }
+            @case ('avatar') {
+              <div class="ionic-media-row">
+                <ion-avatar>
+                  <div class="ionic-avatar-mark">CE</div>
+                </ion-avatar>
+                <ion-label>
+                  <strong>Chicle Engine</strong>
+                  <p>Avatar nativo Ionic</p>
+                </ion-label>
+              </div>
+            }
+            @case ('backdrop') {
+              <div class="ionic-backdrop-stage">
+                <ion-backdrop [visible]="true" [tappable]="false"></ion-backdrop>
+                <strong>Backdrop</strong>
+              </div>
+            }
+            @case ('badge') {
+              <div class="ionic-media-row">
+                <ion-badge color="primary">12</ion-badge>
+                <ion-badge color="success">Activo</ion-badge>
+                <ion-badge color="warning">Draft</ion-badge>
+              </div>
+            }
+            @case ('breadcrumbs') {
+              <ion-breadcrumbs>
+                <ion-breadcrumb>Inicio</ion-breadcrumb>
+                <ion-breadcrumb>Apps</ion-breadcrumb>
+                <ion-breadcrumb>Detalle</ion-breadcrumb>
+              </ion-breadcrumbs>
+            }
+            @case ('button') {
+              <ion-button expand="block" color="primary">Guardar</ion-button>
+              <ion-button expand="block" fill="outline" color="danger">Eliminar</ion-button>
+            }
+            @case ('card') {
+              <ion-card>
+                <ion-card-header>
+                  <ion-card-subtitle>App</ion-card-subtitle>
+                  <ion-card-title>Componente Ionic</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>Card nativa lista para previews y runtime móvil.</ion-card-content>
+              </ion-card>
+            }
+            @case ('checkbox') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-checkbox checked="true">Acepta términos</ion-checkbox>
+                </ion-item>
+              </ion-list>
+            }
+            @case ('chip') {
+              <div class="ionic-media-row">
+                <ion-chip color="primary">
+                  <ion-label>Ionic</ion-label>
+                </ion-chip>
+                <ion-chip color="success">
+                  <ion-label>Publicado</ion-label>
+                </ion-chip>
+              </div>
+            }
+            @case ('datetime') {
+              <ion-datetime presentation="date" value="2026-08-09"></ion-datetime>
+              <ion-datetime-button datetime="preview-date"></ion-datetime-button>
+              <ion-modal [keepContentsMounted]="true">
+                <ng-template>
+                  <ion-datetime id="preview-date" presentation="date" value="2026-08-09"></ion-datetime>
+                </ng-template>
+              </ion-modal>
+            }
+            @case ('fab') {
+              <div class="ionic-fab-stage">
+                <ion-fab vertical="bottom" horizontal="end">
+                  <ion-fab-button size="small">+</ion-fab-button>
+                  <ion-fab-list side="top">
+                    <ion-fab-button size="small">A</ion-fab-button>
+                  </ion-fab-list>
+                </ion-fab>
+              </div>
+            }
+            @case ('grid') {
+              <ion-grid>
+                <ion-row>
+                  <ion-col>Columna A</ion-col>
+                  <ion-col>Columna B</ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="12">Fila completa</ion-col>
+                </ion-row>
+              </ion-grid>
+            }
+            @case ('icon') {
+              <div class="ionic-media-row">
+                <ion-icon name="home-outline" size="large"></ion-icon>
+                <ion-icon name="settings-outline" size="large"></ion-icon>
+                <ion-icon name="sparkles-outline" size="large"></ion-icon>
+              </div>
+            }
+            @case ('image') {
+              <ion-img
+                alt="Preview visual"
+                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='180' viewBox='0 0 420 180'%3E%3Crect width='420' height='180' rx='18' fill='%23e7f1fb'/%3E%3Ccircle cx='92' cy='90' r='46' fill='%23205fac'/%3E%3Crect x='160' y='58' width='190' height='18' rx='9' fill='%23205fac'/%3E%3Crect x='160' y='92' width='140' height='14' rx='7' fill='%236b8198'/%3E%3C/svg%3E"
+              ></ion-img>
+            }
+            @case ('infinite-scroll') {
+              <div class="ionic-scroll-stage">
+                <ion-infinite-scroll [disabled]="true">
+                  <ion-infinite-scroll-content loadingText="Cargando más registros"></ion-infinite-scroll-content>
+                </ion-infinite-scroll>
+              </div>
+            }
+            @case ('form') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-input label="Nombre" label-placement="stacked" value="Cliente app"></ion-input>
+                </ion-item>
+                <ion-item>
+                  <ion-select label="Rol" label-placement="stacked" value="viewer" interface="popover">
+                    <ion-select-option value="viewer">Viewer</ion-select-option>
+                    <ion-select-option value="owner">Owner</ion-select-option>
+                  </ion-select>
+                </ion-item>
+                <ion-item>
+                  <ion-toggle checked="true">Activo</ion-toggle>
+                </ion-item>
+                <ion-item>
+                  <ion-checkbox checked="true">Acepta términos</ion-checkbox>
+                </ion-item>
+                <ion-item>
+                  <ion-range label="Prioridad" label-placement="stacked" value="62"></ion-range>
+                </ion-item>
+                <ion-item>
+                  <ion-textarea label="Notas" label-placement="stacked" value="Texto largo editable"></ion-textarea>
+                </ion-item>
+              </ion-list>
+              <ion-searchbar value="buscar componente"></ion-searchbar>
+              <ion-segment value="web">
+                <ion-segment-button value="web">Web</ion-segment-button>
+                <ion-segment-button value="mobile">Móvil</ion-segment-button>
+              </ion-segment>
+            }
+            @case ('input') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-input label="Correo" label-placement="stacked" value="admin@empresa.com"></ion-input>
+                </ion-item>
+                <ion-item>
+                  <ion-input label="Password" label-placement="stacked" type="password" value="123456">
+                    <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+                  </ion-input>
+                </ion-item>
+                <ion-item>
+                  <ion-input-otp value="1234"></ion-input-otp>
+                </ion-item>
+              </ion-list>
+            }
+            @case ('item') {
+              <ion-list>
+                <ion-item-group>
+                  <ion-item-divider>
+                    <ion-label>Grupo</ion-label>
+                  </ion-item-divider>
+                  <ion-item>
+                    <ion-label>Elemento</ion-label>
+                    <ion-note slot="end">Nota</ion-note>
+                  </ion-item>
+                </ion-item-group>
+              </ion-list>
+            }
+            @case ('list') {
+              <ion-list>
+                <ion-list-header>Registros</ion-list-header>
+                <ion-item>
+                  <ion-label>
+                    <h3>Cliente</h3>
+                    <p>Activo · tenant</p>
+                  </ion-label>
+                  <ion-badge color="success">OK</ion-badge>
+                </ion-item>
+                <ion-item-sliding>
+                  <ion-item>
+                    <ion-label>Fila deslizable</ion-label>
+                  </ion-item>
+                  <ion-item-options side="end">
+                    <ion-item-option color="danger">Eliminar</ion-item-option>
+                  </ion-item-options>
+                </ion-item-sliding>
+              </ion-list>
+            }
+            @case ('loading') {
+              <ion-button [id]="ionicTriggerId('loading')" fill="outline">Mostrar loading</ion-button>
+              <ion-loading
+                [trigger]="ionicTriggerId('loading')"
+                message="Procesando"
+                [duration]="1200"
+              ></ion-loading>
+            }
+            @case ('layout') {
+              <ion-accordion-group>
+                <ion-accordion value="first">
+                  <ion-item slot="header">
+                    <ion-label>Sección</ion-label>
+                  </ion-item>
+                  <div class="ionic-accordion-content" slot="content">Contenido configurable.</div>
+                </ion-accordion>
+              </ion-accordion-group>
+              <ion-breadcrumbs>
+                <ion-breadcrumb>Inicio</ion-breadcrumb>
+                <ion-breadcrumb>Detalle</ion-breadcrumb>
+              </ion-breadcrumbs>
+            }
+            @case ('menu') {
+              <div class="ionic-shell-preview">
+                <ion-menu contentId="preview-menu-content" [disabled]="true">
+                  <ion-content>
+                    <ion-list>
+                      <ion-item>Inicio</ion-item>
+                    </ion-list>
+                  </ion-content>
+                </ion-menu>
+                <ion-split-pane contentId="preview-menu-content" [disabled]="true">
+                  <ion-header id="preview-menu-content">
+                    <ion-toolbar>
+                      <ion-buttons slot="start">
+                        <ion-menu-button></ion-menu-button>
+                      </ion-buttons>
+                      <ion-title>Menú</ion-title>
+                    </ion-toolbar>
+                  </ion-header>
+                </ion-split-pane>
+                <ion-menu-toggle>
+                  <ion-button fill="outline">Ruta de menú</ion-button>
+                </ion-menu-toggle>
+              </div>
+            }
+            @case ('note') {
+              <ion-list>
+                <ion-item>
+                  <ion-label>Estado</ion-label>
+                  <ion-note slot="end">Sincronizado</ion-note>
+                </ion-item>
+              </ion-list>
+            }
+            @case ('picker') {
+              <ion-picker>
+                <ion-picker-column value="medium">
+                  <ion-picker-column-option value="small">Pequeño</ion-picker-column-option>
+                  <ion-picker-column-option value="medium">Medio</ion-picker-column-option>
+                  <ion-picker-column-option value="large">Grande</ion-picker-column-option>
+                </ion-picker-column>
+              </ion-picker>
+            }
+            @case ('progress') {
+              <ion-progress-bar value="0.62"></ion-progress-bar>
+            }
+            @case ('radio') {
+              <ion-radio-group value="viewer">
+                <ion-list>
+                  <ion-item>
+                    <ion-radio value="viewer">Viewer</ion-radio>
+                  </ion-item>
+                  <ion-item>
+                    <ion-radio value="owner">Owner</ion-radio>
+                  </ion-item>
+                </ion-list>
+              </ion-radio-group>
+            }
+            @case ('range') {
+              <ion-list>
+                <ion-item>
+                  <ion-range label="Prioridad" label-placement="stacked" value="62"></ion-range>
+                </ion-item>
+              </ion-list>
+            }
+            @case ('refresher') {
+              <div class="ionic-refresher-stage">
+                <ion-refresher slot="fixed">
+                  <ion-refresher-content pullingText="Desliza para refrescar"></ion-refresher-content>
+                </ion-refresher>
+              </div>
+            }
+            @case ('reorder') {
+              <ion-list>
+                <ion-reorder-group [disabled]="false">
+                  <ion-item>
+                    <ion-label>Elemento reordenable</ion-label>
+                    <ion-reorder slot="end"></ion-reorder>
+                  </ion-item>
+                </ion-reorder-group>
+              </ion-list>
+            }
+            @case ('ripple') {
+              <div class="ionic-ripple-stage ion-activatable">
+                Toca para ver ripple
+                <ion-ripple-effect></ion-ripple-effect>
+              </div>
+            }
+            @case ('searchbar') {
+              <ion-searchbar value="buscar componente"></ion-searchbar>
+            }
+            @case ('segment') {
+              <ion-segment value="web">
+                <ion-segment-button value="web">Web</ion-segment-button>
+                <ion-segment-button value="mobile">Móvil</ion-segment-button>
+              </ion-segment>
+              <ion-segment-view>
+                <ion-segment-content>Contenido segmentado</ion-segment-content>
+              </ion-segment-view>
+            }
+            @case ('select') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-select label="Rol" label-placement="stacked" value="viewer" interface="popover">
+                    <ion-select-option value="viewer">Viewer</ion-select-option>
+                    <ion-select-option value="owner">Owner</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-list>
+              <ion-select-modal
+                header="Selector modal"
+                [options]="ionicSelectModalOptions"
+              ></ion-select-modal>
+            }
+            @case ('skeleton') {
+              <ion-skeleton-text [animated]="true" style="width: 80%"></ion-skeleton-text>
+              <ion-skeleton-text [animated]="true" style="width: 55%"></ion-skeleton-text>
+            }
+            @case ('spinner') {
+              <ion-spinner name="crescent"></ion-spinner>
+            }
+            @case ('shell') {
+              <div class="ionic-shell-preview">
+                <ion-header>
+                  <ion-toolbar>
+                    <ion-title>Mi app</ion-title>
+                    <ion-buttons slot="end">
+                      <ion-button>Menú</ion-button>
+                    </ion-buttons>
+                  </ion-toolbar>
+                </ion-header>
+                <ion-content class="ionic-shell-content">
+                  <ion-list>
+                    <ion-item>
+                      <ion-label>Home</ion-label>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Formulario</ion-label>
+                    </ion-item>
+                  </ion-list>
+                </ion-content>
+                <ion-footer>
+                  <ion-toolbar>
+                    <ion-title size="small">Runtime móvil</ion-title>
+                  </ion-toolbar>
+                </ion-footer>
+              </div>
+            }
+            @case ('tabs') {
+              <ion-tab tab="home"></ion-tab>
+              <ion-tab-bar slot="bottom">
+                <ion-tab-button tab="home">
+                  <ion-label>Inicio</ion-label>
+                </ion-tab-button>
+                <ion-tab-button tab="settings">
+                  <ion-label>Ajustes</ion-label>
+                </ion-tab-button>
+              </ion-tab-bar>
+            }
+            @case ('text') {
+              <ion-text color="primary">
+                <h3>Texto Ionic</h3>
+              </ion-text>
+              <p>Tipografía y color nativos del kit Ionic.</p>
+            }
+            @case ('textarea') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-textarea label="Observaciones" label-placement="stacked" value="Texto largo editable"></ion-textarea>
+                </ion-item>
+              </ion-list>
+            }
+            @case ('thumbnail') {
+              <div class="ionic-media-row">
+                <ion-thumbnail>
+                  <div class="ionic-thumbnail-mark"></div>
+                </ion-thumbnail>
+                <ion-label>
+                  <strong>Imagen adjunta</strong>
+                  <p>Thumbnail nativo Ionic</p>
+                </ion-label>
+              </div>
+            }
+            @case ('toast') {
+              <ion-button [id]="ionicTriggerId('toast')" fill="outline">Mostrar toast</ion-button>
+              <ion-toast
+                [trigger]="ionicTriggerId('toast')"
+                message="Guardado correctamente."
+                [duration]="1800"
+              ></ion-toast>
+            }
+            @case ('toggle') {
+              <ion-list lines="full">
+                <ion-item>
+                  <ion-toggle checked="true">Activo</ion-toggle>
+                </ion-item>
+              </ion-list>
+            }
+            @default {
+              <ion-card>
+                <ion-card-header>
+                  <ion-card-subtitle>Ionic standalone</ion-card-subtitle>
+                  <ion-card-title>{{ componentName }}</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>Componente base disponible para previews y runtime móvil.</ion-card-content>
+              </ion-card>
+            }
+          }
+        </div>
+      </ng-template>
 
       <ng-template #shellPreview>
         <div class="shell-preview">
@@ -1130,9 +1855,119 @@ export class ComponentVisualPreviewComponent {
     { label: 'Cierre', detail: 'Respuesta, evidencia o sincronizacion', state: 'pending' }
   ];
   readonly appVerticals: AppVertical[] = ['events', 'real_estate', 'tickets', 'services', 'games', 'inspection'];
+  readonly ionicOverlayButtons = ['OK'];
+  readonly ionicActionSheetButtons = [
+    { text: 'Editar', role: 'selected' },
+    { text: 'Eliminar', role: 'destructive' },
+    { text: 'Cancelar', role: 'cancel' }
+  ];
+  readonly ionicSelectModalOptions = [
+    { text: 'Viewer', value: 'viewer', checked: true },
+    { text: 'Owner', value: 'owner' }
+  ];
+
+  get isIonicBaseComponent() {
+    return this.componentName.startsWith('Ion');
+  }
+
+  get ionicPreviewKind() {
+    const previewMap: Record<string, string> = {
+      IonAccordion: 'layout',
+      IonAccordionGroup: 'layout',
+      IonActionSheet: 'action-sheet',
+      IonAlert: 'alert',
+      IonApp: 'shell',
+      IonAvatar: 'avatar',
+      IonBackdrop: 'backdrop',
+      IonBadge: 'badge',
+      IonBreadcrumb: 'breadcrumbs',
+      IonBreadcrumbs: 'breadcrumbs',
+      IonButton: 'button',
+      IonButtons: 'button',
+      IonCard: 'card',
+      IonCardContent: 'card',
+      IonCardHeader: 'card',
+      IonCardSubtitle: 'card',
+      IonCardTitle: 'card',
+      IonCheckbox: 'checkbox',
+      IonChip: 'chip',
+      IonCol: 'grid',
+      IonContent: 'shell',
+      IonDatetime: 'datetime',
+      IonDatetimeButton: 'datetime',
+      IonFab: 'fab',
+      IonFabButton: 'fab',
+      IonFabList: 'fab',
+      IonFooter: 'shell',
+      IonGrid: 'grid',
+      IonHeader: 'shell',
+      IonIcon: 'icon',
+      IonImg: 'image',
+      IonInfiniteScroll: 'infinite-scroll',
+      IonInfiniteScrollContent: 'infinite-scroll',
+      IonInput: 'input',
+      IonInputOtp: 'input',
+      IonInputPasswordToggle: 'input',
+      IonItem: 'item',
+      IonItemDivider: 'item',
+      IonItemGroup: 'item',
+      IonItemOption: 'list',
+      IonItemOptions: 'list',
+      IonItemSliding: 'list',
+      IonLabel: 'item',
+      IonList: 'list',
+      IonListHeader: 'list',
+      IonLoading: 'loading',
+      IonMenu: 'menu',
+      IonMenuButton: 'menu',
+      IonMenuToggle: 'menu',
+      IonNavLink: 'shell',
+      IonNote: 'note',
+      IonPicker: 'picker',
+      IonPickerColumn: 'picker',
+      IonPickerColumnOption: 'picker',
+      IonPickerLegacy: 'picker',
+      IonProgressBar: 'progress',
+      IonRadio: 'radio',
+      IonRadioGroup: 'radio',
+      IonRange: 'range',
+      IonRefresher: 'refresher',
+      IonRefresherContent: 'refresher',
+      IonReorder: 'reorder',
+      IonReorderGroup: 'reorder',
+      IonRippleEffect: 'ripple',
+      IonRow: 'grid',
+      IonSearchbar: 'searchbar',
+      IonSegment: 'segment',
+      IonSegmentButton: 'segment',
+      IonSegmentContent: 'segment',
+      IonSegmentView: 'segment',
+      IonSelect: 'select',
+      IonSelectModal: 'select',
+      IonSelectOption: 'select',
+      IonSkeletonText: 'skeleton',
+      IonSpinner: 'spinner',
+      IonSplitPane: 'menu',
+      IonTab: 'tabs',
+      IonTabBar: 'tabs',
+      IonTabButton: 'tabs',
+      IonText: 'text',
+      IonTextarea: 'textarea',
+      IonThumbnail: 'thumbnail',
+      IonTitle: 'shell',
+      IonToast: 'toast',
+      IonToggle: 'toggle',
+      IonToolbar: 'shell'
+    };
+
+    return previewMap[this.componentName] || 'card';
+  }
 
   get structuralPreview() {
-    return ['MainNavComponent', 'PageShellComponent', 'PublicPageShellComponent'].includes(this.componentName);
+    return (
+      ['MainNavComponent', 'PageShellComponent', 'PublicPageShellComponent'].includes(this.componentName) ||
+      (this.isIonicBaseComponent && this.ionicPreviewKind === 'shell')
+    );
   }
 
   get resolvedPreviewKit(): UiKitId {
@@ -1142,5 +1977,9 @@ export class ComponentVisualPreviewComponent {
   selectPreviewKit(kit: UiKitPreference) {
     this.previewKit = kit;
     this.previewPresentation = { kit };
+  }
+
+  ionicTriggerId(kind: string) {
+    return `${this.componentName}-${kind}`.replace(/[^a-zA-Z0-9_-]/g, '-');
   }
 }

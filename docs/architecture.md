@@ -33,6 +33,8 @@ Configuration objects are part of the public architecture and stay documented be
   service registry, generated artifacts, server deployment strategy, microservice extraction strategy and V1/V2 scope.
 - `docs/i18n-text-architecture.md` defines text packages, backend-controlled default languages, artifact
   preferences, offline text cache and Admin/generated-app translation rules.
+- `docs/dynamic-app-runtime-architecture.md` defines the canonical Dynamic App Runtime graph, published manifest,
+  bindings, actions, offline cache, generated app shells and app update rules.
 - `docs/dynamic-services-contract.md` defines executable service objects.
 - `docs/flow-contract.md` defines flow authoring and runtime objects.
 - `docs/dynamic-forms-contract.md` defines tenant-owned dynamic form documents, steps, fields, actions and responsive
@@ -173,6 +175,9 @@ tenantSlug + appKey + target + route
   -> presentation profile
   -> bindings/actions runtime
 ```
+
+The full runtime graph, manifest shape, cache strategy, binding resolver, action runner and offline rules are defined
+in `docs/dynamic-app-runtime-architecture.md`.
 
 Generated apps are deployable artifacts with a runtime shell. They can include bundled default contracts and text
 packages for offline boot, but the source of truth remains the published tenant contract returned by the API when the

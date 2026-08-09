@@ -26,6 +26,7 @@ import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.
 import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
 import { VisualWorkbenchPanelComponent } from '../../shared/visual-workbench-panel/visual-workbench-panel.component';
 import { WorkflowGuideComponent } from '../../shared/workflow-guide/workflow-guide.component';
+import { IONIC_COMPONENT_CATALOG } from '../../shared/ui-component-catalog';
 import {
   AiAssistantService,
   ApplyDynamicAppJsonAction,
@@ -1471,43 +1472,19 @@ interface ScreenDraft {
                     </header>
 
                     <div class="preview-regions">
-                      @for (region of previewRegions(); track region.key) {
-                        @if (componentsForRegion(region.key).length) {
-                          <section class="preview-region">
-                            <div class="preview-region-title">{{ region.label }}</div>
-                            <div
-                              class="preview-grid"
-                              [class.tablet]="viewport() === 'tablet'"
-                              [class.mobile]="viewport() === 'mobile'"
-                            >
-                              @for (component of componentsForRegion(region.key); track component.id) {
-                                <article
-                                  class="preview-card"
-                                  [class.hero]="component.componentKey === 'hero_header'"
-                                  [class.plain]="component.chrome === 'plain'"
-                                  [class.modal]="component.chrome === 'modal'"
-                                  [class.drawer]="component.chrome === 'drawer'"
-                                  [class.toolbar]="component.chrome === 'toolbar'"
-                                  [style.grid-column]="componentGridColumn(component)"
-                                  [style.justify-self]="component.align === 'stretch' ? 'stretch' : component.align"
-                                >
-                                  <strong>{{ component.title }}</strong>
-                                  <span>{{ componentSummary(component) }}</span>
-                                  <div class="preview-hint-list">
-                                    <span>{{ widthLabel(component.width) }}</span>
-                                    <span>{{ bindingLabel(component.bindingType) }}: {{ component.bindingKey || 'sin key' }}</span>
-                                    <span>{{ actionLabel(component.actionType) }}{{ component.actionTarget ? ': ' + component.actionTarget : '' }}</span>
-                                    @if (component.permission) {
-                                      <span>permiso: {{ component.permission }}</span>
-                                    }
-                                  </div>
-                                </article>
-                              }
-                            </div>
-                          </section>
-                        }
+                      @if (screenDraft().components.length > 0) {
+                        <app-screen-visual-canvas
+                          [appName]="appDraft().name"
+                          [targetLabel]="previewRuntimeSummary()"
+                          [route]="screenDraft().route"
+                          [screenTitle]="screenDraft().title"
+                          [screenDescription]="screenDraft().description"
+                          [viewport]="viewport()"
+                          [components]="screenDraft().components"
+                          [navigationItems]="previewNavigationItems()"
+                          [editable]="false"
+                        ></app-screen-visual-canvas>
                       }
-
                       @if (screenDraft().components.length === 0) {
                         <app-status-notice class="empty-preview" tone="info" title="Sin componentes">
                           <span>Agrega componentes para ver cómo se organiza la pantalla.</span>
@@ -1917,6 +1894,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       icon: 'pi pi-pencil',
       group: 'Datos'
     },
+    ...IONIC_COMPONENT_CATALOG.map((component) => ({
+      key: this.ionicComponentKey(component.selector),
+      label: component.name,
+      description: component.selector,
+      icon: this.ionicPaletteIcon(component.selector),
+      group: 'Ionic base'
+    })),
     {
       key: 'service',
       label: 'Botón servicio',
@@ -2634,6 +2618,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   addPresetFromPalette(preset: string) {
+    if (this.isIonicComponentKey(preset)) {
+      this.addIonicComponent(preset);
+      return;
+    }
     if (!this.isScreenComponentPreset(preset)) {
       this.error.set(`El bloque ${preset} no está registrado como preset de pantalla.`);
       return;
@@ -2642,6 +2630,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   addPresetToRegion(preset: string, region: string) {
+    if (this.isIonicComponentKey(preset)) {
+      this.addIonicComponent(preset, region);
+      return;
+    }
     if (!this.isScreenComponentPreset(preset)) {
       this.error.set(`El bloque ${preset} no está registrado como preset de pantalla.`);
       return;
@@ -2651,6 +2643,50 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   private isScreenComponentPreset(preset: string): preset is ScreenComponentPreset {
     return this.screenComponentPresetKeys.includes(preset as ScreenComponentPreset);
+  }
+
+  private isIonicComponentKey(key: string) {
+    return key.startsWith('ionic_');
+  }
+
+  private addIonicComponent(componentKey: string, regionOverride?: string) {
+    const selector = this.ionicSelectorFromKey(componentKey);
+    const catalogItem = IONIC_COMPONENT_CATALOG.find((component) => component.selector === selector);
+    const region = this.canvasRegionValue(regionOverride ?? this.ionicDefaultRegion(selector));
+    const component: ScreenComponentDraft = {
+      id: `${componentKey}_${Date.now().toString(36)}`,
+      componentKey,
+      title: catalogItem?.name ?? this.componentLabel(componentKey),
+      region,
+      bindingType: 'source',
+      bindingKey: selector,
+      width: 'full',
+      align: 'stretch',
+      chrome: this.ionicDefaultChrome(selector),
+      actionType: this.ionicDefaultAction(selector),
+      actionTarget: selector,
+      permission: ''
+    };
+
+    this.screenDraft.update((current) => ({
+      ...current,
+      componentKey: component.componentKey,
+      componentTitle: '',
+      componentRegion: region,
+      componentBindingType: component.bindingType,
+      componentBindingKey: '',
+      componentWidth: component.width,
+      componentAlign: component.align,
+      componentChrome: component.chrome,
+      componentActionType: component.actionType,
+      componentActionTarget: '',
+      componentPermission: '',
+      components: [...current.components, component]
+    }));
+    this.selectedComponentId.set(component.id);
+    this.syncScreenJson();
+    this.syncPackageJson();
+    this.message.set(`${component.title} agregado como componente Ionic reutilizable.`);
   }
 
   addPresetComponent(preset: ScreenComponentPreset, regionOverride?: string) {
@@ -3222,6 +3258,9 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   componentSummary(component: ScreenComponentDraft) {
+    if (this.isIonicComponentKey(component.componentKey)) {
+      return `Componente Ionic reusable ${this.ionicSelectorFromKey(component.componentKey)}.`;
+    }
     const summaries: Record<string, string> = {
       hero_header: 'Encabezado o bloque principal de una pantalla.',
       nav_menu: 'Menú de navegación declarativo para rutas de la app.',
@@ -3771,6 +3810,15 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
   private componentSpecificInputs(component: ScreenComponentDraft): Record<string, unknown> {
     const label = component.title || this.componentLabel(component.componentKey);
+    if (this.isIonicComponentKey(component.componentKey)) {
+      const selector = this.ionicSelectorFromKey(component.componentKey);
+      return {
+        selector,
+        importPath: '@ionic/angular/standalone',
+        label,
+        example: `<${selector}></${selector}>`
+      };
+    }
     const examples: Record<string, Record<string, unknown>> = {
       hero_header: {
         subtitle: this.screenDraft().description || 'Pantalla generada desde App Studio.'
@@ -4164,6 +4212,69 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     }[type] ?? 'form_users, listar_clientes, flow_aprobar';
   }
 
+  private ionicComponentKey(selector: string) {
+    return `ionic_${selector.replace(/^ion-/, '').replace(/-/g, '_')}`;
+  }
+
+  private ionicSelectorFromKey(key: string) {
+    return `ion-${key.replace(/^ionic_/, '').replace(/_/g, '-')}`;
+  }
+
+  private ionicPaletteIcon(selector: string) {
+    if (/button|fab|toggle|checkbox|radio|range|select|input|textarea|searchbar|segment/.test(selector)) {
+      return 'pi pi-sliders-h';
+    }
+    if (/menu|tab|nav|breadcrumb|router|split-pane/.test(selector)) {
+      return 'pi pi-compass';
+    }
+    if (/modal|popover|toast|alert|loading|action-sheet|picker/.test(selector)) {
+      return 'pi pi-window-maximize';
+    }
+    if (/card|item|list|avatar|badge|chip|text|thumbnail|img|skeleton|spinner/.test(selector)) {
+      return 'pi pi-id-card';
+    }
+    return 'pi pi-mobile';
+  }
+
+  private ionicDefaultRegion(selector: string) {
+    if (/header|toolbar|title|buttons|menu-button|breadcrumb|tab-bar|segment/.test(selector)) {
+      return 'header';
+    }
+    if (/footer|fab|button|toast|action-sheet/.test(selector)) {
+      return 'actions';
+    }
+    if (/menu|split-pane/.test(selector)) {
+      return 'aside';
+    }
+    return 'content';
+  }
+
+  private ionicDefaultChrome(selector: string): ScreenComponentChrome {
+    if (/modal|popover|alert|action-sheet|loading|picker|toast/.test(selector)) {
+      return 'modal';
+    }
+    if (/toolbar|header|footer|tab-bar|segment|buttons/.test(selector)) {
+      return 'toolbar';
+    }
+    if (/menu|split-pane/.test(selector)) {
+      return 'drawer';
+    }
+    return 'card';
+  }
+
+  private ionicDefaultAction(selector: string): ScreenComponentActionType {
+    if (/button|fab|item-option|toggle|checkbox|radio|range|select|input|textarea|searchbar|segment/.test(selector)) {
+      return 'emit_event';
+    }
+    if (/modal|popover|alert|action-sheet|loading|picker|toast/.test(selector)) {
+      return 'open_modal';
+    }
+    if (/router|nav|tab|breadcrumb|menu/.test(selector)) {
+      return 'navigate';
+    }
+    return 'none';
+  }
+
   private componentDefaults(componentKey: string): {
     bindingType: ScreenComponentBindingType;
     actionType: ScreenComponentActionType;
@@ -4198,6 +4309,16 @@ export class AppsPageComponent implements OnInit, OnDestroy {
       media_gallery: { bindingType: 'service', actionType: 'none', chrome: 'card', width: 'half', region: 'content' },
       map_view: { bindingType: 'source', actionType: 'none', chrome: 'card', width: 'half', region: 'content' }
     };
+    if (this.isIonicComponentKey(componentKey)) {
+      const selector = this.ionicSelectorFromKey(componentKey);
+      return {
+        bindingType: 'source',
+        actionType: this.ionicDefaultAction(selector),
+        chrome: this.ionicDefaultChrome(selector),
+        width: 'full',
+        region: this.ionicDefaultRegion(selector)
+      };
+    }
     return defaults[componentKey] ?? { bindingType: 'source', actionType: 'none', chrome: 'card', width: 'half', region: 'content' };
   }
 
@@ -4312,7 +4433,12 @@ export class AppsPageComponent implements OnInit, OnDestroy {
   }
 
   private componentLabel(key: string) {
-    return this.catalog().find((item) => item.key === key)?.name ?? key.replace(/_/g, ' ');
+    const selector = this.isIonicComponentKey(key) ? this.ionicSelectorFromKey(key) : '';
+    return (
+      this.catalog().find((item) => item.key === key)?.name ??
+      IONIC_COMPONENT_CATALOG.find((component) => component.selector === selector)?.name ??
+      key.replace(/_/g, ' ')
+    );
   }
 
   private workspaceTabFromPhase(phase: AppDesignerPhase): AppWorkspaceTab {

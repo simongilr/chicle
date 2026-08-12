@@ -609,6 +609,17 @@ import { RuntimeForm } from '../../engine/forms/form-runtime.service';
             [kit]="previewKit"
           ></app-module-header>
         }
+        @case ('DeclarativeRuntimeLabComponent') {
+          <app-status-notice
+            tone="info"
+            title="C-Declarativos en página dedicada"
+            [kit]="previewKit"
+          >
+            Abre /components/declarativos para probar el renderer declarativo completo
+            con JSON editable, validación backend, historial de acciones y cola
+            offline.
+          </app-status-notice>
+        }
         @case ('AdminPanelComponent') {
           <app-admin-panel
             title="Resumen operativo"

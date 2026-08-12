@@ -1419,7 +1419,7 @@ interface ScreenDraft {
               <app-admin-panel
                 title="4. Preview"
                 description="Valida la estructura en escritorio, tablet y móvil antes de publicar."
-                eyebrow="Runtime visual"
+                eyebrow="Preview publicado"
               >
                 <div panel-actions class="inline-actions">
                   <app-ui-kit-button

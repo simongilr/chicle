@@ -87,6 +87,14 @@ export const BASE_MENU_ITEMS: BaseMenuSeed[] = [
     sortOrder: 41
   },
   {
+    key: 'components-runtime',
+    label: 'C-Declarativos',
+    route: '/components/declarativos',
+    icon: 'pi pi-code',
+    permissions: ['components.read'],
+    sortOrder: 42
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     route: '/security',

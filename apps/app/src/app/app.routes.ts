@@ -22,6 +22,20 @@ export const routes: Routes = [
       import('./pages/architecture/architecture-page.component').then((module) => module.ArchitecturePageComponent)
   },
   {
+    path: 'components/declarativos',
+    loadComponent: () =>
+      import('./pages/declarative-runtime/declarative-runtime-page.component').then(
+        (module) => module.DeclarativeRuntimePageComponent
+      ),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['components.read'] }
+  },
+  {
+    path: 'components/runtime',
+    redirectTo: 'components/declarativos',
+    pathMatch: 'full'
+  },
+  {
     path: 'components',
     loadComponent: () =>
       import('./pages/components/components-page.component').then((module) => module.ComponentsPageComponent)

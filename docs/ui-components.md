@@ -8,6 +8,10 @@ category/status filters, visual previews, import paths and minimal invocations f
 component. Components that cannot be nested safely, such as a page shell or primary navigation, use an explicit
 structural miniature; the remaining catalog renders real component instances with sample data.
 
+The C-Declarativos lab is available at `/components/declarativos`. It is a separate page because it is a working
+workspace, not a catalog card: it edits a component JSON contract, validates it against the backend, renders the real
+component tree, records emitted actions and shows the offline queue.
+
 ## Architecture rule
 
 - Pages own routing, permissions, API calls and orchestration.
@@ -74,6 +78,7 @@ Already available:
 - `AdminResourceCardComponent`
 - `AdminCodeBlockComponent`
 - `ComponentDocCardComponent`
+- `DeclarativeRuntimeLabComponent`
 - `UiPresentationSwitcherComponent`
 - `UiThemeSelectorComponent`
 - `PreviewViewportComponent`
@@ -112,6 +117,7 @@ Still required for the designer:
 | Dynamic form runtime | PageShell | field renderer, preview, mobile actions, loading and notices | Forms foundation |
 | Login | PublicPageShell | dynamic fields, segmented control, notices, loading and multikit actions | Adopted |
 | Setup | PublicPageShell | dynamic fields, notices, loading and multikit actions | Adopted |
+| Declarative runtime lab | PageShell | module header, JSON editor, runtime renderer, action history, backend validation and offline queue | Phase 3 verification |
 
 Page-local CSS is allowed for domain composition. It must not recreate navigation shells, module headers, loading
 states, catalogs, generic field wrappers, action buttons, cards, code blocks or preview viewports. Page templates must

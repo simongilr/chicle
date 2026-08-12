@@ -1,44 +1,41 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { DeclarativeComponentRendererComponent } from '../../engine/components/declarative-component-renderer.component';
-import { DeclarativeComponentContract } from '../../engine/components/declarative-component.types';
-import { RuntimeField } from '../../engine/forms/form-runtime.service';
-import { AdminCardGridComponent } from '../../shared/admin-card-grid/admin-card-grid.component';
-import { AdminFilterBarComponent } from '../../shared/admin-filter-bar/admin-filter-bar.component';
-import { ComponentDocCardComponent } from '../../shared/component-doc-card/component-doc-card.component';
-import { DynamicFieldLibraryComponent } from '../../shared/dynamic-field-library/dynamic-field-library.component';
-import { DynamicFieldControlComponent } from '../../shared/dynamic-field-control/dynamic-field-control.component';
-import { ModuleHeaderComponent } from '../../shared/module-header/module-header.component';
-import { PageShellComponent } from '../../shared/page-shell/page-shell.component';
-import { StatusNoticeComponent } from '../../shared/status-notice/status-notice.component';
-import { UiKitButtonComponent } from '../../shared/ui-kit-button/ui-kit-button.component';
-import { UiThemeSelectorComponent } from '../../shared/ui-theme-selector/ui-theme-selector.component';
+import { Component } from "@angular/core";
+import { RouterLink } from "@angular/router";
+import { RuntimeField } from "../../engine/forms/form-runtime.service";
+import { AdminCardGridComponent } from "../../shared/admin-card-grid/admin-card-grid.component";
+import { AdminFilterBarComponent } from "../../shared/admin-filter-bar/admin-filter-bar.component";
+import { ComponentDocCardComponent } from "../../shared/component-doc-card/component-doc-card.component";
+import { DynamicFieldLibraryComponent } from "../../shared/dynamic-field-library/dynamic-field-library.component";
+import { DynamicFieldControlComponent } from "../../shared/dynamic-field-control/dynamic-field-control.component";
+import { ModuleHeaderComponent } from "../../shared/module-header/module-header.component";
+import { PageShellComponent } from "../../shared/page-shell/page-shell.component";
+import { StatusNoticeComponent } from "../../shared/status-notice/status-notice.component";
+import { UiKitButtonComponent } from "../../shared/ui-kit-button/ui-kit-button.component";
+import { UiThemeSelectorComponent } from "../../shared/ui-theme-selector/ui-theme-selector.component";
 import {
   UI_COMPONENT_CATALOG,
   UiComponentCatalogEntry,
   UiComponentCategory,
-  getDeclarativeComponentKey
-} from '../../shared/ui-component-catalog';
-import { ComponentVisualPreviewComponent } from './component-visual-preview.component';
-import { UiKitPreference } from '../../core/ui/ui-presentation.types';
+  getDeclarativeComponentKey,
+} from "../../shared/ui-component-catalog";
+import { ComponentVisualPreviewComponent } from "./component-visual-preview.component";
+import { UiKitPreference } from "../../core/ui/ui-presentation.types";
 
 @Component({
-  selector: 'app-components-page',
+  selector: "app-components-page",
   standalone: true,
   imports: [
     ComponentVisualPreviewComponent,
     AdminCardGridComponent,
     AdminFilterBarComponent,
     ComponentDocCardComponent,
-    DeclarativeComponentRendererComponent,
     DynamicFieldControlComponent,
     DynamicFieldLibraryComponent,
-    FormsModule,
     ModuleHeaderComponent,
     PageShellComponent,
+    RouterLink,
     StatusNoticeComponent,
     UiKitButtonComponent,
-    UiThemeSelectorComponent
+    UiThemeSelectorComponent,
   ],
   styles: [
     `
@@ -62,13 +59,36 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         padding: 18px;
       }
 
-      .declarative-sample {
-        display: grid;
-        gap: 12px;
+      .runtime-callout {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
         border: 1px solid var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface);
-        padding: 18px;
+        padding: 16px;
+      }
+
+      .runtime-copy {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .runtime-copy strong {
+        color: var(--ch-color-text);
+        font-size: 1.05rem;
+      }
+
+      .runtime-copy span {
+        color: var(--ch-color-muted);
+        line-height: 1.45;
+      }
+
+      .runtime-action {
+        flex: 0 0 auto;
+        text-decoration: none;
       }
 
       .field-library-header {
@@ -152,14 +172,18 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           grid-template-columns: 1fr;
         }
 
-        .field-library-header {
+        .field-library-header,
+        .runtime-callout {
           display: grid;
         }
       }
-    `
+    `,
   ],
   template: `
-    <app-page-shell contextLabel="Biblioteca de componentes" contextLabelKey="nav.context.components">
+    <app-page-shell
+      contextLabel="Biblioteca de componentes"
+      contextLabelKey="nav.context.components"
+    >
       <app-module-header
         eyebrow="Documentación visual"
         eyebrowKey="components.eyebrow"
@@ -171,7 +195,11 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         badgeKey="components.badge"
       ></app-module-header>
 
-      <app-admin-filter-bar ariaLabel="Component catalog filters" minColumnWidth="210px" [kit]="previewKit">
+      <app-admin-filter-bar
+        ariaLabel="Component catalog filters"
+        minColumnWidth="210px"
+        [kit]="previewKit"
+      >
         <app-dynamic-field-control
           [field]="searchField"
           [value]="search"
@@ -212,28 +240,34 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         </div>
       </section>
 
-      <section class="declarative-sample" aria-label="Muestra declarativa">
-        <div>
-          <h2>Renderer declarativo</h2>
-          <p>
-            Esta muestra usa el objeto estándar que también consumirá App Studio, el runtime móvil/web
-            y el asistente IA.
-          </p>
+      <section class="runtime-callout" aria-label="C-Declarativos">
+        <div class="runtime-copy">
+          <strong>C-Declarativos</strong>
+          <span>
+            Prueba objetos JSON, bindings, permisos, acciones y cola offline en
+            una pantalla dedicada sin saturar el catálogo visual.
+          </span>
         </div>
-        <app-declarative-component-renderer
-          [contract]="declarativePreview"
-          [context]="{ kit: previewKit }"
-          [kit]="previewKit"
-        ></app-declarative-component-renderer>
+        <a class="runtime-action" routerLink="/components/declarativos">
+          <app-ui-kit-button
+            label="Abrir C-Declarativos"
+            icon="pi pi-play"
+            [kit]="previewKit"
+          ></app-ui-kit-button>
+        </a>
       </section>
 
-      <section class="field-library" aria-label="Biblioteca de campos dinámicos">
+      <section
+        class="field-library"
+        aria-label="Biblioteca de campos dinámicos"
+      >
         <header class="field-library-header">
           <div>
             <strong>Controles importados e integrados</strong>
             <span>
-              Esta galería usa la fachada multikit real y los mismos adaptadores disponibles para
-              formularios, pantallas dinámicas y apps generadas.
+              Esta galería usa la fachada multikit real y los mismos adaptadores
+              disponibles para formularios, pantallas dinámicas y apps
+              generadas.
             </span>
           </div>
           <div class="field-library-actions">
@@ -249,11 +283,13 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           </div>
         </header>
         @if (fieldLibraryOpen) {
-          <app-dynamic-field-library [kit]="previewKit"></app-dynamic-field-library>
+          <app-dynamic-field-library
+            [kit]="previewKit"
+          ></app-dynamic-field-library>
         } @else {
           <app-status-notice>
-            Abre la galería para montar los controles reales y comparar PrimeNG, Ionic, Material,
-            Bootstrap y HTML base.
+            Abre la galería para montar los controles reales y comparar PrimeNG,
+            Ionic, Material, Bootstrap y HTML base.
           </app-status-notice>
         }
       </section>
@@ -263,7 +299,10 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
           Cambia la búsqueda o los filtros para volver a mostrar componentes.
         </app-status-notice>
       } @else {
-        <app-admin-card-grid ariaLabel="Component catalog" minColumnWidth="360px">
+        <app-admin-card-grid
+          ariaLabel="Component catalog"
+          minColumnWidth="360px"
+        >
           @for (component of filteredCatalog; track component.name) {
             <app-component-doc-card
               [name]="component.name"
@@ -291,92 +330,59 @@ import { UiKitPreference } from '../../core/ui/ui-presentation.types';
         </app-admin-card-grid>
       }
     </app-page-shell>
-  `
+  `,
 })
 export class ComponentsPageComponent {
   readonly catalog = UI_COMPONENT_CATALOG;
-  readonly categories = Array.from(new Set(this.catalog.map((item) => item.category))).sort();
-  readonly sharedCount = this.catalog.filter((item) => item.status !== 'domain').length;
+  readonly categories = Array.from(
+    new Set(this.catalog.map((item) => item.category)),
+  ).sort();
+  readonly sharedCount = this.catalog.filter((item) => item.status !== "domain")
+    .length;
   readonly visualKits: Array<{ value: UiKitPreference; label: string }> = [
-    { value: 'primeng', label: 'PrimeNG' },
-    { value: 'ionic', label: 'Ionic' },
-    { value: 'material', label: 'Material' },
-    { value: 'bootstrap', label: 'Bootstrap' },
-    { value: 'native', label: 'Base HTML' }
+    { value: "primeng", label: "PrimeNG" },
+    { value: "ionic", label: "Ionic" },
+    { value: "material", label: "Material" },
+    { value: "bootstrap", label: "Bootstrap" },
+    { value: "native", label: "Base HTML" },
   ];
 
-  search = '';
-  category: 'all' | UiComponentCategory = 'all';
-  previewKit: UiKitPreference = 'primeng';
+  search = "";
+  category: "all" | UiComponentCategory = "all";
+  previewKit: UiKitPreference = "primeng";
   fieldLibraryOpen = false;
   readonly expandedPreviews = new Set<string>();
-  readonly declarativePreview: DeclarativeComponentContract = {
-    schemaVersion: 1,
-    kind: 'dynamic_component',
-    componentKey: 'ui.card',
-    props: {
-      title: 'Objeto declarativo',
-      subtitle: 'Card + field + button renderizados por componentKey.',
-      variant: 'subtle',
-      padding: '14px'
-    },
-    children: [
-      {
-        componentKey: 'form.field',
-        props: {
-          field: {
-            name: 'sampleName',
-            label: 'Nombre',
-            type: 'text',
-            placeholder: 'Escribe un valor'
-          },
-          value: 'Chicle'
-        }
-      },
-      {
-        componentKey: 'ui.button',
-        props: {
-          label: 'Acción declarativa',
-          tone: 'primary',
-          variant: 'solid'
-        },
-        actions: {
-          onClick: {
-            type: 'show_message',
-            message: 'Action emitted by declarative renderer.'
-          }
-        }
-      }
-    ]
-  };
 
   readonly searchField: RuntimeField = {
-    name: 'component-search',
-    type: 'search',
-    label: 'Buscar',
-    placeholder: 'Nombre, componentKey o pantalla'
+    name: "component-search",
+    type: "search",
+    label: "Buscar",
+    placeholder: "Nombre, componentKey o pantalla",
   };
 
   get categoryField(): RuntimeField {
     return {
-      name: 'component-category',
-      type: 'select',
-      label: 'Categoría',
-      placeholder: 'Todas',
+      name: "component-category",
+      type: "select",
+      label: "Categoría",
+      placeholder: "Todas",
       options: [
-        { label: 'Todas', value: 'all' },
-        ...this.categories.map((category) => ({ label: category, value: category }))
-      ]
+        { label: "Todas", value: "all" },
+        ...this.categories.map((category) => ({
+          label: category,
+          value: category,
+        })),
+      ],
     };
   }
 
   get kitField(): RuntimeField {
     return {
-      name: 'component-kit',
-      type: 'select',
-      label: 'Kit visual',
-      placeholder: 'Selecciona un kit',
-      options: this.visualKits
+      name: "component-kit",
+      type: "select",
+      label: "Kit visual",
+      placeholder: "Selecciona un kit",
+      options: this.visualKits,
     };
   }
 
@@ -386,31 +392,37 @@ export class ComponentsPageComponent {
 
   get filteredCatalog() {
     const term = this.search.trim().toLowerCase();
-    const activeKit = this.previewKit === 'auto' || this.previewKit === 'inherit' ? 'primeng' : this.previewKit;
+    const activeKit =
+      this.previewKit === "auto" || this.previewKit === "inherit"
+        ? "primeng"
+        : this.previewKit;
     return this.catalog.filter((component) => {
-      const matchesCategory = this.category === 'all' || component.category === this.category;
-      const matchesKit = !component.supportedKits?.length || component.supportedKits.includes(activeKit);
+      const matchesCategory =
+        this.category === "all" || component.category === this.category;
+      const matchesKit =
+        !component.supportedKits?.length ||
+        component.supportedKits.includes(activeKit);
       const matchesSearch =
         !term ||
         [
           component.name,
-          component.previewKey ?? '',
+          component.previewKey ?? "",
           this.declarativeKey(component),
           component.selector,
           component.purpose,
           component.importPath,
           component.category,
-          ...component.usedBy
+          ...component.usedBy,
         ].some((value) => value.toLowerCase().includes(term));
       return matchesKit && matchesCategory && matchesSearch;
     });
   }
 
-  statusLabel(status: UiComponentCatalogEntry['status']) {
+  statusLabel(status: UiComponentCatalogEntry["status"]) {
     return {
-      stable: 'Estable',
-      initial: 'Inicial',
-      domain: 'Especializado'
+      stable: "Estable",
+      initial: "Inicial",
+      domain: "Especializado",
     }[status];
   }
 
@@ -431,12 +443,15 @@ export class ComponentsPageComponent {
   }
 
   setSearch(value: unknown) {
-    this.search = typeof value === 'string' ? value : '';
+    this.search = typeof value === "string" ? value : "";
   }
 
   setCategory(value: unknown) {
-    if (value === 'all' || this.categories.includes(value as UiComponentCategory)) {
-      this.category = value as 'all' | UiComponentCategory;
+    if (
+      value === "all" ||
+      this.categories.includes(value as UiComponentCategory)
+    ) {
+      this.category = value as "all" | UiComponentCategory;
     }
   }
 

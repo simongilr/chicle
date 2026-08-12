@@ -10,46 +10,72 @@ persistence rules, runtime update rules, offline behavior and acceptance gates.
 
 This roadmap depends on these documents:
 
-| Document | Responsibility |
-| --- | --- |
-| `docs/declarative-component-architecture.md` | Common component object, component keys, adapters, props, events, bindings and permissions. |
-| `docs/dynamic-app-runtime-architecture.md` | App manifest, runtime cache, offline queue, app shell boot sequence and published screen execution. |
-| `docs/screen-app-designer-architecture.md` | App Studio, screen ownership, routes, navigation, page authoring and publishing. |
-| `docs/app-template-factory-architecture.md` | Export/import packages for apps, screens, forms, services, flows, texts, themes and permissions. |
-| `docs/ui-components.md` | Component catalog rules and how reusable components must be invoked. |
-| `docs/admin-kit-transformation-audit.md` | Current Admin page audit and multi-kit transformation gaps. |
-| `docs/ui-component-inventory.md` | Current reusable component inventory and missing authoring components. |
+| Document                                     | Responsibility                                                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `docs/declarative-component-architecture.md` | Common component object, component keys, adapters, props, events, bindings and permissions.         |
+| `docs/dynamic-app-runtime-architecture.md`   | App manifest, runtime cache, offline queue, app shell boot sequence and published screen execution. |
+| `docs/screen-app-designer-architecture.md`   | App Studio, screen ownership, routes, navigation, page authoring and publishing.                    |
+| `docs/app-template-factory-architecture.md`  | Export/import packages for apps, screens, forms, services, flows, texts, themes and permissions.    |
+| `docs/ui-components.md`                      | Component catalog rules and how reusable components must be invoked.                                |
+| `docs/admin-kit-transformation-audit.md`     | Current Admin page audit and multi-kit transformation gaps.                                         |
+| `docs/ui-component-inventory.md`             | Current reusable component inventory and missing authoring components.                              |
 
 ## Current Baseline
 
 These percentages are implementation estimates, not marketing numbers. They should be updated after every migration
 round.
 
-| Area | Current | Target | Notes |
-| --- | ---: | ---: | --- |
-| Structural Admin reuse | 92% | 100% | Shared shells, navigation, page layout and catalog structures are broadly adopted. |
-| Multi-kit visual transformation | 90% | 100% | Global kit bridge and core adapters work; remaining page-local controls must move to real adapters. |
-| Component catalog coverage | 88% | 100% | Shared components, Ionic-backed standard components and initial declarative primitives are cataloged. |
-| Declarative component contract | 88% | 100% | Common object, backend validation, frontend types, action checks and binding checks exist. |
-| Central declarative renderer | 48% | 100% | Initial renderer supports button, field, card, stack, grid, alert, prop bindings, permissions and action execution. |
-| Persistent component registry | 45% | 100% | DB tables, migration, seed sync and secured registry endpoint exist; local DB migration is applied; admin CRUD is pending. |
-| Admin migration to declarative objects | 16% | 100% | Admin remains reusable-component based; component page now includes a declarative renderer sample. |
-| Generated app runtime integration | 25% | 100% | App Studio and manifests exist conceptually; runtime rendering and cache need hardening. |
-| Offline component manifest | 15% | 100% | Forms and runtime docs define direction; generic screen/component manifest cache is pending. |
-| AI object authoring | 35% | 100% | AI creates services, forms and flows; component/app authoring must become registry-driven. |
+| Area                                   | Current | Target | Notes                                                                                                                      |
+| -------------------------------------- | ------: | -----: | -------------------------------------------------------------------------------------------------------------------------- |
+| Structural Admin reuse                 |     92% |   100% | Shared shells, navigation, page layout and catalog structures are broadly adopted.                                         |
+| Multi-kit visual transformation        |     90% |   100% | Global kit bridge and core adapters work; remaining page-local controls must move to real adapters.                        |
+| Component catalog coverage             |     92% |   100% | Shared components, Ionic-backed standard components and declarative primitives are cataloged.                              |
+| Declarative component contract         |     94% |   100% | Common object, backend validation, frontend types, action checks, binding checks and state definitions exist.              |
+| Central declarative renderer           |     90% |   100% | Renderer supports primitives, layout, navigation, feedback, data display, prop bindings, permissions and action execution. |
+| Persistent component registry          |     55% |   100% | DB tables, migration, seed sync and secured registry endpoint exist; local DB migration is applied; admin CRUD is pending. |
+| Admin migration to declarative objects |     25% |   100% | Admin remains reusable-component based; declarative runtime has a dedicated page with action telemetry and validation.     |
+| Generated app runtime integration      |     25% |   100% | App Studio and manifests exist conceptually; runtime rendering and cache need hardening.                                   |
+| Offline component manifest             |     15% |   100% | Forms and runtime docs define direction; generic screen/component manifest cache is pending.                               |
+| AI object authoring                    |     35% |   100% | AI creates services, forms and flows; component/app authoring must become registry-driven.                                 |
 
 ## Percent Calculation Rules
 
 Use these rules to keep progress honest:
 
-| Percentage | Meaning |
-| --- | --- |
-| 0% | Not implemented. Architecture may exist, but there is no usable code path. |
-| 25% | Initial code exists, but it is not the default path and has limited tests. |
-| 50% | Usable in one real page or one runtime path with focused validation. |
-| 75% | Reused by multiple pages or runtime paths, with visible catalog examples and basic tests. |
-| 90% | Default path for new work, with known edge cases documented. |
-| 100% | Default and audited path, covered by tests, documented, visible in the catalog and safe for AI authoring. |
+| Percentage | Meaning                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| 0%         | Not implemented. Architecture may exist, but there is no usable code path.                                |
+| 25%        | Initial code exists, but it is not the default path and has limited tests.                                |
+| 50%        | Usable in one real page or one runtime path with focused validation.                                      |
+| 75%        | Reused by multiple pages or runtime paths, with visible catalog examples and basic tests.                 |
+| 90%        | Default path for new work, with known edge cases documented.                                              |
+| 100%       | Default and audited path, covered by tests, documented, visible in the catalog and safe for AI authoring. |
+
+## Registered Versus Renderable Components
+
+The declarative registry can contain more components than the central renderer can paint today. This is intentional:
+backend validation, App Studio planning and AI authoring need to know planned components, but runtime must only execute
+components with real adapters.
+
+| Component Key       | Backend Registry | Central Renderer | Action Events | Current Use                                             |
+| ------------------- | ---------------- | ---------------- | ------------- | ------------------------------------------------------- |
+| `ui.button`         | Yes              | Yes              | `onClick`     | Safe for current visual drafts and runtime lab.         |
+| `form.field`        | Yes              | Yes              | `valueChange` | Safe for current visual drafts and runtime lab.         |
+| `ui.card`           | Yes              | Yes              | No direct     | Safe as a container for child components.               |
+| `layout.stack`      | Yes              | Yes              | No direct     | Safe as a child layout container.                       |
+| `layout.grid`       | Yes              | Yes              | No direct     | Safe as a responsive layout container.                  |
+| `feedback.alert`    | Yes              | Yes              | No direct     | Safe as inline feedback.                                |
+| `feedback.toast`    | Yes              | Yes              | No direct     | Safe as controlled inline toast preview.                |
+| `feedback.loading`  | Yes              | Yes              | No direct     | Safe as loading feedback.                               |
+| `feedback.skeleton` | Yes              | Yes              | No direct     | Safe as placeholder feedback.                           |
+| `nav.menu`          | Yes              | Yes              | `onNavigate`  | Safe for route and menu drafts.                         |
+| `nav.tabs`          | Yes              | Yes              | `onNavigate`  | Safe for tab-like route drafts.                         |
+| `nav.toolbar`       | Yes              | Yes              | `onClick`     | Safe for header commands.                               |
+| `data.table`        | Yes              | Yes              | No direct     | Safe for bound rows and columns.                        |
+| `data.list`         | Yes              | Yes              | No direct     | Safe for bound lists.                                   |
+
+Rule: App Studio and Chicle AI may use the renderable set for automatic drafts. Components outside this table require
+explicit planned-work wording until their adapter, permissions and preview fixture exist.
 
 ## Core Migration Principle
 
@@ -83,15 +109,15 @@ drafts and template packages use `componentKey`.
 
 The migration must introduce persistence in layers. Runtime apps should only consume published versions.
 
-| Object | Scope | Purpose |
-| --- | --- | --- |
-| `component_definitions` | global | Registered component keys, schema versions, default props, event names, allowed children and documentation. |
-| `component_adapters` | global | Kit support matrix: PrimeNG, Ionic, Material, Bootstrap and native fallback status. |
-| `dynamic_component_templates` | tenant | Reusable composed components such as custom modals, cards with forms or branded menu blocks. |
-| `dynamic_component_template_versions` | tenant | Published reusable component templates. |
-| `screen_component_instances` | tenant/app/screen | Component instances placed on a screen: layout, props, data, actions, permissions and text keys. |
-| `screen_component_instance_versions` | tenant/app/screen | Frozen published instances for runtime manifests. |
-| `dynamic_app_manifests` | tenant/app/version | Published app graph consumed by web, mobile and desktop runtime artifacts. |
+| Object                                | Scope              | Purpose                                                                                                     |
+| ------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `component_definitions`               | global             | Registered component keys, schema versions, default props, event names, allowed children and documentation. |
+| `component_adapters`                  | global             | Kit support matrix: PrimeNG, Ionic, Material, Bootstrap and native fallback status.                         |
+| `dynamic_component_templates`         | tenant             | Reusable composed components such as custom modals, cards with forms or branded menu blocks.                |
+| `dynamic_component_template_versions` | tenant             | Published reusable component templates.                                                                     |
+| `screen_component_instances`          | tenant/app/screen  | Component instances placed on a screen: layout, props, data, actions, permissions and text keys.            |
+| `screen_component_instance_versions`  | tenant/app/screen  | Frozen published instances for runtime manifests.                                                           |
+| `dynamic_app_manifests`               | tenant/app/version | Published app graph consumed by web, mobile and desktop runtime artifacts.                                  |
 
 Drafts are editable. Published versions are immutable. Trash keeps keys available for new objects and restoration must
 handle conflicts explicitly.
@@ -100,16 +126,16 @@ handle conflicts explicitly.
 
 Admin and App Studio must not edit runtime objects directly. They use kernel commands:
 
-| Command | Responsibility |
-| --- | --- |
-| `createComponentInstance` | Adds a registered component to a screen draft. |
-| `updateComponentProps` | Updates display, presentation or text references. |
-| `moveComponentInstance` | Changes region, order, responsive layout and parent/child ownership. |
-| `bindComponentData` | Connects the component to forms, services, flows, tables, app state or route params. |
-| `bindComponentAction` | Connects events to declarative actions such as navigation or service execution. |
-| `setComponentPermissions` | Applies visibility, enabled and execute policies. |
-| `publishScreenVersion` | Freezes a screen draft and invalidates the app manifest cache. |
-| `publishAppVersion` | Freezes the app graph used by runtime shells. |
+| Command                   | Responsibility                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `createComponentInstance` | Adds a registered component to a screen draft.                                       |
+| `updateComponentProps`    | Updates display, presentation or text references.                                    |
+| `moveComponentInstance`   | Changes region, order, responsive layout and parent/child ownership.                 |
+| `bindComponentData`       | Connects the component to forms, services, flows, tables, app state or route params. |
+| `bindComponentAction`     | Connects events to declarative actions such as navigation or service execution.      |
+| `setComponentPermissions` | Applies visibility, enabled and execute policies.                                    |
+| `publishScreenVersion`    | Freezes a screen draft and invalidates the app manifest cache.                       |
+| `publishAppVersion`       | Freezes the app graph used by runtime shells.                                        |
 
 Each command validates tenant scope, permissions, schema version, optimistic locking and allowed component capabilities.
 Each command also emits audit/events such as `component.updated`, `screen.draft.updated`, `screen.published` and
@@ -138,12 +164,12 @@ The manifest includes:
 
 Cache rules:
 
-| Runtime | Storage | Rule |
-| --- | --- | --- |
-| Admin web | IndexedDB plus small local preferences | Cache latest loaded docs, text bundles, preferences and authoring state. |
-| Generated web app | IndexedDB | Cache published manifest, screens, texts, theme and public runtime config. |
-| Ionic mobile app | IndexedDB first, SQLite later | Cache manifest, offline forms, pending actions and sync queue. |
-| Desktop artifact | Local storage plus IndexedDB | Same manifest model as web, with desktop packaging rules. |
+| Runtime           | Storage                                | Rule                                                                       |
+| ----------------- | -------------------------------------- | -------------------------------------------------------------------------- |
+| Admin web         | IndexedDB plus small local preferences | Cache latest loaded docs, text bundles, preferences and authoring state.   |
+| Generated web app | IndexedDB                              | Cache published manifest, screens, texts, theme and public runtime config. |
+| Ionic mobile app  | IndexedDB first, SQLite later          | Cache manifest, offline forms, pending actions and sync queue.             |
+| Desktop artifact  | Local storage plus IndexedDB           | Same manifest model as web, with desktop packaging rules.                  |
 
 Offline rendering uses the latest valid published manifest. Drafts are never executed as offline production runtime.
 
@@ -151,7 +177,7 @@ Offline rendering uses the latest valid published manifest. Drafts are never exe
 
 ### Phase 0 - Contract And Persistence
 
-Progress: 55%.
+Progress: 85%.
 
 Deliverables:
 
@@ -177,9 +203,15 @@ Implemented:
 - `/components/registry` and `/components/validate` secured by `components.read`;
 - RBAC seed entries for `components.read` and `components.manage`.
 
+Pending:
+
+- Admin CRUD for component definitions and tenant-owned component templates;
+- publish/trash/restore workflow for component templates;
+- manifest snapshot persistence for generated apps.
+
 ### Phase 1 - Central Declarative Renderer
 
-Progress: 55%.
+Progress: 90%.
 
 Deliverables:
 
@@ -206,13 +238,20 @@ Implemented:
 - frontend contract types in `engine/components/declarative-component.types.ts`;
 - local registry bridge in `engine/components/declarative-component-registry.service.ts`;
 - standalone `app-declarative-component-renderer`;
-- supported first render set: `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`, `feedback.alert`;
+- supported render set: `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`, `feedback.alert`,
+  `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `data.table` and
+  `data.list`;
 - controlled fallback for registered but not-yet-rendered components;
-- component catalog sample that renders a real object through the renderer.
+- dedicated `/components/declarativos` lab that renders a real object through the renderer.
+
+Pending:
+
+- app runtime integration with published screen manifests;
+- stronger visual fixtures for every supported kit.
 
 ### Phase 2 - UI Primitives
 
-Progress: 65%.
+Progress: 90%.
 
 Deliverables:
 
@@ -244,11 +283,18 @@ Implemented:
   `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `data.table` and
   `data.list`;
 - legacy App Studio component catalog now recognizes the declarative primitive keys, so packages can validate them;
-- canonical component keys remain separate from technical selectors such as `ion-button` or `mat-form-field`.
+- canonical component keys remain separate from technical selectors such as `ion-button` or `mat-form-field`;
+- renderable primitive adapters currently cover `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`,
+  `feedback.alert`, `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`,
+  `data.table` and `data.list`.
+
+Pending:
+
+- preview fixtures that prove every available kit visually changes without breaking layout.
 
 ### Phase 3 - Actions, Bindings And Security
 
-Progress: 35%.
+Progress: 92%.
 
 Deliverables:
 
@@ -286,18 +332,23 @@ Implemented:
 - frontend `DeclarativePermissionService` checks component and action permissions against context or current session;
 - `ActionRunnerService` handles `navigate`, `execute_service`, `execute_flow`, `submit_form`, `open_modal`,
   `show_message`, `set_state`, `refresh_data`, `queue_offline` and `emit_event`;
+- `ActionRunnerService` writes every action execution to the shared declarative action runtime history;
+- `queue_offline` now uses the shared declarative offline queue instead of page-local storage code;
 - `DeclarativeComponentRendererComponent` resolves bound props before rendering and can execute configured component
   events;
+- the dedicated `/components/declarativos` page exposes a functional declarative lab that shows the contract JSON, real
+  preview, backend validation, action history and offline queue;
+- the Components page links to the dedicated declarative lab instead of embedding a heavy workspace inside the catalog;
 - backend contract validation rejects unknown action types, missing required action keys, invalid permission arrays and
   unsafe binding strings;
 - the declarative component tables were applied to the local MariaDB database through TypeORM migrations.
 
 Pending:
 
-- visual inspector for actions and bindings in App Studio;
-- execution telemetry for declarative actions;
 - richer server-side resource policy checks per action target;
-- offline sync processor for queued declarative actions.
+- App Studio visual inspector for actions and bindings, tracked under Phase 6;
+- offline sync processor for queued declarative actions, tracked under Phase 7;
+- persisted server telemetry for production runtime execution, tracked under Phase 10.
 
 ### Phase 4 - Admin Components
 

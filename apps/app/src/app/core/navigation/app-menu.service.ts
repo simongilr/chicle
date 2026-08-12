@@ -206,6 +206,17 @@ const FALLBACK_AUTH_MENU: AppMenuItem[] = [
     sortOrder: 41
   },
   {
+    key: 'components-runtime',
+    label: 'C-Declarativos',
+    i18nKey: 'nav.componentsRuntime',
+    route: '/components/declarativos',
+    icon: 'pi pi-code',
+    permissions: ['components.read'],
+    group: 'Fábrica',
+    placement: 'build',
+    sortOrder: 42
+  },
+  {
     key: 'security',
     label: 'Seguridad',
     i18nKey: 'nav.security',

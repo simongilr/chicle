@@ -308,7 +308,8 @@ const DECLARATIVE_KEY_BY_SELECTOR: Record<string, string> = {
   'app-metric-strip': 'data.metric_strip',
   'app-entity-card': 'data.entity_card',
   'app-app-timeline': 'data.timeline',
-  'app-vertical-app-showcase': 'app.vertical_showcase'
+  'app-vertical-app-showcase': 'app.vertical_showcase',
+  'app-declarative-runtime-lab': 'engine.declarative_runtime_lab'
 };
 
 function defaultDeclarativeNamespace(category: UiComponentCategory) {
@@ -362,6 +363,27 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     status: 'initial',
     example:
       '<app-declarative-component-renderer [contract]="componentContract" (action)="handleAction($event)"></app-declarative-component-renderer>'
+  },
+  {
+    name: 'DeclarativeRuntimeLabComponent',
+    componentKey: 'engine.declarative_runtime_lab',
+    selector: 'app-declarative-runtime-lab',
+    category: 'Diseñadores',
+    purpose:
+      'Dedicated visual lab for testing component contracts, bindings, permissions, actions, backend validation, runtime history and offline queue behavior.',
+    importPath: 'shared/declarative-runtime-lab/declarative-runtime-lab.component',
+    usedBy: ['Declarative runtime page', 'Component library', 'App Studio architecture'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: {
+      primeng: 'available',
+      ionic: 'available',
+      material: 'available',
+      bootstrap: 'available',
+      native: 'available'
+    },
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '<app-declarative-runtime-lab></app-declarative-runtime-lab>'
   },
   {
     name: 'MainNavComponent',

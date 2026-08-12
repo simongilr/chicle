@@ -18,6 +18,131 @@ runtime graph.
 
 Store component behavior as declarative objects, not as page-local code.
 
+## What Declarative Means In Chicle
+
+Declarative does not mean that Chicle stops using Angular, Ionic, PrimeNG, Material or Bootstrap. It means that Admin,
+App Studio, generated apps, templates and Chicle AI describe the desired UI as data:
+
+```txt
+object -> registry -> binding resolver -> permission resolver -> kit adapter -> action runner
+```
+
+The object says what should exist and what should happen. The runtime decides how to render it safely with the selected
+kit and current context.
+
+Example:
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "dynamic_component",
+  "componentKey": "layout.stack",
+  "props": {
+    "gap": "8px"
+  },
+  "children": [
+    {
+      "componentKey": "form.field",
+      "props": {
+        "field": {
+          "name": "customerName",
+          "label": "Customer",
+          "type": "text"
+        }
+      },
+      "bindings": {
+        "props.value": "{{state.customerName}}"
+      },
+      "actions": {
+        "valueChange": {
+          "type": "set_state",
+          "key": "customerName",
+          "value": "{{value}}"
+        }
+      }
+    },
+    {
+      "componentKey": "ui.button",
+      "props": {
+        "label": "Save",
+        "tone": "primary"
+      },
+      "actions": {
+        "onClick": {
+          "type": "execute_service",
+          "serviceKey": "create_customer",
+          "payloadMap": {
+            "name": "{{state.customerName}}"
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+This object can be:
+
+- shown in the dedicated `/components/declarativos` C-Declarativos lab;
+- edited by App Studio;
+- generated or modified by Chicle AI;
+- persisted in database drafts;
+- frozen in published versions;
+- rendered by web, Ionic mobile or desktop runtime shells;
+- exported as part of an app template package.
+
+Runtime is the interpreter that executes the published contract. It is not another visual page and it is not a separate
+framework. It is the layer that resolves bindings, checks permissions, selects adapters, runs actions, records local
+telemetry and queues offline work when the contract asks for it.
+
+The `/components/declarativos` page is the Admin training and verification surface for this interpreter. It is
+intentionally separate from the component gallery: the gallery inventories components, while C-Declarativos proves that
+one component object can be edited as JSON, rendered with the active kit, validated by the backend and executed through
+the shared action runner.
+
+## Registry State Versus Render State
+
+Chicle separates component registration from component rendering. This keeps the platform honest while the catalog grows.
+
+| State              | Meaning                                                                                                 | Can AI Use It Automatically?                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `registered`       | The backend knows the `componentKey`, schemas, adapters and validation rules.                            | Only as a planned/fallback item, with a warning.                  |
+| `renderable`       | The central renderer can paint the component from JSON and pass the active kit to its adapter.           | Yes, for visual drafts and App Studio previews.                   |
+| `action_ready`     | The component emits normalized events and the Action Runner can execute its configured actions.          | Yes, when required permissions and bindings are available.        |
+| `production_ready` | The component is renderable, action-ready, documented, tested, multi-kit audited and safe for templates. | Yes, for generated apps and exported app/template packages.       |
+
+Current renderable set:
+
+| Component Key       | State          | Notes                                                                 |
+| ------------------- | -------------- | --------------------------------------------------------------------- |
+| `ui.button`         | `action_ready` | Renders through the multi-kit button facade and emits `onClick`.       |
+| `form.field`        | `action_ready` | Renders through the dynamic field facade and emits `valueChange`.      |
+| `ui.card`           | `renderable`   | Renders children and kit-aware surfaces.                               |
+| `layout.stack`      | `renderable`   | Renders vertical/horizontal child layout with controlled spacing.      |
+| `layout.grid`       | `renderable`   | Renders responsive child layout.                                       |
+| `feedback.alert`    | `renderable`   | Renders inline notices with tone and resolved bindings.                |
+| `feedback.toast`    | `renderable`   | Renders a controlled inline toast preview until shell-level toast exists. |
+| `feedback.loading`  | `renderable`   | Renders loading state with spinner and message.                        |
+| `feedback.skeleton` | `renderable`   | Renders configurable placeholder rows.                                 |
+| `nav.menu`          | `action_ready` | Renders menu items and can execute `navigate` or configured actions.   |
+| `nav.tabs`          | `action_ready` | Renders tab-like navigation items and can execute `navigate`.          |
+| `nav.toolbar`       | `action_ready` | Renders title, subtitle and command buttons.                           |
+| `data.table`        | `renderable`   | Renders rows and columns from props or bound data.                     |
+| `data.list`         | `renderable`   | Renders item lists from props or bound data.                           |
+
+Next app-specific adapters:
+
+| Component Key   | Current Rule                                                             |
+| --------------- | ------------------------------------------------------------------------ |
+| `overlay.modal` | Requires shell-level overlay ownership before production rendering.       |
+| `media.gallery` | Requires media/file contracts and mobile capability checks.               |
+| `auth.login`    | Requires secure auth binding and tenant policy integration.               |
+| `app.shell`     | Requires generated app shell and manifest ownership.                      |
+
+Rule: a registered component may appear in the catalog and backend validation, but App Studio should not offer it as a
+default production block until it is at least `renderable`. Components without adapters must show a controlled fallback
+instead of pretending that an adapter exists.
+
 ## Reusable Invocation Rule
 
 Chicle does not duplicate visual components per screen, per app or per UI kit. Chicle builds reusable Angular
@@ -69,17 +194,18 @@ namespace.name_variant
 
 Standard namespaces:
 
-| Namespace | Purpose | Examples |
-| --- | --- | --- |
-| `ui.*` | Generic visual primitives and surfaces | `ui.button`, `ui.card`, `ui.badge`, `ui.avatar` |
-| `form.*` | Form controls, form shells, validation and submit surfaces | `form.field`, `form.runtime`, `form.mobile_shell` |
-| `nav.*` | Menus, tabs, breadcrumbs and route navigation | `nav.menu`, `nav.tabs`, `nav.breadcrumbs` |
-| `layout.*` | Grids, stacks, regions, split panes and responsive containers | `layout.grid`, `layout.stack` |
-| `data.*` | Tables, lists, detail views and record-bound displays | `data.table`, `data.list`, `data.detail` |
-| `feedback.*` | Alerts, toasts, loading, skeletons and empty/error states | `feedback.toast`, `feedback.loading` |
-| `overlay.*` | Modals, sheets, popovers and drawers | `overlay.modal`, `overlay.action_sheet` |
-| `media.*` | Images, galleries, evidence, camera, files and thumbnails | `media.image`, `media.gallery` |
-| `studio.*` | Admin/App Studio authoring surfaces | `studio.component_palette`, `studio.screen_canvas` |
+| Namespace    | Purpose                                                       | Examples                                           |
+| ------------ | ------------------------------------------------------------- | -------------------------------------------------- |
+| `ui.*`       | Generic visual primitives and surfaces                        | `ui.button`, `ui.card`, `ui.badge`, `ui.avatar`    |
+| `form.*`     | Form controls, form shells, validation and submit surfaces    | `form.field`, `form.runtime`, `form.mobile_shell`  |
+| `nav.*`      | Menus, tabs, breadcrumbs and route navigation                 | `nav.menu`, `nav.tabs`, `nav.breadcrumbs`          |
+| `layout.*`   | Grids, stacks, regions, split panes and responsive containers | `layout.grid`, `layout.stack`                      |
+| `data.*`     | Tables, lists, detail views and record-bound displays         | `data.table`, `data.list`, `data.detail`           |
+| `feedback.*` | Alerts, toasts, loading, skeletons and empty/error states     | `feedback.toast`, `feedback.loading`               |
+| `overlay.*`  | Modals, sheets, popovers and drawers                          | `overlay.modal`, `overlay.action_sheet`            |
+| `media.*`    | Images, galleries, evidence, camera, files and thumbnails     | `media.image`, `media.gallery`                     |
+| `studio.*`   | Admin/App Studio authoring surfaces                           | `studio.component_palette`, `studio.screen_canvas` |
+
 Rules:
 
 1. Designers, generated apps, template packages and Chicle AI must use `componentKey`.
@@ -161,18 +287,18 @@ Component Contract
   -> State Resolver
 ```
 
-| Layer | Responsibility |
-| --- | --- |
-| Component contract | The persisted object that describes visual, data and behavior configuration. |
-| Component registry | The source of truth for component keys, schemas, default props, adapter support and examples. |
-| Kit adapter | The implementation that renders the same component through PrimeNG, Ionic, Material, Bootstrap or native fallback. |
-| Design-time preview | The App Studio/component-gallery renderer. It uses safe sample data and the same registry as runtime. |
-| Runtime renderer | The generated app renderer. It reads published contracts only and executes bindings/actions safely. |
-| Binding resolver | Reads data from approved sources and maps it into component inputs. |
-| Action runner | Executes declarative actions such as navigation, service execution, flow execution, modal open or message display. |
-| Permission resolver | Filters visibility and execution by tenant, user, role, permission and resource policy. |
-| Text resolver | Resolves labels, help text, messages and placeholders through text bundles and local fallbacks. |
-| State resolver | Normalizes loading, empty, error, success, disabled and readonly states. |
+| Layer               | Responsibility                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Component contract  | The persisted object that describes visual, data and behavior configuration.                                       |
+| Component registry  | The source of truth for component keys, schemas, default props, adapter support and examples.                      |
+| Kit adapter         | The implementation that renders the same component through PrimeNG, Ionic, Material, Bootstrap or native fallback. |
+| Design-time preview | The App Studio/component-gallery renderer. It uses safe sample data and the same registry as runtime.              |
+| Runtime renderer    | The generated app renderer. It reads published contracts only and executes bindings/actions safely.                |
+| Binding resolver    | Reads data from approved sources and maps it into component inputs.                                                |
+| Action runner       | Executes declarative actions such as navigation, service execution, flow execution, modal open or message display. |
+| Permission resolver | Filters visibility and execution by tenant, user, role, permission and resource policy.                            |
+| Text resolver       | Resolves labels, help text, messages and placeholders through text bundles and local fallbacks.                    |
+| State resolver      | Normalizes loading, empty, error, success, disabled and readonly states.                                           |
 
 ## Standard Component Object
 
@@ -303,20 +429,20 @@ component families can add typed fields, but they must not replace the common st
 
 ## Required Fields
 
-| Field | Rule |
-| --- | --- |
-| `schemaVersion` | Required. Enables safe migration. |
-| `kind` | Required. Use `dynamic_component` for standalone reusable component objects and embedded screen components. |
-| `componentKey` | Required. Must exist in the registry. AI and imports must not invent it. |
-| `layout` | Required for screen components. Defines region, order and responsive behavior. |
-| `presentation` | Required. Stores kit/theme intent, not CSS classes or library tags. |
-| `props` | Required, can be empty. Stores component-specific display options. |
-| `data` | Required, can be empty. Defines sources and bindings. |
-| `events` | Required, can be empty. Maps component events to declarative actions. |
-| `permissions` | Required, can be empty. Defines visible, enabled and executable authority. |
-| `states` | Required. Components must know how to show loading, empty, error, success, disabled and readonly states. |
-| `i18n` | Required for user-facing components. Text keys are preferred over literal labels. |
-| `preview` | Required. Allows App Studio and Components gallery to render and test the component. |
+| Field           | Rule                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `schemaVersion` | Required. Enables safe migration.                                                                           |
+| `kind`          | Required. Use `dynamic_component` for standalone reusable component objects and embedded screen components. |
+| `componentKey`  | Required. Must exist in the registry. AI and imports must not invent it.                                    |
+| `layout`        | Required for screen components. Defines region, order and responsive behavior.                              |
+| `presentation`  | Required. Stores kit/theme intent, not CSS classes or library tags.                                         |
+| `props`         | Required, can be empty. Stores component-specific display options.                                          |
+| `data`          | Required, can be empty. Defines sources and bindings.                                                       |
+| `events`        | Required, can be empty. Maps component events to declarative actions.                                       |
+| `permissions`   | Required, can be empty. Defines visible, enabled and executable authority.                                  |
+| `states`        | Required. Components must know how to show loading, empty, error, success, disabled and readonly states.    |
+| `i18n`          | Required for user-facing components. Text keys are preferred over literal labels.                           |
+| `preview`       | Required. Allows App Studio and Components gallery to render and test the component.                        |
 
 ## Component Registry Contract
 
@@ -404,20 +530,20 @@ Supported event names are component-specific, but common names are:
 
 Supported action types:
 
-| Action | Use |
-| --- | --- |
-| `navigate` | Move to another route inside the generated app. |
-| `execute_service` | Run a Dynamic Service by key. |
-| `execute_flow` | Run a Flow by key. |
-| `open_modal` | Open a modal component or modal template. |
-| `close_modal` | Close the active modal. |
-| `show_message` | Display a success, info, warning or error message. |
-| `set_state` | Update local screen/app state. |
-| `emit_event` | Emit an application event for the event engine or local runtime. |
-| `refresh_binding` | Reload a data source. |
-| `submit_form` | Submit an embedded Dynamic Form. |
-| `download_file` | Start a safe file download through backend authorization. |
-| `logout` | End the current session through Auth. |
+| Action            | Use                                                              |
+| ----------------- | ---------------------------------------------------------------- |
+| `navigate`        | Move to another route inside the generated app.                  |
+| `execute_service` | Run a Dynamic Service by key.                                    |
+| `execute_flow`    | Run a Flow by key.                                               |
+| `open_modal`      | Open a modal component or modal template.                        |
+| `close_modal`     | Close the active modal.                                          |
+| `show_message`    | Display a success, info, warning or error message.               |
+| `set_state`       | Update local screen/app state.                                   |
+| `emit_event`      | Emit an application event for the event engine or local runtime. |
+| `refresh_binding` | Reload a data source.                                            |
+| `submit_form`     | Submit an embedded Dynamic Form.                                 |
+| `download_file`   | Start a safe file download through backend authorization.        |
+| `logout`          | End the current session through Auth.                            |
 
 Actions must be validated before publication. Unsafe actions require explicit permissions and backend validation.
 
@@ -425,21 +551,21 @@ Actions must be validated before publication. Unsafe actions require explicit pe
 
 Bindings connect components to data. A component can read from multiple approved source types:
 
-| Source | Example |
-| --- | --- |
-| `static` | Fixed options or demo cards. |
-| `text_bundle` | Labels, placeholders and messages. |
-| `app_navigation` | Published app navigation tree. |
-| `route_params` | `customerId` from the current route. |
-| `query_params` | Filters from the URL. |
-| `form_state` | Current values/errors from an embedded form. |
-| `dynamic_service` | Service response data. |
-| `dynamic_flow` | Flow result data. |
-| `record` | Generic record payload. |
-| `table` | Controlled internal table data through a Dynamic Service. |
-| `current_user` | Current authenticated user claims. |
-| `current_tenant` | Current tenant metadata. |
-| `local_state` | Screen state such as selected tab, modal open or row selected. |
+| Source            | Example                                                        |
+| ----------------- | -------------------------------------------------------------- |
+| `static`          | Fixed options or demo cards.                                   |
+| `text_bundle`     | Labels, placeholders and messages.                             |
+| `app_navigation`  | Published app navigation tree.                                 |
+| `route_params`    | `customerId` from the current route.                           |
+| `query_params`    | Filters from the URL.                                          |
+| `form_state`      | Current values/errors from an embedded form.                   |
+| `dynamic_service` | Service response data.                                         |
+| `dynamic_flow`    | Flow result data.                                              |
+| `record`          | Generic record payload.                                        |
+| `table`           | Controlled internal table data through a Dynamic Service.      |
+| `current_user`    | Current authenticated user claims.                             |
+| `current_tenant`  | Current tenant metadata.                                       |
+| `local_state`     | Screen state such as selected tab, modal open or row selected. |
 
 Direct SQL, raw API URLs and direct table writes are not valid bindings. Backend modules and Dynamic Services own data
 access.
@@ -448,10 +574,10 @@ access.
 
 Every component has three permission layers:
 
-| Layer | Meaning |
-| --- | --- |
-| `visibleWhen` | User can see the component. |
-| `enabledWhen` | User can interact with the component. |
+| Layer         | Meaning                                         |
+| ------------- | ----------------------------------------------- |
+| `visibleWhen` | User can see the component.                     |
+| `enabledWhen` | User can interact with the component.           |
 | `executeWhen` | User can run the action behind the interaction. |
 
 The runtime must re-check execute permissions server-side when an action calls backend functionality. UI filtering is
@@ -506,20 +632,20 @@ Not allowed:
 
 Chicle component contracts are grouped into families:
 
-| Family | Examples |
-| --- | --- |
-| Navigation | `nav_menu`, `side_nav`, `bottom_nav`, `tabs`, `breadcrumb`. |
-| Auth | `auth_login`, `logout_button`, `session_badge`. |
-| Forms | `form_runtime`, `field_group`, `submit_bar`, `validation_summary`. |
-| Data | `data_table`, `search_panel`, `detail_panel`, `entity_card`, `metric_strip`. |
-| Actions | `button`, `service_button`, `flow_button`, `action_bar`, `row_action`. |
-| Feedback | `status_notice`, `toast`, `alert`, `empty_state`, `loading_state`. |
-| Overlays | `modal_shell`, `drawer`, `confirm_dialog`, `action_sheet`. |
-| Media | `media_gallery`, `image_viewer`, `camera_capture`, `file_uploader`. |
-| Location | `map_view`, `gps_capture`. |
-| Timeline | `timeline`, `activity_feed`, `audit_list`. |
-| Layout | `card`, `panel`, `section`, `grid`, `split_view`, `stack`. |
-| Text | `heading`, `paragraph`, `rich_text`, `markdown_view`. |
+| Family     | Examples                                                                     |
+| ---------- | ---------------------------------------------------------------------------- |
+| Navigation | `nav_menu`, `side_nav`, `bottom_nav`, `tabs`, `breadcrumb`.                  |
+| Auth       | `auth_login`, `logout_button`, `session_badge`.                              |
+| Forms      | `form_runtime`, `field_group`, `submit_bar`, `validation_summary`.           |
+| Data       | `data_table`, `search_panel`, `detail_panel`, `entity_card`, `metric_strip`. |
+| Actions    | `button`, `service_button`, `flow_button`, `action_bar`, `row_action`.       |
+| Feedback   | `status_notice`, `toast`, `alert`, `empty_state`, `loading_state`.           |
+| Overlays   | `modal_shell`, `drawer`, `confirm_dialog`, `action_sheet`.                   |
+| Media      | `media_gallery`, `image_viewer`, `camera_capture`, `file_uploader`.          |
+| Location   | `map_view`, `gps_capture`.                                                   |
+| Timeline   | `timeline`, `activity_feed`, `audit_list`.                                   |
+| Layout     | `card`, `panel`, `section`, `grid`, `split_view`, `stack`.                   |
+| Text       | `heading`, `paragraph`, `rich_text`, `markdown_view`.                        |
 
 Each family can have specialized props and events, but must keep the common contract shape.
 

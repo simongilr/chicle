@@ -28,15 +28,15 @@ round.
 | Area                                   | Current | Target | Notes                                                                                                                      |
 | -------------------------------------- | ------: | -----: | -------------------------------------------------------------------------------------------------------------------------- |
 | Structural Admin reuse                 |     92% |   100% | Shared shells, navigation, page layout and catalog structures are broadly adopted.                                         |
-| Multi-kit visual transformation        |     90% |   100% | Global kit bridge and core adapters work; remaining page-local controls must move to real adapters.                        |
-| Component catalog coverage             |     92% |   100% | Shared components, Ionic-backed standard components and declarative primitives are cataloged.                              |
-| Declarative component contract         |     94% |   100% | Common object, backend validation, frontend types, action checks, binding checks and state definitions exist.              |
-| Central declarative renderer           |     90% |   100% | Renderer supports primitives, layout, navigation, feedback, data display, prop bindings, permissions and action execution. |
-| Persistent component registry          |     55% |   100% | DB tables, migration, seed sync and secured registry endpoint exist; local DB migration is applied; admin CRUD is pending. |
-| Admin migration to declarative objects |     25% |   100% | Admin remains reusable-component based; declarative runtime has a dedicated page with action telemetry and validation.     |
-| Generated app runtime integration      |     25% |   100% | App Studio and manifests exist conceptually; runtime rendering and cache need hardening.                                   |
-| Offline component manifest             |     15% |   100% | Forms and runtime docs define direction; generic screen/component manifest cache is pending.                               |
-| AI object authoring                    |     35% |   100% | AI creates services, forms and flows; component/app authoring must become registry-driven.                                 |
+| Multi-kit visual transformation        |     91% |   100% | Global kit bridge and core adapters work; remaining page-local controls must move to real adapters.                        |
+| Component catalog coverage             |     96% |   100% | Shared components, Ionic-backed standard components and the current renderable declarative set are cataloged.              |
+| Declarative component contract         |     97% |   100% | Common object, backend validation, frontend types, action checks, nested action checks, bindings and state definitions exist. |
+| Central declarative renderer           |     96% |   100% | Renderer supports primitives, app blocks, layout, navigation, feedback, data display, prop bindings, permissions and action execution. |
+| Persistent component registry          |     70% |   100% | DB tables, migration, seed sync and secured registry endpoint exist; template/admin CRUD is pending.                       |
+| Admin migration to declarative objects |     28% |   100% | Admin remains reusable-component based; C-Declarativos has a dedicated page with action telemetry and validation.          |
+| Generated app runtime integration      |     45% |   100% | App-oriented components render in the shared renderer; App Studio still must consume them as the default canvas contract.   |
+| Offline component manifest             |     22% |   100% | Offline status and queue actions exist; generic manifest cache and sync processor are pending.                             |
+| AI object authoring                    |     38% |   100% | AI creates services, forms and flows; component/app authoring must become registry-driven.                                 |
 
 ## Percent Calculation Rules
 
@@ -73,6 +73,28 @@ components with real adapters.
 | `nav.toolbar`       | Yes              | Yes              | `onClick`     | Safe for header commands.                               |
 | `data.table`        | Yes              | Yes              | No direct     | Safe for bound rows and columns.                        |
 | `data.list`         | Yes              | Yes              | No direct     | Safe for bound lists.                                   |
+| `data.detail`       | Yes              | Yes              | No direct     | Safe for field/value summaries.                         |
+| `data.metric_strip` | Yes              | Yes              | No direct     | Safe for dashboards and summary strips.                  |
+| `ui.badge`          | Yes              | Yes              | No direct     | Safe for status labels and metadata.                     |
+| `ui.metric_card`    | Yes              | Yes              | No direct     | Safe for KPI cards.                                      |
+| `ui.action_group`   | Yes              | Yes              | `onClick`     | Safe for grouped commands with nested actions.           |
+| `layout.region`     | Yes              | Yes              | No direct     | Safe for titled screen sections.                         |
+| `media.gallery`     | Yes              | Yes              | No direct     | Safe as preview gallery; production file policies pending. |
+| `overlay.modal`     | Yes              | Yes              | `onClose`     | Safe as inline modal preview; shell overlay ownership pending. |
+| `auth.login`        | Yes              | Yes              | `onSubmit`    | Safe as login block preview; production auth binding pending. |
+| `app.shell`         | Yes              | Yes              | No direct     | Safe as generated app shell preview.                     |
+| `app.home_menu`     | Yes              | Yes              | `onNavigate`  | Safe for home navigation drafts.                         |
+| `form.runtime`      | Yes              | Yes              | `onSubmit`    | Safe for embedded form drafts.                           |
+| `service.result`    | Yes              | Yes              | No direct     | Safe for dynamic service response display.               |
+| `flow.trigger_button` | Yes            | Yes              | `onClick`     | Safe for flow trigger drafts and safe preview actions.    |
+| `record.list`       | Yes              | Yes              | `onSelect`    | Safe for record list display; selection inspector pending. |
+| `record.detail`     | Yes              | Yes              | No direct     | Safe for selected record details.                         |
+| `nav.side_menu`     | Yes              | Yes              | `onNavigate`  | Safe for app side navigation drafts.                     |
+| `nav.bottom_tabs`   | Yes              | Yes              | `onNavigate`  | Safe for mobile bottom navigation drafts.                |
+| `chart.panel`       | Yes              | Yes              | No direct     | Safe for simple metric charts.                            |
+| `map.view`          | Yes              | Yes              | No direct     | Safe as map/pin preview; GPS provider integration pending. |
+| `status.offline`    | Yes              | Yes              | No direct     | Safe for offline readiness display.                       |
+| `status.sync_queue` | Yes              | Yes              | No direct     | Safe for sync queue display.                              |
 
 Rule: App Studio and Chicle AI may use the renderable set for automatic drafts. Components outside this table require
 explicit planned-work wording until their adapter, permissions and preview fixture exist.
@@ -177,7 +199,7 @@ Offline rendering uses the latest valid published manifest. Drafts are never exe
 
 ### Phase 0 - Contract And Persistence
 
-Progress: 85%.
+Progress: 94%.
 
 Deliverables:
 
@@ -201,7 +223,8 @@ Implemented:
 - `20260809120000-create-declarative-components.ts` migration;
 - seed sync for initial primitives and runtime blocks;
 - `/components/registry` and `/components/validate` secured by `components.read`;
-- RBAC seed entries for `components.read` and `components.manage`.
+- RBAC seed entries for `components.read` and `components.manage`;
+- backend validation for actions embedded in component props, such as toolbar actions, action groups and modal actions.
 
 Pending:
 
@@ -211,7 +234,7 @@ Pending:
 
 ### Phase 1 - Central Declarative Renderer
 
-Progress: 90%.
+Progress: 96%.
 
 Deliverables:
 
@@ -238,11 +261,16 @@ Implemented:
 - frontend contract types in `engine/components/declarative-component.types.ts`;
 - local registry bridge in `engine/components/declarative-component-registry.service.ts`;
 - standalone `app-declarative-component-renderer`;
-- supported render set: `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`, `feedback.alert`,
-  `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `data.table` and
-  `data.list`;
+- supported render set: `ui.button`, `form.field`, `ui.card`, `ui.badge`, `ui.metric_card`, `ui.action_group`,
+  `layout.stack`, `layout.grid`, `layout.region`, `feedback.alert`, `feedback.toast`, `feedback.loading`,
+  `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `nav.side_menu`, `nav.bottom_tabs`, `data.table`,
+  `data.list`, `data.detail`, `data.metric_strip`, `record.list`, `record.detail`, `form.runtime`, `service.result`,
+  `flow.trigger_button`, `media.gallery`, `overlay.modal`, `auth.login`, `app.shell`, `app.home_menu`, `chart.panel`,
+  `map.view`, `status.offline` and `status.sync_queue`;
 - controlled fallback for registered but not-yet-rendered components;
-- dedicated `/components/declarativos` lab that renders a real object through the renderer.
+- dedicated `/components/declarativos` lab that renders a real object through the renderer;
+- the lab now exposes navigation, input, grouped actions, service result, form runtime, record list/detail, chart,
+  map, gallery, modal, login and offline/sync examples from one editable contract.
 
 Pending:
 
@@ -251,7 +279,7 @@ Pending:
 
 ### Phase 2 - UI Primitives
 
-Progress: 90%.
+Progress: 96%.
 
 Deliverables:
 
@@ -279,14 +307,14 @@ Acceptance gate:
 
 Implemented:
 
-- initial primitive seeds for `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`, `feedback.alert`,
-  `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `data.table` and
-  `data.list`;
+- initial primitive seeds for `ui.button`, `form.field`, `ui.card`, `ui.badge`, `ui.metric_card`, `ui.action_group`,
+  `layout.stack`, `layout.grid`, `layout.region`, `feedback.alert`, `feedback.toast`, `feedback.loading`,
+  `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`, `data.table`, `data.list`, `data.detail` and
+  `data.metric_strip`;
 - legacy App Studio component catalog now recognizes the declarative primitive keys, so packages can validate them;
 - canonical component keys remain separate from technical selectors such as `ion-button` or `mat-form-field`;
-- renderable primitive adapters currently cover `ui.button`, `form.field`, `ui.card`, `layout.stack`, `layout.grid`,
-  `feedback.alert`, `feedback.toast`, `feedback.loading`, `feedback.skeleton`, `nav.menu`, `nav.tabs`, `nav.toolbar`,
-  `data.table` and `data.list`.
+- renderable primitive adapters currently cover the listed primitive set in the backend registry and the frontend
+  C-Declarativos lab.
 
 Pending:
 
@@ -294,7 +322,7 @@ Pending:
 
 ### Phase 3 - Actions, Bindings And Security
 
-Progress: 92%.
+Progress: 95%.
 
 Deliverables:
 
@@ -341,6 +369,8 @@ Implemented:
 - the Components page links to the dedicated declarative lab instead of embedding a heavy workspace inside the catalog;
 - backend contract validation rejects unknown action types, missing required action keys, invalid permission arrays and
   unsafe binding strings;
+- backend contract validation also checks nested action objects inside props, so toolbar/action-group/modal actions
+  cannot bypass validation;
 - the declarative component tables were applied to the local MariaDB database through TypeORM migrations.
 
 Pending:
@@ -352,7 +382,7 @@ Pending:
 
 ### Phase 4 - Admin Components
 
-Progress: 40%.
+Progress: 45%.
 
 Deliverables:
 
@@ -377,9 +407,21 @@ Acceptance gate:
 - existing Admin pages keep working while direct usage is gradually replaced;
 - page-local clones are removed only after the shared component is stable.
 
+Implemented:
+
+- the catalog documents Admin-oriented reusable components with canonical `componentKey` values;
+- C-Declarativos can render the Admin-style primitives used by many pages;
+- direct Admin pages remain compatible while the declarative path matures.
+
+Pending:
+
+- replace page-local Admin compositions with persisted component objects route by route;
+- add Admin CRUD for tenant-owned component templates;
+- add visual regression checks for every Admin page under each kit.
+
 ### Phase 5 - Generated App Components
 
-Progress: 20%.
+Progress: 52%.
 
 Deliverables:
 
@@ -405,9 +447,20 @@ Acceptance gate:
 - runtime preview renders real components, not guide cards;
 - component actions and bindings are editable from the inspector.
 
+Implemented:
+
+- app-oriented renderable blocks now exist for login, home menu, dynamic form block, service result block, flow trigger,
+  gallery, record list, record detail, bottom tabs, side menu, modal preview, offline status and sync queue status;
+- these blocks are registered, cataloged and visible in the dedicated C-Declarativos lab.
+
+Pending:
+
+- make App Studio use these blocks as first-class palette items;
+- connect production login, service, flow, media and offline policies to published app manifests.
+
 ### Phase 6 - Visual Designer
 
-Progress: 30%.
+Progress: 40%.
 
 Deliverables:
 
@@ -430,9 +483,19 @@ Acceptance gate:
 - users can configure width, region, order, route, permissions and action without editing code;
 - screen JSON matches the published runtime contract.
 
+Implemented:
+
+- the visual designer architecture and C-Declarativos renderer now share the same object model;
+- the renderer can be used as the App Studio preview engine for multiple app block families.
+
+Pending:
+
+- replace current App Studio guide cards with real renderer-backed canvas blocks;
+- add component tree, binding inspector, action inspector, permissions inspector and responsive layout inspector.
+
 ### Phase 7 - Cache And Offline
 
-Progress: 15%.
+Progress: 22%.
 
 Deliverables:
 
@@ -449,9 +512,20 @@ Acceptance gate:
 - publishing a new app or screen version invalidates only the affected manifest;
 - offline mode never executes drafts.
 
+Implemented:
+
+- `queue_offline` action stores work in the shared declarative offline queue;
+- offline and sync queue status blocks render from the same component contract.
+
+Pending:
+
+- published manifest cache;
+- durable IndexedDB sync processor;
+- retry, conflict and idempotency rules for generated apps.
+
 ### Phase 8 - AI Authoring
 
-Progress: 35%.
+Progress: 38%.
 
 Deliverables:
 

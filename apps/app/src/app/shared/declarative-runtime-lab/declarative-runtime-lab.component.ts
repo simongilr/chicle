@@ -158,7 +158,9 @@ interface ComponentValidationResponse {
         border: 1px dashed var(--ch-color-border);
         border-radius: var(--ch-radius);
         background: var(--ch-color-surface);
-        padding: 16px;
+        min-height: 460px;
+        overflow: auto;
+        padding: 20px;
       }
 
       .inspection-grid {
@@ -519,10 +521,13 @@ export class DeclarativeRuntimeLabComponent {
 
   readonly renderedComponentKeys = [
     "ui.button",
+    "ui.action_group",
+    "ui.badge",
     "form.field",
     "ui.card",
     "layout.stack",
     "layout.grid",
+    "layout.region",
     "feedback.alert",
     "feedback.toast",
     "feedback.loading",
@@ -532,13 +537,35 @@ export class DeclarativeRuntimeLabComponent {
     "nav.toolbar",
     "data.table",
     "data.list",
+    "data.detail",
+    "data.metric_strip",
+    "media.gallery",
+    "overlay.modal",
+    "auth.login",
+    "app.shell",
+    "app.home_menu",
+    "form.runtime",
+    "service.result",
+    "flow.trigger_button",
+    "record.list",
+    "record.detail",
+    "nav.side_menu",
+    "nav.bottom_tabs",
+    "chart.panel",
+    "map.view",
+    "status.offline",
+    "status.sync_queue",
   ];
 
   readonly pendingComponentKeys = [
-    "overlay.modal",
-    "media.gallery",
-    "auth.login",
-    "app.shell",
+    "form.mobile_shell",
+    "service.result_actions",
+    "flow.stepper",
+    "record.editor",
+    "nav.breadcrumbs",
+    "overlay.action_sheet",
+    "media.camera_capture",
+    "map.gps_capture",
   ];
 
   readonly exampleContract = this.createExampleContract();
@@ -568,10 +595,27 @@ export class DeclarativeRuntimeLabComponent {
       data: {
         source: "declarative_runtime_lab",
         menuItems: [
-          { key: "home", label: "Inicio", route: "/home", badge: "base" },
-          { key: "forms", label: "Formularios", route: "/forms", badge: "app" },
-          { key: "services", label: "Servicios", route: "/services", badge: "api" },
+          { key: "home", label: "Inicio", description: "Panel principal", route: "/home", badge: "base" },
+          { key: "forms", label: "Formularios", description: "Captura dinámica", route: "/forms", badge: "app" },
+          { key: "services", label: "Servicios", description: "Consultas y acciones", route: "/services", badge: "api" },
         ],
+        metrics: [
+          { key: "components", label: "Componentes", value: "24", help: "Renderizables hoy", tone: "success" },
+          { key: "queued", label: "Offline", value: "1", help: "Acción en cola", tone: "warning" },
+          { key: "apps", label: "Apps", value: "3", help: "Drafts de ejemplo", tone: "primary" },
+        ],
+        record: {
+          app: "Mi app",
+          route: "/inicio",
+          target: "web/mobile",
+          kit: this.selectedKit,
+        },
+        serviceResult: {
+          ok: true,
+          source: "dynamic_service",
+          rows: 2,
+          durationMs: 42,
+        },
         rows: [
           { name: "Cliente", status: "Activo", owner: "Admin" },
           { name: "Inspección", status: "Draft", owner: "Operador" },
@@ -693,125 +737,366 @@ export class DeclarativeRuntimeLabComponent {
     return {
       schemaVersion: 1,
       kind: "dynamic_component",
-      componentKey: "layout.grid",
+      componentKey: "app.shell",
       props: {
-        gap: "14px",
-        minColumnWidth: "300px",
+        title: "Panel declarativo",
+        subtitle: "Navegación, datos y acciones desde JSON.",
+        menuItems: [],
+      },
+      bindings: {
+        "props.menuItems": "{{data.menuItems}}",
       },
       children: [
         {
-          componentKey: "nav.toolbar",
+          componentKey: "layout.region",
           props: {
-            title: "Panel declarativo",
-            subtitle: "Navegación, datos y acciones desde JSON.",
-            actions: [
-              {
-                label: "Validar",
-                icon: "pi pi-check",
-                tone: "secondary",
-                action: {
-                  type: "show_message",
-                  tone: "info",
-                  message: "Toolbar declarativo activo.",
-                },
-              },
-              {
-                label: "Publicar",
-                icon: "pi pi-send",
-                tone: "success",
-                variant: "solid",
-                action: {
-                  type: "show_message",
-                  tone: "success",
-                  message: "Acción de publicación simulada.",
-                },
-              },
-            ],
-          },
-        },
-        {
-          componentKey: "nav.tabs",
-          props: {
-            activeKey: "home",
-            items: [],
-          },
-          bindings: {
-            "props.items": "{{data.menuItems}}",
-          },
-        },
-        {
-          componentKey: "ui.card",
-          props: {
-            title: "Tarjeta creada desde JSON",
-            subtitle:
-              "El campo guarda estado y los botones disparan acciones declarativas.",
-            variant: "subtle",
-            padding: "14px",
+            gap: "12px",
+            title: "1. Navegación y comandos",
+            subtitle: "El shell puede pintar menús, tabs y acciones sin código de pantalla.",
           },
           children: [
             {
-              componentKey: "form.field",
+              componentKey: "nav.toolbar",
               props: {
-                field: {
-                  name: "sampleName",
-                  label: "Nombre",
-                  type: "text",
-                  placeholder: "Escribe un valor",
-                },
-                value: "",
-              },
-              bindings: {
-                "props.value": "{{state.sampleName}}",
-              },
-              actions: {
-                valueChange: {
-                  type: "set_state",
-                  key: "sampleName",
-                  value: "{{value}}",
-                },
+                title: "Toolbar declarativo",
+                subtitle: "Acciones seguras y auditables.",
+                actions: [
+                  {
+                    key: "validate",
+                    label: "Validar",
+                    icon: "pi pi-check",
+                    tone: "secondary",
+                    action: {
+                      type: "show_message",
+                      tone: "info",
+                      message: "Toolbar declarativo activo.",
+                    },
+                  },
+                  {
+                    key: "publish",
+                    label: "Publicar",
+                    icon: "pi pi-send",
+                    tone: "success",
+                    variant: "solid",
+                    action: {
+                      type: "show_message",
+                      tone: "success",
+                      message: "Acción de publicación simulada.",
+                    },
+                  },
+                ],
               },
             },
             {
-              componentKey: "layout.stack",
+              componentKey: "nav.tabs",
               props: {
-                direction: "horizontal",
-                gap: "14px",
-                align: "start",
+                activeKey: "home",
+                items: [],
+              },
+              bindings: {
+                "props.items": "{{data.menuItems}}",
+              },
+            },
+          ],
+        },
+        {
+          componentKey: "layout.region",
+          props: {
+            gap: "12px",
+            title: "2. Entrada y acción",
+            subtitle: "El campo actualiza estado y los botones consumen el action runner.",
+          },
+          children: [
+            {
+              componentKey: "ui.card",
+              props: {
+                title: "Tarjeta creada desde JSON",
+                subtitle: "El campo guarda estado y los botones disparan acciones declarativas.",
+                variant: "subtle",
+                padding: "16px",
               },
               children: [
                 {
-                  componentKey: "ui.button",
+                  componentKey: "form.field",
                   props: {
-                    label: "Mostrar mensaje",
-                    tone: "primary",
-                    variant: "solid",
+                    field: {
+                      name: "sampleName",
+                      label: "Nombre",
+                      type: "text",
+                      placeholder: "Escribe un valor",
+                    },
+                    value: "",
+                  },
+                  bindings: {
+                    "props.value": "{{state.sampleName}}",
                   },
                   actions: {
-                    onClick: {
-                      type: "show_message",
-                      tone: "success",
-                      message:
-                        "Acción declarativa ejecutada para {{state.sampleName}}.",
-                      permissions: ["components.read"],
+                    valueChange: {
+                      type: "set_state",
+                      key: "sampleName",
+                      value: "{{value}}",
                     },
                   },
                 },
                 {
-                  componentKey: "ui.button",
+                  componentKey: "ui.action_group",
                   props: {
-                    label: "Guardar offline",
-                    tone: "secondary",
-                    variant: "outline",
+                    actions: [
+                      {
+                        key: "message",
+                        label: "Mostrar mensaje",
+                        tone: "primary",
+                        variant: "solid",
+                        action: {
+                          type: "show_message",
+                          tone: "success",
+                          message: "Acción declarativa ejecutada para {{state.sampleName}}.",
+                          permissions: ["components.read"],
+                        },
+                      },
+                      {
+                        key: "offline",
+                        label: "Guardar offline",
+                        tone: "secondary",
+                        variant: "outline",
+                        action: {
+                          type: "queue_offline",
+                          queueKey: "component_lab",
+                          payloadMap: {
+                            name: "{{state.sampleName}}",
+                            source: "declarative_runtime_lab",
+                          },
+                          permissions: ["components.manage"],
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  componentKey: "feedback.alert",
+                  props: {
+                    title: "Salida resuelta",
+                    tone: "info",
+                    message: "",
+                  },
+                  bindings: {
+                    "props.message": "El renderer resolvió el nombre actual como {{state.sampleName}}.",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          componentKey: "layout.region",
+          props: {
+            gap: "12px",
+            title: "3. Datos y navegación de app",
+            subtitle: "Listas, tablas, detalle, métricas y menú de home comparten el mismo contrato.",
+          },
+          children: [
+            {
+              componentKey: "data.metric_strip",
+              props: {
+                items: [],
+              },
+              bindings: {
+                "props.items": "{{data.metrics}}",
+              },
+            },
+            {
+              componentKey: "layout.grid",
+              props: {
+                gap: "12px",
+                minColumnWidth: "260px",
+              },
+              children: [
+                {
+                  componentKey: "app.home_menu",
+                  props: {
+                    items: [],
+                  },
+                  bindings: {
+                    "props.items": "{{data.menuItems}}",
+                  },
+                },
+                {
+                  componentKey: "data.table",
+                  props: {
+                    columns: [
+                      { key: "name", label: "Objeto" },
+                      { key: "status", label: "Estado" },
+                      { key: "owner", label: "Responsable" },
+                    ],
+                    rows: [],
+                  },
+                  bindings: {
+                    "props.rows": "{{data.rows}}",
+                  },
+                },
+                {
+                  componentKey: "data.detail",
+                  props: {
+                    record: {},
+                  },
+                  bindings: {
+                    "props.record": "{{data.record}}",
+                  },
+                },
+                {
+                  componentKey: "record.list",
+                  props: {
+                    items: [
+                      {
+                        key: "cliente",
+                        title: "Cliente activo",
+                        subtitle: "Registro de negocio",
+                        status: "Activo",
+                      },
+                      {
+                        key: "inspeccion",
+                        title: "Inspección móvil",
+                        subtitle: "Pendiente de evidencias",
+                        status: "Draft",
+                      },
+                    ],
+                    emptyText: "Sin registros.",
+                  },
+                },
+                {
+                  componentKey: "record.detail",
+                  props: {
+                    title: "Detalle",
+                  },
+                  bindings: {
+                    "props.record": "{{data.record}}",
+                  },
+                },
+                {
+                  componentKey: "chart.panel",
+                  props: {
+                    title: "Avance visual",
+                    subtitle: "Gráfico simple para dashboards de app.",
+                    items: [
+                      { key: "forms", label: "Forms", value: 72 },
+                      { key: "services", label: "Services", value: 58 },
+                      { key: "offline", label: "Offline", value: 36 },
+                    ],
+                  },
+                },
+                {
+                  componentKey: "map.view",
+                  props: {
+                    title: "Ubicación",
+                    subtitle: "Pins declarativos para GPS e inspecciones.",
+                    pins: [
+                      { key: "a", label: "A", x: "38%", y: "52%" },
+                      { key: "b", label: "B", x: "68%", y: "34%" },
+                    ],
+                  },
+                },
+              ],
+            },
+            {
+              componentKey: "layout.grid",
+              props: {
+                gap: "12px",
+                minColumnWidth: "260px",
+              },
+              children: [
+                {
+                  componentKey: "nav.side_menu",
+                  props: {
+                    activeKey: "home",
+                    items: [],
+                  },
+                  bindings: {
+                    "props.items": "{{data.menuItems}}",
+                  },
+                },
+                {
+                  componentKey: "nav.bottom_tabs",
+                  props: {
+                    activeKey: "forms",
+                    items: [],
+                  },
+                  bindings: {
+                    "props.items": "{{data.menuItems}}",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          componentKey: "layout.region",
+          props: {
+            gap: "12px",
+            title: "4. Formularios, servicios y flows",
+            subtitle: "Bloques de app conectables a formularios dinámicos, servicios y procesos.",
+          },
+          children: [
+            {
+              componentKey: "layout.grid",
+              props: {
+                gap: "12px",
+                minColumnWidth: "260px",
+              },
+              children: [
+                {
+                  componentKey: "form.runtime",
+                  props: {
+                    title: "Formulario embebido",
+                    subtitle: "Campos declarativos y submit normalizado.",
+                    submitLabel: "Guardar ejemplo",
+                    fields: [
+                      {
+                        name: "sampleName",
+                        label: "Nombre",
+                        type: "text",
+                        placeholder: "Nombre visible",
+                      },
+                      {
+                        name: "sampleEmail",
+                        label: "Correo",
+                        type: "email",
+                        placeholder: "correo@empresa.com",
+                      },
+                    ],
+                  },
+                  actions: {
+                    onSubmit: {
+                      type: "show_message",
+                      tone: "success",
+                      message: "Formulario declarativo enviado.",
+                    },
+                  },
+                },
+                {
+                  componentKey: "service.result",
+                  props: {
+                    title: "Resultado de servicio",
+                    subtitle: "Respuesta resuelta desde data.serviceResult.",
+                    message: "Servicio simulado disponible.",
+                    tone: "success",
+                  },
+                  bindings: {
+                    "props.result": "{{data.serviceResult}}",
+                  },
+                },
+                {
+                  componentKey: "flow.trigger_button",
+                  props: {
+                    label: "Ejecutar flow",
+                    tone: "primary",
+                    variant: "solid",
+                    full: true,
                   },
                   actions: {
                     onClick: {
-                      type: "queue_offline",
-                      queueKey: "component_lab",
-                      payloadMap: {
-                        name: "{{state.sampleName}}",
-                        source: "declarative_runtime_lab",
-                      },
-                      permissions: ["components.manage"],
+                      type: "show_message",
+                      tone: "info",
+                      message: "Flow listo para enlazarse a un proceso publicado.",
                     },
                   },
                 },
@@ -820,57 +1105,100 @@ export class DeclarativeRuntimeLabComponent {
           ],
         },
         {
-          componentKey: "layout.grid",
+          componentKey: "layout.region",
           props: {
             gap: "12px",
-            minColumnWidth: "260px",
+            title: "5. Estados, media y overlays",
+            subtitle: "Estos bloques preparan App Studio para offline, galerías y modales.",
           },
           children: [
             {
-              componentKey: "data.list",
+              componentKey: "layout.grid",
               props: {
-                titleKey: "label",
-                subtitleKey: "route",
-                items: [],
+                gap: "12px",
+                minColumnWidth: "240px",
               },
-              bindings: {
-                "props.items": "{{data.menuItems}}",
-              },
+              children: [
+                {
+                  componentKey: "media.gallery",
+                  props: {
+                    items: [
+                      { key: "one", title: "Evidencia", subtitle: "Foto local", placeholder: "IMG" },
+                      { key: "two", title: "Plano", subtitle: "Archivo asociado", placeholder: "DOC" },
+                    ],
+                  },
+                },
+                {
+                  componentKey: "layout.stack",
+                  props: {
+                    gap: "10px",
+                  },
+                  children: [
+                    {
+                      componentKey: "status.offline",
+                      props: {
+                        title: "Offline listo",
+                        message: "La pantalla puede arrancar desde manifiesto cacheado.",
+                        tone: "success",
+                      },
+                    },
+                    {
+                      componentKey: "status.sync_queue",
+                      props: {
+                        title: "Cola de sincronización",
+                        message: "Las acciones offline quedan en cola declarativa.",
+                        tone: "warning",
+                      },
+                    },
+                    {
+                      componentKey: "feedback.skeleton",
+                      props: {
+                        rows: 3,
+                        surface: true,
+                      },
+                    },
+                  ],
+                },
+                {
+                  componentKey: "overlay.modal",
+                  props: {
+                    title: "Modal declarativo",
+                    message: "Preview controlado. El shell real abrirá overlays nativos por kit.",
+                    actions: [
+                      {
+                        key: "accept",
+                        label: "Aceptar",
+                        tone: "primary",
+                        variant: "solid",
+                        action: {
+                          type: "show_message",
+                          message: "Modal confirmado.",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
             },
             {
-              componentKey: "data.table",
+              componentKey: "auth.login",
               props: {
-                columns: [
-                  { key: "name", label: "Objeto" },
-                  { key: "status", label: "Estado" },
-                  { key: "owner", label: "Responsable" },
-                ],
-                rows: [],
+                title: "Login declarativo",
+                subtitle: "Ejemplo de bloque autenticable para apps generadas.",
+                identityName: "email",
+                identityLabel: "Email",
+                identityType: "email",
+                submitLabel: "Ingresar",
               },
-              bindings: {
-                "props.rows": "{{data.rows}}",
-              },
-            },
-            {
-              componentKey: "feedback.skeleton",
-              props: {
-                rows: 4,
-                surface: true,
+              actions: {
+                onSubmit: {
+                  type: "show_message",
+                  tone: "info",
+                  message: "Login declarativo listo para enlazarse con Auth.",
+                },
               },
             },
           ],
-        },
-        {
-          componentKey: "feedback.alert",
-          props: {
-            title: "Salida resuelta",
-            tone: "info",
-            message: "",
-          },
-          bindings: {
-            "props.message":
-              "El renderer resolvió el nombre actual como {{state.sampleName}}.",
-          },
         },
       ],
     };

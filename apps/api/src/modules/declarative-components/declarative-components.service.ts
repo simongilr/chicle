@@ -176,6 +176,7 @@ export class DeclarativeComponentsService implements OnModuleInit {
     const actions = this.normalizeActions(value['actions']);
     this.validateBindings(bindings, componentKey);
     this.validateActions(actions, componentKey);
+    this.validateNestedActions(props, componentKey);
 
     return {
       schemaVersion: typeof value['schemaVersion'] === 'number' ? value['schemaVersion'] : 1,
@@ -250,6 +251,50 @@ export class DeclarativeComponentsService implements OnModuleInit {
       if (action[key] != null && !this.asObject(action[key])) {
         throw new BadRequestException(`Invalid action in ${componentKey}: ${key} must be an object`);
       }
+    }
+  }
+
+  private validateNestedActions(value: unknown, componentKey: string) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        this.validateNestedActions(item, componentKey);
+      }
+      return;
+    }
+
+    const object = this.asObject(value);
+    if (!object) {
+      return;
+    }
+
+    const nestedAction = this.asObject(object['action']);
+    if (nestedAction) {
+      this.validateActions([nestedAction], componentKey);
+    }
+
+    const actions = object['actions'];
+    if (Array.isArray(actions)) {
+      for (const item of actions) {
+        const actionItem = this.asObject(item);
+        if (!actionItem) {
+          continue;
+        }
+        const itemAction = this.asObject(actionItem['action']);
+        if (itemAction) {
+          this.validateActions([itemAction], componentKey);
+        } else if (ALLOWED_ACTION_TYPES.has(this.asString(actionItem['type']))) {
+          this.validateActions([actionItem], componentKey);
+        }
+      }
+    } else if (this.asObject(actions)) {
+      this.validateActions(actions as Record<string, unknown>, componentKey);
+    }
+
+    for (const [key, child] of Object.entries(object)) {
+      if (key === 'action' || key === 'actions') {
+        continue;
+      }
+      this.validateNestedActions(child, componentKey);
     }
   }
 

@@ -113,31 +113,53 @@ Chicle separates component registration from component rendering. This keeps the
 
 Current renderable set:
 
-| Component Key       | State          | Notes                                                                 |
-| ------------------- | -------------- | --------------------------------------------------------------------- |
-| `ui.button`         | `action_ready` | Renders through the multi-kit button facade and emits `onClick`.       |
-| `form.field`        | `action_ready` | Renders through the dynamic field facade and emits `valueChange`.      |
-| `ui.card`           | `renderable`   | Renders children and kit-aware surfaces.                               |
-| `layout.stack`      | `renderable`   | Renders vertical/horizontal child layout with controlled spacing.      |
-| `layout.grid`       | `renderable`   | Renders responsive child layout.                                       |
-| `feedback.alert`    | `renderable`   | Renders inline notices with tone and resolved bindings.                |
-| `feedback.toast`    | `renderable`   | Renders a controlled inline toast preview until shell-level toast exists. |
-| `feedback.loading`  | `renderable`   | Renders loading state with spinner and message.                        |
-| `feedback.skeleton` | `renderable`   | Renders configurable placeholder rows.                                 |
-| `nav.menu`          | `action_ready` | Renders menu items and can execute `navigate` or configured actions.   |
-| `nav.tabs`          | `action_ready` | Renders tab-like navigation items and can execute `navigate`.          |
-| `nav.toolbar`       | `action_ready` | Renders title, subtitle and command buttons.                           |
-| `data.table`        | `renderable`   | Renders rows and columns from props or bound data.                     |
-| `data.list`         | `renderable`   | Renders item lists from props or bound data.                           |
+| Component Key         | State          | Notes                                                                    |
+| --------------------- | -------------- | ------------------------------------------------------------------------ |
+| `ui.button`           | `action_ready` | Renders through the multi-kit button facade and emits `onClick`.          |
+| `form.field`          | `action_ready` | Renders through the dynamic field facade and emits `valueChange`.         |
+| `ui.card`             | `renderable`   | Renders children and kit-aware surfaces.                                  |
+| `ui.badge`            | `renderable`   | Renders compact status labels and metadata.                               |
+| `ui.metric_card`      | `renderable`   | Renders KPI cards for dashboards and app home screens.                    |
+| `ui.action_group`     | `action_ready` | Renders grouped command buttons and validates nested actions.             |
+| `layout.stack`        | `renderable`   | Renders vertical/horizontal child layout with controlled spacing.         |
+| `layout.grid`         | `renderable`   | Renders responsive child layout.                                          |
+| `layout.region`       | `renderable`   | Renders named/titled screen sections.                                     |
+| `feedback.alert`      | `renderable`   | Renders inline notices with tone and resolved bindings.                   |
+| `feedback.toast`      | `renderable`   | Renders a controlled inline toast preview until shell-level toast exists. |
+| `feedback.loading`    | `renderable`   | Renders loading state with spinner and message.                           |
+| `feedback.skeleton`   | `renderable`   | Renders configurable placeholder rows.                                    |
+| `nav.menu`            | `action_ready` | Renders menu items and can execute `navigate` or configured actions.      |
+| `nav.tabs`            | `action_ready` | Renders tab-like navigation items and can execute `navigate`.             |
+| `nav.toolbar`         | `action_ready` | Renders title, subtitle and command buttons.                              |
+| `nav.side_menu`       | `action_ready` | Renders side navigation for generated apps and workspaces.                |
+| `nav.bottom_tabs`     | `action_ready` | Renders bottom navigation for mobile app shells.                          |
+| `data.table`          | `renderable`   | Renders rows and columns from props or bound data.                        |
+| `data.list`           | `renderable`   | Renders item lists from props or bound data.                              |
+| `data.detail`         | `renderable`   | Renders field/value summaries.                                            |
+| `data.metric_strip`   | `renderable`   | Renders responsive metric strips.                                         |
+| `record.list`         | `renderable`   | Renders business record lists.                                            |
+| `record.detail`       | `renderable`   | Renders selected record details.                                          |
+| `form.runtime`        | `action_ready` | Renders embedded fields and emits submit actions.                         |
+| `service.result`      | `renderable`   | Renders dynamic service responses and summaries.                          |
+| `flow.trigger_button` | `action_ready` | Renders a flow trigger command and emits `onClick`.                       |
+| `media.gallery`       | `renderable`   | Renders media/evidence previews; production file policies remain separate. |
+| `overlay.modal`       | `action_ready` | Renders an inline modal preview and emits close/action events.             |
+| `auth.login`          | `action_ready` | Renders a login block; production auth binding remains policy-controlled. |
+| `app.shell`           | `renderable`   | Renders generated app shell previews.                                     |
+| `app.home_menu`       | `action_ready` | Renders home navigation options for generated apps.                       |
+| `chart.panel`         | `renderable`   | Renders simple metric charts for dashboards.                              |
+| `map.view`            | `renderable`   | Renders map-like pin previews; GPS provider integration remains separate. |
+| `status.offline`      | `renderable`   | Renders offline readiness state.                                          |
+| `status.sync_queue`   | `renderable`   | Renders sync queue state.                                                 |
 
-Next app-specific adapters:
+Production-specific integrations still have their own gates:
 
-| Component Key   | Current Rule                                                             |
-| --------------- | ------------------------------------------------------------------------ |
-| `overlay.modal` | Requires shell-level overlay ownership before production rendering.       |
-| `media.gallery` | Requires media/file contracts and mobile capability checks.               |
-| `auth.login`    | Requires secure auth binding and tenant policy integration.               |
-| `app.shell`     | Requires generated app shell and manifest ownership.                      |
+| Area                  | Current Rule                                                                   |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Shell overlays         | Modal preview exists; production overlays must be owned by the runtime shell. |
+| Media/files            | Gallery preview exists; file permissions and mobile capabilities are separate. |
+| Auth                   | Login preview exists; tenant auth policy and backend Auth remain authoritative. |
+| Generated app manifest | App shell preview exists; published manifests must drive production runtime.   |
 
 Rule: a registered component may appear in the catalog and backend validation, but App Studio should not offer it as a
 default production block until it is at least `renderable`. Components without adapters must show a controlled fallback

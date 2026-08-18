@@ -50,7 +50,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | FieldShellComponent | `app-field-shell` | Accessible label, required state, help and validation error | Dynamic field controls, component catalog and legacy public forms | Stable |
 | DynamicFieldControlComponent | `app-dynamic-field-control` | Render fields through PrimeNG, Ionic, Material, Bootstrap or native adapters without changing the schema | Dynamic form runtime and Admin pages | Stable multikit renderer |
 | DynamicFieldLibraryComponent | `app-dynamic-field-library` | Show every supported dynamic field through the multikit facade and compare installed presentation kits | Component library and form designer | Initial field palette |
-| DeclarativeRuntimeLabComponent | `app-declarative-runtime-lab` | Dedicated workspace for editing declarative component JSON, backend validation, renderer preview, action history and offline queue checks | Declarative runtime page and component catalog reference | Initial Phase 3 verification lab |
+| DeclarativeRuntimeLabComponent | `app-declarative-runtime-lab` | Dedicated workspace for editing declarative component JSON, backend validation, renderer preview, action history and offline queue checks | C-Declarativos page and component catalog reference | Initial Phase 3 verification lab |
 | FormlyRuntimeComponent | `app-formly-runtime` | Reactive form, validation, conditional fields, command buttons and multi-step navigation from RuntimeForm | Dynamic form runtime and component library | Initial |
 | ChicleFormlyFieldTypeComponent | `app-chicle-formly-field-type` | Connect Formly state and validation to the multikit field facade | Formly runtime | Initial internal adapter |
 | ChicleFormlyDisplayTypeComponent | `app-chicle-formly-display-type` | Render declarative title, paragraph and divider content | Formly runtime | Initial internal adapter |
@@ -88,7 +88,7 @@ The detailed Admin page reuse percentages and extraction roadmap live in `docs/a
 | FlowsPageComponent | Declarative process lifecycle | Functional, shared designer workflow plus reusable Flow domain visuals |
 | FormsPageComponent | Dynamic form designer | Functional V1; templates, guided draft, field sets, validation checklist, always-editable JSON, preview, test, version and publish |
 | AppsPageComponent | App Studio V2 foundation | Tenant app portfolio, selected app workspace, pages, navigation, security, preview, publish, package JSON and trash |
-| DeclarativeRuntimePageComponent | Declarative runtime verification | Dedicated Admin page for the declarative component interpreter, action runner and backend contract validation |
+| DeclarativeRuntimePageComponent | C-Declarativos verification | Dedicated Admin page for the declarative component interpreter, action runner and backend contract validation |
 | SecurityPageComponent | Users, roles, permissions and audit | Functional, shared panels, metrics, filters, fields and actions; business matrices stay domain-owned |
 | DynamicFormPageComponent | Dynamic form runtime | Loads published runtime schema, renders fields, previews responsive modes and submits through API |
 

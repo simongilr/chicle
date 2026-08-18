@@ -53,7 +53,22 @@ import {
       .auth-login,
       .home-menu,
       .gallery,
-      .detail-grid {
+      .detail-grid,
+      .text-block,
+      .title-block,
+      .note-block,
+      .avatar-block,
+      .icon-block,
+      .media-panel,
+      .progress-block,
+      .list-header,
+      .list-divider,
+      .nav-link,
+      .shell-region,
+      .split-pane,
+      .accordion-group,
+      .segment-control,
+      .fab-preview {
         min-width: 0;
       }
 
@@ -76,6 +91,27 @@ import {
         flex: 0 0 auto;
       }
 
+      .stack.row,
+      .layout-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .layout-column {
+        display: grid;
+        gap: var(--dc-gap, 12px);
+      }
+
+      .split-pane {
+        display: grid;
+        grid-template-columns:
+          minmax(0, var(--split-left, 1fr))
+          minmax(0, var(--split-right, 1fr));
+        gap: var(--dc-gap, 14px);
+        align-items: start;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(
@@ -88,7 +124,7 @@ import {
       .card-heading {
         display: grid;
         gap: 3px;
-        margin-bottom: 12px;
+        margin-bottom: 0;
       }
 
       .card-heading h3 {
@@ -124,12 +160,243 @@ import {
         font-size: 0.9rem;
       }
 
+      .text-block {
+        margin: 0;
+        color: var(--ch-color-muted);
+        font-size: var(--text-size, 0.94rem);
+        line-height: 1.5;
+      }
+
+      .text-block.strong {
+        color: var(--ch-color-text);
+        font-weight: 850;
+      }
+
+      .title-block {
+        display: grid;
+        gap: 5px;
+      }
+
+      .title-block h2,
+      .title-block h3,
+      .title-block p,
+      .note-block p,
+      .media-panel figcaption,
+      .accordion p {
+        margin: 0;
+      }
+
+      .title-block h2,
+      .title-block h3 {
+        color: var(--ch-color-text);
+        letter-spacing: 0;
+        line-height: 1.12;
+      }
+
+      .title-block p,
+      .note-block p,
+      .media-panel figcaption,
+      .accordion p {
+        color: var(--ch-color-muted);
+      }
+
+      .title-eyebrow {
+        color: var(--ch-color-primary);
+        font-size: 0.75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .note-block {
+        display: grid;
+        gap: 4px;
+        border: 1px solid var(--tone-border, var(--ch-color-border));
+        border-radius: var(--ch-radius);
+        background: var(--tone-bg, var(--ch-color-surface-alt));
+        color: var(--ch-color-text);
+        padding: 11px 12px;
+      }
+
+      .chip-pill {
+        min-height: 28px;
+      }
+
+      .avatar-block,
+      .icon-block {
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border: 1px solid var(--tone-border, var(--ch-color-primary-border));
+        background: var(--tone-bg, var(--ch-color-primary-soft));
+        color: var(--tone-fg, var(--ch-color-primary));
+        overflow: hidden;
+      }
+
+      .avatar-block {
+        width: var(--avatar-size, 42px);
+        height: var(--avatar-size, 42px);
+        border-radius: 999px;
+        font-weight: 900;
+      }
+
+      .avatar-block img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .icon-block {
+        width: var(--icon-size, 36px);
+        height: var(--icon-size, 36px);
+        border-radius: var(--ch-radius);
+      }
+
+      .media-panel {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 8px;
+      }
+
+      .media-frame {
+        display: grid;
+        place-items: center;
+        aspect-ratio: var(--media-ratio, 16 / 9);
+        overflow: hidden;
+        border-radius: calc(var(--ch-radius) - 2px);
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-muted);
+      }
+
+      .media-frame img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .progress-block {
+        display: grid;
+        gap: 7px;
+      }
+
+      .progress-copy {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--ch-color-muted);
+        font-size: 0.82rem;
+        font-weight: 850;
+      }
+
+      .progress-track {
+        overflow: hidden;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--ch-color-surface-alt);
+      }
+
+      .progress-track span {
+        display: block;
+        width: var(--progress-value, 0%);
+        height: 100%;
+        border-radius: inherit;
+        background: var(--tone-fg, var(--ch-color-primary));
+      }
+
+      .shell-region {
+        display: grid;
+        gap: var(--dc-gap, 12px);
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 14px;
+      }
+
+      .shell-region.content {
+        border-style: dashed;
+      }
+
+      .shell-region.footer {
+        align-items: center;
+        grid-template-columns: 1fr auto;
+      }
+
+      .accordion-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      .accordion {
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 0;
+      }
+
+      .accordion summary {
+        cursor: pointer;
+        color: var(--ch-color-text);
+        font-weight: 900;
+        padding: 11px 12px;
+      }
+
+      .accordion p {
+        border-top: 1px solid var(--ch-color-border);
+        padding: 0 12px 12px;
+      }
+
+      .segment-control {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: fit-content;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 5px;
+      }
+
+      .segment-option {
+        min-height: 30px;
+        border: 1px solid transparent;
+        border-radius: calc(var(--ch-radius) - 2px);
+        background: transparent;
+        color: var(--ch-color-muted);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 850;
+        padding: 5px 10px;
+      }
+
+      .segment-option.active {
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-surface);
+        color: var(--ch-color-primary);
+      }
+
+      .fab-preview {
+        display: flex;
+        justify-content: flex-end;
+      }
+
       .loading,
       .toolbar,
       .nav-menu,
       .nav-tabs,
+      .breadcrumbs,
       .data-list,
-      .skeleton {
+      .skeleton,
+      .mobile-shell,
+      .result-actions,
+      .flow-stepper,
+      .record-editor,
+      .action-sheet,
+      .camera-capture,
+      .gps-capture {
         min-width: 0;
       }
 
@@ -140,6 +407,45 @@ import {
       .menu-item {
         display: flex;
         align-items: center;
+      }
+
+      .list-header,
+      .list-divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ch-color-muted);
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .list-header {
+        justify-content: space-between;
+        border-bottom: 1px solid var(--ch-color-border);
+        padding-bottom: 8px;
+      }
+
+      .list-divider::before,
+      .list-divider::after {
+        content: "";
+        height: 1px;
+        flex: 1 1 auto;
+        background: var(--ch-color-border);
+      }
+
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 32px;
+        border: 1px solid transparent;
+        border-radius: var(--ch-radius);
+        background: transparent;
+        color: var(--ch-color-primary);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 850;
+        padding: 6px 8px;
       }
 
       .loading {
@@ -239,7 +545,8 @@ import {
       .nav-menu {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        align-items: center;
+        gap: 12px;
       }
 
       .toolbar-actions {
@@ -250,23 +557,53 @@ import {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        column-gap: 12px;
-        row-gap: 12px;
+        gap: var(--button-row-gap, 14px);
+        column-gap: var(--button-row-gap, 14px);
+        row-gap: var(--button-row-gap, 14px);
         margin-top: 2px;
       }
 
       .button-row app-ui-kit-button,
       .toolbar-actions app-ui-kit-button,
-      .modal-footer app-ui-kit-button {
+      .mobile-shell-footer app-ui-kit-button,
+      .modal-footer app-ui-kit-button,
+      .result-actions-buttons app-ui-kit-button,
+      .action-sheet-actions app-ui-kit-button {
         flex: 0 0 auto;
+        margin: 0;
+      }
+
+      .button-row:not(.stretch) app-ui-kit-button {
+        width: auto;
       }
 
       .button-row app-ui-kit-button + app-ui-kit-button {
         margin-inline-start: 0;
       }
 
+      .button-row app-ui-kit-button:last-child,
+      .toolbar-actions app-ui-kit-button:last-child,
+      .mobile-shell-footer app-ui-kit-button:last-child,
+      .modal-footer app-ui-kit-button:last-child,
+      .result-actions-buttons app-ui-kit-button:last-child,
+      .action-sheet-actions app-ui-kit-button:last-child {
+        margin-inline-end: 0;
+      }
+
       .button-row.stretch app-ui-kit-button {
         flex: 1 1 170px;
+      }
+
+      .button-row.stretch {
+        gap: var(--button-row-gap, 14px);
+      }
+
+      .button-row.center {
+        justify-content: center;
+      }
+
+      .button-row.end {
+        justify-content: flex-end;
       }
 
       .nav-menu.vertical {
@@ -554,6 +891,204 @@ import {
         padding: 8px;
       }
 
+      .breadcrumbs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: var(--ch-color-muted);
+      }
+
+      .breadcrumb-button {
+        min-height: 30px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--ch-color-primary);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 850;
+        padding: 4px 8px;
+      }
+
+      .breadcrumb-button.active {
+        border-color: var(--ch-color-primary-border);
+        background: var(--ch-color-primary-soft);
+        color: var(--ch-color-text);
+      }
+
+      .mobile-shell {
+        display: grid;
+        gap: 14px;
+        width: min(100%, var(--mobile-shell-width, 390px));
+        border: 1px solid var(--ch-color-border);
+        border-radius: 22px;
+        background: var(--ch-color-surface);
+        box-shadow: var(--ch-shadow-card);
+        padding: 16px;
+      }
+
+      .mobile-shell-top,
+      .mobile-shell-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .mobile-shell-title {
+        display: grid;
+        gap: 3px;
+      }
+
+      .mobile-shell-title h3,
+      .result-actions h3,
+      .flow-step h4,
+      .record-editor h3,
+      .action-sheet h3,
+      .camera-capture h3,
+      .gps-capture h3 {
+        margin: 0;
+        color: var(--ch-color-text);
+      }
+
+      .mobile-shell-title p,
+      .result-actions p,
+      .flow-step p,
+      .record-editor p,
+      .action-sheet p,
+      .camera-capture p,
+      .gps-capture p {
+        margin: 0;
+        color: var(--ch-color-muted);
+      }
+
+      .mobile-progress {
+        overflow: hidden;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--ch-color-surface-alt);
+      }
+
+      .mobile-progress span {
+        display: block;
+        width: var(--mobile-progress, 35%);
+        height: 100%;
+        border-radius: inherit;
+        background: var(--ch-color-primary);
+      }
+
+      .mobile-shell-body,
+      .result-actions,
+      .record-editor,
+      .action-sheet,
+      .camera-capture,
+      .gps-capture {
+        display: grid;
+        gap: 12px;
+      }
+
+      .result-actions,
+      .record-editor,
+      .action-sheet,
+      .camera-capture,
+      .gps-capture {
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface);
+        padding: 14px;
+      }
+
+      .result-actions-buttons,
+      .action-sheet-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .action-sheet-actions {
+        display: grid;
+      }
+
+      .flow-stepper {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .flow-step {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: start;
+        border: 1px solid var(--tone-border, var(--ch-color-border));
+        border-radius: var(--ch-radius);
+        background: var(--tone-bg, var(--ch-color-surface));
+        padding: 12px;
+      }
+
+      .step-index {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--tone-fg, var(--ch-color-primary));
+        color: var(--ch-color-primary-contrast);
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .record-editor-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+
+      .capture-frame,
+      .gps-map-preview {
+        display: grid;
+        place-items: center;
+        min-height: 140px;
+        overflow: hidden;
+        border: 1px dashed var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        color: var(--ch-color-muted);
+      }
+
+      .capture-frame img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: 240px;
+        object-fit: cover;
+      }
+
+      .gps-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .gps-value {
+        display: grid;
+        gap: 3px;
+        border: 1px solid var(--ch-color-border);
+        border-radius: var(--ch-radius);
+        background: var(--ch-color-surface-alt);
+        padding: 9px;
+      }
+
+      .gps-value span {
+        color: var(--ch-color-muted);
+        font-size: 0.78rem;
+      }
+
       .home-menu-item {
         justify-content: space-between;
         gap: 12px;
@@ -666,37 +1201,170 @@ import {
 
       :host([data-ui-kit="material"]) .badge-pill,
       :host([data-ui-kit="material"]) .status-pill,
+      :host([data-ui-kit="material"]) .note-block,
+      :host([data-ui-kit="material"]) .avatar-block,
+      :host([data-ui-kit="material"]) .icon-block,
+      :host([data-ui-kit="material"]) .media-panel,
+      :host([data-ui-kit="material"]) .shell-region,
+      :host([data-ui-kit="material"]) .accordion,
+      :host([data-ui-kit="material"]) .segment-control,
+      :host([data-ui-kit="material"]) .toolbar,
+      :host([data-ui-kit="material"]) .nav-tabs,
+      :host([data-ui-kit="material"]) .menu-item,
+      :host([data-ui-kit="material"]) .tab-item,
+      :host([data-ui-kit="material"]) .table-wrap,
+      :host([data-ui-kit="material"]) .runtime-form,
+      :host([data-ui-kit="material"]) .result-panel,
+      :host([data-ui-kit="material"]) .chart-panel,
+      :host([data-ui-kit="material"]) .map-panel,
       :host([data-ui-kit="material"]) .detail-item,
       :host([data-ui-kit="material"]) .metric-card,
       :host([data-ui-kit="material"]) .home-menu-item,
       :host([data-ui-kit="material"]) .gallery-item,
       :host([data-ui-kit="material"]) .status-panel,
       :host([data-ui-kit="material"]) .app-shell,
+      :host([data-ui-kit="material"]) .bottom-tabs,
       :host([data-ui-kit="material"]) .auth-login,
-      :host([data-ui-kit="material"]) .modal-preview {
+      :host([data-ui-kit="material"]) .modal-preview,
+      :host([data-ui-kit="material"]) .mobile-shell,
+      :host([data-ui-kit="material"]) .result-actions,
+      :host([data-ui-kit="material"]) .flow-step,
+      :host([data-ui-kit="material"]) .record-editor,
+      :host([data-ui-kit="material"]) .action-sheet,
+      :host([data-ui-kit="material"]) .camera-capture,
+      :host([data-ui-kit="material"]) .gps-capture {
         border-radius: 4px;
       }
 
+      :host([data-ui-kit="material"]) .toolbar,
+      :host([data-ui-kit="material"]) .media-panel,
+      :host([data-ui-kit="material"]) .shell-region,
+      :host([data-ui-kit="material"]) .accordion,
+      :host([data-ui-kit="material"]) .runtime-form,
+      :host([data-ui-kit="material"]) .result-panel,
+      :host([data-ui-kit="material"]) .chart-panel,
+      :host([data-ui-kit="material"]) .map-panel,
+      :host([data-ui-kit="material"]) .app-shell,
+      :host([data-ui-kit="material"]) .auth-login,
+      :host([data-ui-kit="material"]) .modal-preview,
+      :host([data-ui-kit="material"]) .mobile-shell,
+      :host([data-ui-kit="material"]) .result-actions,
+      :host([data-ui-kit="material"]) .record-editor,
+      :host([data-ui-kit="material"]) .action-sheet,
+      :host([data-ui-kit="material"]) .camera-capture,
+      :host([data-ui-kit="material"]) .gps-capture {
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--ch-color-text) 10%, transparent);
+      }
+
+      :host([data-ui-kit="ionic"]) .toolbar,
+      :host([data-ui-kit="ionic"]) .note-block,
+      :host([data-ui-kit="ionic"]) .avatar-block,
+      :host([data-ui-kit="ionic"]) .icon-block,
+      :host([data-ui-kit="ionic"]) .media-panel,
+      :host([data-ui-kit="ionic"]) .shell-region,
+      :host([data-ui-kit="ionic"]) .accordion,
+      :host([data-ui-kit="ionic"]) .segment-control,
+      :host([data-ui-kit="ionic"]) .nav-tabs,
+      :host([data-ui-kit="ionic"]) .menu-item,
+      :host([data-ui-kit="ionic"]) .tab-item,
+      :host([data-ui-kit="ionic"]) .table-wrap,
+      :host([data-ui-kit="ionic"]) .runtime-form,
+      :host([data-ui-kit="ionic"]) .result-panel,
+      :host([data-ui-kit="ionic"]) .chart-panel,
+      :host([data-ui-kit="ionic"]) .map-panel,
       :host([data-ui-kit="ionic"]) .app-shell,
       :host([data-ui-kit="ionic"]) .auth-login,
       :host([data-ui-kit="ionic"]) .modal-preview,
       :host([data-ui-kit="ionic"]) .metric-card,
       :host([data-ui-kit="ionic"]) .home-menu-item,
-      :host([data-ui-kit="ionic"]) .gallery-item {
+      :host([data-ui-kit="ionic"]) .gallery-item,
+      :host([data-ui-kit="ionic"]) .status-panel,
+      :host([data-ui-kit="ionic"]) .bottom-tabs,
+      :host([data-ui-kit="ionic"]) .mobile-shell,
+      :host([data-ui-kit="ionic"]) .result-actions,
+      :host([data-ui-kit="ionic"]) .flow-step,
+      :host([data-ui-kit="ionic"]) .record-editor,
+      :host([data-ui-kit="ionic"]) .action-sheet,
+      :host([data-ui-kit="ionic"]) .camera-capture,
+      :host([data-ui-kit="ionic"]) .gps-capture {
         border-radius: 16px;
+      }
+
+      :host([data-ui-kit="ionic"]) .toolbar,
+      :host([data-ui-kit="ionic"]) .media-panel,
+      :host([data-ui-kit="ionic"]) .shell-region,
+      :host([data-ui-kit="ionic"]) .accordion,
+      :host([data-ui-kit="ionic"]) .runtime-form,
+      :host([data-ui-kit="ionic"]) .result-panel,
+      :host([data-ui-kit="ionic"]) .chart-panel,
+      :host([data-ui-kit="ionic"]) .map-panel,
+      :host([data-ui-kit="ionic"]) .app-shell,
+      :host([data-ui-kit="ionic"]) .auth-login,
+      :host([data-ui-kit="ionic"]) .modal-preview,
+      :host([data-ui-kit="ionic"]) .mobile-shell,
+      :host([data-ui-kit="ionic"]) .result-actions,
+      :host([data-ui-kit="ionic"]) .record-editor,
+      :host([data-ui-kit="ionic"]) .action-sheet,
+      :host([data-ui-kit="ionic"]) .camera-capture,
+      :host([data-ui-kit="ionic"]) .gps-capture {
+        box-shadow: 0 10px 28px color-mix(in srgb, var(--ch-color-primary) 8%, transparent);
       }
 
       :host([data-ui-kit="bootstrap"]) .badge-pill,
       :host([data-ui-kit="bootstrap"]) .status-pill,
+      :host([data-ui-kit="bootstrap"]) .note-block,
+      :host([data-ui-kit="bootstrap"]) .avatar-block,
+      :host([data-ui-kit="bootstrap"]) .icon-block,
+      :host([data-ui-kit="bootstrap"]) .media-panel,
+      :host([data-ui-kit="bootstrap"]) .shell-region,
+      :host([data-ui-kit="bootstrap"]) .accordion,
+      :host([data-ui-kit="bootstrap"]) .segment-control,
+      :host([data-ui-kit="bootstrap"]) .toolbar,
+      :host([data-ui-kit="bootstrap"]) .nav-tabs,
+      :host([data-ui-kit="bootstrap"]) .menu-item,
+      :host([data-ui-kit="bootstrap"]) .tab-item,
+      :host([data-ui-kit="bootstrap"]) .table-wrap,
+      :host([data-ui-kit="bootstrap"]) .runtime-form,
+      :host([data-ui-kit="bootstrap"]) .result-panel,
+      :host([data-ui-kit="bootstrap"]) .chart-panel,
+      :host([data-ui-kit="bootstrap"]) .map-panel,
       :host([data-ui-kit="bootstrap"]) .detail-item,
       :host([data-ui-kit="bootstrap"]) .metric-card,
       :host([data-ui-kit="bootstrap"]) .home-menu-item,
       :host([data-ui-kit="bootstrap"]) .gallery-item,
       :host([data-ui-kit="bootstrap"]) .status-panel,
       :host([data-ui-kit="bootstrap"]) .app-shell,
+      :host([data-ui-kit="bootstrap"]) .bottom-tabs,
       :host([data-ui-kit="bootstrap"]) .auth-login,
-      :host([data-ui-kit="bootstrap"]) .modal-preview {
+      :host([data-ui-kit="bootstrap"]) .modal-preview,
+      :host([data-ui-kit="bootstrap"]) .mobile-shell,
+      :host([data-ui-kit="bootstrap"]) .result-actions,
+      :host([data-ui-kit="bootstrap"]) .flow-step,
+      :host([data-ui-kit="bootstrap"]) .record-editor,
+      :host([data-ui-kit="bootstrap"]) .action-sheet,
+      :host([data-ui-kit="bootstrap"]) .camera-capture,
+      :host([data-ui-kit="bootstrap"]) .gps-capture {
         border-radius: 0.375rem;
+      }
+
+      :host([data-ui-kit="bootstrap"]) .toolbar,
+      :host([data-ui-kit="bootstrap"]) .media-panel,
+      :host([data-ui-kit="bootstrap"]) .shell-region,
+      :host([data-ui-kit="bootstrap"]) .accordion,
+      :host([data-ui-kit="bootstrap"]) .runtime-form,
+      :host([data-ui-kit="bootstrap"]) .result-panel,
+      :host([data-ui-kit="bootstrap"]) .chart-panel,
+      :host([data-ui-kit="bootstrap"]) .map-panel,
+      :host([data-ui-kit="bootstrap"]) .app-shell,
+      :host([data-ui-kit="bootstrap"]) .auth-login,
+      :host([data-ui-kit="bootstrap"]) .modal-preview,
+      :host([data-ui-kit="bootstrap"]) .mobile-shell,
+      :host([data-ui-kit="bootstrap"]) .result-actions,
+      :host([data-ui-kit="bootstrap"]) .record-editor,
+      :host([data-ui-kit="bootstrap"]) .action-sheet,
+      :host([data-ui-kit="bootstrap"]) .camera-capture,
+      :host([data-ui-kit="bootstrap"]) .gps-capture {
+        box-shadow: none;
       }
 
       @media (max-width: 720px) {
@@ -706,6 +1374,10 @@ import {
         .app-shell-header {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .split-pane {
+          grid-template-columns: 1fr;
         }
 
         .toolbar-actions {
@@ -752,6 +1424,7 @@ import {
             [tone]="cardTone"
             [variant]="cardVariant"
             [padding]="stringProp('padding', '16px')"
+            [gap]="stringProp('gap', '12px')"
           >
             @if (stringProp("title", "") || stringProp("subtitle", "")) {
               <div class="card-heading">
@@ -770,7 +1443,7 @@ import {
               <app-declarative-component-renderer
                 [contract]="child"
                 [context]="context"
-                [kit]="kit"
+                [kit]="kitForRender"
                 (action)="action.emit($event)"
               ></app-declarative-component-renderer>
             }
@@ -793,7 +1466,7 @@ import {
               <app-declarative-component-renderer
                 [contract]="child"
                 [context]="context"
-                [kit]="kit"
+                [kit]="kitForRender"
                 (action)="action.emit($event)"
               ></app-declarative-component-renderer>
             }
@@ -813,11 +1486,123 @@ import {
               <app-declarative-component-renderer
                 [contract]="child"
                 [context]="context"
-                [kit]="kit"
+                [kit]="kitForRender"
                 (action)="action.emit($event)"
               ></app-declarative-component-renderer>
             }
           </div>
+        }
+
+        @case ("layout.row") {
+          <div
+            class="stack layout-row"
+            [style.--dc-gap]="stringProp('gap', '12px')"
+            [style.--dc-align]="alignProp"
+          >
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </div>
+        }
+
+        @case ("layout.column") {
+          <div
+            class="layout-column"
+            [style.--dc-gap]="stringProp('gap', '12px')"
+            [style.--dc-align]="alignProp"
+          >
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </div>
+        }
+
+        @case ("layout.split_pane") {
+          <div
+            class="split-pane"
+            [style.--dc-gap]="stringProp('gap', '14px')"
+            [style.--split-left]="stringProp('left', '1fr')"
+            [style.--split-right]="stringProp('right', '1fr')"
+          >
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </div>
+        }
+
+        @case ("layout.header") {
+          <header class="shell-region header">
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </header>
+        }
+
+        @case ("layout.content") {
+          <main class="shell-region content">
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </main>
+        }
+
+        @case ("layout.footer") {
+          <footer class="shell-region footer">
+            @if (stringProp("text", "")) {
+              <span>{{ stringProp("text", "") }}</span>
+            }
+            @for (
+              child of contract.children ?? [];
+              track trackChild($index, child)
+            ) {
+              <app-declarative-component-renderer
+                [contract]="child"
+                [context]="context"
+                [kit]="kitForRender"
+                (action)="action.emit($event)"
+              ></app-declarative-component-renderer>
+            }
+          </footer>
         }
 
         @case ("feedback.alert") {
@@ -861,10 +1646,150 @@ import {
           </div>
         }
 
+        @case ("feedback.spinner") {
+          <div class="loading" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true"></span>
+            <span>{{ stringProp("message", "Procesando...") }}</span>
+          </div>
+        }
+
+        @case ("feedback.progress") {
+          <div
+            class="progress-block"
+            role="progressbar"
+            [attr.aria-valuenow]="progressNumber"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <div class="progress-copy">
+              <span>{{ stringProp("label", "Progreso") }}</span>
+              <span>{{ progressPercent }}</span>
+            </div>
+            <span class="progress-track">
+              <span [style.--progress-value]="progressPercent"></span>
+            </span>
+          </div>
+        }
+
         @case ("ui.badge") {
           <span class="badge-pill" [ngClass]="toneClass">
             {{ stringProp("label", "Badge") }}
           </span>
+        }
+
+        @case ("ui.chip") {
+          <span class="badge-pill chip-pill" [ngClass]="toneClass">
+            {{ stringProp("label", "Chip") }}
+          </span>
+        }
+
+        @case ("ui.text") {
+          <p
+            class="text-block"
+            [class.strong]="booleanProp('strong', false)"
+            [style.--text-size]="stringProp('size', '0.94rem')"
+          >
+            {{ stringProp("text", stringProp("value", "Text")) }}
+          </p>
+        }
+
+        @case ("ui.title") {
+          <header class="title-block">
+            @if (stringProp("eyebrow", "")) {
+              <span class="title-eyebrow">{{ stringProp("eyebrow", "") }}</span>
+            }
+            <h2>{{ stringProp("title", "Title") }}</h2>
+            @if (stringProp("subtitle", "")) {
+              <p>{{ stringProp("subtitle", "") }}</p>
+            }
+          </header>
+        }
+
+        @case ("ui.note") {
+          <section class="note-block" [ngClass]="toneClass">
+            @if (stringProp("title", "")) {
+              <strong>{{ stringProp("title", "") }}</strong>
+            }
+            <p>{{ stringProp("message", stringProp("text", "Note")) }}</p>
+          </section>
+        }
+
+        @case ("ui.avatar") {
+          <span
+            class="avatar-block"
+            [ngClass]="toneClass"
+            [style.--avatar-size]="stringProp('size', '42px')"
+            [attr.aria-label]="stringProp('label', 'Avatar')"
+          >
+            @if (stringProp("src", "")) {
+              <img [src]="stringProp('src', '')" [alt]="stringProp('label', 'Avatar')" />
+            } @else {
+              {{ stringProp("initials", "CE") }}
+            }
+          </span>
+        }
+
+        @case ("ui.icon") {
+          <span
+            class="icon-block"
+            [ngClass]="toneClass"
+            [style.--icon-size]="stringProp('size', '36px')"
+            [attr.aria-label]="stringProp('label', 'Icon')"
+          >
+            <i [class]="stringProp('icon', 'pi pi-circle')" aria-hidden="true"></i>
+          </span>
+        }
+
+        @case ("ui.accordion") {
+          <details class="accordion" [open]="booleanProp('open', false)">
+            <summary>{{ stringProp("title", "Sección") }}</summary>
+            @if ((contract.children?.length ?? 0) > 0) {
+              @for (
+                child of contract.children ?? [];
+                track trackChild($index, child)
+              ) {
+                <app-declarative-component-renderer
+                  [contract]="child"
+                  [context]="context"
+                  [kit]="kitForRender"
+                  (action)="action.emit($event)"
+                ></app-declarative-component-renderer>
+              }
+            } @else {
+              <p>{{ stringProp("content", stringProp("message", "Contenido")) }}</p>
+            }
+          </details>
+        }
+
+        @case ("ui.accordion_group") {
+          <div class="accordion-group">
+            @for (item of objectArrayProp("items"); track itemKey(item, $index)) {
+              <details class="accordion" [open]="booleanItem(item, 'open', false)">
+                <summary>{{ itemText(item, "title", "Sección") }}</summary>
+                <p>{{ itemText(item, "content", itemText(item, "message", "Contenido")) }}</p>
+              </details>
+            } @empty {
+              <span class="empty">{{ stringProp("emptyText", "Sin secciones.") }}</span>
+            }
+          </div>
+        }
+
+        @case ("ui.segment") {
+          <div class="segment-control" role="tablist">
+            @for (item of objectArrayProp("items"); track itemKey(item, $index)) {
+              <button
+                type="button"
+                class="segment-option"
+                role="tab"
+                [class.active]="itemActive(item)"
+                (click)="runToolbarAction(item)"
+              >
+                {{ itemText(item, "label", "Opción") }}
+              </button>
+            } @empty {
+              <span class="empty">{{ stringProp("emptyText", "Sin opciones.") }}</span>
+            }
+          </div>
         }
 
         @case ("ui.metric_card") {
@@ -993,6 +1918,35 @@ import {
           </div>
         }
 
+        @case ("data.list_header") {
+          <div class="list-header">
+            <strong>{{ stringProp("title", "Lista") }}</strong>
+            @if (stringProp("meta", "")) {
+              <span>{{ stringProp("meta", "") }}</span>
+            }
+          </div>
+        }
+
+        @case ("data.list_item") {
+          <article class="list-item">
+            <span>
+              <strong>{{ stringProp("title", "Item") }}</strong>
+              @if (stringProp("subtitle", "")) {
+                <span>{{ stringProp("subtitle", "") }}</span>
+              }
+            </span>
+            @if (stringProp("status", "")) {
+              <span class="status-pill">{{ stringProp("status", "") }}</span>
+            }
+          </article>
+        }
+
+        @case ("data.list_divider") {
+          <div class="list-divider">
+            <span>{{ stringProp("label", "Sección") }}</span>
+          </div>
+        }
+
         @case ("record.list") {
           <div class="data-list">
             @for (item of objectArrayProp("items"); track itemKey(item, $index)) {
@@ -1069,6 +2023,41 @@ import {
           </div>
         }
 
+        @case ("media.image") {
+          <figure class="media-panel">
+            <span
+              class="media-frame"
+              [style.--media-ratio]="stringProp('ratio', '16 / 9')"
+            >
+              @if (stringProp("src", "")) {
+                <img [src]="stringProp('src', '')" [alt]="stringProp('alt', stringProp('caption', 'Imagen'))" />
+              } @else {
+                <span>{{ stringProp("placeholder", "Imagen") }}</span>
+              }
+            </span>
+            @if (stringProp("caption", "")) {
+              <figcaption>{{ stringProp("caption", "") }}</figcaption>
+            }
+          </figure>
+        }
+
+        @case ("media.thumbnail") {
+          <figure class="gallery-item">
+            <span class="gallery-thumb">
+              @if (stringProp("src", "")) {
+                <img [src]="stringProp('src', '')" [alt]="stringProp('alt', stringProp('title', 'Miniatura'))" />
+              } @else {
+                {{ stringProp("placeholder", "IMG") }}
+              }
+            </span>
+            @if (stringProp("title", "")) {
+              <figcaption class="gallery-caption">
+                <strong>{{ stringProp("title", "") }}</strong>
+              </figcaption>
+            }
+          </figure>
+        }
+
         @case ("overlay.modal") {
           <section class="modal-preview" role="dialog" aria-modal="false">
             <header class="modal-header">
@@ -1092,7 +2081,7 @@ import {
                   <app-declarative-component-renderer
                     [contract]="child"
                     [context]="context"
-                    [kit]="kit"
+                    [kit]="kitForRender"
                     (action)="action.emit($event)"
                   ></app-declarative-component-renderer>
                 }
@@ -1184,7 +2173,7 @@ import {
                 <app-declarative-component-renderer
                   [contract]="child"
                   [context]="context"
-                  [kit]="kit"
+                  [kit]="kitForRender"
                   (action)="action.emit($event)"
                 ></app-declarative-component-renderer>
               }
@@ -1261,6 +2250,89 @@ import {
           </nav>
         }
 
+        @case ("nav.breadcrumbs") {
+          <nav class="breadcrumbs" [attr.aria-label]="stringProp('label', 'Breadcrumbs')">
+            @for (
+              item of objectArrayProp("items");
+              track itemKey(item, $index);
+              let first = $first
+            ) {
+              @if (!first) {
+                <span aria-hidden="true">/</span>
+              }
+              <button
+                type="button"
+                class="breadcrumb-button"
+                [class.active]="itemActive(item)"
+                (click)="runNavigationItem(item)"
+              >
+                {{ itemText(item, "label", "Ruta") }}
+              </button>
+            } @empty {
+              <span class="empty">{{ stringProp("emptyText", "Sin ruta.") }}</span>
+            }
+          </nav>
+        }
+
+        @case ("nav.link") {
+          <button
+            type="button"
+            class="nav-link"
+            (click)="runConfiguredAction('onClick')"
+          >
+            {{ stringProp("label", "Abrir") }}
+          </button>
+        }
+
+        @case ("form.mobile_shell") {
+          <section class="mobile-shell" [style.--mobile-shell-width]="stringProp('width', '390px')">
+            <header class="mobile-shell-top">
+              <div class="mobile-shell-title">
+                <h3>{{ stringProp("title", "Pantalla móvil") }}</h3>
+                @if (stringProp("subtitle", "")) {
+                  <p>{{ stringProp("subtitle", "") }}</p>
+                }
+              </div>
+              @if (stringProp("badge", "")) {
+                <span class="status-pill">{{ stringProp("badge", "") }}</span>
+              }
+            </header>
+            @if (booleanProp("showProgress", true)) {
+              <div class="mobile-progress" aria-hidden="true">
+                <span [style.--mobile-progress]="stringProp('progress', '35%')"></span>
+              </div>
+            }
+            <div class="mobile-shell-body">
+              @for (
+                child of contract.children ?? [];
+                track trackChild($index, child)
+              ) {
+                <app-declarative-component-renderer
+                  [contract]="child"
+                  [context]="context"
+                  [kit]="kitForRender"
+                  (action)="action.emit($event)"
+                ></app-declarative-component-renderer>
+              }
+            </div>
+            @if (objectArrayProp("actions").length) {
+              <footer class="mobile-shell-footer">
+                @for (item of objectArrayProp("actions"); track itemKey(item, $index)) {
+                  <app-ui-kit-button
+                    [kit]="kitForRender"
+                    [label]="itemText(item, 'label', 'Acción')"
+                    [icon]="itemText(item, 'icon', '')"
+                    [tone]="itemTone(item)"
+                    [variant]="itemVariant(item)"
+                    size="small"
+                    (pressed)="runToolbarAction(item)"
+                  ></app-ui-kit-button>
+                }
+              </footer>
+            }
+          </section>
+        }
+
         @case ("layout.region") {
           <section
             class="stack"
@@ -1283,7 +2355,7 @@ import {
               <app-declarative-component-renderer
                 [contract]="child"
                 [context]="context"
-                [kit]="kit"
+                [kit]="kitForRender"
                 (action)="action.emit($event)"
               ></app-declarative-component-renderer>
             }
@@ -1294,6 +2366,9 @@ import {
           <div
             class="button-row"
             [class.stretch]="stringProp('align', 'start') === 'stretch'"
+            [class.center]="stringProp('align', 'start') === 'center'"
+            [class.end]="stringProp('align', 'start') === 'end'"
+            [style.--button-row-gap]="stringProp('gap', '14px')"
           >
             @for (item of objectArrayProp("actions"); track itemKey(item, $index)) {
               <app-ui-kit-button
@@ -1302,11 +2377,24 @@ import {
                 [icon]="itemText(item, 'icon', '')"
                 [tone]="itemTone(item)"
                 [variant]="itemVariant(item)"
-                [full]="booleanItem(item, 'full', false)"
+                [full]="booleanItem(item, 'full', stringProp('align', 'start') === 'stretch')"
                 size="small"
                 (pressed)="runToolbarAction(item)"
               ></app-ui-kit-button>
             }
+          </div>
+        }
+
+        @case ("ui.fab") {
+          <div class="fab-preview">
+            <app-ui-kit-button
+              [kit]="kitForRender"
+              [label]="stringProp('label', '+')"
+              [icon]="stringProp('icon', 'pi pi-plus')"
+              [tone]="buttonTone"
+              [variant]="buttonVariant"
+              (pressed)="runConfiguredAction('onClick')"
+            ></app-ui-kit-button>
           </div>
         }
 
@@ -1365,6 +2453,100 @@ import {
               {{ stringProp("message", "Sin respuesta todavía.") }}
             </app-status-notice>
             <pre class="fallback">{{ serviceResultText }}</pre>
+          </section>
+        }
+
+        @case ("service.result_actions") {
+          <section class="result-actions" [ngClass]="toneClass">
+            <header class="card-heading">
+              <h3>{{ stringProp("title", "Resultado y acciones") }}</h3>
+              @if (stringProp("subtitle", "")) {
+                <p>{{ stringProp("subtitle", "") }}</p>
+              }
+            </header>
+            <app-status-notice [kit]="kitForRender" [tone]="noticeTone">
+              {{ stringProp("message", "Revisa la respuesta antes de continuar.") }}
+            </app-status-notice>
+            <pre class="fallback">{{ serviceResultText }}</pre>
+            @if (objectArrayProp("actions").length) {
+              <div class="result-actions-buttons">
+                @for (item of objectArrayProp("actions"); track itemKey(item, $index)) {
+                  <app-ui-kit-button
+                    [kit]="kitForRender"
+                    [label]="itemText(item, 'label', 'Acción')"
+                    [icon]="itemText(item, 'icon', '')"
+                    [tone]="itemTone(item)"
+                    [variant]="itemVariant(item)"
+                    [full]="booleanItem(item, 'full', false)"
+                    size="small"
+                    (pressed)="runToolbarAction(item)"
+                  ></app-ui-kit-button>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        @case ("flow.stepper") {
+          <ol class="flow-stepper" [attr.aria-label]="stringProp('label', 'Flow steps')">
+            @for (item of objectArrayProp("steps"); track itemKey(item, $index)) {
+              <li class="flow-step" [ngClass]="itemToneClass(item)">
+                <span class="step-index">{{ $index + 1 }}</span>
+                <div>
+                  <h4>{{ itemText(item, "title", "Paso") }}</h4>
+                  @if (itemText(item, "description", "")) {
+                    <p>{{ itemText(item, "description", "") }}</p>
+                  }
+                </div>
+                @if (itemText(item, "status", "")) {
+                  <span class="status-pill">{{ itemText(item, "status", "") }}</span>
+                }
+              </li>
+            } @empty {
+              <span class="empty">{{ stringProp("emptyText", "Sin pasos.") }}</span>
+            }
+          </ol>
+        }
+
+        @case ("record.editor") {
+          <section class="record-editor">
+            <header class="card-heading">
+              <h3>{{ stringProp("title", "Editar registro") }}</h3>
+              @if (stringProp("subtitle", "")) {
+                <p>{{ stringProp("subtitle", "") }}</p>
+              }
+            </header>
+            <div class="record-editor-fields">
+              @for (field of recordEditorFields; track field.name) {
+                <app-dynamic-field-control
+                  [field]="field"
+                  [value]="recordEditorValue(field.name)"
+                  [presentation]="fieldPresentation"
+                  [viewportWidth]="context?.viewportWidth"
+                  [platform]="context?.platform"
+                  (valueChange)="emitNamedValue(field.name, $event)"
+                ></app-dynamic-field-control>
+              }
+            </div>
+            @if (objectArrayProp("actions").length) {
+              <div
+                class="button-row"
+                [class.stretch]="stringProp('align', 'stretch') === 'stretch'"
+              >
+                @for (item of objectArrayProp("actions"); track itemKey(item, $index)) {
+                  <app-ui-kit-button
+                    [kit]="kitForRender"
+                    [label]="itemText(item, 'label', 'Guardar')"
+                    [icon]="itemText(item, 'icon', '')"
+                    [tone]="itemTone(item)"
+                    [variant]="itemVariant(item)"
+                    [full]="booleanItem(item, 'full', stringProp('align', 'stretch') === 'stretch')"
+                    size="small"
+                    (pressed)="runToolbarAction(item)"
+                  ></app-ui-kit-button>
+                }
+              </div>
+            }
           </section>
         }
 
@@ -1430,6 +2612,91 @@ import {
                 </span>
               }
             </div>
+          </section>
+        }
+
+        @case ("overlay.action_sheet") {
+          <section class="action-sheet" role="dialog" aria-modal="false">
+            <header class="card-heading">
+              <h3>{{ stringProp("title", "Acciones") }}</h3>
+              @if (stringProp("message", "")) {
+                <p>{{ stringProp("message", "") }}</p>
+              }
+            </header>
+            <div class="action-sheet-actions">
+              @for (item of objectArrayProp("actions"); track itemKey(item, $index)) {
+                <app-ui-kit-button
+                  [kit]="kitForRender"
+                  [label]="itemText(item, 'label', 'Acción')"
+                  [icon]="itemText(item, 'icon', '')"
+                  [tone]="itemTone(item)"
+                  [variant]="itemVariant(item)"
+                  [full]="true"
+                  size="small"
+                  (pressed)="runToolbarAction(item)"
+                ></app-ui-kit-button>
+              } @empty {
+                <span class="empty">{{ stringProp("emptyText", "Sin acciones.") }}</span>
+              }
+            </div>
+          </section>
+        }
+
+        @case ("media.camera_capture") {
+          <section class="camera-capture">
+            <header class="card-heading">
+              <h3>{{ stringProp("title", "Captura de foto") }}</h3>
+              @if (stringProp("subtitle", "")) {
+                <p>{{ stringProp("subtitle", "") }}</p>
+              }
+            </header>
+            <div class="capture-frame">
+              @if (stringProp("src", "")) {
+                <img [src]="stringProp('src', '')" [alt]="stringProp('title', 'Foto')" />
+              } @else {
+                <span>{{ stringProp("placeholder", "Sin imagen capturada") }}</span>
+              }
+            </div>
+            <app-ui-kit-button
+              [kit]="kitForRender"
+              [label]="stringProp('captureLabel', 'Capturar foto')"
+              [icon]="stringProp('icon', 'pi pi-camera')"
+              [tone]="buttonTone"
+              [variant]="buttonVariant"
+              (pressed)="runConfiguredAction('onCapture')"
+            ></app-ui-kit-button>
+          </section>
+        }
+
+        @case ("map.gps_capture") {
+          <section class="gps-capture">
+            <header class="card-heading">
+              <h3>{{ stringProp("title", "Ubicación GPS") }}</h3>
+              @if (stringProp("subtitle", "")) {
+                <p>{{ stringProp("subtitle", "") }}</p>
+              }
+            </header>
+            <div class="gps-grid">
+              <span class="gps-value">
+                <span>Latitud</span>
+                <strong>{{ stringProp("lat", "sin capturar") }}</strong>
+              </span>
+              <span class="gps-value">
+                <span>Longitud</span>
+                <strong>{{ stringProp("lng", "sin capturar") }}</strong>
+              </span>
+            </div>
+            <div class="gps-map-preview">
+              <span>{{ stringProp("status", "Esperando permisos de ubicación") }}</span>
+            </div>
+            <app-ui-kit-button
+              [kit]="kitForRender"
+              [label]="stringProp('captureLabel', 'Tomar ubicación')"
+              [icon]="stringProp('icon', 'pi pi-map-marker')"
+              [tone]="buttonTone"
+              [variant]="buttonVariant"
+              (pressed)="runConfiguredAction('onCapture')"
+            ></app-ui-kit-button>
           </section>
         }
 
@@ -1578,6 +2845,16 @@ export class DeclarativeComponentRendererComponent {
     return Array.from({ length: safeCount }, (_, index) => index);
   }
 
+  get progressNumber() {
+    return this.numericPercent(
+      this.resolvedProps["percent"] ?? this.resolvedProps["value"] ?? 0,
+    );
+  }
+
+  get progressPercent() {
+    return `${this.progressNumber}%`;
+  }
+
   get tableRows() {
     return this.objectArrayProp("rows");
   }
@@ -1655,6 +2932,27 @@ export class DeclarativeComponentRendererComponent {
         placeholder: this.itemText(item, "placeholder", ""),
         required: this.booleanItem(item, "required", false),
         options: Array.isArray(item["options"]) ? (item["options"] as RuntimeField["options"]) : undefined,
+      }));
+  }
+
+  get recordEditorFields(): RuntimeField[] {
+    if (this.runtimeFields.length) {
+      return this.runtimeFields;
+    }
+    const record =
+      this.asRecord(this.resolvedProps["record"]) ??
+      this.asRecord(this.context?.data?.["record"]) ??
+      {};
+    return Object.keys(record)
+      .filter((key) => !["id", "tenantId", "createdAt", "updatedAt"].includes(key))
+      .slice(0, 8)
+      .map((key) => ({
+        name: key,
+        key,
+        label: this.humanize(key),
+        type: typeof record[key] === "number" ? "number" : "text",
+        placeholder: "",
+        required: false,
       }));
   }
 
@@ -1808,9 +3106,7 @@ export class DeclarativeComponentRendererComponent {
 
   itemPercent(item: Record<string, unknown>) {
     const raw = item["percent"] ?? item["value"] ?? 0;
-    const numeric = typeof raw === "number" ? raw : Number(raw);
-    const safe = Number.isFinite(numeric) ? Math.max(0, Math.min(100, numeric)) : 0;
-    return `${safe}%`;
+    return `${this.numericPercent(raw)}%`;
   }
 
   tableCell(row: Record<string, unknown>, key: string) {
@@ -1959,6 +3255,15 @@ export class DeclarativeComponentRendererComponent {
     return values[fieldName] ?? "";
   }
 
+  recordEditorValue(fieldName: string) {
+    const values =
+      this.asRecord(this.resolvedProps["values"]) ??
+      this.asRecord(this.resolvedProps["record"]) ??
+      this.context?.state ??
+      {};
+    return values[fieldName] ?? "";
+  }
+
   emitNamedValue(fieldName: string, value: unknown) {
     const defaultAction: DeclarativeComponentAction = {
       type: "set_state",
@@ -2089,6 +3394,11 @@ export class DeclarativeComponentRendererComponent {
       .replace(/[_-]+/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  private numericPercent(value: unknown) {
+    const numeric = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numeric) ? Math.max(0, Math.min(100, numeric)) : 0;
   }
 
   // Injected for early validation side effects and future catalog-backed rendering decisions.

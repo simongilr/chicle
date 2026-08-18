@@ -118,7 +118,7 @@ interface ComponentValidationResponse {
       .state-row,
       .check-row {
         display: flex;
-        gap: 10px;
+        gap: 12px;
       }
 
       .surface-header {
@@ -132,7 +132,13 @@ interface ComponentValidationResponse {
       }
 
       .inline-actions {
+        align-items: center;
         flex-wrap: wrap;
+      }
+
+      .inline-actions app-ui-kit-button {
+        flex: 0 0 auto;
+        margin: 0;
       }
 
       .state-row {
@@ -329,17 +335,18 @@ interface ComponentValidationResponse {
         <section class="surface">
           <header class="surface-header">
             <div>
-              <h3>Registrado para próximas tandas</h3>
+              <h3>Pendiente del renderer base</h3>
               <p>
-                Estos adapters pertenecen a las siguientes tandas de apps:
-                necesitan permisos, datos o shell de pantalla antes de quedar
-                como bloques finales del diseñador.
+                Solo deben aparecer aqui componentes registrados que todavia
+                no tengan adapter real de preview.
               </p>
             </div>
           </header>
           <ul class="coverage-list pending">
             @for (key of pendingComponentKeys; track key) {
               <li>{{ key }}</li>
+            } @empty {
+              <li>Sin pendientes del renderer base</li>
             }
           </ul>
         </section>
@@ -409,10 +416,15 @@ interface ComponentValidationResponse {
             </div>
           </header>
           <div class="state-row" aria-label="Estado actual">
-            <span class="chip">kit: {{ selectedKit }}</span>
-            <span class="chip">state.sampleName: {{ sampleName }}</span>
-            <span class="chip">permisos: components.read/manage</span>
+            <span class="chip">Kit visual: {{ kitLabel }}</span>
+            <span class="chip">Estado local de preview</span>
+            <span class="chip">Permisos simulados</span>
           </div>
+          <app-status-notice [kit]="selectedKit" tone="info">
+            Este laboratorio no lee secrets ni confisys. Los valores editados
+            viven solo en el contexto de preview y los eventos se muestran con
+            redacción preventiva.
+          </app-status-notice>
           <div class="preview-frame">
             <app-declarative-component-renderer
               [contract]="activeContract"
@@ -513,7 +525,9 @@ export class DeclarativeRuntimeLabComponent {
   private readonly bindingResolver = inject(DeclarativeBindingResolverService);
 
   selectedKit: UiKitPreference = "primeng";
-  sampleName = "Chicle";
+  previewName = "Chicle";
+  previewEmail = "admin@empresa.com";
+  previewStatus = "activo";
   jsonMessage: { tone: "success" | "warning" | "error" | "info"; text: string } | null =
     null;
   validationChecks: ComponentValidationResponse["checks"] = [];
@@ -527,19 +541,43 @@ export class DeclarativeRuntimeLabComponent {
     "ui.card",
     "layout.stack",
     "layout.grid",
+    "layout.row",
+    "layout.column",
+    "layout.split_pane",
+    "layout.header",
+    "layout.content",
+    "layout.footer",
     "layout.region",
     "feedback.alert",
     "feedback.toast",
     "feedback.loading",
     "feedback.skeleton",
+    "feedback.spinner",
+    "feedback.progress",
+    "ui.chip",
+    "ui.text",
+    "ui.title",
+    "ui.note",
+    "ui.avatar",
+    "ui.icon",
+    "ui.accordion",
+    "ui.accordion_group",
+    "ui.segment",
+    "ui.metric_card",
     "nav.menu",
     "nav.tabs",
     "nav.toolbar",
+    "nav.link",
     "data.table",
     "data.list",
+    "data.list_header",
+    "data.list_item",
+    "data.list_divider",
     "data.detail",
     "data.metric_strip",
     "media.gallery",
+    "media.image",
+    "media.thumbnail",
     "overlay.modal",
     "auth.login",
     "app.shell",
@@ -551,22 +589,22 @@ export class DeclarativeRuntimeLabComponent {
     "record.detail",
     "nav.side_menu",
     "nav.bottom_tabs",
+    "nav.breadcrumbs",
     "chart.panel",
     "map.view",
+    "map.gps_capture",
     "status.offline",
     "status.sync_queue",
-  ];
-
-  readonly pendingComponentKeys = [
     "form.mobile_shell",
     "service.result_actions",
     "flow.stepper",
     "record.editor",
-    "nav.breadcrumbs",
     "overlay.action_sheet",
     "media.camera_capture",
-    "map.gps_capture",
+    "ui.fab",
   ];
+
+  readonly pendingComponentKeys: string[] = [];
 
   readonly exampleContract = this.createExampleContract();
   activeContract: DeclarativeComponentContract = this.exampleContract;
@@ -589,7 +627,9 @@ export class DeclarativeRuntimeLabComponent {
     return {
       kit: this.selectedKit,
       state: {
-        sampleName: this.sampleName,
+        previewName: this.previewName,
+        previewEmail: this.previewEmail,
+        previewStatus: this.previewStatus,
       },
       permissions: ["components.read", "components.manage"],
       data: {
@@ -622,6 +662,20 @@ export class DeclarativeRuntimeLabComponent {
         ],
       },
     };
+  }
+
+  get kitLabel() {
+    return (
+      {
+        primeng: "PrimeNG",
+        ionic: "Ionic",
+        material: "Material",
+        bootstrap: "Bootstrap",
+        native: "Base HTML",
+        auto: "Automático",
+        inherit: "Heredado",
+      }[this.selectedKit] ?? this.selectedKit
+    );
   }
 
   get resolvedPropsJson() {
@@ -699,7 +753,9 @@ export class DeclarativeRuntimeLabComponent {
   }
 
   restoreExample() {
-    this.sampleName = "Chicle";
+    this.previewName = "Chicle";
+    this.previewEmail = "admin@empresa.com";
+    this.previewStatus = "activo";
     this.activeContract = this.createExampleContract();
     this.contractDraft = this.stringify(this.activeContract);
     this.validationChecks = [];
@@ -711,14 +767,23 @@ export class DeclarativeRuntimeLabComponent {
   }
 
   captureDeclarativeAction(event: DeclarativeComponentActionEvent) {
-    if (event.eventName === "valueChange" && typeof event.value === "string") {
-      this.sampleName = event.value;
+    if (event.eventName === "valueChange") {
+      const stateKey = this.extractStateKey(event);
+      if (stateKey === "previewName" && typeof event.value === "string") {
+        this.previewName = event.value;
+      }
+      if (stateKey === "previewEmail" && typeof event.value === "string") {
+        this.previewEmail = event.value;
+      }
+      if (stateKey === "previewStatus" && typeof event.value === "string") {
+        this.previewStatus = event.value;
+      }
     }
     this.lastActionEventJson = this.stringify({
       eventName: event.eventName,
       componentKey: event.source.componentKey,
-      action: event.action,
-      value: event.value,
+      action: this.redactForPreview(event.action),
+      value: this.safeEventValue(event.value, this.extractStateKey(event)),
     });
   }
 
@@ -731,6 +796,50 @@ export class DeclarativeRuntimeLabComponent {
   stringifyShort(value: unknown) {
     const json = JSON.stringify(value);
     return json.length > 180 ? `${json.slice(0, 180)}...` : json;
+  }
+
+  private extractStateKey(event: DeclarativeComponentActionEvent) {
+    const key = event.action["key"];
+    if (typeof key === "string") {
+      return key;
+    }
+    const field = event.source.props?.["field"];
+    if (field && typeof field === "object" && !Array.isArray(field)) {
+      const fieldRecord = field as Record<string, unknown>;
+      const name = fieldRecord["name"] ?? fieldRecord["key"];
+      return typeof name === "string" ? name : "";
+    }
+    return "";
+  }
+
+  private safeEventValue(value: unknown, key = ""): unknown {
+    if (key && this.looksSensitiveKey(key)) {
+      return "[redacted]";
+    }
+    if (typeof value === "string") {
+      return value.length > 80 ? `${value.slice(0, 80)}...` : value;
+    }
+    return this.redactForPreview(value);
+  }
+
+  private redactForPreview(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.redactForPreview(item));
+    }
+    if (!value || typeof value !== "object") {
+      return value;
+    }
+    return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>(
+      (result, [key, entry]) => {
+        result[key] = this.looksSensitiveKey(key) ? "[redacted]" : this.redactForPreview(entry);
+        return result;
+      },
+      {},
+    );
+  }
+
+  private looksSensitiveKey(key: string) {
+    return /password|secret|token|authorization|api[-_]?key|credential|private/i.test(key);
   }
 
   private createExampleContract(): DeclarativeComponentContract {
@@ -797,6 +906,49 @@ export class DeclarativeRuntimeLabComponent {
                 "props.items": "{{data.menuItems}}",
               },
             },
+            {
+              componentKey: "nav.breadcrumbs",
+              props: {
+                activeKey: "forms",
+                items: [
+                  { key: "home", label: "Inicio", route: "/home" },
+                  { key: "factory", label: "Fabrica", route: "/apps" },
+                  { key: "forms", label: "Formulario activo", route: "/forms" },
+                ],
+              },
+            },
+            {
+              componentKey: "layout.row",
+              props: {
+                gap: "10px",
+              },
+              children: [
+                {
+                  componentKey: "nav.link",
+                  props: {
+                    label: "Abrir ruta declarativa",
+                  },
+                  actions: {
+                    onClick: {
+                      type: "show_message",
+                      tone: "info",
+                      message: "Link declarativo ejecutado.",
+                    },
+                  },
+                },
+                {
+                  componentKey: "ui.segment",
+                  props: {
+                    activeKey: "forms",
+                    items: [
+                      { key: "home", label: "Inicio" },
+                      { key: "forms", label: "Formularios" },
+                      { key: "services", label: "Servicios" },
+                    ],
+                  },
+                },
+              ],
+            },
           ],
         },
         {
@@ -817,10 +969,71 @@ export class DeclarativeRuntimeLabComponent {
               },
               children: [
                 {
+                  componentKey: "layout.row",
+                  props: {
+                    gap: "10px",
+                    align: "center",
+                  },
+                  children: [
+                    {
+                      componentKey: "ui.avatar",
+                      props: {
+                        initials: "CE",
+                        label: "Chicle Engine",
+                        tone: "primary",
+                      },
+                    },
+                    {
+                      componentKey: "ui.title",
+                      props: {
+                        eyebrow: "Preview seguro",
+                        title: "Estado local aislado",
+                        subtitle: "Los bindings usan contexto de prueba, no datos sensibles.",
+                      },
+                    },
+                  ],
+                },
+                {
+                  componentKey: "layout.row",
+                  props: {
+                    gap: "8px",
+                  },
+                  children: [
+                    {
+                      componentKey: "ui.chip",
+                      props: {
+                        label: "multikit",
+                        tone: "success",
+                      },
+                    },
+                    {
+                      componentKey: "ui.badge",
+                      props: {
+                        label: "seguro",
+                        tone: "primary",
+                      },
+                    },
+                    {
+                      componentKey: "ui.icon",
+                      props: {
+                        icon: "pi pi-shield",
+                        label: "Permisos",
+                        tone: "info",
+                      },
+                    },
+                  ],
+                },
+                {
+                  componentKey: "ui.text",
+                  props: {
+                    text: "Edita el valor y observa cómo el binding actualiza el preview.",
+                  },
+                },
+                {
                   componentKey: "form.field",
                   props: {
                     field: {
-                      name: "sampleName",
+                      name: "previewName",
                       label: "Nombre",
                       type: "text",
                       placeholder: "Escribe un valor",
@@ -828,12 +1041,12 @@ export class DeclarativeRuntimeLabComponent {
                     value: "",
                   },
                   bindings: {
-                    "props.value": "{{state.sampleName}}",
+                    "props.value": "{{state.previewName}}",
                   },
                   actions: {
                     valueChange: {
                       type: "set_state",
-                      key: "sampleName",
+                      key: "previewName",
                       value: "{{value}}",
                     },
                   },
@@ -850,7 +1063,7 @@ export class DeclarativeRuntimeLabComponent {
                         action: {
                           type: "show_message",
                           tone: "success",
-                          message: "Acción declarativa ejecutada para {{state.sampleName}}.",
+                          message: "Acción declarativa ejecutada para {{state.previewName}}.",
                           permissions: ["components.read"],
                         },
                       },
@@ -863,7 +1076,7 @@ export class DeclarativeRuntimeLabComponent {
                           type: "queue_offline",
                           queueKey: "component_lab",
                           payloadMap: {
-                            name: "{{state.sampleName}}",
+                            name: "{{state.previewName}}",
                             source: "declarative_runtime_lab",
                           },
                           permissions: ["components.manage"],
@@ -880,7 +1093,15 @@ export class DeclarativeRuntimeLabComponent {
                     message: "",
                   },
                   bindings: {
-                    "props.message": "El renderer resolvió el nombre actual como {{state.sampleName}}.",
+                    "props.message": "El renderer resolvió el valor actual como {{state.previewName}}.",
+                  },
+                },
+                {
+                  componentKey: "feedback.progress",
+                  props: {
+                    label: "Cobertura visible",
+                    percent: 82,
+                    tone: "success",
                   },
                 },
               ],
@@ -903,6 +1124,83 @@ export class DeclarativeRuntimeLabComponent {
               bindings: {
                 "props.items": "{{data.metrics}}",
               },
+            },
+            {
+              componentKey: "data.list_header",
+              props: {
+                title: "Registros recientes",
+                meta: "demo",
+              },
+            },
+            {
+              componentKey: "data.list_item",
+              props: {
+                title: "Cliente declarativo",
+                subtitle: "Item individual reutilizable",
+                status: "Activo",
+              },
+            },
+            {
+              componentKey: "data.list_divider",
+              props: {
+                label: "Datos enlazados",
+              },
+            },
+            {
+              componentKey: "layout.split_pane",
+              props: {
+                gap: "12px",
+                left: "0.75fr",
+                right: "1.25fr",
+              },
+              children: [
+                {
+                  componentKey: "layout.header",
+                  children: [
+                    {
+                      componentKey: "ui.title",
+                      props: {
+                        title: "Shell",
+                        subtitle: "Header declarativo",
+                      },
+                    },
+                  ],
+                },
+                {
+                  componentKey: "layout.column",
+                  props: {
+                    gap: "10px",
+                  },
+                  children: [
+                    {
+                      componentKey: "layout.content",
+                      children: [
+                        {
+                          componentKey: "ui.text",
+                          props: {
+                            text: "Contenido renderizado por children.",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      componentKey: "layout.footer",
+                      props: {
+                        text: "Footer declarativo",
+                      },
+                      children: [
+                        {
+                          componentKey: "ui.chip",
+                          props: {
+                            label: "ready",
+                            tone: "success",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
             {
               componentKey: "layout.grid",
@@ -1051,13 +1349,13 @@ export class DeclarativeRuntimeLabComponent {
                     submitLabel: "Guardar ejemplo",
                     fields: [
                       {
-                        name: "sampleName",
+                        name: "previewName",
                         label: "Nombre",
                         type: "text",
                         placeholder: "Nombre visible",
                       },
                       {
-                        name: "sampleEmail",
+                        name: "previewEmail",
                         label: "Correo",
                         type: "email",
                         placeholder: "correo@empresa.com",
@@ -1085,6 +1383,31 @@ export class DeclarativeRuntimeLabComponent {
                   },
                 },
                 {
+                  componentKey: "service.result_actions",
+                  props: {
+                    title: "Resultado accionable",
+                    subtitle: "La respuesta puede ofrecer el siguiente paso sin lógica de pantalla.",
+                    message: "Servicio ejecutado correctamente.",
+                    tone: "success",
+                    actions: [
+                      {
+                        key: "open-detail",
+                        label: "Abrir detalle",
+                        tone: "primary",
+                        variant: "outline",
+                        action: {
+                          type: "show_message",
+                          tone: "info",
+                          message: "Detalle abierto desde un resultado declarativo.",
+                        },
+                      },
+                    ],
+                  },
+                  bindings: {
+                    "props.result": "{{data.serviceResult}}",
+                  },
+                },
+                {
                   componentKey: "flow.trigger_button",
                   props: {
                     label: "Ejecutar flow",
@@ -1098,6 +1421,73 @@ export class DeclarativeRuntimeLabComponent {
                       tone: "info",
                       message: "Flow listo para enlazarse a un proceso publicado.",
                     },
+                  },
+                },
+                {
+                  componentKey: "flow.stepper",
+                  props: {
+                    steps: [
+                      {
+                        key: "input",
+                        title: "Entrada validada",
+                        description: "El contrato define datos mínimos antes de ejecutar.",
+                        status: "Listo",
+                        tone: "success",
+                      },
+                      {
+                        key: "service",
+                        title: "Servicio ejecutado",
+                        description: "Puede consumir un Dynamic Service publicado.",
+                        status: "Activo",
+                        tone: "primary",
+                      },
+                      {
+                        key: "response",
+                        title: "Respuesta preparada",
+                        description: "El front recibe una salida normalizada.",
+                        status: "Pendiente",
+                        tone: "warning",
+                      },
+                    ],
+                  },
+                },
+                {
+                  componentKey: "record.editor",
+                  props: {
+                    title: "Editor de registro",
+                    subtitle: "Campos y acciones vienen del objeto declarativo.",
+                    fields: [
+                      {
+                        name: "previewName",
+                        label: "Nombre visible",
+                        type: "text",
+                      },
+                      {
+                        name: "status",
+                        label: "Estado",
+                        type: "select",
+                        options: [
+                          { label: "Activo", value: "activo" },
+                          { label: "Draft", value: "draft" },
+                        ],
+                      },
+                    ],
+                    actions: [
+                      {
+                        key: "save",
+                        label: "Guardar cambios",
+                        tone: "success",
+                        variant: "solid",
+                        action: {
+                          type: "show_message",
+                          tone: "success",
+                          message: "Registro guardado en preview declarativo.",
+                        },
+                      },
+                    ],
+                  },
+                  bindings: {
+                    "props.values": "{{state}}",
                   },
                 },
               ],
@@ -1129,6 +1519,89 @@ export class DeclarativeRuntimeLabComponent {
                   },
                 },
                 {
+                  componentKey: "layout.column",
+                  props: {
+                    gap: "10px",
+                  },
+                  children: [
+                    {
+                      componentKey: "media.image",
+                      props: {
+                        caption: "Imagen declarativa",
+                        placeholder: "16:9",
+                        ratio: "16 / 9",
+                      },
+                    },
+                    {
+                      componentKey: "media.thumbnail",
+                      props: {
+                        title: "Miniatura",
+                        placeholder: "IMG",
+                      },
+                    },
+                  ],
+                },
+                {
+                  componentKey: "form.mobile_shell",
+                  props: {
+                    title: "Captura móvil",
+                    subtitle: "Flujo táctil para evidencias y ubicación.",
+                    badge: "offline",
+                    progress: "66%",
+                    actions: [
+                      {
+                        key: "continue",
+                        label: "Continuar",
+                        tone: "primary",
+                        variant: "solid",
+                        action: {
+                          type: "show_message",
+                          tone: "info",
+                          message: "Continuación solicitada desde shell móvil.",
+                        },
+                      },
+                    ],
+                  },
+                  children: [
+                    {
+                      componentKey: "media.camera_capture",
+                      props: {
+                        title: "Foto obligatoria",
+                        subtitle: "Usa adaptador de cámara según plataforma.",
+                        captureLabel: "Capturar evidencia",
+                        tone: "primary",
+                        variant: "outline",
+                      },
+                      actions: {
+                        onCapture: {
+                          type: "show_message",
+                          tone: "info",
+                          message: "Cámara solicitada desde componente declarativo.",
+                        },
+                      },
+                    },
+                    {
+                      componentKey: "map.gps_capture",
+                      props: {
+                        title: "Ubicación GPS",
+                        subtitle: "Posición requerida para inspección.",
+                        lat: "4.7110",
+                        lng: "-74.0721",
+                        status: "Ubicación de ejemplo lista",
+                        tone: "primary",
+                        variant: "outline",
+                      },
+                      actions: {
+                        onCapture: {
+                          type: "show_message",
+                          tone: "info",
+                          message: "GPS solicitado desde componente declarativo.",
+                        },
+                      },
+                    },
+                  ],
+                },
+                {
                   componentKey: "layout.stack",
                   props: {
                     gap: "10px",
@@ -1157,7 +1630,94 @@ export class DeclarativeRuntimeLabComponent {
                         surface: true,
                       },
                     },
+                    {
+                      componentKey: "feedback.spinner",
+                      props: {
+                        message: "Sincronizando preview...",
+                      },
+                    },
+                    {
+                      componentKey: "ui.note",
+                      props: {
+                        title: "Nota declarativa",
+                        message: "Mensaje compacto para guías, validaciones o ayuda contextual.",
+                        tone: "info",
+                      },
+                    },
+                    {
+                      componentKey: "ui.accordion",
+                      props: {
+                        title: "Sección desplegable",
+                        content: "Accordion individual para ayuda, filtros avanzados o detalles.",
+                        open: true,
+                      },
+                    },
+                    {
+                      componentKey: "ui.accordion_group",
+                      props: {
+                        items: [
+                          {
+                            key: "one",
+                            title: "Cómo se guarda",
+                            content: "El objeto declarativo se versiona y el renderer lo interpreta.",
+                            open: true,
+                          },
+                          {
+                            key: "two",
+                            title: "Cómo cambia de kit",
+                            content: "El adapter visual cambia sin tocar el contrato del componente.",
+                          },
+                        ],
+                      },
+                    },
                   ],
+                },
+                {
+                  componentKey: "overlay.action_sheet",
+                  props: {
+                    title: "Acciones rápidas",
+                    message: "Opciones compactas para móvil o paneles laterales.",
+                    actions: [
+                      {
+                        key: "share",
+                        label: "Compartir",
+                        tone: "primary",
+                        variant: "outline",
+                        action: {
+                          type: "show_message",
+                          tone: "info",
+                          message: "Acción compartir ejecutada en preview.",
+                        },
+                      },
+                      {
+                        key: "review",
+                        label: "Enviar a revisión",
+                        tone: "success",
+                        variant: "solid",
+                        action: {
+                          type: "show_message",
+                          tone: "success",
+                          message: "Elemento enviado a revisión.",
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  componentKey: "ui.fab",
+                  props: {
+                    label: "Nuevo",
+                    icon: "pi pi-plus",
+                    tone: "primary",
+                    variant: "solid",
+                  },
+                  actions: {
+                    onClick: {
+                      type: "show_message",
+                      tone: "info",
+                      message: "FAB declarativo ejecutado.",
+                    },
+                  },
                 },
                 {
                   componentKey: "overlay.modal",

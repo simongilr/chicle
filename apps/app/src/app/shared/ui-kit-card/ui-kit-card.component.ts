@@ -20,7 +20,8 @@ export type UiKitCardVariant = 'surface' | 'subtle' | 'outline';
       }
 
       .card-base {
-        display: block;
+        display: grid;
+        gap: var(--card-gap);
         min-width: 0;
         border: 1px solid var(--card-border);
         border-radius: var(--card-radius);
@@ -92,7 +93,11 @@ export type UiKitCardVariant = 'surface' | 'subtle' | 'outline';
     `
   ],
   template: `
-    <article class="card-base" [style.--card-padding]="padding">
+    <article
+      class="card-base"
+      [style.--card-padding]="padding"
+      [style.--card-gap]="gap"
+    >
       <ng-content></ng-content>
     </article>
   `
@@ -101,4 +106,5 @@ export class UiKitCardComponent extends UiKitAwareComponent {
   @Input() tone: UiKitCardTone = 'neutral';
   @Input() variant: UiKitCardVariant = 'surface';
   @Input() padding = '16px';
+  @Input() gap = '12px';
 }

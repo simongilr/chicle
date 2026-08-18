@@ -151,6 +151,30 @@ Current renderable set:
 | `map.view`            | `renderable`   | Renders map-like pin previews; GPS provider integration remains separate. |
 | `status.offline`      | `renderable`   | Renders offline readiness state.                                          |
 | `status.sync_queue`   | `renderable`   | Renders sync queue state.                                                 |
+| `ui.chip`             | `renderable`   | Renders compact chips for labels, filters and metadata.                   |
+| `ui.text`             | `renderable`   | Renders copy blocks from props or bindings.                               |
+| `ui.title`            | `renderable`   | Renders headings, subtitles and eyebrows.                                 |
+| `ui.note`             | `renderable`   | Renders contextual notes and helper text.                                 |
+| `ui.avatar`           | `renderable`   | Renders initials or image avatars.                                        |
+| `ui.icon`             | `renderable`   | Renders icon tiles and visual markers.                                    |
+| `ui.accordion`        | `renderable`   | Renders one collapsible explanation block.                                |
+| `ui.accordion_group`  | `renderable`   | Renders grouped accordions.                                               |
+| `ui.segment`          | `action_ready` | Renders segmented choices and emits `onChange`.                           |
+| `feedback.progress`   | `renderable`   | Renders progress indicators.                                              |
+| `feedback.spinner`    | `renderable`   | Renders compact loading indicators.                                       |
+| `layout.row`          | `renderable`   | Renders horizontal child groups.                                          |
+| `layout.column`       | `renderable`   | Renders vertical child groups.                                            |
+| `layout.split_pane`   | `renderable`   | Renders two-column responsive regions.                                    |
+| `layout.header`       | `renderable`   | Renders header regions.                                                   |
+| `layout.content`      | `renderable`   | Renders content regions.                                                  |
+| `layout.footer`       | `renderable`   | Renders footer/action regions.                                            |
+| `nav.link`            | `action_ready` | Renders route links and command links.                                    |
+| `data.list_header`    | `renderable`   | Renders list section headers.                                             |
+| `data.list_item`      | `action_ready` | Renders individual list rows and emits `onSelect`.                        |
+| `data.list_divider`   | `renderable`   | Renders list separators.                                                  |
+| `media.image`         | `renderable`   | Renders responsive images with alt text.                                  |
+| `media.thumbnail`     | `renderable`   | Renders small media previews.                                             |
+| `ui.fab`              | `action_ready` | Renders floating-style primary commands in preview.                       |
 
 Production-specific integrations still have their own gates:
 
@@ -747,6 +771,22 @@ Before a screen or component version can be published, backend validation must c
 - no raw secrets, URLs or unsupported code snippets are embedded;
 - preview fixture is safe;
 - runtime fallback exists for every declared target.
+
+## Preview State And Secret Safety
+
+Design-time previews must never treat tenant data, confisys values, environment variables or secrets as generic
+component state. Preview data is a controlled fixture. The C-Declarativos lab uses an isolated namespace such as
+`state.previewName`, `state.previewEmail` and `state.previewStatus` only to prove bindings and actions.
+
+The renderer can resolve bindings from `state`, `data`, `route`, `user`, `tenant` and `value`, but production screens
+must receive those sources through the runtime shell after tenant, role and permission checks. Debug chips and event
+logs must not expose raw values whose keys look sensitive, including password, secret, token, authorization,
+credential, private key, API key, confisys, vault, DSN, database URL or connection string. Those values are redacted
+before being shown in Admin tooling.
+
+Local browser artifacts created by design-time tools, such as action history and offline queue previews, must be
+sanitized when they are written and again when the runtime starts. This protects the Admin from stale preview state
+left by old sessions and keeps sample data separate from tenant/runtime data.
 
 ## Definition Of Done For A New Component
 

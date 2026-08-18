@@ -18,12 +18,14 @@ export type UiKitButtonSize = 'small' | 'medium';
       :host {
         display: inline-block;
         min-width: 0;
+        margin: 0;
       }
 
       button,
       ion-button,
       p-button {
         font: inherit;
+        margin: 0;
       }
 
       .button-icon {
@@ -73,6 +75,7 @@ export type UiKitButtonSize = 'small' | 'medium';
 
       ion-button {
         width: 100%;
+        display: block;
         min-height: var(--button-min-height, 38px);
         font-weight: 850;
         text-transform: none;
@@ -117,6 +120,16 @@ export type UiKitButtonSize = 'small' | 'medium';
         color: var(--button-fg);
         font-weight: 850;
         line-height: 1;
+      }
+
+      :host ::ng-deep .p-button,
+      .native-button,
+      .bootstrap-button,
+      .material-button,
+      button[mat-raised-button],
+      button[mat-stroked-button],
+      button[mat-button] {
+        margin: 0;
       }
 
       :host ::ng-deep .p-button .p-button-label {

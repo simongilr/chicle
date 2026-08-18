@@ -118,6 +118,14 @@ const IONIC_COMPONENT_DEFINITIONS: Array<[name: string, selector: string]> = [
 ];
 
 const IONIC_SELECTORS_ALREADY_STANDARDIZED = new Set([
+  'ion-accordion',
+  'ion-accordion-group',
+  'ion-action-sheet',
+  'ion-alert',
+  'ion-avatar',
+  'ion-badge',
+  'ion-breadcrumb',
+  'ion-breadcrumbs',
   'ion-button',
   'ion-card',
   'ion-card-content',
@@ -125,16 +133,44 @@ const IONIC_SELECTORS_ALREADY_STANDARDIZED = new Set([
   'ion-card-subtitle',
   'ion-card-title',
   'ion-checkbox',
+  'ion-chip',
+  'ion-col',
+  'ion-content',
   'ion-datetime',
+  'ion-fab',
+  'ion-footer',
+  'ion-grid',
+  'ion-header',
+  'ion-icon',
+  'ion-img',
   'ion-input',
+  'ion-item',
+  'ion-item-divider',
+  'ion-list',
+  'ion-list-header',
+  'ion-loading',
+  'ion-menu',
+  'ion-nav-link',
+  'ion-note',
+  'ion-progress-bar',
   'ion-radio',
   'ion-radio-group',
   'ion-range',
+  'ion-row',
   'ion-searchbar',
+  'ion-segment',
   'ion-select',
   'ion-select-option',
+  'ion-skeleton-text',
+  'ion-spinner',
+  'ion-split-pane',
+  'ion-text',
   'ion-textarea',
-  'ion-toggle'
+  'ion-thumbnail',
+  'ion-title',
+  'ion-toast',
+  'ion-toggle',
+  'ion-toolbar'
 ]);
 
 const IONIC_STANDARD_COMPONENT_KEYS: Record<string, string> = {
@@ -250,7 +286,198 @@ const MULTIKIT_AVAILABLE_ADAPTER_STATUS = {
   native: 'available'
 } satisfies Partial<Record<UiKitAdapterName, UiKitAdapterStatus>>;
 
+function renderableComponent(
+  name: string,
+  componentKey: string,
+  category: UiComponentCategory,
+  purpose: string,
+  example: string
+): UiComponentCatalogEntry {
+  return {
+    name,
+    componentKey,
+    selector: componentKey,
+    category,
+    purpose,
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example
+  };
+}
+
 const DECLARATIVE_RENDERABLE_COMPONENTS: UiComponentCatalogEntry[] = [
+  renderableComponent(
+    'Chip',
+    'ui.chip',
+    'Temas y presentación',
+    'Pill compacta declarativa para tags, estados cortos y metadatos no sensibles.',
+    '{ "componentKey": "ui.chip", "props": { "label": "offline", "tone": "success" } }'
+  ),
+  renderableComponent(
+    'Text',
+    'ui.text',
+    'Temas y presentación',
+    'Texto declarativo con tono de lectura consistente entre kits.',
+    '{ "componentKey": "ui.text", "props": { "text": "Contenido" } }'
+  ),
+  renderableComponent(
+    'Title',
+    'ui.title',
+    'Temas y presentación',
+    'Encabezado declarativo con eyebrow, título y subtítulo para secciones de app.',
+    '{ "componentKey": "ui.title", "props": { "title": "Clientes", "subtitle": "Resumen" } }'
+  ),
+  renderableComponent(
+    'Note',
+    'ui.note',
+    'Guía y estados',
+    'Nota contextual para ayuda, validaciones y mensajes de configuración.',
+    '{ "componentKey": "ui.note", "props": { "message": "Revisa estos datos.", "tone": "info" } }'
+  ),
+  renderableComponent(
+    'Avatar',
+    'ui.avatar',
+    'Temas y presentación',
+    'Avatar declarativo para usuarios, entidades o apps con imagen o iniciales.',
+    '{ "componentKey": "ui.avatar", "props": { "initials": "CE", "label": "Chicle" } }'
+  ),
+  renderableComponent(
+    'Icon',
+    'ui.icon',
+    'Temas y presentación',
+    'Icono declarativo con tono visual y tamaño controlado.',
+    '{ "componentKey": "ui.icon", "props": { "icon": "pi pi-shield", "label": "Seguro" } }'
+  ),
+  renderableComponent(
+    'Accordion',
+    'ui.accordion',
+    'Temas y presentación',
+    'Sección desplegable declarativa para ayuda, filtros avanzados o detalle compacto.',
+    '{ "componentKey": "ui.accordion", "props": { "title": "Más datos", "content": "Detalle" } }'
+  ),
+  renderableComponent(
+    'Accordion Group',
+    'ui.accordion_group',
+    'Temas y presentación',
+    'Grupo de secciones desplegables manejado desde items declarativos.',
+    '{ "componentKey": "ui.accordion_group", "props": { "items": [{ "title": "Uno", "content": "Detalle" }] } }'
+  ),
+  renderableComponent(
+    'Segment',
+    'ui.segment',
+    'Shell y navegación',
+    'Selector segmentado declarativo para modos, tabs compactos o filtros principales.',
+    '{ "componentKey": "ui.segment", "props": { "activeKey": "web", "items": [{ "key": "web", "label": "Web" }] } }'
+  ),
+  renderableComponent(
+    'Progress',
+    'feedback.progress',
+    'Guía y estados',
+    'Barra de progreso declarativa para carga, pasos y cobertura.',
+    '{ "componentKey": "feedback.progress", "props": { "label": "Avance", "percent": 70 } }'
+  ),
+  renderableComponent(
+    'Spinner',
+    'feedback.spinner',
+    'Guía y estados',
+    'Indicador de procesamiento declarativo para acciones o estados transitorios.',
+    '{ "componentKey": "feedback.spinner", "props": { "message": "Procesando..." } }'
+  ),
+  renderableComponent(
+    'Layout Row',
+    'layout.row',
+    'Shell y navegación',
+    'Fila responsive declarativa para agrupar controles y acciones con separación estable.',
+    '{ "componentKey": "layout.row", "props": { "gap": "12px" }, "children": [] }'
+  ),
+  renderableComponent(
+    'Layout Column',
+    'layout.column',
+    'Shell y navegación',
+    'Columna declarativa para organizar children verticales sin estilos por pantalla.',
+    '{ "componentKey": "layout.column", "props": { "gap": "12px" }, "children": [] }'
+  ),
+  renderableComponent(
+    'Split Pane',
+    'layout.split_pane',
+    'Shell y navegación',
+    'Distribución declarativa de dos zonas que colapsa en móvil.',
+    '{ "componentKey": "layout.split_pane", "props": { "left": "1fr", "right": "1fr" }, "children": [] }'
+  ),
+  renderableComponent(
+    'Layout Header',
+    'layout.header',
+    'Shell y navegación',
+    'Región superior declarativa para shells, páginas o cards compuestas.',
+    '{ "componentKey": "layout.header", "children": [] }'
+  ),
+  renderableComponent(
+    'Layout Content',
+    'layout.content',
+    'Shell y navegación',
+    'Región central declarativa para contenido principal.',
+    '{ "componentKey": "layout.content", "children": [] }'
+  ),
+  renderableComponent(
+    'Layout Footer',
+    'layout.footer',
+    'Shell y navegación',
+    'Región inferior declarativa para acciones o estado de pantalla.',
+    '{ "componentKey": "layout.footer", "props": { "text": "Listo" }, "children": [] }'
+  ),
+  renderableComponent(
+    'Navigation Link',
+    'nav.link',
+    'Shell y navegación',
+    'Link/botón de navegación declarativo conectado al action runner.',
+    '{ "componentKey": "nav.link", "props": { "label": "Abrir" }, "actions": { "onClick": { "type": "navigate", "route": "/home" } } }'
+  ),
+  renderableComponent(
+    'List Header',
+    'data.list_header',
+    'Apps verticales',
+    'Cabecera de lista declarativa para agrupaciones y metadatos cortos.',
+    '{ "componentKey": "data.list_header", "props": { "title": "Recientes", "meta": "3" } }'
+  ),
+  renderableComponent(
+    'List Item',
+    'data.list_item',
+    'Apps verticales',
+    'Fila de lista declarativa con título, subtítulo y estado.',
+    '{ "componentKey": "data.list_item", "props": { "title": "Cliente", "status": "Activo" } }'
+  ),
+  renderableComponent(
+    'List Divider',
+    'data.list_divider',
+    'Apps verticales',
+    'Separador semántico declarativo para listas largas o secciones.',
+    '{ "componentKey": "data.list_divider", "props": { "label": "Hoy" } }'
+  ),
+  renderableComponent(
+    'Image',
+    'media.image',
+    'Apps verticales',
+    'Imagen declarativa con placeholder, caption y proporción controlada.',
+    '{ "componentKey": "media.image", "props": { "placeholder": "16:9", "caption": "Imagen" } }'
+  ),
+  renderableComponent(
+    'Thumbnail',
+    'media.thumbnail',
+    'Apps verticales',
+    'Miniatura declarativa para galerías, listas y evidencia.',
+    '{ "componentKey": "media.thumbnail", "props": { "title": "Archivo", "placeholder": "IMG" } }'
+  ),
+  renderableComponent(
+    'Floating Action Button',
+    'ui.fab',
+    'Temas y presentación',
+    'Acción flotante declarativa para crear elementos o abrir comandos rápidos.',
+    '{ "componentKey": "ui.fab", "props": { "label": "Nuevo", "icon": "pi pi-plus" } }'
+  ),
   {
     name: 'Action Group',
     componentKey: 'ui.action_group',
@@ -559,6 +786,118 @@ const DECLARATIVE_RENDERABLE_COMPONENTS: UiComponentCatalogEntry[] = [
     migrationStatus: 'declarative',
     status: 'initial',
     example: '{ "componentKey": "status.sync_queue", "props": { "title": "Cola", "tone": "warning" } }'
+  },
+  {
+    name: 'Breadcrumbs',
+    componentKey: 'nav.breadcrumbs',
+    selector: 'nav.breadcrumbs',
+    category: 'Shell y navegación',
+    purpose: 'Ruta declarativa para navegación contextual y jerarquías de pantallas.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "nav.breadcrumbs", "props": { "items": [{ "label": "Inicio", "route": "/home" }] } }'
+  },
+  {
+    name: 'Mobile Form Shell',
+    componentKey: 'form.mobile_shell',
+    selector: 'form.mobile_shell',
+    category: 'Formularios',
+    purpose: 'Contenedor móvil declarativo para formularios por pasos, evidencias y acciones inferiores.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "form.mobile_shell", "props": { "title": "Inspección", "progress": "50%" }, "children": [] }'
+  },
+  {
+    name: 'Service Result Actions',
+    componentKey: 'service.result_actions',
+    selector: 'service.result_actions',
+    category: 'Apps verticales',
+    purpose: 'Respuesta de servicio con acciones siguientes declarativas.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "service.result_actions", "props": { "message": "Listo", "actions": [] } }'
+  },
+  {
+    name: 'Flow Stepper',
+    componentKey: 'flow.stepper',
+    selector: 'flow.stepper',
+    category: 'Flow especializado',
+    purpose: 'Secuencia visual declarativa de pasos, estados y resultados de un flow.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "flow.stepper", "props": { "steps": [{ "title": "Entrada", "status": "Listo" }] } }'
+  },
+  {
+    name: 'Record Editor',
+    componentKey: 'record.editor',
+    selector: 'record.editor',
+    category: 'Apps verticales',
+    purpose: 'Editor declarativo de registros con campos, valores y acciones configurables.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "record.editor", "props": { "fields": [{ "name": "name", "label": "Nombre" }] } }'
+  },
+  {
+    name: 'Action Sheet',
+    componentKey: 'overlay.action_sheet',
+    selector: 'overlay.action_sheet',
+    category: 'Temas y presentación',
+    purpose: 'Hoja de acciones declarativa para móviles, confirmaciones rápidas y menús contextuales.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "overlay.action_sheet", "props": { "title": "Acciones", "actions": [] } }'
+  },
+  {
+    name: 'Camera Capture',
+    componentKey: 'media.camera_capture',
+    selector: 'media.camera_capture',
+    category: 'Apps verticales',
+    purpose: 'Control declarativo de captura de cámara para evidencias móviles y formularios offline.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "media.camera_capture", "props": { "title": "Foto", "captureLabel": "Capturar" } }'
+  },
+  {
+    name: 'GPS Capture',
+    componentKey: 'map.gps_capture',
+    selector: 'map.gps_capture',
+    category: 'Apps verticales',
+    purpose: 'Control declarativo de ubicación GPS con latitud, longitud, estado y acción de captura.',
+    importPath: 'engine/components/declarative-component-renderer.component',
+    usedBy: ['C-Declarativos', 'App Studio', 'Generated apps'],
+    supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
+    adapterStatus: MULTIKIT_AVAILABLE_ADAPTER_STATUS,
+    migrationStatus: 'declarative',
+    status: 'initial',
+    example: '{ "componentKey": "map.gps_capture", "props": { "title": "GPS", "lat": "4.7110", "lng": "-74.0721" } }'
   }
 ];
 
@@ -693,7 +1032,7 @@ export const UI_COMPONENT_CATALOG: UiComponentCatalogEntry[] = [
     purpose:
       'Dedicated visual lab for testing component contracts, bindings, permissions, actions, backend validation, runtime history and offline queue behavior.',
     importPath: 'shared/declarative-runtime-lab/declarative-runtime-lab.component',
-    usedBy: ['Declarative runtime page', 'Component library', 'App Studio architecture'],
+    usedBy: ['C-Declarativos page', 'Component library', 'App Studio architecture'],
     supportedKits: ['primeng', 'ionic', 'material', 'bootstrap', 'native'],
     adapterStatus: {
       primeng: 'available',

@@ -36,6 +36,31 @@ function adapters(
   }));
 }
 
+function standardSeed(
+  componentKey: string,
+  name: string,
+  category: string,
+  description: string,
+  defaultProps: Record<string, unknown> = {},
+  technicalSelectors: Partial<Record<ComponentAdapterKit, string>> = {}
+): ComponentDefinitionSeed {
+  return {
+    componentKey,
+    name,
+    category,
+    description,
+    propsSchema: { type: 'object' },
+    defaultProps,
+    adapters: adapters({
+      primeng: technicalSelectors.primeng ?? componentKey,
+      ionic: technicalSelectors.ionic ?? componentKey,
+      material: technicalSelectors.material ?? componentKey,
+      bootstrap: technicalSelectors.bootstrap ?? componentKey,
+      native: technicalSelectors.native ?? componentKey
+    })
+  };
+}
+
 export const DECLARATIVE_COMPONENT_SEEDS: ComponentDefinitionSeed[] = [
   {
     componentKey: 'ui.button',
@@ -716,5 +741,197 @@ export const DECLARATIVE_COMPONENT_SEEDS: ComponentDefinitionSeed[] = [
     },
     defaultProps: { title: 'Map', subtitle: '', pins: [] },
     adapters: adapters({ primeng: 'map adapter', ionic: 'capacitor/geolocation + ion-card', material: 'mat-card', bootstrap: '.card', native: 'section' })
-  }
+  },
+  {
+    componentKey: 'nav.breadcrumbs',
+    name: 'Breadcrumbs',
+    category: 'navigation',
+    description: 'Contextual route trail for screens, detail pages and app studio previews.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+        activeKey: { type: 'string' },
+        items: { type: 'array' },
+        emptyText: { type: 'string' }
+      }
+    },
+    eventsSchema: {
+      onNavigate: { actionTypes: ['navigate', 'show_message'] }
+    },
+    defaultProps: { label: 'Breadcrumbs', activeKey: '', items: [], emptyText: 'No route.' },
+    adapters: adapters({ primeng: 'p-breadcrumb', ionic: 'ion-breadcrumbs', material: 'mat-nav-list', bootstrap: '.breadcrumb', native: 'nav' })
+  },
+  {
+    componentKey: 'form.mobile_shell',
+    name: 'Mobile Form Shell',
+    category: 'form',
+    description: 'Mobile-first shell for step screens, evidence capture and bottom actions.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        subtitle: { type: 'string' },
+        badge: { type: 'string' },
+        progress: { type: 'string' },
+        width: { type: 'string' },
+        actions: { type: 'array' }
+      }
+    },
+    defaultProps: { title: 'Mobile form', subtitle: '', badge: '', progress: '35%', width: '390px', actions: [] },
+    allowedChildren: { mode: 'many' },
+    adapters: adapters({ primeng: 'p-card', ionic: 'ion-content + ion-footer', material: 'mat-card', bootstrap: '.card', native: 'section' })
+  },
+  {
+    componentKey: 'service.result_actions',
+    name: 'Service Result Actions',
+    category: 'service',
+    description: 'Dynamic service response block with follow-up actions.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        subtitle: { type: 'string' },
+        message: { type: 'string' },
+        result: {},
+        tone: { enum: ['info', 'success', 'warning', 'danger'] },
+        actions: { type: 'array' }
+      }
+    },
+    eventsSchema: {
+      onClick: { actionTypes: ['navigate', 'execute_service', 'execute_flow', 'open_modal', 'show_message', 'set_state', 'queue_offline'] }
+    },
+    defaultProps: { title: 'Service result', subtitle: '', message: 'No response yet.', result: null, tone: 'info', actions: [] },
+    adapters: adapters({ primeng: 'p-panel + p-button', ionic: 'ion-card + ion-button', material: 'mat-card + button', bootstrap: '.card .btn', native: 'section' })
+  },
+  {
+    componentKey: 'flow.stepper',
+    name: 'Flow Stepper',
+    category: 'flow',
+    description: 'Readable flow execution or design sequence with status per step.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+        steps: { type: 'array' },
+        emptyText: { type: 'string' }
+      }
+    },
+    defaultProps: { label: 'Flow steps', steps: [], emptyText: 'No steps.' },
+    adapters: adapters({ primeng: 'p-steps', ionic: 'ion-list', material: 'mat-stepper', bootstrap: '.list-group', native: 'ol' })
+  },
+  {
+    componentKey: 'record.editor',
+    name: 'Record Editor',
+    category: 'record',
+    description: 'Record editing surface generated from field metadata, values and declarative actions.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        subtitle: { type: 'string' },
+        fields: { type: 'array' },
+        values: { type: 'object' },
+        record: { type: 'object' },
+        actions: { type: 'array' }
+      }
+    },
+    eventsSchema: {
+      valueChange: { actionTypes: ['set_state', 'refresh_data'] },
+      onClick: { actionTypes: ['execute_service', 'submit_form', 'show_message', 'queue_offline'] }
+    },
+    defaultProps: { title: 'Edit record', subtitle: '', fields: [], values: {}, actions: [] },
+    adapters: adapters({ primeng: 'p-panel + p-inputText', ionic: 'ion-list + ion-input', material: 'mat-card + mat-form-field', bootstrap: '.card .form-control', native: 'form' })
+  },
+  {
+    componentKey: 'overlay.action_sheet',
+    name: 'Action Sheet',
+    category: 'overlay',
+    description: 'Mobile-friendly action sheet for contextual decisions and compact command groups.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        message: { type: 'string' },
+        actions: { type: 'array' },
+        emptyText: { type: 'string' }
+      }
+    },
+    eventsSchema: {
+      onClick: { actionTypes: ['navigate', 'execute_service', 'execute_flow', 'open_modal', 'show_message', 'set_state', 'queue_offline'] }
+    },
+    defaultProps: { title: 'Actions', message: '', actions: [], emptyText: 'No actions.' },
+    adapters: adapters({ primeng: 'p-overlayPanel', ionic: 'ion-action-sheet', material: 'mat-bottom-sheet', bootstrap: '.dropdown-menu', native: 'section' })
+  },
+  {
+    componentKey: 'media.camera_capture',
+    name: 'Camera Capture',
+    category: 'media',
+    description: 'Declarative camera/evidence capture block for mobile forms and offline workflows.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        subtitle: { type: 'string' },
+        src: { type: 'string' },
+        placeholder: { type: 'string' },
+        captureLabel: { type: 'string' },
+        tone: { enum: ['primary', 'secondary', 'success', 'danger', 'neutral'] },
+        variant: { enum: ['solid', 'outline', 'ghost'] }
+      }
+    },
+    eventsSchema: {
+      onCapture: { actionTypes: ['open_modal', 'show_message', 'set_state', 'queue_offline'] }
+    },
+    defaultProps: { title: 'Photo', subtitle: '', placeholder: 'No image captured', captureLabel: 'Capture photo', tone: 'primary', variant: 'outline' },
+    adapters: adapters({ primeng: 'fileupload/camera adapter', ionic: 'Capacitor Camera + ion-button', material: 'mat-card + button', bootstrap: '.card .btn', native: 'input[type=file]' })
+  },
+  {
+    componentKey: 'map.gps_capture',
+    name: 'GPS Capture',
+    category: 'media',
+    description: 'Declarative GPS capture block with latitude, longitude and capture action.',
+    propsSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        subtitle: { type: 'string' },
+        lat: { type: 'string' },
+        lng: { type: 'string' },
+        status: { type: 'string' },
+        captureLabel: { type: 'string' },
+        tone: { enum: ['primary', 'secondary', 'success', 'danger', 'neutral'] },
+        variant: { enum: ['solid', 'outline', 'ghost'] }
+      }
+    },
+    eventsSchema: {
+      onCapture: { actionTypes: ['show_message', 'set_state', 'queue_offline'] }
+    },
+    defaultProps: { title: 'GPS location', subtitle: '', lat: '', lng: '', status: 'Waiting for location permission', captureLabel: 'Capture location', tone: 'primary', variant: 'outline' },
+    adapters: adapters({ primeng: 'map/location adapter', ionic: 'Capacitor Geolocation + ion-button', material: 'mat-card + button', bootstrap: '.card .btn', native: 'section' })
+  },
+  standardSeed('ui.chip', 'Chip', 'primitive', 'Compact pill for tags, states and non-sensitive metadata.', { label: 'Chip', tone: 'info' }, { ionic: 'ion-chip', material: 'mat-chip', bootstrap: '.badge', native: 'span' }),
+  standardSeed('ui.text', 'Text', 'primitive', 'Declarative text block with consistent typography across kits.', { text: 'Text' }, { ionic: 'ion-text', material: 'p', bootstrap: 'p', native: 'p' }),
+  standardSeed('ui.title', 'Title', 'primitive', 'Declarative section heading with optional eyebrow and subtitle.', { title: 'Title', subtitle: '' }, { ionic: 'ion-title', material: 'h2', bootstrap: 'h2', native: 'h2' }),
+  standardSeed('ui.note', 'Note', 'feedback', 'Context note for help, validation and guidance.', { message: 'Note', tone: 'info' }, { ionic: 'ion-note', material: 'mat-card', bootstrap: '.alert', native: 'aside' }),
+  standardSeed('ui.avatar', 'Avatar', 'primitive', 'Avatar with image or initials for users, entities and apps.', { initials: 'CE', label: 'Avatar' }, { ionic: 'ion-avatar', material: '.mat-mdc-avatar', bootstrap: '.rounded-circle', native: 'span' }),
+  standardSeed('ui.icon', 'Icon', 'primitive', 'Icon block with tone and controlled size.', { icon: 'pi pi-circle', label: 'Icon' }, { ionic: 'ion-icon', material: 'mat-icon', bootstrap: '.bi', native: 'i' }),
+  standardSeed('ui.accordion', 'Accordion', 'layout', 'Single collapsible section for help, details and advanced options.', { title: 'Section', content: '' }, { ionic: 'ion-accordion', material: 'mat-expansion-panel', bootstrap: '.accordion-item', native: 'details' }),
+  standardSeed('ui.accordion_group', 'Accordion Group', 'layout', 'Group of collapsible sections driven by declarative items.', { items: [] }, { ionic: 'ion-accordion-group', material: 'mat-accordion', bootstrap: '.accordion', native: 'div' }),
+  standardSeed('ui.segment', 'Segment', 'navigation', 'Segmented control for modes, compact tabs and main filters.', { activeKey: '', items: [] }, { ionic: 'ion-segment', material: 'mat-button-toggle-group', bootstrap: '.btn-group', native: 'div' }),
+  standardSeed('feedback.progress', 'Progress', 'feedback', 'Progress bar for loading, completion and coverage states.', { label: 'Progress', percent: 0 }, { ionic: 'ion-progress-bar', material: 'mat-progress-bar', bootstrap: '.progress', native: 'progress' }),
+  standardSeed('feedback.spinner', 'Spinner', 'feedback', 'Processing indicator for transient actions and loading states.', { message: 'Processing...' }, { ionic: 'ion-spinner', material: 'mat-progress-spinner', bootstrap: '.spinner-border', native: 'span' }),
+  standardSeed('layout.row', 'Layout Row', 'layout', 'Responsive horizontal group for controls and actions.', { gap: '12px' }, { ionic: 'ion-row', material: '.layout-row', bootstrap: '.row', native: 'div' }),
+  standardSeed('layout.column', 'Layout Column', 'layout', 'Vertical layout container for declarative children.', { gap: '12px' }, { ionic: 'ion-col', material: '.layout-column', bootstrap: '.col', native: 'div' }),
+  standardSeed('layout.split_pane', 'Split Pane', 'layout', 'Two-zone layout that collapses safely on small screens.', { left: '1fr', right: '1fr' }, { ionic: 'ion-split-pane', material: '.split-pane', bootstrap: '.row', native: 'div' }),
+  standardSeed('layout.header', 'Layout Header', 'layout', 'Top region for shells, pages and composed cards.', {}, { ionic: 'ion-header', material: 'header', bootstrap: 'header', native: 'header' }),
+  standardSeed('layout.content', 'Layout Content', 'layout', 'Main content region for declarative screens.', {}, { ionic: 'ion-content', material: 'main', bootstrap: 'main', native: 'main' }),
+  standardSeed('layout.footer', 'Layout Footer', 'layout', 'Bottom region for actions and screen status.', { text: '' }, { ionic: 'ion-footer', material: 'footer', bootstrap: 'footer', native: 'footer' }),
+  standardSeed('nav.link', 'Navigation Link', 'navigation', 'Clickable navigation link connected to the declarative action runner.', { label: 'Open' }, { ionic: 'ion-nav-link', material: 'a[mat-button]', bootstrap: '.nav-link', native: 'button' }),
+  standardSeed('data.list_header', 'List Header', 'data', 'Semantic list header with optional metadata.', { title: 'List', meta: '' }, { ionic: 'ion-list-header', material: 'mat-list-subheader', bootstrap: '.list-group-item', native: 'div' }),
+  standardSeed('data.list_item', 'List Item', 'data', 'Single list row with title, subtitle and status.', { title: 'Item', subtitle: '', status: '' }, { ionic: 'ion-item', material: 'mat-list-item', bootstrap: '.list-group-item', native: 'article' }),
+  standardSeed('data.list_divider', 'List Divider', 'data', 'Semantic divider for long lists and sections.', { label: 'Section' }, { ionic: 'ion-item-divider', material: 'mat-divider', bootstrap: '.dropdown-divider', native: 'hr' }),
+  standardSeed('media.image', 'Image', 'media', 'Image block with placeholder, caption and controlled ratio.', { placeholder: 'Image', caption: '' }, { ionic: 'ion-img', material: 'img', bootstrap: 'img.img-fluid', native: 'img' }),
+  standardSeed('media.thumbnail', 'Thumbnail', 'media', 'Small visual thumbnail for lists, galleries and evidence.', { placeholder: 'IMG', title: '' }, { ionic: 'ion-thumbnail', material: 'img', bootstrap: '.img-thumbnail', native: 'figure' }),
+  standardSeed('ui.fab', 'Floating Action Button', 'action', 'Floating action command for create flows and compact app actions.', { label: 'New', icon: 'pi pi-plus', tone: 'primary' }, { ionic: 'ion-fab', material: 'button[mat-fab]', bootstrap: '.btn', native: 'button' })
 ];

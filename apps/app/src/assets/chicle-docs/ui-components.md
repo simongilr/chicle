@@ -117,7 +117,7 @@ Still required for the designer:
 | Dynamic form runtime | PageShell | field renderer, preview, mobile actions, loading and notices | Forms foundation |
 | Login | PublicPageShell | dynamic fields, segmented control, notices, loading and multikit actions | Adopted |
 | Setup | PublicPageShell | dynamic fields, notices, loading and multikit actions | Adopted |
-| Declarative runtime lab | PageShell | module header, JSON editor, runtime renderer, action history, backend validation and offline queue | Phase 3 verification |
+| C-Declarativos lab | PageShell | module header, JSON editor, component renderer, action history, backend validation and offline queue | Phase 3 verification |
 
 Page-local CSS is allowed for domain composition. It must not recreate navigation shells, module headers, loading
 states, catalogs, generic field wrappers, action buttons, cards, code blocks or preview viewports. Page templates must

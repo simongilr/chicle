@@ -123,7 +123,7 @@ const ADMIN_ES: Record<string, string> = {
   'confisys.description':
     'Parámetros cargados en memoria al iniciar la API. Los cambios se guardan en base de datos y aplican después de reiniciar el backend.',
   'confisys.badge': 'Configuración',
-  'dynamicFormRuntime.eyebrow': 'Runtime declarativo',
+  'dynamicFormRuntime.eyebrow': 'C-Declarativos',
   'dynamicFormRuntime.description': 'El mismo esquema compone los campos, validaciones y valores en web y móvil.',
   'translations.eyebrow': 'Runtime de idiomas',
   'translations.title': 'Paquetes de textos',
@@ -353,7 +353,7 @@ const ADMIN_EN: Record<string, string> = {
   'confisys.description':
     'Parameters loaded in memory when the API starts. Changes are saved in the database and apply after restarting the backend.',
   'confisys.badge': 'Configuration',
-  'dynamicFormRuntime.eyebrow': 'Declarative runtime',
+  'dynamicFormRuntime.eyebrow': 'C-Declarativos',
   'dynamicFormRuntime.description': 'The same schema composes fields, validations, and values on web and mobile.',
   'translations.eyebrow': 'Language runtime',
   'translations.title': 'Text bundles',
